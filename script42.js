@@ -254,9 +254,9 @@ try {
     if (saved) playerStarPowers = JSON.parse(saved);
 } catch (e) { console.error("Error loading SP", e); }
 
-// DOM
-const canvas = document.getElementById('game-canvas');
-const ctx = canvas.getContext('2d');
+// DOM (changed to let to allow re-init and avoid crashes)
+let canvas = document.getElementById('game-canvas');
+let ctx = canvas ? canvas.getContext('2d') : null;
 const screens = document.querySelectorAll('.screen');
 const quitBtn = document.getElementById('quit-btn');
 const restartBtn = document.getElementById('restart-btn');
@@ -1654,6 +1654,16 @@ let gameLoopRunning = false;
 // --- Initialization & Setup ---
 function initGame() {
     try {
+        // Ensure canvas and ctx are initialized
+        if (!canvas) canvas = document.getElementById('game-canvas');
+        if (canvas && !ctx) ctx = canvas.getContext('2d');
+        
+        // Explicitly set dimensions (fixes the "missing map" issue)
+        if (canvas) {
+            canvas.width = CONFIG.CANVAS_WIDTH;
+            canvas.height = CONFIG.CANVAS_HEIGHT;
+        }
+
         units = []; buildings = []; projectiles = []; auras = [];
         particles = []; floatingTexts = [];
         playerElixir = 5; enemyElixir = 5; aiDeaths = []; pendingRebuilds = [];

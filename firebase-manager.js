@@ -77,7 +77,9 @@
           }
           
           // 2. Local (BroadcastChannel)
+          onlinePlayers[id] = presenceData;
           localChannel.postMessage({ type: 'presence', peerId: id, ...presenceData });
+          window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
         };
 
         // Initial update
