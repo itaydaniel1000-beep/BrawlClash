@@ -62,29 +62,29 @@
         console.log('✅ PeerJS Connected. ID:', id);
         if (callback) callback(id);
         
-        // 1. Broadcast presence globally (Firebase)
-        if (db) {
-          const presenceRef = db.ref('presence/' + id);
-          presenceRef.set({ 
+        const updatePresence = () => {
+          const presenceData = { 
             username, 
             trophies: window.playerTrophies || 0,
             last_active: Date.now() 
-          });
-          presenceRef.onDisconnect().remove();
-        }
-        
-        // 2. Broadcast presence locally (Same computer, different tabs)
-        const selfPresence = {
-          type: 'presence',
-          peerId: id,
-          username: username,
-          trophies: window.playerTrophies || 0
+          };
+
+          // 1. Global (Firebase)
+          if (db) {
+            const presenceRef = db.ref('presence/' + id);
+            presenceRef.set(presenceData);
+            presenceRef.onDisconnect().remove();
+          }
+          
+          // 2. Local (BroadcastChannel)
+          localChannel.postMessage({ type: 'presence', peerId: id, ...presenceData });
         };
-        localChannel.postMessage(selfPresence);
+
+        // Initial update
+        updatePresence();
         
-        // Add self to local list so we see ourselves immediately
-        onlinePlayers[id] = { username: selfPresence.username, trophies: selfPresence.trophies };
-        window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
+        // Heartbeat every 30 seconds
+        setInterval(updatePresence, 30000);
 
         // 3. Ask others who is already here
         localChannel.postMessage({ type: 'query' });
@@ -99,11 +99,14 @@
     listenOnlinePlayers: (callback) => {
       const getDeduplicated = (playersObj) => {
         const unique = {};
+        const now = Date.now();
+        const expiry = 120000; // 2 minutes threshold
+
         Object.keys(playersObj).forEach(id => {
           const p = playersObj[id];
-          if (p && p.username) {
-            // Keep the one with more trophies or the latest one
-            if (!unique[p.username] || (p.trophies || 0) > (unique[p.username].trophies || 0)) {
+          // Filter out inactive "ghosts"
+          if (p && p.username && (now - p.last_active < expiry)) {
+            if (!unique[p.username] || p.last_active > unique[p.username].last_active) {
               unique[p.username] = { ...p, peerId: id };
             }
           }
@@ -128,6 +131,9 @@
         };
         window.addEventListener('presenceUpdated', handleUpdate);
         handleUpdate();
+        
+        // Refresh UI every 10s to clear expired players
+        setInterval(handleUpdate, 10000);
       }
     },
 
