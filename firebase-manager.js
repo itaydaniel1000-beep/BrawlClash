@@ -6,6 +6,10 @@
   let activeConnection = null;
   let p2pStatus = { isHost: false };
   let db = null;
+  let onlinePlayers = {};
+  
+  // Local broadcast for cross-tab testing on the same machine
+  const localChannel = new BroadcastChannel('brawlclash_presence');
 
   // --- ⚠️ המשתמש חייב להזין את ה-Firebase Config שלו כאן כדי שזה יעבוד גלובלית! ⚠️ ---
   const firebaseConfig = {
@@ -24,8 +28,27 @@
     db = firebase.database();
   }
 
+  // Handle incoming local broadcasts
+  localChannel.onmessage = (event) => {
+    if (event.data.type === 'presence') {
+      onlinePlayers[event.data.peerId] = { username: event.data.username, trophies: event.data.trophies || 0 };
+      window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
+    } else if (event.data.type === 'query') {
+      // Someone else just joined and is asking who's here - reply if we are initialized
+      if (peerInstance && peerInstance.id) {
+        localChannel.postMessage({
+          type: 'presence',
+          peerId: peerInstance.id,
+          username: window.playerStats ? window.playerStats.username : 'Unknown',
+          trophies: window.playerTrophies || 0
+        });
+      }
+    }
+  };
+
   window.NetworkManager = {
-    isConfigured: () => true, // Enabled by default to show UI
+    isConfigured: () => true, // Always true to show UI, even if just local
+    getPeerInstance: () => peerInstance,
     isHost: () => p2pStatus.isHost,
     getConnection: () => activeConnection,
 
@@ -37,21 +60,27 @@
         console.log('✅ PeerJS Connected. ID:', id);
         if (callback) callback(id);
         
-        // Register Global Presence in Firebase
+        // 1. Broadcast presence globally (Firebase)
         if (db) {
           const presenceRef = db.ref('presence/' + id);
-          // Sync trophies along with username
           presenceRef.set({ 
             username, 
             trophies: window.playerTrophies || 0,
             last_active: Date.now() 
           });
           presenceRef.onDisconnect().remove();
-        } else {
-          // MOCK: Add self to local list for testing
-          onlinePlayers[id] = { username, last_active: Date.now() };
-          window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
         }
+        
+        // 2. Broadcast presence locally (Same computer, different tabs)
+        localChannel.postMessage({
+          type: 'presence',
+          peerId: id,
+          username: username,
+          trophies: window.playerTrophies || 0
+        });
+
+        // 3. Ask others who is already here
+        localChannel.postMessage({ type: 'query' });
       });
 
       peerInstance.on('connection', (conn) => {
@@ -61,15 +90,17 @@
     },
 
     listenOnlinePlayers: (callback) => {
+      // 1. Listen to Firebase for global players
       if (db) {
         const presenceRef = db.ref('presence');
         presenceRef.on('value', (snapshot) => {
           const players = snapshot.val() || {};
-          const count = Object.keys(players).length;
-          callback(count, players);
+          // Merge with local ones if any (rare)
+          const merged = { ...onlinePlayers, ...players };
+          callback(Object.keys(merged).length, merged);
         });
       } else {
-        // Local fallback if no Firebase config
+        // 2. Fallback to local-only (different tabs)
         window.addEventListener('presenceUpdated', (e) => {
           callback(Object.keys(e.detail).length, e.detail);
         });
@@ -157,4 +188,3 @@
     });
   }
 })();
-
