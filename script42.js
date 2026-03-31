@@ -2597,13 +2597,17 @@ function renderLeaderboard() {
     window.NetworkManager.listenOnlinePlayers((count, players) => {
         container.innerHTML = "";
         
-        // Convert players object to array and sort by trophies
-        const playersArray = Object.keys(players).map(id => ({
-            id: id,
-            name: players[id].username,
-            trophies: players[id].trophies || 0,
-            isPlayer: id === (window.NetworkManager.peerInstance ? window.NetworkManager.peerInstance.id : '')
-        }));
+        // Convert players object (keyed by username) to array
+        const playersArray = Object.keys(players).map(username => {
+            const p = players[username];
+            const myPeerId = (window.NetworkManager.getPeerInstance ? window.NetworkManager.getPeerInstance().id : '');
+            return {
+                id: p.peerId || '',
+                name: username,
+                trophies: p.trophies || 0,
+                isPlayer: p.peerId === myPeerId
+            };
+        });
 
         // Sort by trophies descending
         playersArray.sort((a, b) => b.trophies - a.trophies);
@@ -2621,65 +2625,75 @@ function renderLeaderboard() {
     });
 }
 
-// Start in the lobby
-goToLobby();
+// Start in the lobby (now handled in DOMContentLoaded)
+// goToLobby();
 
 // --- Network & Chat Integration ---
 function initNetworkListeners() {
+    if (isNetworkInitialized) return;
     if (!window.NetworkManager || !window.NetworkManager.isConfigured()) return;
+    isNetworkInitialized = true;
 
-    // Listen for Online Players
+    // 1. Listen for Online Count
     window.NetworkManager.listenOnlinePlayers((count, players) => {
         const countEl = document.getElementById('online-count');
         if (countEl) countEl.innerText = count;
+        updateOnlinePlayersList(players);
     });
 
-    // Listen for Chat Messages
-    window.NetworkManager.listenChat((messages) => {
-        const chatBox = document.getElementById('chat-messages');
-        if (!chatBox) return;
-        
-        chatBox.innerHTML = messages.map(m => `
-            <div>
-                <span class="chat-name">${m.username}:</span>
-                <span class="chat-text">${m.text}</span>
-            </div>
-        `).join('');
-        
-        // Auto-scroll to bottom
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-
-    // Listen for Presence (Online Players List)
-    window.NetworkManager.listenOnlinePlayers((count, players) => {
-        const listContainer = document.getElementById('online-players-list');
-        if (!listContainer) return;
-        
-        listContainer.innerHTML = '';
-        Object.keys(players).forEach(peerId => {
-            if (peerId === (window.NetworkManager.peerInstance ? window.NetworkManager.peerInstance.id : '')) return; // Skip self
-
-            const player = players[peerId];
-            const item = document.createElement('div');
-            item.className = 'social-player-item';
-            item.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="font-size: 1.2rem;">👤</div>
-                    <div style="font-weight: bold; color: white;">${player.username}</div>
+    // 2. Listen for Chat Messages
+    if (window.NetworkManager.listenChat) {
+        window.NetworkManager.listenChat((messages) => {
+            const chatBox = document.getElementById('chat-messages');
+            if (!chatBox) return;
+            chatBox.innerHTML = messages.map(m => `
+                <div>
+                    <span class="chat-name">${m.username}:</span>
+                    <span class="chat-text">${m.text}</span>
                 </div>
-                <button class="hover-invite-btn" onclick="invitePlayer('${peerId}', '${player.username}')">הזמן ⚔️</button>
-            `;
-            listContainer.appendChild(item);
+            `).join('');
+            chatBox.scrollTop = chatBox.scrollHeight;
         });
+    }
 
-        const onlineCount = document.getElementById('online-count');
-        if (onlineCount) onlineCount.innerText = count;
-    });
-
-    // Listen for Incoming Invites
+    // 3. Listen for Incoming Invites
     window.addEventListener('remoteInvite', (e) => {
         const { from, fromId } = e.detail;
         showBattleInvite(from, fromId);
+    });
+
+    // 4. Listen for Battle Status
+    window.addEventListener('battleAccepted', (e) => {
+        const { roomId, opponent, isHost } = e.detail;
+        startMultiplayerBattle(roomId, isHost, opponent);
+    });
+}
+
+function updateOnlinePlayersList(players) {
+    const listContainer = document.getElementById('online-players-list');
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    const myPeerId = (window.NetworkManager.getPeerInstance ? window.NetworkManager.getPeerInstance().id : '');
+
+    Object.keys(players).forEach(username => {
+        const player = players[username];
+        const isSelf = (player.peerId === myPeerId);
+        if (isSelf) return; // Skip self
+
+        const item = document.createElement('div');
+        item.className = 'social-player-item';
+        item.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="font-size: 1.2rem;">👤</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; color: white; text-align: right;">${username}</div>
+                    <div style="font-size: 0.8rem; color: #f1c40f; text-align: right;">🏆 ${player.trophies || 0}</div>
+                </div>
+            </div>
+            <button class="hover-invite-btn" onclick="invitePlayer('${player.peerId}', '${username}')">הזמן ⚔️</button>
+        `;
+        listContainer.appendChild(item);
     });
 }
 
@@ -2785,6 +2799,7 @@ window.claimUsername = claimUsername;
 // --- Network & Multiplayer Configuration ---
 let currentBattleRoom = null;
 let isHost = false;
+let isNetworkInitialized = false;
 
 // --- Multiplayer Communication Logic ---
 
@@ -2814,6 +2829,14 @@ function openPlayersTab() {
     document.getElementById('tab-players').style.color = '#000';
     document.getElementById('tab-chat').style.background = 'var(--bs-blue)';
     document.getElementById('tab-chat').style.color = '#fff';
+
+    // Force a re-render of online players
+    if (window.NetworkManager) {
+        window.NetworkManager.listenOnlinePlayers((count, players) => {
+            // This is already handled by the global listener, but we ensure it's up to date
+            updateOnlinePlayersList(players);
+        });
+    }
 }
 window.openPlayersTab = openPlayersTab;
 
@@ -2846,19 +2869,20 @@ function initGameListeners() {
         document.getElementById('tab-chat').style.background = 'var(--bs-blue)';
     };
 }
-function initNetworkListeners() {
-    window.addEventListener('battleAccepted', (e) => {
-        const { roomId, opponent, isHost } = e.detail;
-        startMultiplayerBattle(roomId, isHost, opponent);
-    });
-}
+// Removed duplicate initNetworkListeners - consolidated at 2628
 
 // --- PeerJS Integration ---
+let isPeerJSInitialized = false;
 function initPeerJS() {
-    if (!window.NetworkManager) return;
+    if (!window.NetworkManager || isPeerJSInitialized) return;
+    if (!playerStats.username) {
+        console.warn("🚫 Cannot init NetworkManager without username.");
+        return;
+    }
     
+    isPeerJSInitialized = true;
     window.NetworkManager.init(playerStats.username, (id) => {
-        console.log("Multiplayer active with ID: " + id);
+        console.log("✅ Multiplayer active with ID: " + id);
     });
 }
 

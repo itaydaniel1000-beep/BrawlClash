@@ -31,15 +31,17 @@
   // Handle incoming local broadcasts
   localChannel.onmessage = (event) => {
     if (event.data.type === 'presence') {
+      // Deduplicate by username: if we already have this username from another PeerID, 
+      // we can choose to keep the latest one or handle it. For now, keep it unique in the UI.
       onlinePlayers[event.data.peerId] = { username: event.data.username, trophies: event.data.trophies || 0 };
       window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
     } else if (event.data.type === 'query') {
       // Someone else just joined and is asking who's here - reply if we are initialized
-      if (peerInstance && peerInstance.id) {
+      if (peerInstance && peerInstance.id && window.playerStats) {
         localChannel.postMessage({
           type: 'presence',
           peerId: peerInstance.id,
-          username: window.playerStats ? window.playerStats.username : 'Unknown',
+          username: window.playerStats.username,
           trophies: window.playerTrophies || 0
         });
       }
@@ -95,21 +97,37 @@
     },
 
     listenOnlinePlayers: (callback) => {
+      const getDeduplicated = (playersObj) => {
+        const unique = {};
+        Object.keys(playersObj).forEach(id => {
+          const p = playersObj[id];
+          if (p && p.username) {
+            // Keep the one with more trophies or the latest one
+            if (!unique[p.username] || (p.trophies || 0) > (unique[p.username].trophies || 0)) {
+              unique[p.username] = { ...p, peerId: id };
+            }
+          }
+        });
+        return unique;
+      };
+
       // 1. Listen to Firebase for global players
       if (db) {
         const presenceRef = db.ref('presence');
         presenceRef.on('value', (snapshot) => {
           const players = snapshot.val() || {};
-          // Merge with local ones if any (rare)
           const merged = { ...onlinePlayers, ...players };
-          callback(Object.keys(merged).length, merged);
+          const deduplicated = getDeduplicated(merged);
+          callback(Object.keys(deduplicated).length, deduplicated);
         });
       } else {
         // 2. Fallback to local-only (different tabs)
-        window.addEventListener('presenceUpdated', (e) => {
-          callback(Object.keys(e.detail).length, e.detail);
-        });
-        callback(Object.keys(onlinePlayers).length, onlinePlayers);
+        const handleUpdate = () => {
+          const deduplicated = getDeduplicated(onlinePlayers);
+          callback(Object.keys(deduplicated).length, deduplicated);
+        };
+        window.addEventListener('presenceUpdated', handleUpdate);
+        handleUpdate();
       }
     },
 
