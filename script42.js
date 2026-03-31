@@ -2579,21 +2579,19 @@ function renderShop() {
 
 function renderLeaderboard() {
     const container = document.getElementById('leaderboard-container');
+    if (!container) return;
     container.innerHTML = "";
+    
     const players = [
-        { name: 'ProPlayer', trophies: 5000, rank: 1 },
-        { name: 'BrawlMaster', trophies: 4500, rank: 2 },
-        { name: 'ClashKing', trophies: 4200, rank: 3 },
-        { name: 'אתה', trophies: playerTrophies, rank: 4, isPlayer: true },
-        { name: 'Noob123', trophies: 100, rank: 5 }
+        { name: playerStats.username, trophies: playerTrophies, rank: 1, isPlayer: true }
     ];
     
     players.forEach(p => {
         const row = document.createElement('div');
-        row.style = `display: flex; justify-content: space-between; padding: 8px; background: ${p.isPlayer ? 'rgba(241, 196, 15, 0.3)' : 'rgba(0,0,0,0.2)'}; border-radius: 5px; margin-bottom: 5px;`;
+        row.style = `display: flex; justify-content: space-between; padding: 12px; background: rgba(241, 196, 15, 0.3); border-radius: 12px; margin-bottom: 8px; border: 2px solid #f1c40f;`;
         row.innerHTML = `
-            <span style="color: #bdc3c7;">#${p.rank}</span>
-            <span style="font-weight: bold; color: white;">${p.name}</span>
+            <span style="color: #f1c40f; font-weight: bold;">#${p.rank}</span>
+            <span style="font-weight: bold; color: white;">${p.name} (אתה)</span>
             <span style="color: #f1c40f;">🏆 ${p.trophies}</span>
         `;
         container.appendChild(row);
