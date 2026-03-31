@@ -2628,6 +2628,75 @@ function initNetworkListeners() {
         // Auto-scroll to bottom
         chatBox.scrollTop = chatBox.scrollHeight;
     });
+
+    // Listen for Presence (Online Players List)
+    window.NetworkManager.listenOnlinePlayers((count, players) => {
+        const listContainer = document.getElementById('online-players-list');
+        if (!listContainer) return;
+        
+        listContainer.innerHTML = '';
+        Object.keys(players).forEach(peerId => {
+            if (peerId === (window.NetworkManager.peerInstance ? window.NetworkManager.peerInstance.id : '')) return; // Skip self
+
+            const player = players[peerId];
+            const item = document.createElement('div');
+            item.className = 'social-player-item';
+            item.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="font-size: 1.2rem;">👤</div>
+                    <div style="font-weight: bold; color: white;">${player.username}</div>
+                </div>
+                <button class="hover-invite-btn" onclick="invitePlayer('${peerId}', '${player.username}')">הזמן ⚔️</button>
+            `;
+            listContainer.appendChild(item);
+        });
+
+        const onlineCount = document.getElementById('online-count');
+        if (onlineCount) onlineCount.innerText = count;
+    });
+
+    // Listen for Incoming Invites
+    window.addEventListener('remoteInvite', (e) => {
+        const { from, fromId } = e.detail;
+        showBattleInvite(from, fromId);
+    });
+}
+
+function invitePlayer(peerId, name) {
+    if (window.NetworkManager) {
+        window.NetworkManager.sendInvite(peerId, playerStats.username);
+        // Optional: show a "Waiting for response..." toast
+        console.log("Invite sent to " + name);
+    }
+}
+window.invitePlayer = invitePlayer;
+
+function showBattleInvite(senderName, senderId) {
+    const popup = document.getElementById('invite-notification');
+    const text = document.getElementById('invite-from-text');
+    const acceptBtn = document.getElementById('accept-invite-btn');
+    const declineBtn = document.getElementById('decline-invite-btn');
+
+    if (!popup || !text) return;
+
+    text.innerText = `${senderName} מזמין אותך לקרב!`;
+    popup.style.display = 'block';
+    AudioController.play('spawn'); // Play a sound for the alert
+
+    acceptBtn.onclick = () => {
+        popup.style.display = 'none';
+        window.NetworkManager.joinRoom(senderId);
+    };
+
+    declineBtn.onclick = () => {
+        popup.style.display = 'none';
+        // Optional: send decline message
+    };
+    
+    // Auto-hide after 15 seconds
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 15000);
 }
 
 function toggleGlobalChat() {
@@ -2768,18 +2837,8 @@ function initPeerJS() {
     if (!window.NetworkManager) return;
     
     window.NetworkManager.init(playerStats.username, (id) => {
-        const idDisplay = document.getElementById('my-peer-id');
-        if (idDisplay) idDisplay.innerText = id;
+        console.log("Multiplayer active with ID: " + id);
     });
-
-    const joinBtn = document.getElementById('join-room-btn');
-    if (joinBtn) {
-        joinBtn.onclick = () => {
-            const code = document.getElementById('join-peer-id').value.trim();
-            if (code) window.NetworkManager.joinRoom(code);
-            else alert("נא להזין קוד קרב!");
-        };
-    }
 }
 
 function goToLobby() {

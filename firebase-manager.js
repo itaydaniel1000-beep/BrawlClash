@@ -1,35 +1,45 @@
-// --- PeerJS Multiplayer Bridge - Isolated Edition ---
-// This version strictly avoids global variable pollution.
+// --- PeerJS Multiplayer Bridge - Enhanced Edition ---
+// Supports presence (online players) and direct invitations.
 
 (function() {
   let peerInstance = null;
   let activeConnection = null;
   let p2pStatus = { isHost: false };
+  let onlinePlayers = {}; // Simulated/Firebase presence
+
+  // --- CONFIGURATION ---
+  // If you have a Firebase config, paste it here to make the list global!
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_ID",
+    appId: "YOUR_APP_ID"
+  };
 
   window.NetworkManager = {
     isConfigured: () => true,
-    
-    // Getters for status
     isHost: () => p2pStatus.isHost,
     getConnection: () => activeConnection,
 
     init: (username, callback) => {
-      const peerId = 'BrawlClash-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+      // Use username in ID to make discovery easier if needed
+      const peerId = 'BrawlClash-' + username.replace(/\s+/g, '_') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
       peerInstance = new Peer(peerId);
 
       peerInstance.on('open', (id) => {
         console.log('✅ PeerJS Connected. ID:', id);
         if (callback) callback(id);
+        
+        // Broadcast presence
+        window.NetworkManager.updatePresence(username, id);
       });
 
       peerInstance.on('connection', (conn) => {
-          console.log('🤝 Partner joined!');
           activeConnection = conn;
-          p2pStatus.isHost = true;
           setupConnectionListeners(conn);
-          window.dispatchEvent(new CustomEvent('battleAccepted', { 
-              detail: { roomId: peerInstance.id, opponent: 'Partner', isHost: true } 
-          }));
       });
 
       peerInstance.on('error', (err) => {
@@ -37,12 +47,27 @@
       });
     },
 
-    updatePresence: (username) => {
-      console.log(`[PeerJS] User ${username} ready.`);
+    updatePresence: (username, peerId) => {
+      console.log(`[Presence] ${username} is online at ${peerId}`);
+      onlinePlayers[peerId] = { username, last_active: Date.now() };
+      
+      // Notify UI
+      window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
     },
 
     listenOnlinePlayers: (callback) => {
-      callback(1, { "אתה": { last_active: Date.now() } });
+      window.addEventListener('presenceUpdated', (e) => {
+        callback(Object.keys(e.detail).length, e.detail);
+      });
+      callback(Object.keys(onlinePlayers).length, onlinePlayers);
+    },
+
+    sendInvite: (targetPeerId, senderName) => {
+      console.log(`⚔️ Sending invite to ${targetPeerId}`);
+      const conn = peerInstance.connect(targetPeerId);
+      conn.on('open', () => {
+        conn.send({ type: 'invite', from: senderName, fromId: peerInstance.id });
+      });
     },
 
     joinRoom: (roomId) => {
@@ -52,8 +77,9 @@
       setupConnectionListeners(activeConnection);
 
       activeConnection.on('open', () => {
+          activeConnection.send({ type: 'invite_accepted' });
           window.dispatchEvent(new CustomEvent('battleAccepted', { 
-              detail: { roomId: roomId, opponent: 'Host', isHost: false } 
+              detail: { roomId: roomId, opponent: 'Partner', isHost: false } 
           }));
       });
     },
@@ -101,7 +127,13 @@
 
   function setupConnectionListeners(conn) {
     conn.on('data', (data) => {
-        if (data.type === 'spawn') {
+        if (data.type === 'invite') {
+            window.dispatchEvent(new CustomEvent('remoteInvite', { detail: data }));
+        } else if (data.type === 'invite_accepted') {
+            window.dispatchEvent(new CustomEvent('battleAccepted', { 
+                detail: { roomId: conn.peer, opponent: 'Partner', isHost: true } 
+            }));
+        } else if (data.type === 'spawn') {
             window.dispatchEvent(new CustomEvent('remoteSpawn', { detail: data }));
         } else if (data.type === 'gameOver') {
             window.dispatchEvent(new CustomEvent('remoteGameOver', { detail: data }));

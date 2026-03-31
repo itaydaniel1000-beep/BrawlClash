@@ -1261,3 +1261,50 @@ body {
     80% { transform: translate(-50%, -60px) scale(1); opacity: 1; }
     100% { transform: translate(-50%, -90px) scale(0.8); opacity: 0; }
 }
+
+/* Social List & Invite Notification */
+.social-player-item {
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.3s;
+    position: relative;
+    cursor: default;
+    margin-bottom: 5px;
+}
+
+.social-player-item:hover {
+    background: rgba(255,255,255,0.2);
+}
+
+.hover-invite-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    background: #f1c40f;
+    color: #000;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.social-player-item:hover .hover-invite-btn {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+#invite-notification {
+    direction: rtl;
+    font-family: 'Assistant', sans-serif;
+}
