@@ -2580,21 +2580,44 @@ function renderShop() {
 function renderLeaderboard() {
     const container = document.getElementById('leaderboard-container');
     if (!container) return;
-    container.innerHTML = "";
+    container.innerHTML = "<div style='color: white; text-align: center;'>טוען מובילים...</div>";
     
-    const players = [
-        { name: playerStats.username, trophies: playerTrophies, rank: 1, isPlayer: true }
-    ];
-    
-    players.forEach(p => {
-        const row = document.createElement('div');
-        row.style = `display: flex; justify-content: space-between; padding: 12px; background: rgba(241, 196, 15, 0.3); border-radius: 12px; margin-bottom: 8px; border: 2px solid #f1c40f;`;
-        row.innerHTML = `
-            <span style="color: #f1c40f; font-weight: bold;">#${p.rank}</span>
-            <span style="font-weight: bold; color: white;">${p.name} (אתה)</span>
-            <span style="color: #f1c40f;">🏆 ${p.trophies}</span>
+    // Check if NetworkManager is ready
+    if (!window.NetworkManager || !window.NetworkManager.isConfigured()) {
+        container.innerHTML = `
+            <div style="display: flex; justify-content: space-between; padding: 12px; background: rgba(241, 196, 15, 0.3); border-radius: 12px; margin-bottom: 8px; border: 2px solid #f1c40f;">
+                <span style="color: #f1c40f; font-weight: bold;">#1</span>
+                <span style="font-weight: bold; color: white;">${playerStats.username} (אתה)</span>
+                <span style="color: #f1c40f;">🏆 ${playerTrophies}</span>
+            </div>
         `;
-        container.appendChild(row);
+        return;
+    }
+
+    window.NetworkManager.listenOnlinePlayers((count, players) => {
+        container.innerHTML = "";
+        
+        // Convert players object to array and sort by trophies
+        const playersArray = Object.keys(players).map(id => ({
+            id: id,
+            name: players[id].username,
+            trophies: players[id].trophies || 0,
+            isPlayer: id === (window.NetworkManager.peerInstance ? window.NetworkManager.peerInstance.id : '')
+        }));
+
+        // Sort by trophies descending
+        playersArray.sort((a, b) => b.trophies - a.trophies);
+
+        playersArray.forEach((p, index) => {
+            const row = document.createElement('div');
+            row.style = `display: flex; justify-content: space-between; padding: 12px; background: ${p.isPlayer ? 'rgba(241, 196, 15, 0.3)' : 'rgba(255,255,255,0.1)'}; border-radius: 12px; margin-bottom: 8px; border: 2px solid ${p.isPlayer ? '#f1c40f' : 'transparent'};`;
+            row.innerHTML = `
+                <span style="color: ${p.isPlayer ? '#f1c40f' : '#bdc3c7'}; font-weight: bold;">#${index + 1}</span>
+                <span style="font-weight: bold; color: white;">${p.name}${p.isPlayer ? ' (אתה)' : ''}</span>
+                <span style="color: #f1c40f;">🏆 ${p.trophies}</span>
+            `;
+            container.appendChild(row);
+        });
     });
 }
 

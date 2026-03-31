@@ -40,7 +40,12 @@
         // Register Global Presence in Firebase
         if (db) {
           const presenceRef = db.ref('presence/' + id);
-          presenceRef.set({ username, last_active: Date.now() });
+          // Sync trophies along with username
+          presenceRef.set({ 
+            username, 
+            trophies: window.playerTrophies || 0,
+            last_active: Date.now() 
+          });
           presenceRef.onDisconnect().remove();
         } else {
           // MOCK: Add self to local list for testing
