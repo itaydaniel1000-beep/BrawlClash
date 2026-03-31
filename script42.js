@@ -2049,8 +2049,14 @@ function drawBackground(ctx) {
     ctx.fillStyle = '#4cd137'; 
     ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
     
-    // 2. Draw Field Lines (Solid white for visibility)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; 
+    // 2. Draw Diagnostic Info
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText(`Dimensions: ${canvas.width}x${canvas.height}`, 20, 40);
+    ctx.fillText(`State: ${currentState}`, 20, 70);
+
+    // 3. Draw Field Lines (Solid white for visibility)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 1.0)'; 
     ctx.lineWidth = 5;
     
     // Center line
@@ -2065,7 +2071,13 @@ function drawBackground(ctx) {
     ctx.stroke();
     
     // Borders
-    ctx.strokeRect(5, 5, CONFIG.CANVAS_WIDTH - 10, CONFIG.CANVAS_HEIGHT - 10);
+    ctx.strokeRect(10, 10, CONFIG.CANVAS_WIDTH - 20, CONFIG.CANVAS_HEIGHT - 20);
+    
+    // Diagnostic Center Cross
+    ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.moveTo(CONFIG.CANVAS_WIDTH / 2, 0); ctx.lineTo(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT);
+    ctx.stroke();
     
     ctx.restore();
 }
