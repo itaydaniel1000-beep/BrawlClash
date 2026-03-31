@@ -72,12 +72,17 @@
         }
         
         // 2. Broadcast presence locally (Same computer, different tabs)
-        localChannel.postMessage({
+        const selfPresence = {
           type: 'presence',
           peerId: id,
           username: username,
           trophies: window.playerTrophies || 0
-        });
+        };
+        localChannel.postMessage(selfPresence);
+        
+        // Add self to local list so we see ourselves immediately
+        onlinePlayers[id] = { username: selfPresence.username, trophies: selfPresence.trophies };
+        window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
 
         // 3. Ask others who is already here
         localChannel.postMessage({ type: 'query' });
