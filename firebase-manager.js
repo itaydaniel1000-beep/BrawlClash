@@ -1,31 +1,35 @@
-// --- PeerJS Multiplayer Bridge - Enhanced Edition ---
-// Supports presence (online players) and direct invitations.
+// --- Firebase + PeerJS Multiplayer Bridge ---
+// Enables global discovery and bot-free player lists.
 
 (function() {
   let peerInstance = null;
   let activeConnection = null;
   let p2pStatus = { isHost: false };
-  let onlinePlayers = {}; // Simulated/Firebase presence
+  let db = null;
 
-  // --- CONFIGURATION ---
-  // If you have a Firebase config, paste it here to make the list global!
+  // --- ⚠️ המשתמש חייב להזין את ה-Firebase Config שלו כאן כדי שזה יעבוד גלובלית! ⚠️ ---
   const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
     projectId: "YOUR_PROJECT",
     storageBucket: "YOUR_PROJECT.appspot.com",
     messagingSenderId: "YOUR_ID",
     appId: "YOUR_APP_ID"
   };
 
+  // Initialize Firebase (if config is valid)
+  if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  }
+
   window.NetworkManager = {
-    isConfigured: () => true,
+    isConfigured: () => true, // Enabled by default to show UI
     isHost: () => p2pStatus.isHost,
     getConnection: () => activeConnection,
 
     init: (username, callback) => {
-      // Use username in ID to make discovery easier if needed
       const peerId = 'BrawlClash-' + username.replace(/\s+/g, '_') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
       peerInstance = new Peer(peerId);
 
@@ -33,33 +37,39 @@
         console.log('✅ PeerJS Connected. ID:', id);
         if (callback) callback(id);
         
-        // Broadcast presence
-        window.NetworkManager.updatePresence(username, id);
+        // Register Global Presence in Firebase
+        if (db) {
+          const presenceRef = db.ref('presence/' + id);
+          presenceRef.set({ username, last_active: Date.now() });
+          presenceRef.onDisconnect().remove();
+        } else {
+          // MOCK: Add self to local list for testing
+          onlinePlayers[id] = { username, last_active: Date.now() };
+          window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
+        }
       });
 
       peerInstance.on('connection', (conn) => {
           activeConnection = conn;
           setupConnectionListeners(conn);
       });
-
-      peerInstance.on('error', (err) => {
-          console.error('❌ PeerJS Error:', err);
-      });
-    },
-
-    updatePresence: (username, peerId) => {
-      console.log(`[Presence] ${username} is online at ${peerId}`);
-      onlinePlayers[peerId] = { username, last_active: Date.now() };
-      
-      // Notify UI
-      window.dispatchEvent(new CustomEvent('presenceUpdated', { detail: onlinePlayers }));
     },
 
     listenOnlinePlayers: (callback) => {
-      window.addEventListener('presenceUpdated', (e) => {
-        callback(Object.keys(e.detail).length, e.detail);
-      });
-      callback(Object.keys(onlinePlayers).length, onlinePlayers);
+      if (db) {
+        const presenceRef = db.ref('presence');
+        presenceRef.on('value', (snapshot) => {
+          const players = snapshot.val() || {};
+          const count = Object.keys(players).length;
+          callback(count, players);
+        });
+      } else {
+        // Local fallback if no Firebase config
+        window.addEventListener('presenceUpdated', (e) => {
+          callback(Object.keys(e.detail).length, e.detail);
+        });
+        callback(Object.keys(onlinePlayers).length, onlinePlayers);
+      }
     },
 
     sendInvite: (targetPeerId, senderName) => {
@@ -85,9 +95,7 @@
     },
 
     syncSpawn: (roomId, x, y, typeStr) => {
-      if (activeConnection && activeConnection.open) {
-          activeConnection.send({ type: 'spawn', x, y, typeStr });
-      }
+      if (activeConnection && activeConnection.open) activeConnection.send({ type: 'spawn', x, y, typeStr });
     },
 
     listenSpawns: (roomId, callback) => {
@@ -95,9 +103,7 @@
     },
 
     updateBattleResult: (roomId, winner) => {
-      if (activeConnection && activeConnection.open) {
-          activeConnection.send({ type: 'gameOver', winner });
-      }
+      if (activeConnection && activeConnection.open) activeConnection.send({ type: 'gameOver', winner });
     },
 
     listenBattleStatus: (roomId, callback) => {
@@ -105,9 +111,7 @@
     },
 
     sendEmote: (roomId, username, emoteId) => {
-      if (activeConnection && activeConnection.open) {
-          activeConnection.send({ type: 'emote', username, emoteId });
-      }
+      if (activeConnection && activeConnection.open) activeConnection.send({ type: 'emote', username, emoteId });
     },
 
     listenEmotes: (roomId, callback) => {
@@ -115,9 +119,7 @@
     },
 
     syncHealth: (roomId, hpData) => {
-      if (activeConnection && activeConnection.open) {
-          activeConnection.send({ type: 'healthSync', hpData });
-      }
+      if (activeConnection && activeConnection.open) activeConnection.send({ type: 'healthSync', hpData });
     },
 
     listenHealth: (roomId, callback) => {
@@ -150,3 +152,4 @@
     });
   }
 })();
+
