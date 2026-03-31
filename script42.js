@@ -254,9 +254,19 @@ try {
     if (saved) playerStarPowers = JSON.parse(saved);
 } catch (e) { console.error("Error loading SP", e); }
 
-// DOM (changed to let to allow re-init and avoid crashes)
-let canvas = document.getElementById('game-canvas');
-let ctx = canvas ? canvas.getContext('2d') : null;
+// DOM
+let canvas = null;
+let ctx = null;
+
+function setupCanvas() {
+    canvas = document.getElementById('game-canvas');
+    if (canvas) {
+        ctx = canvas.getContext('2d');
+        canvas.width = CONFIG.CANVAS_WIDTH;
+        canvas.height = CONFIG.CANVAS_HEIGHT;
+        console.log("📏 Canvas initialized:", canvas.width, "x", canvas.height);
+    }
+}
 const screens = document.querySelectorAll('.screen');
 const quitBtn = document.getElementById('quit-btn');
 const restartBtn = document.getElementById('restart-btn');
@@ -1654,14 +1664,12 @@ let gameLoopRunning = false;
 // --- Initialization & Setup ---
 function initGame() {
     try {
-        // Ensure canvas and ctx are initialized
-        if (!canvas) canvas = document.getElementById('game-canvas');
-        if (canvas && !ctx) ctx = canvas.getContext('2d');
+        // Ensure canvas and ctx are initialized and sized
+        setupCanvas();
         
-        // Explicitly set dimensions (fixes the "missing map" issue)
-        if (canvas) {
-            canvas.width = CONFIG.CANVAS_WIDTH;
-            canvas.height = CONFIG.CANVAS_HEIGHT;
+        if (!ctx) {
+            console.error("❌ Failed to initialize Canvas context");
+            return;
         }
 
         units = []; buildings = []; projectiles = []; auras = [];
@@ -2035,11 +2043,30 @@ function aiUpdate(dt, now) {
 }
 
 function drawBackground(ctx) {
+    if (!ctx) return;
     ctx.save();
-    ctx.fillStyle = '#4cd137'; ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; ctx.lineWidth = 4;
-    ctx.beginPath(); ctx.moveTo(0, CONFIG.CANVAS_HEIGHT / 2); ctx.lineTo(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT / 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2, 60, 0, Math.PI * 2); ctx.stroke();
+    // 1. Draw Grass
+    ctx.fillStyle = '#4cd137'; 
+    ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+    
+    // 2. Draw Field Lines (Solid white for visibility)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; 
+    ctx.lineWidth = 5;
+    
+    // Center line
+    ctx.beginPath(); 
+    ctx.moveTo(0, CONFIG.CANVAS_HEIGHT / 2); 
+    ctx.lineTo(CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT / 2); 
+    ctx.stroke();
+    
+    // Center circle
+    ctx.beginPath(); 
+    ctx.arc(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2, 70, 0, Math.PI * 2); 
+    ctx.stroke();
+    
+    // Borders
+    ctx.strokeRect(5, 5, CONFIG.CANVAS_WIDTH - 10, CONFIG.CANVAS_HEIGHT - 10);
+    
     ctx.restore();
 }
 
@@ -2052,8 +2079,18 @@ function draw(ctx) {
     }
     
     drawBackground(ctx);
-    [...auras, ...buildings, ...units, ...projectiles, ...floatingTexts, ...particles, playerSafe, enemySafe].forEach(e => {
-        if (e && e.draw) e.draw(ctx);
+    
+    // Group all entities
+    const entities = [...auras, ...buildings, ...units, ...projectiles, ...floatingTexts, ...particles];
+    if (playerSafe) entities.push(playerSafe);
+    if (enemySafe) entities.push(enemySafe);
+
+    entities.forEach(e => {
+        try {
+            if (e && typeof e.draw === 'function') e.draw(ctx);
+        } catch (err) {
+            console.error("Error drawing entity:", e, err);
+        }
     });
     
     ctx.restore();
@@ -2798,10 +2835,17 @@ function claimUsername() {
         if (overlay) overlay.style.display = 'none';
         updateStatsUI();
         
-        // Firebase Presence
-        if (window.NetworkManager) {
-            window.NetworkManager.updatePresence(name);
+        // Initial update
+        function updatePresence() {
+            if (window.NetworkManager) {
+                window.NetworkManager.updatePresence(name);
+            }
         }
+        updatePresence();
+        
+        // Heartbeat every 15 seconds (Faster for better presence)
+        if (window.presenceInterval) clearInterval(window.presenceInterval);
+        window.presenceInterval = setInterval(updatePresence, 15000);
     }
 }
 window.claimUsername = claimUsername;
@@ -3014,6 +3058,7 @@ function startMultiplayerBattle(roomId, hostFlag, opponentName) {
 
 // Ensure everything is hooked up correctly
 document.addEventListener('DOMContentLoaded', () => {
+    setupCanvas(); // Pre-init canvas
     initGameListeners();
     setTimeout(() => { if (window.NetworkManager) initNetworkListeners(); }, 1000);
 
