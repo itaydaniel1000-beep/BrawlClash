@@ -14,6 +14,47 @@ const CONFIG = {
     SAFE_ATTACK_SPEED: 1500
 };
 
+// --- CORE UI ENGINE (MOVED TO TOP) ---
+function switchScreen(screenId) {
+    console.log("%c📺 UI ENGINE: Switching to " + screenId, "color: #f1c40f; font-weight: bold; font-size: 1.2rem;");
+    
+    const screens = document.querySelectorAll('.screen');
+    screens.forEach(s => {
+        s.classList.remove('active');
+        s.style.display = 'none'; // Clear inline styles
+    });
+    
+    const target = document.getElementById(screenId);
+    if (target) {
+        target.classList.add('active');
+        // Specific display for overlays
+        if (screenId === 'username-overlay' || target.classList.contains('overlay')) {
+            target.style.display = 'flex';
+        } else {
+            target.style.display = 'block';
+        }
+        console.log("✅ UI ENGINE: successfully activated " + screenId);
+    } else {
+        console.error("❌ UI ENGINE: screen not found: " + screenId);
+    }
+}
+window.switchScreen = switchScreen;
+
+function goToLobby() {
+    console.log("🏠 UI ENGINE: Going to Lobby...");
+    if (!playerStats.username) {
+        switchScreen('username-overlay');
+        return;
+    }
+    switchScreen('lobby-screen');
+    if (typeof updateHomeScreen === 'function') updateHomeScreen();
+    if (typeof updateStatsUI === 'function') updateStatsUI();
+    if (typeof updateTrophyUI === 'function') updateTrophyUI();
+
+    if (!window.currentBattleRoom && typeof initPeerJS === 'function') initPeerJS();
+}
+window.goToLobby = goToLobby;
+
 const ADMIN_USERNAME = 'danniel1234!';
 
 const CARDS = {
@@ -2940,37 +2981,7 @@ function initPeerJS() {
     });
 }
 
-function switchScreen(screenId) {
-    console.log("📺 Switching screen to:", screenId);
-    document.querySelectorAll('.screen').forEach(s => {
-        s.classList.remove('active');
-        s.style.setProperty('display', 'none', 'important');
-    });
-    
-    const target = document.getElementById(screenId);
-    if (target) {
-        target.classList.add('active');
-        const displayType = (screenId === 'username-overlay' || target.classList.contains('overlay')) ? 'flex' : 'block';
-        target.style.setProperty('display', displayType, 'important');
-        target.style.setProperty('visibility', 'visible', 'important');
-        target.style.setProperty('opacity', '1', 'important');
-    }
-}
-window.switchScreen = switchScreen;
-
-function goToLobby() {
-    if (!playerStats.username) {
-        switchScreen('username-overlay');
-        return;
-    }
-    switchScreen('lobby-screen');
-    updateHomeScreen();
-    updateStatsUI();
-    updateTrophyUI();
-
-    // Init PeerJS if not already
-    if (!window.currentBattleRoom) initPeerJS();
-}
+// Old switchScreen and goToLobby removed (moved to top)
 
 // --- Emote System Integration ---
 const EMOTE_MAP = {
