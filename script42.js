@@ -2940,9 +2940,27 @@ function initPeerJS() {
     });
 }
 
+function switchScreen(screenId) {
+    console.log("📺 Switching screen to:", screenId);
+    document.querySelectorAll('.screen').forEach(s => {
+        s.classList.remove('active');
+        s.style.setProperty('display', 'none', 'important');
+    });
+    
+    const target = document.getElementById(screenId);
+    if (target) {
+        target.classList.add('active');
+        const displayType = (screenId === 'username-overlay' || target.classList.contains('overlay')) ? 'flex' : 'block';
+        target.style.setProperty('display', displayType, 'important');
+        target.style.setProperty('visibility', 'visible', 'important');
+        target.style.setProperty('opacity', '1', 'important');
+    }
+}
+window.switchScreen = switchScreen;
+
 function goToLobby() {
     if (!playerStats.username) {
-        document.getElementById('username-overlay').style.display = 'flex';
+        switchScreen('username-overlay');
         return;
     }
     switchScreen('lobby-screen');
@@ -3085,9 +3103,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Screen logic
         if (!playerStats.username) {
-            switchScreen('username-overlay');
+            if (typeof switchScreen === 'function') switchScreen('username-overlay');
         } else {
-            goToLobby();
+            if (typeof goToLobby === 'function') goToLobby();
         }
         
         if (typeof updateStatsUI === 'function') updateStatsUI();
