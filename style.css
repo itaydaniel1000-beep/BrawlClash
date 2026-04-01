@@ -59,9 +59,13 @@ body {
     display: flex;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .overlay {
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 100;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
     justify-content: center;
     align-items: center;
 }
@@ -1307,4 +1311,38 @@ body {
 #invite-notification {
     direction: rtl;
     font-family: 'Assistant', sans-serif;
+}
+
+#global-chat-sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 5000;
+    display: none; /* Hide by default */
+}
+
+#global-chat-sidebar.visible {
+    display: block !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#chat-messages div {
+    margin-bottom: 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.chat-name {
+    color: var(--bs-yellow);
+    font-weight: bold;
+}
+
+.chat-text {
+    color: white;
 }

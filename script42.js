@@ -143,9 +143,32 @@ function saveStats() {
     });
 }
 
+// --- Global UI References ---
+// These are declared later in the DOM section to avoid conflicts
+let charCardsContainer, charCountDisplay, elixirFill, elixirText, countEl;
+let isNetworkInitialized = false;
+
+function initNetworkListeners() {
+    console.log("Network listeners initialized");
+    isNetworkInitialized = true;
+}
+
 function getLevelScale(id) {
     const level = playerStats.levels[id] || 1;
     return 1 + (level - 1) * 0.05;
+}
+
+function updateStatsUI() {
+    const coinsEl = document.querySelector('.resource-item.coins .resource-value');
+    const gemsEl = document.querySelector('.resource-item.gems .resource-value');
+    const nameEl = document.querySelector('.user-name');
+    
+    if (coinsEl) coinsEl.innerText = playerStats.coins.toLocaleString();
+    if (gemsEl) gemsEl.innerText = playerStats.gems.toLocaleString();
+    if (nameEl && playerStats.username) nameEl.innerText = playerStats.username;
+    
+    if (typeof updateTrophyUI === 'function') updateTrophyUI();
+    if (typeof updateHomeScreen === 'function') updateHomeScreen();
 }
 
 // --- Sound Controller ---
@@ -273,8 +296,6 @@ const restartBtn = document.getElementById('restart-btn');
 const spSelectionMenu = document.getElementById('sp-selection-menu');
 const spCardsContainer = document.getElementById('sp-cards-container');
 const confirmSPBtn = document.getElementById('confirm-sp-btn');
-const elixirFill = document.getElementById('elixir-fill');
-const elixirText = document.getElementById('elixir-text');
 const deckContainer = document.getElementById('deck-container');
 
 // Screen management helper functions
@@ -1104,15 +1125,6 @@ class Particle {
 
 // --- Logic functions ---
 
-function startCharSelection() {
-    currentState = GAME_STATE.MENU; // Keep in menu-like state
-    tempDeck = [...playerDeck];
-    
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('char-selection-menu').classList.add('active');
-    
-    renderCharSelection();
-}
 
 function renderCharCards() {
     charCardsContainer.innerHTML = '';
@@ -1159,84 +1171,7 @@ function renderCharCards() {
     charCountDisplay.innerText = `נבחרו: ${playerDeck.length} / 8`;
 }
 
-function renderCharSelection() {
-    const container = document.getElementById('char-cards-container');
-    container.innerHTML = '';
-    
-    const countDisplay = document.getElementById('char-count-display');
-    if (countDisplay) {
-        countDisplay.innerText = `נבחרו: ${tempDeck.length} / 8`;
-        countDisplay.style.color = (tempDeck.length === 8) ? '#4cd137' : '#f1c40f';
-    }
 
-    Object.keys(CARDS).forEach(key => {
-        const card = CARDS[key];
-        const isSelected = tempDeck.includes(key);
-        const isFavorite = (key === favoriteBrawler);
-        const level = playerStats.levels[key] || 1;
-        
-        const cardEl = document.createElement('div');
-        cardEl.className = 'card';
-        if (isSelected) cardEl.classList.add('selected');
-        if (isFavorite) cardEl.style.boxShadow = "0 0 15px #f1c40f";
-        
-        cardEl.innerHTML = `
-            <div class="card-cost">${card.cost}</div>
-            <div class="card-icon">${card.icon}</div>
-            <div class="card-name" style="display: flex; flex-direction: column; align-items: center;">
-                <span>${card.name}</span>
-                <span style="color: #f1c40f; font-size: 0.6rem;">רמה ${level}</span>
-            </div>
-            ${isSelected ? '<div class="select-indicator">✓</div>' : ''}
-        `;
-        
-        // Upgrade button inside the card
-        const infoBtn = document.createElement('div');
-        infoBtn.className = 'info-btn';
-        infoBtn.innerHTML = '⬆️';
-        infoBtn.onclick = (e) => {
-            e.stopPropagation();
-            openUpgradeModal(key);
-        };
-        cardEl.appendChild(infoBtn);
-        
-        cardEl.onclick = () => {
-            if (isStarringMode) {
-                favoriteBrawler = key;
-                sessionStorage.setItem('brawlclash_favorite', key);
-                isStarringMode = false;
-                renderCharSelection();
-                updateHomeScreen();
-                return;
-            }
-            
-            toggleCharSelection(key);
-        };
-        container.appendChild(cardEl);
-    });
-}
-
-function toggleCharSelection(key) {
-    if (isStarringMode) {
-        favoriteBrawler = key;
-        sessionStorage.setItem('brawlclash_favorite', key);
-        isStarringMode = false;
-        renderCharSelection();
-        updateHomeScreen();
-        return;
-    }
-
-    const index = tempDeck.indexOf(key);
-    if (index > -1) {
-        tempDeck.splice(index, 1);
-    } else {
-        const isAdmin = playerStats.username === ADMIN_USERNAME;
-        if (isAdmin || tempDeck.length < 8) {
-            tempDeck.push(key);
-        }
-    }
-    renderCharSelection();
-}
 
 function confirmCharSelection() {
     const isAdmin = playerStats.username === ADMIN_USERNAME;
@@ -1583,35 +1518,6 @@ if (confirmSPBtn_internal) {
 }
 
 
-function claimUsername() {
-    const input = document.getElementById('username-input');
-    const name = input.value.trim();
-    if (name.length < 2) {
-        alert("השם קצר מדי!");
-        return;
-    }
-
-    // רשימת כל השמות שאי פעם נבחרו במכשיר הזה
-    let takenNames = [];
-    try {
-        takenNames = JSON.parse(localStorage.getItem('brawlclash_all_taken_names') || "[]");
-    } catch(e) { takenNames = []; }
-    
-    // בדיקה אם השם נבחר כבר אי פעם
-    if (takenNames.includes(name)) {
-        alert("השם הזה כבר תפוס במכשיר הזה! בחר שם אחר.");
-        return;
-    }
-
-    // נעילת השם לנצח במכשיר הזה
-    takenNames.push(name);
-    localStorage.setItem('brawlclash_all_taken_names', JSON.stringify(takenNames));
-
-    playerStats.username = name;
-    saveStats();
-    document.getElementById('username-overlay').style.display = 'none';
-    goToLobby();
-}
 
 function updateHomeScreen() {
     const featuredIcon = document.getElementById('featured-brawler-icon');
@@ -2049,14 +1955,8 @@ function drawBackground(ctx) {
     ctx.fillStyle = '#4cd137'; 
     ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
     
-    // 2. Draw Diagnostic Info
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.font = 'bold 20px Arial';
-    ctx.fillText(`Dimensions: ${canvas.width}x${canvas.height}`, 20, 40);
-    ctx.fillText(`State: ${currentState}`, 20, 70);
-
-    // 3. Draw Field Lines (Solid white for visibility)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 1.0)'; 
+    // 2. Draw Field Lines (Solid white for visibility)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; 
     ctx.lineWidth = 5;
     
     // Center line
@@ -2071,13 +1971,7 @@ function drawBackground(ctx) {
     ctx.stroke();
     
     // Borders
-    ctx.strokeRect(10, 10, CONFIG.CANVAS_WIDTH - 20, CONFIG.CANVAS_HEIGHT - 20);
-    
-    // Diagnostic Center Cross
-    ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
-    ctx.beginPath();
-    ctx.moveTo(CONFIG.CANVAS_WIDTH / 2, 0); ctx.lineTo(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT);
-    ctx.stroke();
+    ctx.strokeRect(5, 5, CONFIG.CANVAS_WIDTH - 10, CONFIG.CANVAS_HEIGHT - 10);
     
     ctx.restore();
 }
@@ -2370,37 +2264,34 @@ function adminSetGems() {
     }
 }
 
-// Event Listeners (UI hooks)
+function initNetworkListeners() {
+    if (isNetworkInitialized) return;
+    if (!window.NetworkManager || !window.NetworkManager.isConfigured()) return;
+    isNetworkInitialized = true;
 
-document.getElementById('bull-dash-btn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    let activeBulls = units.filter(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed);
-    if (activeBulls.length > 0) {
-        isSelectingBullDash = !isSelectingBullDash;
-        let btn = document.getElementById('bull-dash-btn');
-        if (isSelectingBullDash) {
-            btn.style.backgroundColor = '#ff4757'; // Highlight red to show active selection
-            selectedCardId = null;
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-        } else {
-            btn.style.backgroundColor = '#8c7ae6';
-        }
-    }
-});
-
-// Removed difficulty screen logic
-
-const lobbyStartBtn = document.getElementById('lobby-start-btn');
-if (lobbyStartBtn) {
-    lobbyStartBtn.addEventListener('click', () => {
-        startGame();
+    // Online Players
+    window.NetworkManager.listenOnlinePlayers((count, players) => {
+        const countEl = document.getElementById('online-count');
+        if (countEl) countEl.innerText = count;
+        updateOnlinePlayersList(players);
     });
-}
 
-const lobbySpBtn = document.getElementById('lobby-sp-btn');
-if (lobbySpBtn) {
-    lobbySpBtn.addEventListener('click', () => {
-        startSPSelection('lobby');
+    // Chat
+    window.NetworkManager.listenChat((messages) => {
+        const chatBox = document.getElementById('chat-messages');
+        if (!chatBox) return;
+        chatBox.innerHTML = messages.map(m => `
+            <div>
+                <span class="chat-name">${m.username}:</span>
+                <span class="chat-text">${m.text}</span>
+            </div>
+        `).join('');
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    // Invites
+    window.addEventListener('remoteInvite', (e) => {
+        showBattleInvite(e.detail.from, e.detail.fromId);
     });
 }
 
@@ -2858,6 +2749,9 @@ function claimUsername() {
         // Heartbeat every 15 seconds (Faster for better presence)
         if (window.presenceInterval) clearInterval(window.presenceInterval);
         window.presenceInterval = setInterval(updatePresence, 15000);
+
+        // [FIX] Go to lobby after claiming username
+        goToLobby();
     }
 }
 window.claimUsername = claimUsername;
@@ -2865,74 +2759,168 @@ window.claimUsername = claimUsername;
 // --- Network & Multiplayer Configuration ---
 let currentBattleRoom = null;
 let isHost = false;
-let isNetworkInitialized = false;
 
 // --- Multiplayer Communication Logic ---
 
-function toggleGlobalChat() {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    if (sidebar) sidebar.classList.toggle('hidden');
-}
-
-function sendChatMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text || !playerStats.username) return;
-    if (window.NetworkManager) {
-        window.NetworkManager.sendMessage(playerStats.username, text);
-        input.value = '';
-    }
-}
 
 function openPlayersTab() {
     const sidebar = document.getElementById('global-chat-sidebar');
-    if (sidebar) sidebar.classList.remove('hidden');
+    if (sidebar) sidebar.classList.add('visible');
     
     // Switch to players tab
-    document.getElementById('chat-window-content').style.display = 'none';
-    document.getElementById('players-window-content').style.display = 'flex';
-    document.getElementById('tab-players').style.background = 'var(--bs-yellow)';
-    document.getElementById('tab-players').style.color = '#000';
-    document.getElementById('tab-chat').style.background = 'var(--bs-blue)';
-    document.getElementById('tab-chat').style.color = '#fff';
+    const chatContent = document.getElementById('chat-window-content');
+    const playersContent = document.getElementById('players-window-content');
+    const tabChat = document.getElementById('tab-chat');
+    const tabPlayers = document.getElementById('tab-players');
+    
+    if (chatContent) chatContent.style.display = 'none';
+    if (playersContent) playersContent.style.display = 'flex';
+    if (tabPlayers) {
+        tabPlayers.style.background = 'var(--bs-yellow)';
+        tabPlayers.style.color = '#000';
+    }
+    if (tabChat) {
+        tabChat.style.background = 'var(--bs-blue)';
+        tabChat.style.color = '#fff';
+    }
 
-    // Force a re-render of online players
+    // Update list
     if (window.NetworkManager) {
         window.NetworkManager.listenOnlinePlayers((count, players) => {
-            // This is already handled by the global listener, but we ensure it's up to date
-            updateOnlinePlayersList(players);
+            if (typeof updateOnlinePlayersList === 'function') updateOnlinePlayersList(players);
         });
     }
 }
 window.openPlayersTab = openPlayersTab;
 
+function toggleGlobalChat(forceState) {
+    const sidebar = document.getElementById('global-chat-sidebar');
+    if (!sidebar) return;
+    
+    if (typeof forceState === 'boolean') {
+        if (forceState) {
+            sidebar.style.setProperty('display', 'block', 'important');
+            sidebar.classList.add('visible');
+        } else {
+            sidebar.style.setProperty('display', 'none', 'important');
+            sidebar.classList.remove('visible');
+        }
+    } else {
+        const isCurrentlyHidden = window.getComputedStyle(sidebar).display === 'none';
+        if (isCurrentlyHidden) {
+            sidebar.style.setProperty('display', 'block', 'important');
+            sidebar.classList.add('visible');
+        } else {
+            sidebar.style.setProperty('display', 'none', 'important');
+            sidebar.classList.remove('visible');
+        }
+    }
+}
+window.toggleGlobalChat = toggleGlobalChat;
+
 function initGameListeners() {
+    // Top-level Social/Settings
+    const settingsBtn = document.getElementById('home-settings-btn');
+    if (settingsBtn) {
+        settingsBtn.onclick = (e) => {
+            e.stopPropagation();
+            const sidebar = document.getElementById('right-sidebar');
+            if (sidebar) sidebar.classList.toggle('hidden');
+        };
+    }
+
     const socialBtn = document.querySelector('.social-btn');
     if (socialBtn) socialBtn.addEventListener('click', toggleGlobalChat);
 
+    const inviteBtn = document.querySelector('.bs-btn-invite');
+    if (inviteBtn) inviteBtn.onclick = openPlayersTab;
+
+    // Chat Logic
     const sendBtn = document.getElementById('send-chat-btn');
     if (sendBtn) sendBtn.addEventListener('click', sendChatMessage);
 
     const chatInput = document.getElementById('chat-input');
     if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-    // Tab Switching
+    // Tab Switching inside Sidebar
     const tabChat = document.getElementById('tab-chat');
-    if (tabChat) tabChat.onclick = () => {
-        document.getElementById('chat-window-content').style.display = 'flex';
-        document.getElementById('players-window-content').style.display = 'none';
-        tabChat.style.background = 'var(--bs-yellow)';
-        tabChat.style.color = '#000';
-        document.getElementById('tab-players').style.background = 'var(--bs-blue)';
-    };
-    
     const tabPlayers = document.getElementById('tab-players');
-    if (tabPlayers) tabPlayers.onclick = () => {
-        document.getElementById('chat-window-content').style.display = 'none';
-        document.getElementById('players-window-content').style.display = 'flex';
-        tabPlayers.style.background = 'var(--bs-yellow)';
-        tabPlayers.style.color = '#000';
-        document.getElementById('tab-chat').style.background = 'var(--bs-blue)';
+    const chatContent = document.getElementById('chat-window-content');
+    const playersContent = document.getElementById('players-window-content');
+
+    if (tabChat) {
+        tabChat.onclick = () => {
+            if (chatContent) chatContent.style.display = 'flex';
+            if (playersContent) playersContent.style.display = 'none';
+            tabChat.style.background = 'var(--bs-yellow)';
+            tabChat.style.color = '#000';
+            if (tabPlayers) {
+                tabPlayers.style.background = 'var(--bs-blue)';
+                tabPlayers.style.color = '#fff';
+            }
+        };
+    }
+    
+    if (tabPlayers) {
+        tabPlayers.onclick = () => {
+            if (chatContent) chatContent.style.display = 'none';
+            if (playersContent) playersContent.style.display = 'flex';
+            tabPlayers.style.background = 'var(--bs-yellow)';
+            tabPlayers.style.color = '#000';
+            if (tabChat) {
+                tabChat.style.background = 'var(--bs-blue)';
+                tabChat.style.color = '#fff';
+            }
+            // Trigger refresh
+            if (window.NetworkManager && typeof updateOnlinePlayersList === 'function') {
+                window.NetworkManager.listenOnlinePlayers((count, players) => {
+                    updateOnlinePlayersList(players);
+                });
+            }
+        };
+    }
+
+    // Emote Logic
+    const emoteBtn = document.getElementById('emote-bubble-btn');
+    if (emoteBtn) emoteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleEmoteMenu();
+    });
+
+    // Close emote menu on outside click
+    document.addEventListener('click', () => {
+        const selector = document.getElementById('emote-selector');
+        if (selector) selector.classList.remove('active');
+    });
+
+    // Pause/Menu Buttons
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) pauseBtn.onclick = () => {
+        currentState = GAME_STATE.PAUSED;
+        document.getElementById('pause-menu').classList.add('active');
+    };
+
+    const resumeBtn = document.getElementById('resume-btn');
+    if (resumeBtn) resumeBtn.onclick = () => {
+        currentState = GAME_STATE.PLAYING;
+        document.getElementById('pause-menu').classList.remove('active');
+        lastTime = performance.now();
+        gameLoopRunning = true;
+        requestAnimationFrame(gameLoop);
+    };
+
+    const quitBtn = document.getElementById('quit-btn');
+    if (quitBtn) quitBtn.onclick = () => {
+        gameLoopRunning = false;
+        currentState = GAME_STATE.MENU;
+        document.getElementById('pause-menu').classList.remove('active');
+        goToLobby();
+    };
+
+    const restartBtn = document.getElementById('restart-btn');
+    if (restartBtn) restartBtn.onclick = () => {
+        document.getElementById('game-over-menu').classList.remove('active');
+        goToLobby();
     };
 }
 // Removed duplicate initNetworkListeners - consolidated at 2628
@@ -3070,29 +3058,51 @@ function startMultiplayerBattle(roomId, hostFlag, opponentName) {
 
 // Ensure everything is hooked up correctly
 document.addEventListener('DOMContentLoaded', () => {
-    setupCanvas(); // Pre-init canvas
-    initGameListeners();
-    setTimeout(() => { if (window.NetworkManager) initNetworkListeners(); }, 1000);
-
-    if (!playerStats.username) {
-        const overlay = document.getElementById('username-overlay');
-        if (overlay) overlay.style.display = 'flex';
-    } else {
-        if (window.NetworkManager) window.NetworkManager.updatePresence(playerStats.username);
+    // --- FINAL NUCLEAR FIX: KILL SIDEBAR IN DOM BEFORE ANYTHING ---
+    const sidebar = document.getElementById('global-chat-sidebar');
+    if (sidebar) {
+        sidebar.style.setProperty('display', 'none', 'important');
+        sidebar.classList.remove('visible');
     }
 
-    const emoteBtn = document.getElementById('emote-bubble-btn');
-    if (emoteBtn) emoteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleEmoteMenu();
-    });
+    try {
+        setupCanvas(); 
+        initGameListeners();
+        
+        // Init Network with delay
+        setTimeout(() => { 
+            try {
+                if (window.NetworkManager) {
+                    initNetworkListeners(); 
+                    if (playerStats.username) {
+                        window.NetworkManager.updatePresence(playerStats.username);
+                    }
+                }
+            } catch (netErr) {
+                console.warn("⚠️ Network initialization delayed:", netErr);
+            }
+        }, 800);
 
-    // Close menu when clicking elsewhere
-    document.addEventListener('click', () => {
-        const selector = document.getElementById('emote-selector');
-        if (selector) selector.classList.remove('active');
-    });
+        // Screen logic
+        if (!playerStats.username) {
+            switchScreen('username-overlay');
+        } else {
+            goToLobby();
+        }
+        
+        if (typeof updateStatsUI === 'function') updateStatsUI();
+        console.log("🚀 BrawlClash v42.0 Initialized!");
 
-    goToLobby();
-    updateStatsUI();
+    } catch (criticalErr) {
+        console.error("❌ CRITICAL INITIALIZATION ERROR:", criticalErr);
+        // Disaster Recovery
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const lobby = document.getElementById('lobby-screen');
+        if (lobby) lobby.classList.add('active');
+        const usernameOverlay = document.getElementById('username-overlay');
+        if (usernameOverlay && !playerStats.username) {
+            usernameOverlay.style.display = 'flex';
+            usernameOverlay.classList.add('active');
+        }
+    }
 });

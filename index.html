@@ -299,8 +299,20 @@
             </div>
         </div>
 
+
+        <!-- Battle Invite Notification (Bottom Right) -->
+        <div id="invite-notification" style="display:none; position:fixed; bottom:20px; right:20px; width:280px; z-index:10000; padding: 15px; border-radius: 15px; background: rgba(44, 62, 80, 0.98); border: 4px solid #f1c40f; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center; animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <h3 style="color: #f1c40f; margin: 0 0 10px 0; font-size: 1.2rem;">⚔️ הזמנה לקרב!</h3>
+            <p id="invite-from-text" style="color: white; margin-bottom: 15px; font-weight: bold;">X מזמין אותך!</p>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+                <button id="accept-invite-btn" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-green); font-size: 0.9rem; padding: 8px;">אישור קרב</button>
+                <button id="decline-invite-btn" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-red); font-size: 0.9rem; padding: 8px;">דחה</button>
+            </div>
+        </div>
+    </div>
+
         <!-- NEW: Global Chat Sidebar -->
-        <div id="global-chat-sidebar" class="hidden">
+        <div id="global-chat-sidebar" style="display: none !important;"> <!-- Forced hidden until toggled -->
             <div style="display: flex; flex-direction: column; height: 100%; padding: 15px;">
                 <div style="display: flex; gap: 5px; margin-bottom: 15px;">
                     <button id="tab-chat" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-yellow); color: #000;">צ'אט</button>
@@ -324,20 +336,9 @@
                     </div>
                 </div>
 
-                <button onclick="document.getElementById('global-chat-sidebar').classList.add('hidden')" style="background: transparent; color: white; border: 1px solid white; margin-top: 10px; border-radius: 5px; cursor: pointer;">סגור</button>
+                <button onclick="toggleGlobalChat(false)" style="background: transparent; color: #fff; border: 2px solid #fff; margin-top: 10px; border-radius: 12px; cursor: pointer; padding: 10px; font-weight: bold;">סגור</button>
             </div>
         </div>
-
-        <!-- Battle Invite Notification (Bottom Right) -->
-        <div id="invite-notification" style="display:none; position:fixed; bottom:20px; right:20px; width:280px; z-index:10000; padding: 15px; border-radius: 15px; background: rgba(44, 62, 80, 0.98); border: 4px solid #f1c40f; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center; animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-            <h3 style="color: #f1c40f; margin: 0 0 10px 0; font-size: 1.2rem;">⚔️ הזמנה לקרב!</h3>
-            <p id="invite-from-text" style="color: white; margin-bottom: 15px; font-weight: bold;">X מזמין אותך!</p>
-            <div style="display: flex; gap: 8px; justify-content: center;">
-                <button id="accept-invite-btn" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-green); font-size: 0.9rem; padding: 8px;">אישור קרב</button>
-                <button id="decline-invite-btn" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-red); font-size: 0.9rem; padding: 8px;">דחה</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Multiplayer Engine & Persistence -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
