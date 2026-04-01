@@ -23,9 +23,16 @@
   };
 
   // Initialize Firebase (if config is valid)
-  if (firebaseConfig.apiKey !== "YOUR_API_KEY") {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
+  try {
+    if (typeof firebase !== 'undefined' && firebaseConfig && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+      console.log("🔥 Firebase initialized successfully.");
+    } else {
+      console.warn("⚠️ Firebase configuration missing or library not loaded (Offline Mode)");
+    }
+  } catch (err) {
+    console.warn("❌ Firebase connection failed:", err.message);
   }
 
   // Handle incoming local broadcasts

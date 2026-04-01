@@ -44,7 +44,6 @@ body {
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
-    border: 5px solid lime; /* DEBUG BORDER */
     z-index: 10;
 }
 

@@ -1179,7 +1179,7 @@ function renderCharCards() {
         cardEl.innerHTML = `
             <div class="card-cost">${card.cost}</div>
             <div class="card-icon">${card.icon}</div>
-            <div class="card-name" style="display: flex; flex-direction: column; align-items: center;">
+            <div class="card-name" style="display: flex; flex-direction: column; z-index: 10;">
                 <span>${card.name}</span>
                 <span style="color: #f1c40f; font-size: 0.6rem;">רמה ${level}</span>
             </div>
@@ -3129,9 +3129,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const lobby = document.getElementById('lobby-screen');
         if (lobby) lobby.classList.add('active');
         const usernameOverlay = document.getElementById('username-overlay');
-        if (usernameOverlay && !playerStats.username) {
+        if (usernameOverlay && typeof playerStats !== 'undefined' && !playerStats.username) {
             usernameOverlay.style.display = 'flex';
             usernameOverlay.classList.add('active');
         }
     }
 });
+
+// Immediate fail-safe for black screen
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log("⚡ Immediate initialization triggered (Fail-safe)!");
+    if (typeof switchScreen === 'function' && typeof playerStats !== 'undefined') {
+        if (!playerStats.username) switchScreen('username-overlay');
+        else goToLobby();
+    }
+}

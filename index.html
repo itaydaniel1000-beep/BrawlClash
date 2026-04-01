@@ -9,7 +9,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Assistant:wght@400;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=6">
+    <style>
+        /* Nuclear Fix: Force Active Screen Visibility */
+        #app { display: flex !important; visibility: visible !important; min-width: 320px; }
+        .screen { display: none; visibility: hidden; opacity: 0; transition: opacity 0.3s ease-in-out; }
+        .screen.active { 
+            display: flex !important; 
+            visibility: visible !important; 
+            opacity: 1 !important; 
+            z-index: 100 !important; 
+        }
+    </style>
 </head>
 
 <body>
@@ -345,9 +356,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
-    <!-- Game Scripts -->
-    <script src="firebase-manager.js"></script>
+    <!-- Game Scripts (Engine First) -->
     <script src="script42.js"></script>
+    <script src="firebase-manager.js"></script>
 </body>
 
 </html>
