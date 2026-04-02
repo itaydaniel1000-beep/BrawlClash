@@ -216,12 +216,12 @@ function buildDeck() {
             <div class="card-name">${card.name}</div>
         `;
 
-        container.appendChild(cardEl);
-
+        // cardEl append removed from here, it will be added after checking for Bull row requirements
+        
         let fBtn = document.createElement('div');
         fBtn.className = 'freeze-icon';
         fBtn.innerText = '❄️';
-        fBtn.style.cssText = 'background:#74b9ff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:2px solid white; cursor:pointer; font-size:18px; box-shadow:0 2px #0984e3; margin-top: 8px;';
+        fBtn.style.cssText = 'background:#74b9ff; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:2px solid white; cursor:pointer; font-size:18px; box-shadow:0 2px #0984e3;';
         fBtn.onclick = (e) => {
             e.stopPropagation();
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
@@ -229,7 +229,6 @@ function buildDeck() {
             selectedCardId = null;
             cardEl.style.boxShadow = '0 0 12px 6px #74b9ff';
         };
-        container.appendChild(fBtn);
 
         if (id === 'bull') {
             const dBtn = document.getElementById('bull-dash-btn');
@@ -243,8 +242,8 @@ function buildDeck() {
                 dBtn.style.display = 'none';
                 dBtn.style.margin = '0';
                 
-                bullRow.appendChild(dBtn);
                 bullRow.appendChild(cardEl);
+                bullRow.appendChild(dBtn);
                 container.appendChild(bullRow);
             } else {
                 container.appendChild(cardEl);
@@ -252,6 +251,9 @@ function buildDeck() {
         } else {
             container.appendChild(cardEl);
         }
+
+        // Now append the freeze button at the VERY BOTTOM
+        container.appendChild(fBtn);
 
         cardEl.onclick = () => {
             document.querySelectorAll('.card').forEach(c => {
