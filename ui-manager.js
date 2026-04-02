@@ -502,12 +502,126 @@ function maxAllLevels() {
 }
 window.maxAllLevels = maxAllLevels;
 
-// Export other functions used in index.html or across modules
-window.renderCharCards = renderCharCards;
-window.renderSPSelection = renderSPSelection;
-window.renderBrawlPass = renderBrawlPass;
-window.renderShop = renderShop;
-window.renderLeaderboard = renderLeaderboard;
-window.updateStatsUI = updateStatsUI;
-window.updateTrophyUI = updateTrophyUI;
-window.updateHomeScreen = updateHomeScreen;
+// --- Social & Invitation UI Logic ---
+
+function openPlayersTab() {
+    openScreen('social-overlay');
+    if (window.NetworkManager) {
+        window.NetworkManager.listenOnlinePlayers((count, players) => {
+            renderOnlinePlayers(count, players);
+            const countEl = document.getElementById('online-count');
+            if (countEl) countEl.innerText = count;
+        });
+    }
+}
+window.openPlayersTab = openPlayersTab;
+
+function renderOnlinePlayers(count, players) {
+    const container = document.getElementById('social-list-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (count === 0 || (count === 1 && players[playerStats.username])) {
+        container.innerHTML = '<p style="color: #bdc3c7; text-align: center; margin-top: 20px;">אין שחקנים אחרים מחוברים כרגע 😴</p>';
+        return;
+    }
+
+    Object.values(players).forEach(player => {
+        // Don't show self in the invite list
+        if (player.username === playerStats.username) return;
+
+        const item = document.createElement('div');
+        item.className = 'social-player-item';
+        item.innerHTML = `
+            <div class="player-info-box">
+                <div class="presence-dot online"></div>
+                <div class="player-main-data">
+                    <span class="p-username">${player.username}</span>
+                    <span class="p-trophies">🏆 ${player.trophies || 0}</span>
+                </div>
+            </div>
+            <button class="bs-btn bs-btn-invite hover-invite-btn" style="padding: 8px 15px; font-size: 0.9rem; background: #2ecc71;">הזמן ⚔️</button>
+        `;
+
+        const inviteBtn = item.querySelector('.hover-invite-btn');
+        inviteBtn.onclick = () => {
+            if (window.NetworkManager) {
+                window.NetworkManager.sendInvite(player.peerId, playerStats.username);
+                inviteBtn.innerText = 'נשלח...';
+                inviteBtn.disabled = true;
+                inviteBtn.style.opacity = '0.7';
+                setTimeout(() => {
+                    inviteBtn.innerText = 'הזמן ⚔️';
+                    inviteBtn.disabled = false;
+                    inviteBtn.style.opacity = '1';
+                }, 5000);
+            }
+        };
+
+        container.appendChild(item);
+    });
+}
+
+let inviteTimer = null;
+function showInviteNotification(data) {
+    const notify = document.getElementById('invite-notification');
+    const senderName = document.getElementById('invite-sender-name');
+    const timerBar = document.getElementById('invite-timer-bar');
+    
+    if (!notify || !senderName) return;
+
+    senderName.innerText = `${data.from} מזמין אותך לקרב! (🏆 ${data.trophies || 0})`;
+    notify.classList.remove('hidden');
+    setTimeout(() => notify.classList.add('show'), 10);
+    
+    if (timerBar) {
+        timerBar.style.width = '100%';
+        setTimeout(() => timerBar.style.width = '0%', 100);
+    }
+
+    const clearInvite = () => {
+        notify.classList.remove('show');
+        setTimeout(() => notify.classList.add('hidden'), 500);
+        if (inviteTimer) clearTimeout(inviteTimer);
+    };
+
+    document.getElementById('accept-invite-btn').onclick = () => {
+        clearInvite();
+        if (window.NetworkManager) window.NetworkManager.joinRoom(data.fromId);
+    };
+
+    document.getElementById('decline-invite-btn').onclick = () => {
+        clearInvite();
+        if (window.NetworkManager) window.NetworkManager.declineInvite(data.fromId);
+    };
+
+    // Auto-decline after 10 seconds
+    if (inviteTimer) clearTimeout(inviteTimer);
+    inviteTimer = setTimeout(() => {
+        clearInvite();
+    }, 10000);
+}
+
+// Global Listeners for Social Events
+window.addEventListener('remoteInvite', (e) => {
+    showInviteNotification(e.detail);
+});
+
+window.addEventListener('remoteInviteDeclined', (e) => {
+    alert("ההזמנה סורבה ❌");
+});
+
+window.addEventListener('battleAccepted', (e) => {
+    console.log("⚔️ Social UI: Battle Accepted! Redirecting...", e.detail);
+    window.currentBattleRoom = e.detail.roomId;
+    window.isHost = e.detail.isHost;
+    
+    // Switch to battle screen
+    if (typeof startBattle === 'function') {
+        startBattle(e.detail.isHost);
+    }
+});
+
+// Export functions
+window.openPlayersTab = openPlayersTab;

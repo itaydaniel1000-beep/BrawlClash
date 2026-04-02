@@ -1301,19 +1301,91 @@ body {
     font-size: 0.8rem;
 }
 
+/* --- Social & Friends System --- */
+
+.social-player-item {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.social-player-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateX(-5px);
+}
+
+.player-info-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.presence-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #95a5a6; /* Default offline */
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+.presence-dot.online {
+    background: #2ecc71;
+    box-shadow: 0 0 8px #2ecc71;
+    animation: p-pulse 2s infinite ease-in-out;
+}
+
+@keyframes p-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.player-main-data {
+    display: flex;
+    flex-direction: column;
+}
+
+.p-username {
+    color: white;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.p-trophies {
+    color: #f1c40f;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.hover-invite-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
 .social-player-item:hover .hover-invite-btn {
     opacity: 1;
     pointer-events: auto;
 }
 
-@keyframes slideInRight {
-    from { transform: translateX(120%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+/* Invite Notification Animation */
+#invite-notification.show {
+    transform: translateX(0) !important;
 }
 
-#invite-notification {
-    direction: rtl;
-    font-family: 'Assistant', sans-serif;
+#invite-notification:not(.hidden) {
+    display: block !important;
 }
 
 #global-chat-sidebar {

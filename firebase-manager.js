@@ -148,10 +148,24 @@
     },
 
     sendInvite: (targetPeerId, senderName) => {
+      if (targetPeerId === (peerInstance ? peerInstance.id : null)) return;
       console.log(`⚔️ Sending invite to ${targetPeerId}`);
       const conn = peerInstance.connect(targetPeerId);
       conn.on('open', () => {
-        conn.send({ type: 'invite', from: senderName, fromId: peerInstance.id });
+        conn.send({ 
+          type: 'invite', 
+          from: senderName, 
+          fromId: peerInstance.id,
+          trophies: window.playerTrophies || 0
+        });
+      });
+    },
+
+    declineInvite: (targetPeerId) => {
+      console.log(`🚫 Declining invite from ${targetPeerId}`);
+      const conn = peerInstance.connect(targetPeerId);
+      conn.on('open', () => {
+        conn.send({ type: 'invite_declined', fromId: peerInstance.id });
       });
     },
 
@@ -210,6 +224,8 @@
             window.dispatchEvent(new CustomEvent('battleAccepted', { 
                 detail: { roomId: conn.peer, opponent: 'Partner', isHost: true } 
             }));
+        } else if (data.type === 'invite_declined') {
+            window.dispatchEvent(new CustomEvent('remoteInviteDeclined', { detail: data }));
         } else if (data.type === 'spawn') {
             window.dispatchEvent(new CustomEvent('remoteSpawn', { detail: data }));
         } else if (data.type === 'gameOver') {

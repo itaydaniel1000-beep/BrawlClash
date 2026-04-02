@@ -5,116 +5,39 @@ function initNetworkListeners() {
     if (!window.NetworkManager || !window.NetworkManager.isConfigured()) return;
     isNetworkInitialized = true;
 
-    // 1. Listen for Online Count
+    // The ui-manager.js now handles 'battleAccepted' and 'remoteInvite' events
+    // We just ensure the NetworkManager is listening for presence
     window.NetworkManager.listenOnlinePlayers((count, players) => {
         const countEl = document.getElementById('online-count');
         if (countEl) countEl.innerText = count;
-        updateOnlinePlayersList(players);
-    });
-
-    // 2. Listen for Chat Messages
-    if (window.NetworkManager.listenChat) {
-        window.NetworkManager.listenChat((messages) => {
-            const chatBox = document.getElementById('chat-messages');
-            if (!chatBox) return;
-            chatBox.innerHTML = messages.map(m => `
-                <div>
-                    <span class="chat-name">${m.username}:</span>
-                    <span class="chat-text">${m.text}</span>
-                </div>
-            `).join('');
-            chatBox.scrollTop = chatBox.scrollHeight;
-        });
-    }
-
-    // 3. Listen for Incoming Invites
-    window.addEventListener('remoteInvite', (e) => {
-        const { from, fromId } = e.detail;
-        showBattleInvite(from, fromId);
-    });
-
-    // 4. Listen for Battle Status
-    window.addEventListener('battleAccepted', (e) => {
-        const { roomId, opponent, isHost } = e.detail;
-        startMultiplayerBattle(roomId, isHost, opponent);
+        
+        // If the social-overlay is open, we want it to refresh
+        if (typeof renderOnlinePlayers === 'function') {
+            renderOnlinePlayers(count, players);
+        }
     });
 }
 
-function updateOnlinePlayersList(players) {
-    const listContainer = document.getElementById('online-players-list');
-    if (!listContainer) return;
+function displayEmote(senderName, emoteId) {
+    const isMe = (senderName === playerStats.username);
+    const emoji = EMOTE_MAP[emoteId] || '❓';
     
-    listContainer.innerHTML = '';
-    const peer = (window.NetworkManager.getPeerInstance ? window.NetworkManager.getPeerInstance() : null);
-    const myPeerId = peer ? peer.id : '';
+    const emoteDiv = document.createElement('div');
+    emoteDiv.className = 'floating-emote emote-animate';
+    emoteDiv.innerText = emoji;
 
-    Object.keys(players).forEach(username => {
-        const player = players[username];
-        const isSelf = (player.peerId === myPeerId);
-        if (isSelf) return;
-
-        const item = document.createElement('div');
-        item.className = 'social-player-item';
-        item.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="font-size: 1.2rem;">👤</div>
-                <div style="flex: 1;">
-                    <div style="font-weight: bold; color: white; text-align: right;">${username}</div>
-                    <div style="font-size: 0.8rem; color: #f1c40f; text-align: right;">🏆 ${player.trophies || 0}</div>
-                </div>
-            </div>
-            <button class="hover-invite-btn" onclick="invitePlayer('${player.peerId}', '${username}')">הזמן ⚔️</button>
-        `;
-        listContainer.appendChild(item);
-    });
-}
-
-function invitePlayer(peerId, name) {
-    if (window.NetworkManager) {
-        window.NetworkManager.sendInvite(peerId, playerStats.username);
-        console.log("Invite sent to " + name);
-    }
-}
-window.invitePlayer = invitePlayer;
-
-function showBattleInvite(senderName, senderId) {
-    const popup = document.getElementById('invite-notification');
-    const text = document.getElementById('invite-from-text');
-    const acceptBtn = document.getElementById('accept-invite-btn');
-    const declineBtn = document.getElementById('decline-invite-btn');
-
-    if (!popup || !text) return;
-
-    text.innerText = `${senderName} מזמין אותך לקרב!`;
-    popup.style.display = 'block';
-    AudioController.play('spawn'); 
-
-    acceptBtn.onclick = () => {
-        popup.style.display = 'none';
-        window.NetworkManager.joinRoom(senderId);
-    };
-
-    declineBtn.onclick = () => {
-        popup.style.display = 'none';
-    };
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const centerX = rect.left + (rect.width / 2);
     
-    setTimeout(() => {
-        popup.style.display = 'none';
-    }, 15000);
-}
+    emoteDiv.style.left = `${centerX}px`;
+    emoteDiv.style.top = isMe ? `${rect.top + rect.height - 150}px` : `${rect.top + 100}px`;
 
-function sendChatMessage() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text || !playerStats.username) return;
-    
-    if (window.NetworkManager && window.NetworkManager.isConfigured()) {
-        window.NetworkManager.sendMessage(playerStats.username, text);
-        input.value = '';
-    } else {
-        alert("⚠️ Firebase לא מוגדר! אנא הכנס את ה-Config שלך.");
-    }
+    document.body.appendChild(emoteDiv);
+    setTimeout(() => emoteDiv.remove(), 2500); 
 }
+window.displayEmote = displayEmote;
+window.initNetworkListeners = initNetworkListeners;
 
 function claimUsername() {
     const input = document.getElementById('username-input');
@@ -137,59 +60,6 @@ function claimUsername() {
 }
 window.claimUsername = claimUsername;
 
-function openPlayersTab() {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    if (sidebar) sidebar.classList.add('visible');
-    
-    const chatContent = document.getElementById('chat-window-content');
-    const playersContent = document.getElementById('players-window-content');
-    const tabChat = document.getElementById('tab-chat');
-    const tabPlayers = document.getElementById('tab-players');
-    
-    if (chatContent) chatContent.style.display = 'none';
-    if (playersContent) playersContent.style.display = 'flex';
-    if (tabPlayers) {
-        tabPlayers.style.background = 'var(--bs-yellow)';
-        tabPlayers.style.color = '#000';
-    }
-    if (tabChat) {
-        tabChat.style.background = 'var(--bs-blue)';
-        tabChat.style.color = '#fff';
-    }
-
-    if (window.NetworkManager) {
-        window.NetworkManager.listenOnlinePlayers((count, players) => {
-            updateOnlinePlayersList(players);
-        });
-    }
-}
-window.openPlayersTab = openPlayersTab;
-
-function toggleGlobalChat(forceState) {
-    const sidebar = document.getElementById('global-chat-sidebar');
-    if (!sidebar) return;
-    
-    if (typeof forceState === 'boolean') {
-        if (forceState) {
-            sidebar.style.setProperty('display', 'block', 'important');
-            sidebar.classList.add('visible');
-        } else {
-            sidebar.style.setProperty('display', 'none', 'important');
-            sidebar.classList.remove('visible');
-        }
-    } else {
-        const isCurrentlyHidden = window.getComputedStyle(sidebar).display === 'none';
-        if (isCurrentlyHidden) {
-            sidebar.style.setProperty('display', 'block', 'important');
-            sidebar.classList.add('visible');
-        } else {
-            sidebar.style.setProperty('display', 'none', 'important');
-            sidebar.classList.remove('visible');
-        }
-    }
-}
-window.toggleGlobalChat = toggleGlobalChat;
-
 function sendEmote(emoteId) {
     if (!currentBattleRoom || !playerStats.username) return;
     if (window.NetworkManager) {
@@ -200,23 +70,58 @@ function sendEmote(emoteId) {
 }
 window.sendEmote = sendEmote;
 
-function displayEmote(senderName, emoteId) {
-    const isMe = (senderName === playerStats.username);
-    const emoji = EMOTE_MAP[emoteId] || '❓';
+function startMultiplayerBattle(roomId, isHost, opponentName) {
+    console.log(`⚔️ Multiplayer: Starting battle! Room=${roomId}, Host=${isHost}`);
+    window.currentBattleRoom = roomId;
+    window.isHost = isHost;
     
-    const emoteDiv = document.createElement('div');
-    emoteDiv.className = 'floating-emote emote-animate';
-    emoteDiv.innerText = emoji;
-
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const centerX = rect.left + (rect.width / 2);
-    
-    emoteDiv.style.left = `${centerX}px`;
-    emoteDiv.style.top = isMe ? `${rect.top + rect.height - 150}px` : `${rect.top + 100}px`;
-
-    document.body.appendChild(emoteDiv);
-    setTimeout(() => emoteDiv.remove(), 2500); 
+    // Transition to battle screen
+    if (typeof startGame === 'function') {
+        startGame();
+    } else {
+        console.error("❌ engine.js: startGame not found!");
+    }
 }
-window.displayEmote = displayEmote;
-window.initNetworkListeners = initNetworkListeners;
+window.startMultiplayerBattle = startMultiplayerBattle;
+
+// Synchronization Listeners
+function initMultiplayerSync() {
+    if (!window.NetworkManager || !window.currentBattleRoom) return;
+    console.log("🎮 Initializing Multiplayer Synchronization for Room:", window.currentBattleRoom);
+
+    // Listen for spawns
+    window.NetworkManager.listenSpawns(window.currentBattleRoom, (data) => {
+        if (typeof spawnUnit === 'function') {
+            spawnUnit(data.x, data.y, data.typeStr, false);
+        }
+    });
+
+    // Listen for health updates
+    window.NetworkManager.listenHealth(window.currentBattleRoom, (hpData) => {
+        if (hpData && hpData.playerSafeHp !== undefined && window.enemySafe) enemySafe.hp = hpData.playerSafeHp;
+        if (hpData && hpData.enemySafeHp !== undefined && window.playerSafe) playerSafe.hp = hpData.enemySafeHp;
+    });
+
+    // Listen for game over
+    window.NetworkManager.listenBattleStatus(window.currentBattleRoom, (status, winner) => {
+        if (status === 'finished') {
+            // Note: the winner from the other side's perspective is inverted here
+            const finalWinner = (winner === 'player' ? 'enemy' : 'player');
+            if (typeof endGame === 'function') endGame(finalWinner);
+        }
+    });
+
+    // Listen for emotes
+    window.NetworkManager.listenEmotes(window.currentBattleRoom, (data) => {
+        if (typeof displayEmote === 'function') displayEmote(data.username, data.emoteId);
+    });
+}
+window.initMultiplayerSync = initMultiplayerSync;
+
+// Global listener for battleAccepted (used by ui-manager.js)
+window.addEventListener('battleAccepted', (e) => {
+    const { roomId, opponent, isHost } = e.detail;
+    startMultiplayerBattle(roomId, isHost, opponent);
+    // Wait a bit for the screen transition then init sync
+    setTimeout(initMultiplayerSync, 1000);
+});
