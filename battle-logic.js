@@ -202,7 +202,7 @@ function buildDeck() {
         const card = CARDS[id];
         const container = document.createElement('div');
         container.style.display = 'flex';
-        container.style.flexDirection = 'column-reverse'; // Force snowflake to the bottom using reverse order
+        container.style.flexDirection = 'column'; // Standard Top-to-Bottom
         container.style.alignItems = 'center';
         container.style.gap = '5px';
 
@@ -230,15 +230,12 @@ function buildDeck() {
             cardEl.style.boxShadow = '0 0 12px 6px #74b9ff';
         };
 
-        // Snowflake is FIRST in DOM, so in column-reverse it appears at the BOTTOM
-        container.appendChild(fBtn);
-
         if (id === 'bull') {
             const dBtn = document.getElementById('bull-dash-btn');
             if (dBtn) {
                 const bullRow = document.createElement('div');
                 bullRow.style.display = 'flex';
-                bullRow.style.flexDirection = 'row-reverse'; // Ensure Dash is on the LEFT in RTL
+                bullRow.style.flexDirection = 'row-reverse'; // Force Dash to LEFT in RTL
                 bullRow.style.alignItems = 'center';
                 bullRow.style.gap = '10px';
                 
@@ -246,8 +243,17 @@ function buildDeck() {
                 dBtn.style.display = 'none';
                 dBtn.style.margin = '0';
                 
-                bullRow.appendChild(cardEl); // Child 1 in row-reverse = Right
-                bullRow.appendChild(dBtn);   // Child 0 in row-reverse = Left
+                bullRow.appendChild(cardEl); // Child 0 (on Right in row-reverse? No, Child 1)
+                bullRow.appendChild(dBtn);   // Let's be explicit and append Card first
+                
+                // WAIT! Child 0 of row-reverse is Rightmost or Leftmost? 
+                // In RTL, Row is [0:Right, 1:Left]. 
+                // Row-reverse is [0:Left, 1:Right].
+                // So append dBtn (Child 0) -> Left, cardEl (Child 1) -> Right.
+                bullRow.innerHTML = '';
+                bullRow.appendChild(dBtn); 
+                bullRow.appendChild(cardEl);
+                
                 container.appendChild(bullRow);
             } else {
                 container.appendChild(cardEl);
@@ -255,6 +261,9 @@ function buildDeck() {
         } else {
             container.appendChild(cardEl);
         }
+
+        // Snowflake is appended LAST (Child 1), so it appears at the BOTTOM in a normal column
+        container.appendChild(fBtn);
 
         cardEl.onclick = () => {
             document.querySelectorAll('.card').forEach(c => {
