@@ -5,13 +5,13 @@ const CONFIG = {
     CANVAS_WIDTH: 600,
     CANVAS_HEIGHT: 900,
     FPS: 60,
-    ELIXIR_GEN_RATE: 1, 
+    ELIXIR_GEN_RATE: 1,
     MAX_ELIXIR: 10,
     SAFE_MAX_HP: 5000,
     SAFE_RADIUS: 45,
     SAFE_RANGE: 495, // 450 + 10%
-    SAFE_DAMAGE: 150, 
-    SAFE_ATTACK_SPEED: 1500 
+    SAFE_DAMAGE: 150,
+    SAFE_ATTACK_SPEED: 1500
 };
 
 // --- Game State ---
@@ -23,7 +23,7 @@ let difficulty = 'normal';
 // Entities
 let units = [];
 let projectiles = [];
-let auras = []; 
+let auras = [];
 let buildings = [];
 
 // Player Stats
@@ -39,7 +39,7 @@ const CARDS = {
     'scrappy': { name: 'ספארקי', cost: 4, type: 'building', color: '#e1b12c', icon: '🐶' },
     'penny': { name: 'מרגמה פני', cost: 5, type: 'building', color: '#c23616', icon: '💣' },
     'pam': { name: 'ריפוי פאם', cost: 8, type: 'aura', color: '#44bd32', icon: '💚' },
-    'max': { name: 'מהירות מקס', cost: 4, type: 'aura', color: '#fbc531', icon: '⚡' },
+    'max': { name: 'מהירות מקס', cost: 4, type: 'aura', color: '#dba511ff', icon: '⚡' },
     '8bit': { name: 'מאיץ 8-ביט', cost: 4, type: 'aura', color: '#e84393', icon: '🕹️' },
     'emz': { name: 'שטח אמז', cost: 7, type: 'aura', color: '#9c88ff', icon: '🧴' }, // Spray
     'leon': { name: 'ליאון', cost: 10, type: 'unit', color: '#00cec9', icon: '🍭' }
@@ -54,7 +54,7 @@ const elixirText = document.getElementById('elixir-text');
 const deckContainer = document.getElementById('deck-container');
 
 // Input
-let selectedCardId = null; 
+let selectedCardId = null;
 
 // --- Classes ---
 class Entity {
@@ -70,7 +70,7 @@ class Entity {
         // The isInvisible check is specific to Unit, not generic Entity.
         // If an entity is invisible, it should not take damage.
         // This check is moved here from Unit.takeDamage to be generic.
-        if (this.isInvisible) return; 
+        if (this.isInvisible) return;
         this.hp -= amount;
         this.lastDamageTime = performance.now();
         if (this.hp <= 0) {
@@ -131,15 +131,15 @@ class Safe extends Entity {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.fillStyle = this.team === 'player' ? '#0984e3' : '#d63031';
-        ctx.fillRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+        ctx.fillRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#2d3436';
-        ctx.strokeRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
-        
+        ctx.strokeRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+
         ctx.fillStyle = '#ffeaa7';
-        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
         ctx.restore();
-        
+
         const hpPercent = Math.max(0, this.hp / this.maxHp);
         ctx.fillStyle = '#000'; ctx.fillRect(this.x - 40, this.y - 60, 80, 10);
         ctx.fillStyle = this.team === 'player' ? '#74b9ff' : '#ff7675';
@@ -162,7 +162,7 @@ class Unit extends Entity {
         this.color = '#fff';
         this.isInvisible = false;
         this.icon = CARDS[type].icon;
-        
+
         if (type === 'bruce') {
             this.maxHp = 1200; this.hp = 1200; this.attackDamage = 150; this.speed = 50; this.color = '#8c7ae6';
         } else if (type === 'leon') {
@@ -191,7 +191,7 @@ class Unit extends Entity {
 
         // Find target: Safe exclusively
         this.target = this.team === 'player' ? enemySafe : playerSafe;
-        
+
         if (this.target && !this.target.isDead) {
             let dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
             if (dist <= this.attackRange + this.target.radius) {
@@ -201,7 +201,7 @@ class Unit extends Entity {
                     this.target.takeDamage(this.attackDamage * damageMult);
                     this.lastAttackTime = now;
                     // Melee punch effect
-                    projectiles.push(new MeleeEffect(this.x + (this.target.x - this.x)*0.5, this.y + (this.target.y - this.y)*0.5));
+                    projectiles.push(new MeleeEffect(this.x + (this.target.x - this.x) * 0.5, this.y + (this.target.y - this.y) * 0.5));
                 }
             } else {
                 // Move towards
@@ -219,11 +219,11 @@ class Unit extends Entity {
 
     draw(ctx) {
         if (this.isInvisible && this.team !== 'player') return; // Don't draw enemy Leon if invisible
-        
+
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
-        
+
         if (this.isInvisible) ctx.globalAlpha = 0.5; // Player sees their own Leon as ghostly
         ctx.fill();
         ctx.lineWidth = 3;
@@ -248,7 +248,7 @@ class Building extends Entity {
         this.attackSpeed = 1000;
         this.lastAttackTime = 0;
         this.icon = CARDS[type].icon;
-        
+
         if (type === 'scrappy') {
             this.maxHp = 800; this.hp = 800; this.color = '#e1b12c'; this.attackDamage = 60; this.attackSpeed = 500;
         } else if (type === 'penny') {
@@ -259,7 +259,7 @@ class Building extends Entity {
 
     update(dt, now) {
         if (this.isDead) return;
-        
+
         let atkSpeedMult = 1;
         let damageMult = 1;
         auras.forEach(a => {
@@ -274,9 +274,9 @@ class Building extends Entity {
             let enemies = units.concat(buildings, auras).concat([this.team === 'player' ? enemySafe : playerSafe]).filter(e => e.team !== this.team && !e.isInvisible);
             let inRange = enemies.filter(e => Math.hypot(e.x - this.x, e.y - this.y) <= this.attackRange);
             if (inRange.length > 0) {
-                inRange.sort((a,b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
+                inRange.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
                 let target = inRange[0];
-                
+
                 let isSplash = false; // removed splash damage from penny
                 projectiles.push(new Projectile(this.x, this.y, target, this.attackDamage * damageMult, this.team, isSplash));
                 this.lastAttackTime = now;
@@ -286,11 +286,11 @@ class Building extends Entity {
 
     draw(ctx) {
         ctx.fillStyle = this.color;
-        ctx.fillRect(this.x - this.radius, this.y - this.radius, this.radius*2, this.radius*2);
+        ctx.fillRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
         ctx.lineWidth = 3;
         ctx.strokeStyle = this.team === 'player' ? '#00a8ff' : '#e84118';
-        ctx.strokeRect(this.x - this.radius, this.y - this.radius, this.radius*2, this.radius*2);
-        
+        ctx.strokeRect(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+
         ctx.font = '22px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -307,7 +307,7 @@ class Aura extends Entity {
         this.maxHp = type === 'emz' ? 800 : 1500; this.hp = this.maxHp;
         this.lastTickTime = 0;
         this.spawnTime = performance.now();
-        
+
         if (type === 'pam') {
             this.radius = 82; // Increased by 10% from 75
             this.color = 'rgba(46, 204, 113, 0.3)';
@@ -350,7 +350,7 @@ class Aura extends Entity {
         ctx.strokeStyle = this.team === 'player' ? '#fff' : '#ff4757';
         ctx.lineWidth = 2;
         ctx.stroke();
-        
+
         // HP Bar for all Auras
         this.drawHpBar(ctx, -20);
     }
@@ -427,30 +427,30 @@ function buildDeck() {
     deckContainer.innerHTML = '';
     const keys = Object.keys(CARDS);
     // Give player all available cards in the deck
-    for(let i=0; i<keys.length; i++) {
+    for (let i = 0; i < keys.length; i++) {
         let cardKey = keys[i];
         let card = CARDS[cardKey];
         let d = document.createElement('div');
         d.className = 'card';
         d.id = `card-${cardKey}`;
         d.style.borderColor = card.color;
-        
+
         let costLabel = document.createElement('div');
         costLabel.className = 'card-cost';
         costLabel.innerText = card.cost;
-        
+
         let iconLabel = document.createElement('div');
         iconLabel.className = 'card-icon';
         iconLabel.innerText = card.icon;
-        
+
         let nameLabel = document.createElement('div');
         nameLabel.className = 'card-name';
         nameLabel.innerText = card.name;
-        
+
         d.appendChild(costLabel);
         d.appendChild(iconLabel);
         d.appendChild(nameLabel);
-        
+
         d.onclick = () => selectCard(cardKey, d);
         deckContainer.appendChild(d);
     }
@@ -473,7 +473,7 @@ canvas.addEventListener('click', (e) => {
     const scaleY = canvas.height / rect.height;
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
-    
+
     // Check placement validity
     // Player can place in lower half, or inside an active Emz aura
     let validPlacement = y > (CONFIG.CANVAS_HEIGHT / 2);
@@ -481,12 +481,12 @@ canvas.addEventListener('click', (e) => {
         let insideEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && Math.hypot(x - a.x, y - a.y) <= a.radius);
         if (insideEmz) validPlacement = true;
     }
-    
+
     if (!validPlacement && CARDS[selectedCardId].type !== 'aura') {
         // Invalid placement
-        return; 
+        return;
     }
-    
+
     spawnEntity(x, y, 'player', selectedCardId);
     selectedCardId = null;
     document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
@@ -508,7 +508,7 @@ function spawnEntity(x, y, team, typeStr) {
         entity = new Unit(x, y, 15, team, typeStr);
         units.push(entity);
     }
-    
+
     // Hard mode +30% power buff to all enemy summons
     if (difficulty === 'hard' && team === 'enemy') {
         entity.maxHp *= 1.3;
@@ -526,12 +526,12 @@ function initGame() {
     hardAIState = 0; aiDelayTimer = 0; hardAIAttackY = 250; hardAIEmzPlaced = false;
     playerSafe = new Safe(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 60, 'player');
     enemySafe = new Safe(CONFIG.CANVAS_WIDTH / 2, 60, 'enemy');
-    
+
     if (difficulty === 'hard') {
         enemySafe.maxHp *= 1.3;
         enemySafe.hp = enemySafe.maxHp;
     }
-    
+
     buildDeck();
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
@@ -559,8 +559,8 @@ function update(dt, now) {
         if (e && e.update) e.update(dt, now);
         if (e && e.isDead && !e.deathLogged && e.team === 'enemy' && e.type && CARDS[e.type]) {
             e.deathLogged = true;
-            aiDeaths.push({type: e.type, x: e.x, y: e.y, time: now});
-            pendingRebuilds.push({type: e.type, x: e.x, y: e.y});
+            aiDeaths.push({ type: e.type, x: e.x, y: e.y, time: now });
+            pendingRebuilds.push({ type: e.type, x: e.x, y: e.y });
         }
     });
 
@@ -632,7 +632,7 @@ function aiUpdate(dt, now) {
                 aiDelayTimer = now + 1500;
             } else if (enemyElixir >= 8) {
                 // Push
-                spawnEntity(CONFIG.CANVAS_WIDTH/2, 100, 'enemy', 'leon');
+                spawnEntity(CONFIG.CANVAS_WIDTH / 2, 100, 'enemy', 'leon');
                 aiDelayTimer = now + 2000;
             }
         }
@@ -640,7 +640,7 @@ function aiUpdate(dt, now) {
         let playerBruces = units.filter(u => u.team === 'player' && u.type === 'bruce').length;
         let safeUnderAttack = (now - (enemySafe.lastDamageTime || 0) < 15000) || units.some(u => u.team === 'player' && u.target === enemySafe);
         let needsDefense = playerBruces > 0 || safeUnderAttack;
-        
+
         if (hardAIState < 7 && !needsDefense) {
             hardAIState = 7; // Skip defense mode entirely!
         } else if (hardAIState >= 7 && needsDefense) {
@@ -656,7 +656,7 @@ function aiUpdate(dt, now) {
         } else if (hardAIState >= 1 && hardAIState <= 4) {
             let sparkiesSpawned = hardAIState - 1;
             if (playerBruces > sparkiesSpawned && enemyElixir >= 4) {
-                let offsets = [ {x: -60, y: 50}, {x: -20, y: 75}, {x: 20, y: 75}, {x: 60, y: 50} ];
+                let offsets = [{ x: -60, y: 50 }, { x: -20, y: 75 }, { x: 20, y: 75 }, { x: 60, y: 50 }];
                 let off = offsets[sparkiesSpawned];
                 spawnEntity(enemySafe.x + off.x, enemySafe.y + off.y, 'enemy', 'scrappy');
                 hardAIState++; aiDelayTimer = now + 400;
@@ -670,19 +670,19 @@ function aiUpdate(dt, now) {
             spawnEntity(enemySafe.x, enemySafe.y, 'enemy', 'pam');
             hardAIState++; aiDelayTimer = now + 500;
         } else if (hardAIState === 7 && enemyElixir >= 8) {
-            spawnEntity(CONFIG.CANVAS_WIDTH/2, hardAIAttackY, 'enemy', 'pam');
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2, hardAIAttackY, 'enemy', 'pam');
             hardAIState++; aiDelayTimer = now + 500;
         } else if (hardAIState === 8 && enemyElixir >= 8) {
-            spawnEntity(CONFIG.CANVAS_WIDTH/2, hardAIAttackY, 'enemy', 'pam');
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2, hardAIAttackY, 'enemy', 'pam');
             hardAIState++; aiDelayTimer = now + 500;
         } else if (hardAIState === 9 && enemyElixir >= 10) {
-            spawnEntity(CONFIG.CANVAS_WIDTH/2 - 60, hardAIAttackY + 50, 'enemy', 'penny');
-            spawnEntity(CONFIG.CANVAS_WIDTH/2 - 20, hardAIAttackY + 75, 'enemy', 'penny');
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2 - 60, hardAIAttackY + 50, 'enemy', 'penny');
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2 - 20, hardAIAttackY + 75, 'enemy', 'penny');
             hardAIState++; aiDelayTimer = now + 500;
         } else if (hardAIState === 10 && enemyElixir >= 10) {
-            spawnEntity(CONFIG.CANVAS_WIDTH/2 + 20, hardAIAttackY + 75, 'enemy', 'penny');
-            spawnEntity(CONFIG.CANVAS_WIDTH/2 + 60, hardAIAttackY + 50, 'enemy', 'penny');
-            
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2 + 20, hardAIAttackY + 75, 'enemy', 'penny');
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2 + 60, hardAIAttackY + 50, 'enemy', 'penny');
+
             // Advance the attack loop
             hardAIAttackY += 100;
             if (hardAIAttackY >= CONFIG.CANVAS_HEIGHT / 2 && !hardAIEmzPlaced) {
@@ -697,7 +697,7 @@ function aiUpdate(dt, now) {
             }
             aiDelayTimer = now + 1000;
         } else if (hardAIState === 11 && enemyElixir >= 7) {
-            spawnEntity(CONFIG.CANVAS_WIDTH/2, hardAIAttackY, 'enemy', 'emz');
+            spawnEntity(CONFIG.CANVAS_WIDTH / 2, hardAIAttackY, 'enemy', 'emz');
             hardAIEmzPlaced = true;
             hardAIState = 7; // Go back to the loop
             aiDelayTimer = now + 500;
@@ -732,7 +732,7 @@ function draw(ctx) {
 function updateUI() {
     elixirFill.style.width = `${Math.min(100, (playerElixir / CONFIG.MAX_ELIXIR) * 100)}%`;
     elixirText.innerText = `${Math.floor(playerElixir)} / 10`;
-    
+
     // Update deck availability
     document.querySelectorAll('.card').forEach(c => {
         let cardKey = c.id.replace('card-', '');

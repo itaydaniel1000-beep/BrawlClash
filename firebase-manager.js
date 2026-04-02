@@ -27,9 +27,10 @@
     if (typeof firebase !== 'undefined' && firebaseConfig && firebaseConfig.apiKey !== "YOUR_API_KEY") {
       firebase.initializeApp(firebaseConfig);
       db = firebase.database();
-      console.log("🔥 Firebase initialized successfully.");
+      console.log("%c🔥 Firebase initialized successfully.", "color: #e67e22; font-weight: bold;");
     } else {
-      console.warn("⚠️ Firebase configuration missing or library not loaded (Offline Mode)");
+      // Don't warn loudly if it's just the placeholder; it's expected for local development.
+      console.log("%cℹ️ Firebase placeholder detected. Running in Offline Mode.", "color: #95a5a6; font-style: italic;");
     }
   } catch (err) {
     console.warn("❌ Firebase connection failed:", err.message);
