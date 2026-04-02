@@ -202,7 +202,7 @@ function buildDeck() {
         const card = CARDS[id];
         const container = document.createElement('div');
         container.style.display = 'flex';
-        container.style.flexDirection = 'column';
+        container.style.flexDirection = 'column-reverse'; // Force snowflake to the bottom using reverse order
         container.style.alignItems = 'center';
         container.style.gap = '5px';
 
@@ -230,11 +230,15 @@ function buildDeck() {
             cardEl.style.boxShadow = '0 0 12px 6px #74b9ff';
         };
 
+        // Snowflake is FIRST in DOM, so in column-reverse it appears at the BOTTOM
+        container.appendChild(fBtn);
+
         if (id === 'bull') {
             const dBtn = document.getElementById('bull-dash-btn');
             if (dBtn) {
                 const bullRow = document.createElement('div');
                 bullRow.style.display = 'flex';
+                bullRow.style.flexDirection = 'row-reverse'; // Ensure Dash is on the LEFT in RTL
                 bullRow.style.alignItems = 'center';
                 bullRow.style.gap = '10px';
                 
@@ -242,8 +246,8 @@ function buildDeck() {
                 dBtn.style.display = 'none';
                 dBtn.style.margin = '0';
                 
-                bullRow.appendChild(cardEl);
-                bullRow.appendChild(dBtn);
+                bullRow.appendChild(cardEl); // Child 1 in row-reverse = Right
+                bullRow.appendChild(dBtn);   // Child 0 in row-reverse = Left
                 container.appendChild(bullRow);
             } else {
                 container.appendChild(cardEl);
@@ -251,9 +255,6 @@ function buildDeck() {
         } else {
             container.appendChild(cardEl);
         }
-
-        // Now append the freeze button at the VERY BOTTOM
-        container.appendChild(fBtn);
 
         cardEl.onclick = () => {
             document.querySelectorAll('.card').forEach(c => {
