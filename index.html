@@ -400,7 +400,18 @@
         <div id="social-overlay" class="screen overlay" style="background: linear-gradient(135deg, #1abc9c, #2c3e50);">
             <div class="menu-box" style="max-width: 500px; width: 95%; max-height: 85vh; overflow-y: hidden; display: flex; flex-direction: column;">
                 <h2 style="color: #f1c40f; margin-bottom: 10px;">שחקנים מחוברים 👥</h2>
-                <div id="social-list-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 15px 0; padding: 5px; text-align: right;">
+                
+                <!-- Manual Battle Code Section -->
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 2px solid rgba(255,255,255,0.05); text-align: center;">
+                    <div style="color: #bdc3c7; font-size: 0.85rem; margin-bottom: 5px;">קוד הקרב שלך:</div>
+                    <div id="my-peer-id-display" style="color: #f1c40f; font-weight: bold; font-size: 2.2rem; letter-spacing: 4px; margin-bottom: 15px; text-shadow: 0 0 15px rgba(241, 196, 15, 0.4);">טוען...</div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="manual-join-input" placeholder="הכנס קוד של חבר..." style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: rgba(0,0,0,0.4); color: white; font-family: 'Assistant', sans-serif; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 1.1rem;">
+                        <button onclick="manualJoinRoom()" class="bs-btn bs-btn-primary" style="padding: 10px 20px; font-size: 1rem; box-shadow: 0 4px #2980b9;">שחק! ⚔️</button>
+                    </div>
+                </div>
+
+                <div id="social-list-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin: 10px 0; padding: 5px; text-align: right;">
                     <p style="color: #bdc3c7; text-align: center;">מחפש שחקנים...</p>
                 </div>
                 <button onclick="closeScreen('social-overlay')" class="bs-btn bs-btn-danger" style="width: 100%;">סגור</button>

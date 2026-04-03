@@ -63,7 +63,8 @@
     getConnection: () => activeConnection,
 
     init: (username, callback) => {
-      const peerId = 'BrawlClash-' + username.replace(/\s+/g, '_') + '-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+      // Simplified PeerID for easier manual sharing
+      const peerId = 'BC-' + Math.random().toString(36).substr(2, 4).toUpperCase();
       peerInstance = new Peer(peerId);
 
       peerInstance.on('open', (id) => {

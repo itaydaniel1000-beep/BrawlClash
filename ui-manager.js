@@ -506,6 +506,22 @@ window.maxAllLevels = maxAllLevels;
 
 function openPlayersTab() {
     openScreen('social-overlay');
+    
+    // Display our own Code
+    const myIdDisplay = document.getElementById('my-peer-id-display');
+    if (myIdDisplay && window.NetworkManager) {
+        const peer = window.NetworkManager.getPeerInstance();
+        if (peer && peer.id) {
+            // Simplified display: take the part after the last dash
+            const parts = peer.id.split('-');
+            const shortCode = parts[parts.length-1];
+            myIdDisplay.innerText = shortCode;
+            myIdDisplay.setAttribute('data-full-id', peer.id);
+        } else {
+            myIdDisplay.innerText = "מתחבר...";
+        }
+    }
+
     if (window.NetworkManager) {
         window.NetworkManager.listenOnlinePlayers((count, players) => {
             renderOnlinePlayers(count, players);
@@ -515,6 +531,23 @@ function openPlayersTab() {
     }
 }
 window.openPlayersTab = openPlayersTab;
+
+function manualJoinRoom() {
+    const input = document.getElementById('manual-join-input');
+    let code = input ? input.value.trim().toUpperCase() : null;
+    if (!code) return;
+
+    if (window.NetworkManager) {
+        // If they only typed the 4-digit part, add the prefix
+        if (code.length === 4) {
+            code = "BC-" + code;
+        }
+        
+        console.log("🔗 Connecting to Battle Code:", code);
+        window.NetworkManager.joinRoom(code);
+    }
+}
+window.manualJoinRoom = manualJoinRoom;
 
 function renderOnlinePlayers(count, players) {
     const container = document.getElementById('social-list-container');
