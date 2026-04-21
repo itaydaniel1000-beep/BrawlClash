@@ -60,11 +60,4 @@ function buildDeck() {
         deckContainer.appendChild(cardEl);
     });
 }
-
-const AudioController = {
-    play: function(type) {
-        // Mock audio player for now
-        console.log(`🔊 Audio: Playing ${type}`);
-    }
-};
-window.AudioController = AudioController;
+window.buildDeck = buildDeck;

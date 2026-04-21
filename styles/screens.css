@@ -324,6 +324,65 @@
     transition: width 10s linear;
 }
 
+/* --- PREMIUM LOBBY ENHANCEMENTS --- */
+.featured-brawler::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(241, 196, 15, 0.2) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+    animation: glow-pulse 3s infinite alternate;
+}
+
+@keyframes glow-pulse {
+    from { opacity: 0.4; transform: translate(-50%, -50%) scale(0.9); }
+    to { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.brawler-platform {
+    width: 360px;
+    height: 70px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 40%, transparent 80%);
+    border-radius: 50%;
+    position: absolute;
+    bottom: -20px;
+    z-index: 1;
+    filter: blur(8px);
+    border: 2px solid rgba(255,255,255,0.05);
+}
+
+.brawler-icon-large {
+    font-size: 18rem; /* Ultra large and HD */
+    filter: drop-shadow(0 30px 60px rgba(0,0,0,0.9));
+    z-index: 2;
+    animation: brawler-float 4s infinite ease-in-out;
+}
+
+.brawler-tag {
+    margin-top: 35px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+    position: relative;
+    background: rgba(0,0,0,0.6);
+    padding: 15px 35px;
+    border-radius: 25px;
+    backdrop-filter: blur(10px);
+    border: 3.5px solid rgba(255,255,255,0.2);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 0 15px rgba(255,255,255,0.05);
+}
+
+.brawler-name-text {
+    font-size: 3.8rem;
+    letter-spacing: 1px;
+}
+
 .invite-actions {
     display: flex;
     gap: 15px;
