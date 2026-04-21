@@ -26,8 +26,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 50% 50%, rgba(52, 152, 219, 0.2) 0%, transparent 70%),
-                linear-gradient(135deg, #273c75 0%, #192a56 100%);
+    background: radial-gradient(circle at 50% 50%, rgba(52, 152, 219, 0.25) 0%, rgba(44, 62, 80, 0.4) 50%, transparent 100%),
+                linear-gradient(135deg, #1e272e 0%, #2f3640 100%);
     pointer-events: none;
     z-index: 1;
 }
@@ -128,17 +128,17 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 450px;
-    height: 450px;
-    background: radial-gradient(circle, rgba(241, 196, 15, 0.2) 0%, transparent 70%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(241, 196, 15, 0.35) 0%, rgba(52, 152, 219, 0.1) 40%, transparent 80%);
     z-index: 0;
     pointer-events: none;
-    animation: glow-pulse 3s infinite alternate;
+    animation: glow-pulse 2.5s infinite ease-in-out alternate;
 }
 
 @keyframes glow-pulse {
-    from { opacity: 0.4; transform: translate(-50%, -50%) scale(0.9); }
-    to { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+    0% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.8); filter: blur(20px); }
+    100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.1); filter: blur(5px); }
 }
 
 .brawler-platform {
