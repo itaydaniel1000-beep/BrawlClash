@@ -1,0 +1,76 @@
+/* Typography */
+h1, h2, h3, .logo-title {
+    font-family: 'Fredoka One', cursive;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+.logo-title {
+    font-size: 4rem;
+    color: var(--bs-yellow);
+    text-align: center;
+    margin-top: 100px;
+    letter-spacing: 2px;
+}
+
+/* Inputs & Buttons */
+.bs-input {
+    font-family: 'Assistant', sans-serif;
+    font-size: 1.2rem;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 10px;
+    border: 3px solid #ccc;
+    outline: none;
+    background: white;
+    color: #333;
+}
+
+.bs-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s, filter 0.1s;
+}
+
+.bs-btn:active {
+    transform: translateY(4px);
+    filter: brightness(0.9);
+}
+
+.bs-btn-primary {
+    background-color: var(--bs-yellow);
+    box-shadow: 0 6px 0 var(--bs-dark-yellow), inset 0px -4px 0px rgba(0, 0, 0, 0.1);
+    color: #333;
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
+}
+
+.bs-btn-success { background-color: #2ecc71; border-bottom: 5px solid #27ae60; }
+.bs-btn-success:active { border-bottom: 0; transform: translateY(5px); }
+
+.bs-btn-danger { background-color: #e74c3c; border-bottom: 5px solid #c0392b; }
+.bs-btn-danger:active { border-bottom: 0; transform: translateY(5px); }
+
+.bs-btn-small {
+    font-size: 1rem;
+    padding: 8px 15px;
+    box-shadow: 0 4px 0 var(--bs-dark-blue), inset 0px -2px 0px rgba(0, 0, 0, 0.1);
+    background-color: var(--bs-blue);
+    border-radius: 8px;
+}
+
+.bs-btn-invite {
+    background-color: #2ecc71;
+    border-bottom: 6px solid #27ae60;
+    font-size: 1.3rem;
+}
+
+.bs-btn-invite:active {
+    border-bottom: 2px solid #27ae60;
+    transform: translateY(4px);
+}

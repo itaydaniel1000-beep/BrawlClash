@@ -2,8 +2,10 @@
 
 function drawBackground(ctx) {
     if (!ctx) return;
-    const width = CONFIG.CANVAS_WIDTH || 600;
-    const height = CONFIG.CANVAS_HEIGHT || 900;
+    
+    // Safety check for globals
+    const width = (typeof CONFIG !== 'undefined' ? CONFIG.CANVAS_WIDTH : 600) || 600;
+    const height = (typeof CONFIG !== 'undefined' ? CONFIG.CANVAS_HEIGHT : 900) || 900;
     
     ctx.save();
     
@@ -12,7 +14,7 @@ function drawBackground(ctx) {
     ctx.fillRect(0, 0, width, height);
     
     // 2. Checkerboard Pattern
-    const tileSize = 60;
+    const tileSize = 50;
     ctx.fillStyle = '#44bd32'; // Darker Green
     for (let y = 0; y < height; y += tileSize) {
         for (let x = 0; x < width; x += tileSize) {
@@ -22,24 +24,19 @@ function drawBackground(ctx) {
         }
     }
 
-    // 3. Field Details (Small flowers/grass)
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = '#ffffff';
-    // Fixed positions for details to avoid random overhead
-    const details = [
-        [100, 100], [200, 150], [500, 120], [400, 250], [50, 400],
-        [550, 450], [300, 600], [150, 700], [450, 800], [250, 350]
+    // 3. Field Details (Fidelity details)
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'center';
+    const detailPoints = [
+        {x: 60, y: 60, s: '🌸'}, {x: 540, y: 60, s: '🌸'},
+        {x: 60, y: 840, s: '🌿'}, {x: 540, y: 840, s: '🌿'},
+        {x: 300, y: 250, s: '🌼'}
     ];
-    details.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p[0], p[1], 2, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    ctx.globalAlpha = 1.0;
+    detailPoints.forEach(p => ctx.fillText(p.s, p.x, p.y));
 
-    // 4. White Field Lines (Must draw last to be visible)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)'; 
-    ctx.lineWidth = 5;
+    // 4. White Field Lines (Ultra Robust)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; 
+    ctx.lineWidth = 4;
     
     // Center Line
     ctx.beginPath(); 
@@ -49,21 +46,20 @@ function drawBackground(ctx) {
     
     // Center Circle
     ctx.beginPath(); 
-    ctx.arc(width / 2, height / 2, 80, 0, Math.PI * 2); 
+    ctx.arc(width / 2, height / 2, 70, 0, Math.PI * 2); 
     ctx.stroke();
     
     // Outer Border
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 6;
-    ctx.strokeRect(5, 5, width - 10, height - 10);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.strokeRect(10, 10, width - 20, height - 20);
     
     ctx.restore();
 }
 
 function draw(ctx) {
     if (!ctx) return;
-    const width = CONFIG.CANVAS_WIDTH || 600;
-    const height = CONFIG.CANVAS_HEIGHT || 900;
+    const width = (typeof CONFIG !== 'undefined' ? CONFIG.CANVAS_WIDTH : 600) || 600;
+    const height = (typeof CONFIG !== 'undefined' ? CONFIG.CANVAS_HEIGHT : 900) || 900;
 
     ctx.clearRect(0, 0, width, height);
     
@@ -74,29 +70,29 @@ function draw(ctx) {
     
     drawBackground(ctx);
     
-    // Collect all drawable entities
-    let entities = [];
-    if (typeof auras !== 'undefined') entities = entities.concat(auras);
-    if (typeof buildings !== 'undefined') entities = entities.concat(buildings);
-    if (typeof units !== 'undefined') entities = entities.concat(units);
-    if (typeof projectiles !== 'undefined') entities = entities.concat(projectiles);
-    if (typeof floatingTexts !== 'undefined') entities = entities.concat(floatingTexts);
-    if (typeof particles !== 'undefined') entities = entities.concat(particles);
-    
-    if (typeof playerSafe !== 'undefined' && playerSafe) entities.push(playerSafe);
-    if (typeof enemySafe !== 'undefined' && enemySafe) entities.push(enemySafe);
+    // Safety collect
+    let drawables = [];
+    try {
+        if (typeof auras !== 'undefined') drawables = drawables.concat(auras);
+        if (typeof buildings !== 'undefined') drawables = drawables.concat(buildings);
+        if (typeof units !== 'undefined') drawables = drawables.concat(units);
+        if (typeof projectiles !== 'undefined') drawables = drawables.concat(projectiles);
+        
+        if (typeof playerSafe !== 'undefined' && playerSafe) drawables.push(playerSafe);
+        if (typeof enemySafe !== 'undefined' && enemySafe) drawables.push(enemySafe);
+    } catch(e) {}
 
-    entities.forEach(e => {
+    drawables.forEach(e => {
         try {
-            if (e && typeof e.draw === 'function') e.draw(ctx);
-        } catch (err) {
-            // Silently catch drawing errors for single entities
-        }
+            if (e && !e.isDead && typeof e.draw === 'function') e.draw(ctx);
+        } catch (err) {}
     });
     
     ctx.restore();
 
-    if (typeof currentState !== 'undefined' && currentState === GAME_STATE.PLAYING && (selectedCardId || selectedFreezeCardId)) {
-        if (typeof drawGhost === 'function') drawGhost(ctx);
+    if (typeof currentState !== 'undefined' && typeof GAME_STATE !== 'undefined' && currentState === GAME_STATE.PLAYING) {
+        if ((typeof selectedCardId !== 'undefined' && selectedCardId) || (typeof selectedFreezeCardId !== 'undefined' && selectedFreezeCardId)) {
+            if (typeof drawGhost === 'function') drawGhost(ctx);
+        }
     }
 }
