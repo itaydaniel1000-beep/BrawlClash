@@ -1,0 +1,76 @@
+@keyframes pulse-gold {
+    0% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(241, 196, 15, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(241, 196, 15, 0); }
+}
+
+.admin-active {
+    animation: pulse-gold 2s infinite;
+}
+
+@keyframes text-pulse {
+    0%, 100% {
+        text-shadow: 0 0 5px #fff, 0 0 10px var(--bs-yellow);
+        opacity: 0.8;
+    }
+    50% {
+        text-shadow: 0 0 10px #fff, 0 0 20px var(--bs-yellow), 0 0 30px var(--bs-yellow);
+        opacity: 1;
+    }
+}
+
+@keyframes aura-card-pulse {
+    0%, 100% {
+        box-shadow: 0 4px 0 #dcdde1, 0 0 10px rgba(251, 197, 49, 0.2);
+    }
+    50% {
+        box-shadow: 0 4px 0 #dcdde1, 0 0 20px rgba(251, 197, 49, 0.5);
+        border-color: var(--bs-yellow);
+    }
+}
+
+@keyframes icon-glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 2px #fff);
+    }
+    50% {
+        filter: drop-shadow(0 0 8px #fff) drop-shadow(0 0 12px var(--bs-yellow));
+    }
+}
+
+@keyframes bg-pulse {
+    0% { filter: hue-rotate(0deg) brightness(1); }
+    100% { filter: hue-rotate(10deg) brightness(1.2); }
+}
+
+@keyframes particles-move {
+    from { background-position: 0 0; }
+    to { background-position: 500px 1000px; }
+}
+
+@keyframes brawler-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+@keyframes star-btn-pulse {
+    from { transform: scale(1); box-shadow: 0 6px 0 #d35400; }
+    to { transform: scale(1.03); box-shadow: 0 8px 15px rgba(241, 196, 15, 0.4); }
+}
+
+@keyframes floatUpFade {
+    0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+    15% { transform: translate(-50%, -40px) scale(1.1); opacity: 1; }
+    30% { transform: translate(-50%, -50px) scale(1); opacity: 1; }
+    80% { transform: translate(-50%, -60px) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -90px) scale(0.8); opacity: 0; }
+}
+
+@keyframes p-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.emote-animate {
+    animation: floatUpFade 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}

@@ -596,6 +596,7 @@ function renderOnlinePlayers(count, players) {
     });
 }
 
+/*
 let inviteTimer = null;
 function showInviteNotification(data) {
     const notify = document.getElementById('invite-notification');
@@ -635,11 +636,12 @@ function showInviteNotification(data) {
         clearInvite();
     }, 10000);
 }
+*/
 
 // Global Listeners for Social Events
-window.addEventListener('remoteInvite', (e) => {
-    showInviteNotification(e.detail);
-});
+// window.addEventListener('remoteInvite', (e) => {
+//     showInviteNotification(e.detail);
+// });
 
 window.addEventListener('remoteInviteDeclined', (e) => {
     alert("ההזמנה סורבה ❌");

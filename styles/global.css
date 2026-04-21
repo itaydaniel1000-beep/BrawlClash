@@ -1,0 +1,47 @@
+:root {
+    --bs-blue: #00a8ff;
+    --bs-dark-blue: #006eb3;
+    --bs-yellow: #fbc531;
+    --bs-dark-yellow: #e1b12c;
+    --bs-green: #4cd137;
+    --bs-dark-green: #44bd32;
+    --bs-red: #e84118;
+    --bs-dark-red: #c23616;
+    --bs-elixir: #9c88ff;
+    --bs-dark-elixir: #8c7ae6;
+    --bg-dark: #2f3640;
+    --panel-bg: rgba(25, 42, 86, 0.85);
+
+    font-family: 'Assistant', sans-serif;
+    user-select: none;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #000; /* Black sides as requested */
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+#app {
+    position: relative;
+    height: 100vh;
+    width: auto;
+    aspect-ratio: 2 / 3; /* Matches 600x900 */
+    max-width: 100vw;
+    background-color: #0d1117;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 0 100px rgba(0,0,0,1);
+}

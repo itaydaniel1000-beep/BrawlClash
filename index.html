@@ -9,7 +9,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Assistant:wght@400;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=6">
+    <link rel="stylesheet" href="styles/global.css">
+    <link rel="stylesheet" href="styles/ui-components.css">
+    <link rel="stylesheet" href="styles/screens.css">
+    <link rel="stylesheet" href="styles/game.css">
+    <link rel="stylesheet" href="styles/animations.css">
     <link rel="stylesheet" href="admin-panel.css">
     <style>
         /* Nuclear Fix: Force Active Screen Visibility */
@@ -311,18 +315,6 @@
             </div>
         </div>
 
-
-        <!-- Battle Invite Notification (Bottom Right) -->
-        <div id="invite-notification" style="display:none; position:fixed; bottom:20px; right:20px; width:280px; z-index:10000; padding: 15px; border-radius: 15px; background: rgba(44, 62, 80, 0.98); border: 4px solid #f1c40f; box-shadow: 0 10px 30px rgba(0,0,0,0.6); text-align: center; animation: slideInRight 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-            <h3 style="color: #f1c40f; margin: 0 0 10px 0; font-size: 1.2rem;">⚔️ הזמנה לקרב!</h3>
-            <p id="invite-from-text" style="color: white; margin-bottom: 15px; font-weight: bold;">X מזמין אותך!</p>
-            <div style="display: flex; gap: 8px; justify-content: center;">
-                <button id="accept-invite-btn" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-green); font-size: 0.9rem; padding: 8px;">אישור קרב</button>
-                <button id="decline-invite-btn" class="bs-btn bs-btn-small" style="flex: 1; background: var(--bs-red); font-size: 0.9rem; padding: 8px;">דחה</button>
-            </div>
-        </div>
-    </div>
-
         <!-- NEW: Global Chat Sidebar -->
         <div id="global-chat-sidebar" style="display: none !important;"> <!-- Forced hidden until toggled -->
             <div style="display: flex; flex-direction: column; height: 100%; padding: 15px;">
@@ -396,7 +388,8 @@
                 <button class="admin-close-btn-footer" onclick="closeAdminMenu()">סגור</button>
             </div>
         </div>
-        <!-- NEW: Social / Online Players Screen -->
+
+        <!-- Social / Online Players Screen -->
         <div id="social-overlay" class="screen overlay" style="background: linear-gradient(135deg, #1abc9c, #2c3e50);">
             <div class="menu-box" style="max-width: 500px; width: 95%; max-height: 85vh; overflow-y: hidden; display: flex; flex-direction: column;">
                 <h2 style="color: #f1c40f; margin-bottom: 10px;">שחקנים מחוברים 👥</h2>
@@ -418,40 +411,70 @@
             </div>
         </div>
 
-        <!-- NEW: Invite Notification Popup -->
-        <div id="invite-notification" class="hidden" style="position: fixed; top: 20px; right: 20px; background: #2c3e50; border: 4px solid #f1c40f; border-radius: 15px; padding: 20px; width: 300px; z-index: 100000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); direction: rtl; font-family: 'Assistant', sans-serif;">
-            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                <div style="font-size: 2.5rem;">⚔️</div>
-                <div>
-                    <div style="color: #f1c40f; font-weight: bold; font-size: 1.2rem;">הזמנה לקרב!</div>
-                    <div id="invite-sender-name" style="color: white; font-size: 1rem;">שחקן מזמין אותך</div>
-                </div>
+        <!-- פופ-אפ הזמנה לקרב -->
+        <div id="invite-notification" class="hidden">
+            <div class="invite-header">⚔️ הזמנה לקרב!</div>
+            <div id="invite-sender-name" class="invite-body">...מזמין אותך!</div>
+            <div class="invite-timer-container">
+                <div id="invite-timer-bar"></div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button id="accept-invite-btn" class="bs-btn bs-btn-success" style="flex: 1; font-size: 1rem; padding: 10px;">אשר</button>
-                <button id="decline-invite-btn" class="bs-btn bs-btn-danger" style="flex: 1; font-size: 1rem; padding: 10px;">סרב</button>
+            <div class="invite-actions">
+                <button id="accept-invite-btn" class="bs-btn bs-btn-success">אישור קרב</button>
+                <button id="decline-invite-btn" class="bs-btn bs-btn-danger">דחה</button>
             </div>
-            <div id="invite-timer-bar" style="height: 4px; background: #f1c40f; width: 100%; margin-top: 15px; border-radius: 2px; transition: width 10s linear;"></div>
+
         </div>
 
+    </div>
+
+
     <!-- Multiplayer Engine & Persistence -->
 
     <!-- Multiplayer Engine & Persistence -->
+    <!-- Core Framework -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script src="firebase-manager.js"></script>
     
-    <!-- Game Modules -->
+    <!-- Game Core & Config -->
     <script src="config.js"></script>
     <script src="globals.js"></script>
     <script src="audio.js"></script>
-    <script src="entities.js"></script>
-    <script src="ui-manager.js"></script>
-    <script src="battle-logic.js"></script>
-    <script src="ai-logic.js"></script>
+    
+    <!-- Network Module -->
+    <script src="scripts/network/net-base.js"></script>
+    <script src="scripts/network/net-social.js"></script>
+    <script src="scripts/network/net-sync.js"></script>
     <script src="network-logic.js"></script>
-    <script src="engine.js"></script>
+    
+    <!-- Entities Module -->
+    <script src="scripts/entities/entity-base.js"></script>
+    <script src="scripts/entities/effects.js"></script>
+    <script src="scripts/entities/unit.js"></script>
+    <script src="scripts/entities/building.js"></script>
+    <script src="scripts/entities/aura.js"></script>
+    <script src="scripts/entities/projectile.js"></script>
+    
+    <!-- UI Module -->
+    <script src="scripts/ui/ui-core.js"></script>
+    <script src="scripts/ui/ui-brawlers.js"></script>
+    <script src="scripts/ui/ui-star-powers.js"></script>
+    <script src="scripts/ui/ui-progression.js"></script>
+    <script src="scripts/ui/ui-admin.js"></script>
+    <script src="scripts/ui/ui-social.js"></script>
+    
+    <!-- AI & Battle Module -->
+    <script src="scripts/ai/ai-core.js"></script>
+    <script src="scripts/ai/ai-strategies.js"></script>
+    <script src="scripts/battle/battle-spawn.js"></script>
+    <script src="scripts/battle/battle-input.js"></script>
+    <script src="scripts/battle/battle-deck.js"></script>
+    
+    <!-- Engine Module -->
+    <script src="scripts/engine/engine-core.js"></script>
+    <script src="scripts/engine/engine-physics.js"></script>
+    <script src="scripts/engine/engine-renderer.js"></script>
+    <script src="scripts/engine/engine-input.js"></script>
 </body>
 
 </html>

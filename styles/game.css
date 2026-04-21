@@ -1,0 +1,98 @@
+/* Game Screen & Battle UI */
+#game-screen {
+    background-color: #55E6C1;
+}
+
+#canvas-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+canvas {
+    background-color: #4cd137;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+}
+
+.top-bar {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.side-panel {
+    width: 100px;
+    z-index: 100;
+    pointer-events: none;
+}
+
+.side-panel>* {
+    pointer-events: auto;
+}
+
+.bottom-ui {
+    height: 160px;
+    background: linear-gradient(to top, #1e272e, #2f3640);
+    border-top: 4px solid var(--bs-yellow);
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    z-index: 10;
+}
+
+.deck-wrapper {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    width: 100%;
+}
+
+.deck-section {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* Elixir Bar */
+.elixir-container {
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+}
+
+.elixir-bar-bg {
+    flex-grow: 1;
+    height: 20px;
+    background-color: #2f3640;
+    border-radius: 10px;
+    border: 2px solid #718093;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.elixir-bar-fill {
+    height: 100%;
+    width: 50%;
+    background: linear-gradient(90deg, var(--bs-elixir), #c56cf0);
+    transition: width 0.2s linear;
+}
+
+.elixir-text {
+    font-family: 'Fredoka One', cursive;
+    color: var(--bs-elixir);
+    text-shadow: 1px 1px 0 #000;
+    width: 60px;
+    text-align: left;
+}

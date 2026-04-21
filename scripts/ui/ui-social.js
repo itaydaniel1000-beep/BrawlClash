@@ -1,0 +1,110 @@
+// ui-social.js - Social and Networking UI
+
+function openPlayersTab() {
+    openScreen('social-overlay');
+    
+    // Display our own Code
+    const myIdDisplay = document.getElementById('my-peer-id-display');
+    if (myIdDisplay && window.NetworkManager) {
+        const peer = window.NetworkManager.getPeerInstance();
+        if (peer && peer.id) {
+            // Simplified display: take the part after the last dash
+            const parts = peer.id.split('-');
+            const shortCode = parts[parts.length-1];
+            myIdDisplay.innerText = shortCode;
+            myIdDisplay.setAttribute('data-full-id', peer.id);
+        } else {
+            myIdDisplay.innerText = "מתחבר...";
+        }
+    }
+
+    if (window.NetworkManager) {
+        window.NetworkManager.listenOnlinePlayers((count, players) => {
+            renderOnlinePlayers(count, players);
+            const countEl = document.getElementById('online-count');
+            if (countEl) countEl.innerText = count;
+        });
+    }
+}
+window.openPlayersTab = openPlayersTab;
+
+function manualJoinRoom() {
+    const input = document.getElementById('manual-join-input');
+    let code = input ? input.value.trim().toUpperCase() : null;
+    if (!code) return;
+
+    if (window.NetworkManager) {
+        // If they only typed the 4-digit part, add the prefix
+        if (code.length === 4) {
+            code = "BC-" + code;
+        }
+        
+        console.log("🔗 Connecting to Battle Code:", code);
+        window.NetworkManager.joinRoom(code);
+    }
+}
+window.manualJoinRoom = manualJoinRoom;
+
+function renderOnlinePlayers(count, players) {
+    const container = document.getElementById('social-list-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (count === 0 || (count === 1 && players[playerStats.username])) {
+        container.innerHTML = '<p style="color: #bdc3c7; text-align: center; margin-top: 20px;">אין שחקנים אחרים מחוברים כרגע 😴</p>';
+        return;
+    }
+
+    Object.values(players).forEach(player => {
+        if (player.username === playerStats.username) return;
+
+        const item = document.createElement('div');
+        item.className = 'social-player-item';
+        item.innerHTML = `
+            <div class="player-info-box">
+                <div class="presence-dot online"></div>
+                <div class="player-main-data">
+                    <span class="p-username">${player.username}</span>
+                    <span class="p-trophies">🏆 ${player.trophies || 0}</span>
+                </div>
+            </div>
+            <button class="bs-btn bs-btn-invite hover-invite-btn" style="padding: 8px 15px; font-size: 0.9rem; background: #2ecc71;">הזמן ⚔️</button>
+        `;
+
+        const inviteBtn = item.querySelector('.hover-invite-btn');
+        inviteBtn.onclick = () => {
+            if (window.NetworkManager) {
+                window.NetworkManager.sendInvite(player.peerId, playerStats.username);
+                inviteBtn.innerText = 'נשלח...';
+                inviteBtn.disabled = true;
+                inviteBtn.style.opacity = '0.7';
+                setTimeout(() => {
+                    inviteBtn.innerText = 'הזמן ⚔️';
+                    inviteBtn.disabled = false;
+                    inviteBtn.style.opacity = '1';
+                }, 5000);
+            }
+        };
+
+        container.appendChild(item);
+    });
+}
+
+// Social Event Listeners
+window.addEventListener('remoteInviteDeclined', (e) => {
+    alert("ההזמנה סורבה ❌");
+});
+
+window.addEventListener('battleAccepted', (e) => {
+    console.log("⚔️ Social UI: Battle Accepted! Redirecting...", e.detail);
+    window.currentBattleRoom = e.detail.roomId;
+    window.isHost = e.detail.isHost;
+    
+    if (typeof startBattle === 'function') {
+        startBattle(e.detail.isHost);
+    }
+});
+
+// Final exports
+window.openPlayersTab = openPlayersTab;
