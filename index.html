@@ -84,9 +84,9 @@
             <!-- Main Content Area -->
             <div class="home-main-content">
                 <!-- Right Sidebar (now on the right visually) -->
-                <div id="right-sidebar" class="home-sidebar right hidden">
+                <div id="right-sidebar" class="home-sidebar right">
                     <div class="side-btn-group">
-                        <button class="side-btn social-btn">
+                        <button class="side-btn social-btn" onclick="openScreen('social-overlay')">
                             <span class="btn-icon">👥</span>
                         </button>
                         <button class="side-btn club-btn">
@@ -112,15 +112,15 @@
                 <!-- Left Sidebar (now on the left visually) -->
                 <div id="left-sidebar" class="home-sidebar left">
                     <div class="side-btn-group">
-                        <button class="side-btn shop-btn">
+                        <button class="side-btn shop-btn" onclick="openScreen('shop-screen')">
                             <span class="btn-icon">🛒</span>
                             <span class="btn-label">חנות</span>
                         </button>
-                        <button id="lobby-char-btn" class="side-btn brawlers-btn">
+                        <button id="lobby-char-btn" class="side-btn brawlers-btn" onclick="openScreen('char-selection-menu')">
                             <span class="btn-icon">🦸</span>
                             <span class="btn-label">דמויות</span>
                         </button>
-                        <button id="lobby-sp-btn" class="side-btn sp-btn">
+                        <button id="lobby-sp-btn" class="side-btn sp-btn" onclick="openScreen('sp-selection-menu')">
                             <span class="btn-icon">⭐</span>
                             <span class="btn-label">כוחות</span>
                         </button>

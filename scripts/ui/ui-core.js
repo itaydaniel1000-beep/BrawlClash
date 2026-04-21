@@ -136,3 +136,10 @@ function updateTrophyUI() {
         setTimeout(() => el.classList.remove('updated'), 500);
     }
 }
+
+// Auto-initialize UI on load
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🏁 UI ENGINE: Initializing on load...");
+    updateStatsUI();
+    updateHomeScreen();
+});
