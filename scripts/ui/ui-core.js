@@ -2,13 +2,13 @@
 
 function switchScreen(screenId) {
     console.log("%c📺 UI ENGINE: Switching to " + screenId, "color: #f1c40f; font-weight: bold; font-size: 1.2rem;");
-    
+
     const screens = document.querySelectorAll('.screen');
     screens.forEach(s => {
         s.classList.remove('active');
-        s.style.display = 'none'; 
+        s.style.display = 'none';
     });
-    
+
     const target = document.getElementById(screenId);
     if (target) {
         target.classList.add('active');
@@ -21,6 +21,12 @@ function switchScreen(screenId) {
     } else {
         console.error("❌ UI ENGINE: screen not found: " + screenId);
     }
+
+    // Side-panel decks only appear during battle, not in lobby or overlay screens
+    const inBattle = screenId === 'game-screen';
+    document.querySelectorAll('.side-panel').forEach(p => {
+        p.style.display = inBattle ? 'flex' : 'none';
+    });
 }
 window.switchScreen = switchScreen;
 
@@ -86,22 +92,31 @@ function updateStatsUI() {
 
 function openScreen(screenId) {
     if (screenId === 'sp-selection-menu') {
-        renderSPSelection();
+        if (typeof renderSPSelection === 'function') renderSPSelection();
+    } else if (screenId === 'char-selection-menu') {
+        if (typeof renderCharCards === 'function') renderCharCards();
     } else if (screenId === 'brawl-pass-screen') {
-        renderBrawlPass();
+        if (typeof renderBrawlPass === 'function') renderBrawlPass();
     } else if (screenId === 'shop-screen') {
-        renderShop();
+        if (typeof renderShop === 'function') renderShop();
     } else if (screenId === 'leaderboard-screen') {
-        renderLeaderboard();
+        if (typeof renderLeaderboard === 'function') renderLeaderboard();
+    } else if (screenId === 'social-overlay') {
+        if (typeof renderSocialPlayers === 'function') renderSocialPlayers();
     }
-    
-    const target = document.getElementById(screenId);
-    if (target) target.style.display = 'flex';
+
+    // Use switchScreen so the nuclear-fix .active class toggles visibility/opacity properly
+    switchScreen(screenId);
 }
 
 function closeScreen(screenId) {
     const target = document.getElementById(screenId);
-    if (target) target.style.display = 'none';
+    if (target) {
+        target.classList.remove('active');
+        target.style.display = 'none';
+    }
+    // After closing an overlay/screen, return to the lobby
+    if (typeof goToLobby === 'function') goToLobby();
 }
 
 function updateHomeScreen() {

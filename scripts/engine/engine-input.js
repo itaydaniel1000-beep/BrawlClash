@@ -15,6 +15,16 @@ function handleRemoteSpawn(data) {
     spawnEntity(data.x, data.y, 'enemy', data.type, false, true);
 }
 
+function handleShiftRelease(e) {
+    if (e.key !== 'Shift') return;
+    // Releasing Shift cancels any held card / freeze selection
+    if (selectedCardId || selectedFreezeCardId) {
+        selectedCardId = null;
+        selectedFreezeCardId = null;
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    }
+}
+
 function initGameListeners() {
     if (canvas) {
         canvas.removeEventListener('mousedown', handleCanvasClick);
@@ -22,6 +32,10 @@ function initGameListeners() {
         canvas.removeEventListener('mousemove', handleMouseMove);
         canvas.addEventListener('mousemove', handleMouseMove);
     }
+
+    // Shift release cancels any currently held card — lets player hold a card only while Shift is pressed.
+    window.removeEventListener('keyup', handleShiftRelease);
+    window.addEventListener('keyup', handleShiftRelease);
 
     const homeSettingsBtn = document.getElementById('home-settings-btn');
     if (homeSettingsBtn) {
@@ -33,10 +47,7 @@ function initGameListeners() {
     }
 
     const socialBtn = document.querySelector('.social-btn');
-    if (socialBtn) socialBtn.onclick = () => {
-        const sidebar = document.getElementById('global-chat-sidebar');
-        if (sidebar) sidebar.classList.toggle('hidden');
-    };
+    if (socialBtn) socialBtn.onclick = () => openPlayersTab();
 
     const emoteBtn = document.getElementById('emote-bubble-btn');
     if (emoteBtn) emoteBtn.addEventListener('click', (e) => {
@@ -78,8 +89,7 @@ function initGameListeners() {
     const gameOverCharBtn = document.getElementById('game-over-char-btn');
     if (gameOverCharBtn) gameOverCharBtn.onclick = () => {
         document.getElementById('game-over-menu').classList.remove('active');
-        if (typeof startCharSelection === 'function') startCharSelection();
-        else switchScreen('char-selection-menu');
+        openScreen('char-selection-menu');
     };
 
     const resumeBtn = document.getElementById('resume-btn');
@@ -101,22 +111,22 @@ function initGameListeners() {
     if (playBtn) playBtn.onclick = () => startGame();
 
     const charBtn = document.getElementById('lobby-char-btn');
-    if (charBtn) charBtn.onclick = () => startCharSelection();
+    if (charBtn) charBtn.onclick = () => openScreen('char-selection-menu');
 
     const spBtn = document.getElementById('lobby-sp-btn');
-    if (spBtn) spBtn.onclick = () => startSPSelection('lobby');
+    if (spBtn) {
+        spEntrySource = 'lobby';
+        spBtn.onclick = () => {
+            spEntrySource = 'lobby';
+            openScreen('sp-selection-menu');
+        };
+    }
 
     const passBtn = document.querySelector('.brawl-pass-btn');
-    if (passBtn) passBtn.onclick = () => {
-        switchScreen('brawl-pass-screen');
-        renderBrawlPass();
-    };
+    if (passBtn) passBtn.onclick = () => openScreen('brawl-pass-screen');
 
     const shopBtn = document.querySelector('.shop-btn');
-    if (shopBtn) shopBtn.onclick = () => {
-        switchScreen('shop-screen');
-        renderShop();
-    };
+    if (shopBtn) shopBtn.onclick = () => openScreen('shop-screen');
 
     const clubBtn = document.querySelector('.club-btn');
     if (clubBtn) clubBtn.onclick = () => {

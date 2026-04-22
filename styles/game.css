@@ -1,6 +1,6 @@
 /* Game Screen & Battle UI */
 #game-screen {
-    background-color: #55E6C1;
+    background-color: #4cd137;
 }
 
 #canvas-container {
@@ -10,14 +10,17 @@
     align-items: center;
     position: relative;
     overflow: hidden;
+    background: #000;
 }
 
-canvas {
+#game-canvas {
     background-color: #4cd137;
-    width: 100%;
-    height: 100%;
     display: block;
     touch-action: none;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
 
 .top-bar {
@@ -27,14 +30,28 @@ canvas {
     z-index: 10;
 }
 
+/* Side panels — show buildings on one side, auras on the other */
 .side-panel {
-    width: 100px;
+    width: 110px;
     z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
     pointer-events: none;
 }
 
-.side-panel>* {
+.side-panel > * {
     pointer-events: auto;
+}
+
+.side-panel .card {
+    width: 90px;
+    height: 115px;
+}
+
+.side-panel .card-name {
+    font-size: 0.8rem;
+    padding: 4px 0;
 }
 
 .bottom-ui {

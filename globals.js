@@ -99,6 +99,7 @@ let hardAIEmzPlaced = false;
 let aiWavePreparation = false;
 let aiWaveStartTime = 0;
 let aiWaveUnitsSpawned = 0;
+let lastAIActionTime = 0;
 
 // DOM references (initialized in engine.js)
 let canvas = null;

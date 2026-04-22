@@ -33,6 +33,23 @@
 #shop-screen { background: linear-gradient(135deg, #e74c3c, #2c3e50); }
 #social-overlay { background: linear-gradient(135deg, #1abc9c, #2c3e50); }
 
+/* Char/SP selection fills the #app lobby area (same size as lobby) */
+#char-selection-menu .char-selection-box,
+#sp-selection-menu .sp-selection-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+#char-selection-menu #char-cards-container,
+#sp-selection-menu #sp-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 70vh !important;
+}
+
 /* Invite Notification - High Priority UI */
 #invite-notification {
     position: fixed;
@@ -82,3 +99,85 @@
     gap: 15px;
     width: 100%;
 }
+
+/* Star Power Selection Cards */
+.sp-card-item {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    transition: background 0.2s, transform 0.2s;
+}
+
+.sp-card-item:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.sp-card-icon {
+    font-size: 2.6rem;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+}
+
+.sp-card-name {
+    font-weight: 800;
+    color: var(--bs-yellow);
+    margin-bottom: 12px;
+    font-size: 1.05rem;
+    text-shadow: 1px 1px 0 #000;
+}
+
+.sp-options {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sp-option-btn {
+    background: #34495e;
+    border: 2px solid #7f8fa6;
+    border-radius: 10px;
+    color: white;
+    padding: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    line-height: 1.25;
+}
+
+.sp-option-btn:hover {
+    background: #576574;
+    border-color: #fff;
+}
+
+.sp-option-btn.selected {
+    background: var(--bs-green);
+    border-color: #fff;
+    box-shadow: 0 0 12px var(--bs-green);
+    transform: scale(1.04);
+}
+
+.sp-option-btn .sp-name {
+    display: block;
+    font-weight: 800;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+.sp-option-btn .sp-desc {
+    display: block;
+    font-size: 0.72rem;
+    opacity: 0.85;
+    font-weight: 400;
+}
+
+/* Scrollbar for SP Selection */
+#sp-cards-container::-webkit-scrollbar { width: 8px; }
+#sp-cards-container::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+#sp-cards-container::-webkit-scrollbar-thumb { background: var(--bs-yellow); border-radius: 4px; }

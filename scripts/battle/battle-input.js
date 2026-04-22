@@ -23,6 +23,10 @@ function handleCanvasClick(e) {
     }
 
     if (selectedFreezeCardId) {
+        const freezeCard = CARDS[selectedFreezeCardId];
+        const canAffordFreeze = playerElixir >= (freezeCard.cost - 0.01) || adminHacks.infiniteElixir;
+        if (!canAffordFreeze) return; // Not enough elixir — can't place
+
         let valid = y > (CONFIG.CANVAS_HEIGHT / 2) || auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(x - a.x, y - a.y) <= a.radius);
         if (!valid) return;
 
@@ -34,22 +38,23 @@ function handleCanvasClick(e) {
 
     if (!selectedCardId) return;
 
+    const card = CARDS[selectedCardId];
+    const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
+    if (!canAfford) return; // Not enough elixir — can't place
+
     let valid = y > (CONFIG.CANVAS_HEIGHT / 2) || auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(x - a.x, y - a.y) <= a.radius);
 
     if (valid) {
-        const cardToContinue = selectedCardId; 
+        const cardToContinue = selectedCardId;
         spawnEntity(x, y, 'player', selectedCardId);
 
         if (shiftHeld) {
-            const canAffordNext = playerElixir >= (CARDS[cardToContinue].cost - 0.01) || adminHacks.infiniteElixir;
-            if (canAffordNext) {
-                selectedCardId = cardToContinue;
-                const cardEl = document.getElementById(`card-${cardToContinue}`);
-                if (cardEl) cardEl.classList.add('selected');
-            } else {
-                selectedCardId = null;
-                document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-            }
+            // Keep the card selected even if elixir is depleted — it will wait until there's
+            // enough elixir for the next placement instead of being auto-deselected.
+            selectedCardId = cardToContinue;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            const cardEl = document.getElementById(`card-${cardToContinue}`);
+            if (cardEl) cardEl.classList.add('selected');
         } else {
             selectedCardId = null;
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));

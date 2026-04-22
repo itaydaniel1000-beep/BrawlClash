@@ -49,6 +49,16 @@ Unit.prototype.update = function(dt, now) {
     if (this.type === 'bull' || this.type === 'porter') {
         let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen);
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
+
+        // Bull's dash: lock onto the first target when dash starts, end dash when that target dies.
+        if (this.type === 'bull' && this.dashEndTime) {
+            if (!this.dashTarget) {
+                this.dashTarget = this.target;
+            } else if (this.dashTarget.isDead) {
+                this.dashEndTime = 0;
+                this.dashTarget = null;
+            }
+        }
     } else {
         this.target = this.team === 'player' ? enemySafe : playerSafe;
     }
@@ -67,6 +77,11 @@ Unit.prototype.update = function(dt, now) {
 
                 this.target.takeDamage(dmg);
                 this.lastAttackTime = now;
+
+                // Bull's dash ends as soon as the dashed-to target dies; he should not auto-dash to the next enemy
+                if (this.type === 'bull' && this.target.isDead && this.dashEndTime) {
+                    this.dashEndTime = 0;
+                }
 
                 if (this.type === 'bruce' && this.team === 'player' && playerStarPowers['bruce'] === 'sp2') {
                     this.target.isFrozen = true;

@@ -5,10 +5,11 @@ function renderSPSelection() {
     if (!container) return;
     container.innerHTML = '';
 
-    playerDeck.forEach(key => {
-        if (!STAR_POWERS[key]) return;
+    // Show every brawler that has configured star powers
+    Object.keys(STAR_POWERS).forEach(key => {
         const card = CARDS[key];
         const sps = STAR_POWERS[key];
+        if (!card || !sps || sps.length === 0) return;
 
         const cardItem = document.createElement('div');
         cardItem.className = 'sp-card-item';

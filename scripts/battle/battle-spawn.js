@@ -20,9 +20,9 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false) {
 
     let card = CARDS[typeStr];
     if (team === 'player' && !adminHacks.infiniteElixir) {
-        playerElixir -= card.cost;
+        playerElixir = Math.max(0, playerElixir - card.cost);
     } else if (team === 'enemy' && !currentBattleRoom) {
-        enemyElixir -= card.cost;
+        enemyElixir = Math.max(0, enemyElixir - card.cost);
     }
 
     let entity;

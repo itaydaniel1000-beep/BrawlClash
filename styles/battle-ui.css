@@ -77,3 +77,32 @@
     font-size: 0.9rem;
     text-shadow: 1px 1px 2px #000;
 }
+
+/* Release Freeze Button — appears below the map, bottom-left, only while player units are frozen */
+#release-freeze-btn {
+    display: none;
+    position: absolute;
+    bottom: 175px;
+    left: 20px;
+    padding: 12px 22px;
+    background: linear-gradient(to bottom, #74b9ff, #0984e3);
+    color: #fff;
+    border: 3px solid #fff;
+    border-radius: 14px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #0a66a8, 0 10px 20px rgba(0, 0, 0, 0.4);
+    z-index: 150;
+    letter-spacing: 1px;
+    transition: transform 0.1s;
+}
+
+#release-freeze-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 #0a66a8, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+#release-freeze-btn:hover {
+    filter: brightness(1.1);
+}

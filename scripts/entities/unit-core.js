@@ -44,8 +44,9 @@ class Unit extends Entity {
 
     triggerDash(now) {
         if (this.type === 'bull' && !this.hasDashed) {
-            this.dashEndTime = now + 1600; 
+            this.dashEndTime = now + 1600;
             this.hasDashed = true;
+            this.dashTarget = null; // will be locked in on the next update tick
         }
     }
 }
