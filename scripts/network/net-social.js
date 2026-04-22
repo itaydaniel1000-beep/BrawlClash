@@ -10,12 +10,31 @@ NetworkManager.listenOnlinePlayers = function(callback) {
 };
 
 NetworkManager.sendInvite = function(targetPeerId, senderName) {
-    const conn = this.peer.connect(targetPeerId);
+    if (!this.peer) return;
+    const conn = this.peer.connect(targetPeerId, { reliable: true });
+    const roomId = "ROOM-" + Math.random().toString(36).substr(2, 6).toUpperCase();
     conn.on('open', () => {
+        this.connections[conn.peer] = conn;
         conn.send({
             type: 'BATTLE_INVITE',
             sender: senderName,
-            roomId: "ROOM-" + Math.random().toString(36).substr(2, 6).toUpperCase()
+            roomId: roomId
+        });
+        // Listen for their reply on this connection
+        conn.on('data', (data) => {
+            if (data.type === 'INVITE_ACCEPTED') {
+                window.currentBattleRoom = data.roomId;
+                window.isHost = true;
+                window.dispatchEvent(new CustomEvent('battleAccepted', {
+                    detail: { roomId: data.roomId, opponent: targetPeerId, isHost: true }
+                }));
+            } else if (data.type === 'INVITE_DECLINED') {
+                window.dispatchEvent(new CustomEvent('remoteInviteDeclined'));
+            } else if (data.type === 'SYNC_SPAWN') {
+                if (typeof handleRemoteSpawn === 'function') handleRemoteSpawn(data);
+            } else if (data.type === 'GAME_OVER') {
+                if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data.winner);
+            }
         });
     });
 };
@@ -157,7 +176,7 @@ NetworkManager.showInvitePopup = function(sender, roomId, conn) {
 
 function initNetworkListeners() {
     if (!window.playerStats || !window.playerStats.username) return;
-    if (window.NetworkManager && window.NetworkManager.isConfigured()) {
+    if (window.NetworkManager && window.NetworkManager.peer == null) {
         window.NetworkManager.init(window.playerStats.username);
     }
 }

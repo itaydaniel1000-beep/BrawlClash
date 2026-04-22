@@ -2,20 +2,32 @@
 
 function openPlayersTab() {
     openScreen('social-overlay');
-    
+
     // Display our own Code
     const myIdDisplay = document.getElementById('my-peer-id-display');
     if (myIdDisplay && window.NetworkManager) {
         const peer = window.NetworkManager.getPeerInstance();
         if (peer && peer.id) {
-            // Simplified display: take the part after the last dash
             const parts = peer.id.split('-');
-            const shortCode = parts[parts.length-1];
-            myIdDisplay.innerText = shortCode;
+            myIdDisplay.innerText = parts[parts.length - 1];
             myIdDisplay.setAttribute('data-full-id', peer.id);
         } else {
             myIdDisplay.innerText = "מתחבר...";
         }
+    }
+
+    // Without Firebase there's no global presence list — show a helpful hint instead
+    if (window.NetworkManager && !window.NetworkManager.hasFirebase()) {
+        const container = document.getElementById('social-list-container');
+        if (container) {
+            container.innerHTML = `
+                <div style="color: #bdc3c7; text-align: center; margin-top: 20px; line-height: 1.6;">
+                    🔗 <b>שלח את הקוד שלך לחבר</b><br>
+                    הוא יזין אותו למעלה וילחץ "שחק!"<br>
+                    <span style="font-size: 0.85rem; opacity: 0.7;">(או הזן את הקוד של חבר למעלה כדי להזמין אותו)</span>
+                </div>`;
+        }
+        return;
     }
 
     if (window.NetworkManager) {

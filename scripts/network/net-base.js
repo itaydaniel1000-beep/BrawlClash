@@ -1,4 +1,5 @@
 // net-base.js - Network Configuration and Initialization
+// Peer-to-peer multiplayer via PeerJS (no Firebase required — players exchange short codes).
 
 const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
@@ -17,32 +18,46 @@ const NetworkManager = {
     connections: {},
     onlineRef: null,
 
-    isConfigured: function() {
+    // Firebase is optional. PeerJS runs either way so players can connect via codes.
+    hasFirebase: function() {
         return firebaseConfig.apiKey !== "YOUR_API_KEY";
+    },
+
+    // Kept for backwards-compat (older callsites check isConfigured)
+    isConfigured: function() {
+        return true; // PeerJS is always available via the default public broker
     },
 
     init: function(username) {
         this.currentUsername = username;
-        if (!this.isConfigured()) {
-            console.warn("⚠️ NetworkManager: Firebase not configured. Multiplayer disabled.");
+
+        if (!window.Peer) {
+            console.error("❌ PeerJS missing — multiplayer disabled");
             return;
         }
 
-        if (!window.firebase || !window.Peer) {
-            console.error("❌ Dependencies missing (Firebase/PeerJS)");
-            return;
+        // Optional: Firebase (for global discovery). Skipped when not configured.
+        if (this.hasFirebase() && window.firebase) {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+            this.db = firebase.database();
+        } else {
+            console.info("ℹ️ NetworkManager: running in code-exchange mode (no Firebase)");
         }
 
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        this.db = firebase.database();
-        
-        // Initialize PeerJS
+        // PeerJS always initialises — uses PeerJS's free default broker.
         const peerId = "BC-" + Math.random().toString(36).substr(2, 4).toUpperCase();
         this.peer = new Peer(peerId);
 
         this.peer.on('open', (id) => {
             console.log("📡 PeerJS: Connected with ID: " + id);
-            this.updatePresence(id);
+            if (this.db) this.updatePresence(id);
+            // Refresh the social overlay's code display if it's open
+            const myIdDisplay = document.getElementById('my-peer-id-display');
+            if (myIdDisplay) {
+                const parts = id.split('-');
+                myIdDisplay.innerText = parts[parts.length - 1];
+                myIdDisplay.setAttribute('data-full-id', id);
+            }
         });
 
         this.peer.on('connection', (conn) => {
