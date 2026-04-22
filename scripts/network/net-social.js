@@ -128,12 +128,12 @@ NetworkManager.showInvitePopup = function(sender, roomId, conn) {
     notify.classList.add('show');
     notify.style.opacity = "1";
 
-    // ניהול פס זמן
+    // ניהול פס זמן (30 שניות לאישור)
     if (timerBar) {
         timerBar.style.transition = 'none';
         timerBar.style.width = '100%';
         void timerBar.offsetWidth;
-        timerBar.style.transition = 'width 10s linear';
+        timerBar.style.transition = 'width 30s linear';
         timerBar.style.width = '0%';
     }
 
@@ -172,7 +172,7 @@ NetworkManager.showInvitePopup = function(sender, roomId, conn) {
         clearInviteUI();
     };
 
-    // טיימר לסגירה אוטומטית
+    // טיימר לסגירה אוטומטית (30 שניות)
     if (inviteTimer) clearTimeout(inviteTimer);
     inviteTimer = setTimeout(() => {
         console.log("⏰ [InviteUI] Auto-decline due to timeout");
@@ -182,7 +182,7 @@ NetworkManager.showInvitePopup = function(sender, roomId, conn) {
             }
         } catch(e) {}
         clearInviteUI();
-    }, 10000);
+    }, 30000);
 };
 
 

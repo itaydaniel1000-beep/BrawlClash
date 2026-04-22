@@ -105,8 +105,24 @@ function renderOnlinePlayers(count, players) {
 
 // Social Event Listeners
 window.addEventListener('remoteInviteDeclined', () => {
-    alert("ההזמנה סורבה ❌");
+    showTransientToast("ההזמנה סורבה ❌");
 });
+
+function showTransientToast(msg) {
+    const t = document.createElement('div');
+    t.innerText = msg;
+    t.style.cssText = `
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.85); color: #fff;
+        padding: 12px 24px; border-radius: 12px;
+        font-family: 'Assistant', sans-serif; font-weight: 700; font-size: 1.1rem;
+        border: 2px solid #f1c40f; z-index: 30000;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    `;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+}
+window.showTransientToast = showTransientToast;
 // Note: the actual 'battleAccepted' → start-battle handler lives in network-logic.js
 // to avoid double-starting the game.
 

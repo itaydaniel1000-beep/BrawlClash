@@ -36,7 +36,9 @@ NetworkManager.updateBattleResult = function(roomId, winner) {
 // Connect to another player's code ("BC-ABCD" or just the 4-char suffix) and send an invite.
 NetworkManager.joinRoom = function(roomCode) {
     if (!this.peer) {
-        alert("החיבור לרשת עדיין לא מוכן - נסה שוב בעוד רגע");
+        if (typeof showTransientToast === 'function') {
+            showTransientToast("החיבור לרשת עדיין לא מוכן - נסה שוב בעוד רגע");
+        }
         return;
     }
 
@@ -44,7 +46,11 @@ NetworkManager.joinRoom = function(roomCode) {
     if (!targetId.startsWith("BC-")) targetId = "BC-" + targetId;
 
     if (targetId === this.peer.id) {
-        alert("זה הקוד שלך! שלח אותו לחבר כדי שיוכל להזמין אותך.");
+        if (typeof showTransientToast === 'function') {
+            showTransientToast("זה הקוד שלך! שלח אותו לחבר כדי שיוכל להזמין אותך.");
+        } else {
+            console.warn("זה הקוד שלך!");
+        }
         return;
     }
 
@@ -54,7 +60,9 @@ NetworkManager.joinRoom = function(roomCode) {
     const failTimer = setTimeout(() => {
         if (!conn.open) {
             try { conn.close(); } catch (e) {}
-            alert("לא הצלחנו להתחבר לקוד " + targetId.replace("BC-", "") + " — ודא שהוא נכון ושהשחקן מחובר.");
+            if (typeof showTransientToast === 'function') {
+                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId.replace("BC-", ""));
+            }
         }
     }, 6000);
 
