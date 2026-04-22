@@ -108,9 +108,12 @@ let charCardsContainer, charCountDisplay, elixirFill, elixirText, countEl;
 let deckContainer;
 
 // PeerJS / Network
-let isNetworkInitialized = false;
-let currentBattleRoom = null;
-let isHost = false;
+// NOTE: these MUST be `var` (not `let`) so they attach to `window`. Other modules
+// assign via `window.currentBattleRoom = ...` and read via the bare name — with `let`
+// those are two separate bindings and multiplayer silently falls back to the local AI.
+var isNetworkInitialized = false;
+var currentBattleRoom = null;
+var isHost = false;
 
 // Engine / UI state
 let gameLoopRunning = false;
