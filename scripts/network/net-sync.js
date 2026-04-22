@@ -1,14 +1,16 @@
 // net-sync.js - Multiplayer Game Synchronization
 
-NetworkManager.syncSpawn = function(roomId, x, y, type) {
-    // Send to all active peer connections
+NetworkManager.syncSpawn = function(roomId, x, y, unitType) {
+    // Send to all active peer connections.
+    // NOTE: the message envelope uses `type:'SYNC_SPAWN'` for routing, so the unit
+    // type goes into `unitType` — an inner `type` field would overwrite the envelope.
     Object.values(this.connections).forEach(conn => {
         if (conn.open) {
             conn.send({
                 type: 'SYNC_SPAWN',
                 x: CONFIG.CANVAS_WIDTH - x, // Flip for opponent
                 y: CONFIG.CANVAS_HEIGHT - y, // Flip for opponent
-                type: type
+                unitType: unitType
             });
         }
     });

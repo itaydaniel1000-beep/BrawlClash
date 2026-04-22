@@ -12,7 +12,8 @@ function handleNetworkGameOver(winner) {
 }
 
 function handleRemoteSpawn(data) {
-    spawnEntity(data.x, data.y, 'enemy', data.type, false, true);
+    // data.unitType is the unit kind; data.type is the envelope tag 'SYNC_SPAWN'
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, false, true);
 }
 
 function handleShiftRelease(e) {
