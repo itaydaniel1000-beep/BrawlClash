@@ -1,19 +1,45 @@
 // engine-input.js - Event Listeners and Input Handling
 
-function handleNetworkGameOver(winner) {
+function handleNetworkGameOver(data) {
     if (currentState === GAME_STATE.GAMEOVER) return;
     currentState = GAME_STATE.GAMEOVER;
+    // Back-compat: older payloads sent a bare `winner` username. New payloads send
+    // `{winnerIsYou, reason}` from the sender's perspective. Also accept a plain
+    // string in case some older client connects.
+    let isWin = false;
+    let reason = 'safe_destroyed';
+    if (data && typeof data === 'object') {
+        if (typeof data.winnerIsYou === 'boolean') {
+            isWin = data.winnerIsYou;
+        } else if (typeof data.winner === 'string') {
+            isWin = (data.winner === playerStats.username);
+        }
+        if (typeof data.reason === 'string') reason = data.reason;
+    } else if (typeof data === 'string') {
+        isWin = (data === playerStats.username);
+    }
+
     const resultText = document.getElementById('game-over-title');
-    const isWin = (winner === playerStats.username);
-    if (resultText) resultText.innerText = isWin ? "ניצחון רשתי!" : "הפסד רשתי!";
+    if (resultText) {
+        if (reason === 'forfeit' && isWin) {
+            resultText.innerText = "ניצחון! היריב עזב את הקרב";
+        } else if (reason === 'forfeit' && !isWin) {
+            resultText.innerText = "יצאת מהקרב";
+        } else {
+            resultText.innerText = isWin ? "ניצחון רשתי!" : "הפסד רשתי!";
+        }
+    }
     AudioController.play(isWin ? 'win' : 'lose');
     const overMenu = document.getElementById('game-over-menu');
     if (overMenu) overMenu.classList.add('active');
+
+    // Clear battle-room after a beat so the next game starts fresh.
+    setTimeout(() => { currentBattleRoom = null; }, 3000);
 }
 
 function handleRemoteSpawn(data) {
     // data.unitType is the unit kind; data.type is the envelope tag 'SYNC_SPAWN'
-    spawnEntity(data.x, data.y, 'enemy', data.unitType, false, true);
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, false, true, data.buffs || null);
 }
 
 function handleShiftRelease(e) {
@@ -75,6 +101,12 @@ function initGameListeners() {
 
     const quitBtn = document.getElementById('quit-btn');
     if (quitBtn) quitBtn.onclick = () => {
+        // In P2P battles, tell the opponent we forfeited so they get a proper
+        // victory screen instead of being silently stranded in the battle.
+        if (currentBattleRoom && window.NetworkManager && typeof window.NetworkManager.notifyForfeit === 'function') {
+            try { window.NetworkManager.notifyForfeit(); } catch (e) {}
+            currentBattleRoom = null;
+        }
         gameLoopRunning = false;
         currentState = GAME_STATE.MENU;
         document.getElementById('pause-menu').classList.remove('active');

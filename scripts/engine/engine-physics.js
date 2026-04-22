@@ -79,8 +79,8 @@ function update(dt, now) {
             sessionStorage.setItem('brawlclash_trophies', playerTrophies);
 
             if (currentBattleRoom && window.NetworkManager) {
-                const winner = winStatus === "win" ? playerStats.username : "opponent";
-                window.NetworkManager.updateBattleResult(currentBattleRoom, winner);
+                const iWon = (winStatus === "win");
+                window.NetworkManager.updateBattleResult(currentBattleRoom, iWon, 'safe_destroyed');
             }
         }
 

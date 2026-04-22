@@ -15,6 +15,9 @@ NetworkManager.sendInvite = function(targetPeerId, senderName) {
     const roomId = "ROOM-" + Math.random().toString(36).substr(2, 6).toUpperCase();
     conn.on('open', () => {
         this.connections[conn.peer] = conn;
+        if (NetworkManager._watchConnectionForMidBattleClose) {
+            NetworkManager._watchConnectionForMidBattleClose(conn);
+        }
         conn.send({
             type: 'BATTLE_INVITE',
             sender: senderName,
@@ -33,7 +36,7 @@ NetworkManager.sendInvite = function(targetPeerId, senderName) {
             } else if (data.type === 'SYNC_SPAWN') {
                 if (typeof handleRemoteSpawn === 'function') handleRemoteSpawn(data);
             } else if (data.type === 'GAME_OVER') {
-                if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data.winner);
+                if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data);
             }
         });
     });
@@ -43,6 +46,9 @@ NetworkManager.handleConnection = function(conn) {
     // Remember every incoming connection so syncSpawn / updateBattleResult can reach them
     conn.on('open', () => {
         this.connections[conn.peer] = conn;
+        if (NetworkManager._watchConnectionForMidBattleClose) {
+            NetworkManager._watchConnectionForMidBattleClose(conn);
+        }
     });
     conn.on('close', () => {
         delete this.connections[conn.peer];
@@ -61,7 +67,7 @@ NetworkManager.handleConnection = function(conn) {
         } else if (data.type === 'SYNC_SPAWN') {
             if (typeof handleRemoteSpawn === 'function') handleRemoteSpawn(data);
         } else if (data.type === 'GAME_OVER') {
-            if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data.winner);
+            if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data);
         }
     });
 };
