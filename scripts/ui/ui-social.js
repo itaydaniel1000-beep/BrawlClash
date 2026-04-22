@@ -104,19 +104,11 @@ function renderOnlinePlayers(count, players) {
 }
 
 // Social Event Listeners
-window.addEventListener('remoteInviteDeclined', (e) => {
+window.addEventListener('remoteInviteDeclined', () => {
     alert("ההזמנה סורבה ❌");
 });
-
-window.addEventListener('battleAccepted', (e) => {
-    console.log("⚔️ Social UI: Battle Accepted! Redirecting...", e.detail);
-    window.currentBattleRoom = e.detail.roomId;
-    window.isHost = e.detail.isHost;
-    
-    if (typeof startBattle === 'function') {
-        startBattle(e.detail.isHost);
-    }
-});
+// Note: the actual 'battleAccepted' → start-battle handler lives in network-logic.js
+// to avoid double-starting the game.
 
 // Final exports
 window.openPlayersTab = openPlayersTab;

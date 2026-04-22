@@ -40,12 +40,21 @@ NetworkManager.sendInvite = function(targetPeerId, senderName) {
 };
 
 NetworkManager.handleConnection = function(conn) {
+    // Remember every incoming connection so syncSpawn / updateBattleResult can reach them
+    conn.on('open', () => {
+        this.connections[conn.peer] = conn;
+    });
+    conn.on('close', () => {
+        delete this.connections[conn.peer];
+    });
     conn.on('data', (data) => {
         if (data.type === 'BATTLE_INVITE') {
             this.showInvitePopup(data.sender, data.roomId, conn);
         } else if (data.type === 'INVITE_ACCEPTED') {
-            window.dispatchEvent(new CustomEvent('battleAccepted', { 
-                detail: { roomId: data.roomId, isHost: true }
+            window.currentBattleRoom = data.roomId;
+            window.isHost = true;
+            window.dispatchEvent(new CustomEvent('battleAccepted', {
+                detail: { roomId: data.roomId, opponent: conn.peer, isHost: true }
             }));
         } else if (data.type === 'INVITE_DECLINED') {
             window.dispatchEvent(new CustomEvent('remoteInviteDeclined'));
@@ -149,7 +158,11 @@ NetworkManager.showInvitePopup = function(sender, roomId, conn) {
         try {
             if (currentInviteConn && currentInviteConn.open) {
                 currentInviteConn.send({ type: 'INVITE_ACCEPTED', roomId: roomId });
-                window.dispatchEvent(new CustomEvent('battleAccepted', { 
+                // Make sure the connection is retained for syncSpawn / GAME_OVER traffic
+                NetworkManager.connections[currentInviteConn.peer] = currentInviteConn;
+                window.currentBattleRoom = roomId;
+                window.isHost = false;
+                window.dispatchEvent(new CustomEvent('battleAccepted', {
                     detail: { roomId: roomId, opponent: sender, isHost: false }
                 }));
             }

@@ -1,21 +1,24 @@
 // network-logic.js - PeerJS and NetworkManager Communication
 
 function initNetworkListeners() {
-    if (isNetworkInitialized) return;
-    if (!window.NetworkManager || !window.NetworkManager.isConfigured()) return;
-    isNetworkInitialized = true;
+    if (!window.NetworkManager) return;
+    if (!window.playerStats || !window.playerStats.username) return;
 
-    // The ui-manager.js now handles 'battleAccepted' and 'remoteInvite' events
-    // We just ensure the NetworkManager is listening for presence
-    window.NetworkManager.listenOnlinePlayers((count, players) => {
-        const countEl = document.getElementById('online-count');
-        if (countEl) countEl.innerText = count;
-        
-        // If the social-overlay is open, we want it to refresh
-        if (typeof renderOnlinePlayers === 'function') {
-            renderOnlinePlayers(count, players);
-        }
-    });
+    // Bring up PeerJS if it hasn't started yet (works even without Firebase)
+    if (!window.NetworkManager.peer) {
+        window.NetworkManager.init(window.playerStats.username);
+    }
+
+    // Firebase-backed presence list is optional. Skip when not configured.
+    if (window.NetworkManager.hasFirebase && window.NetworkManager.hasFirebase() && window.NetworkManager.listenOnlinePlayers) {
+        if (isNetworkInitialized) return;
+        isNetworkInitialized = true;
+        window.NetworkManager.listenOnlinePlayers((count, players) => {
+            const countEl = document.getElementById('online-count');
+            if (countEl) countEl.innerText = count;
+            if (typeof renderOnlinePlayers === 'function') renderOnlinePlayers(count, players);
+        });
+    }
 }
 
 function displayEmote(senderName, emoteId) {
@@ -85,36 +88,13 @@ function startMultiplayerBattle(roomId, isHost, opponentName) {
 window.startMultiplayerBattle = startMultiplayerBattle;
 
 // Synchronization Listeners
+// No-op in P2P mode: PeerJS's handleConnection already dispatches SYNC_SPAWN / GAME_OVER
+// to handleRemoteSpawn / handleNetworkGameOver, and spawnEntity pushes outgoing spawns
+// via NetworkManager.syncSpawn. The old Firebase listeners (listenSpawns/listenHealth/…)
+// don't exist in code-exchange mode.
 function initMultiplayerSync() {
-    if (!window.NetworkManager || !window.currentBattleRoom) return;
-    console.log("🎮 Initializing Multiplayer Synchronization for Room:", window.currentBattleRoom);
-
-    // Listen for spawns
-    window.NetworkManager.listenSpawns(window.currentBattleRoom, (data) => {
-        if (typeof spawnUnit === 'function') {
-            spawnUnit(data.x, data.y, data.typeStr, false);
-        }
-    });
-
-    // Listen for health updates
-    window.NetworkManager.listenHealth(window.currentBattleRoom, (hpData) => {
-        if (hpData && hpData.playerSafeHp !== undefined && window.enemySafe) enemySafe.hp = hpData.playerSafeHp;
-        if (hpData && hpData.enemySafeHp !== undefined && window.playerSafe) playerSafe.hp = hpData.enemySafeHp;
-    });
-
-    // Listen for game over
-    window.NetworkManager.listenBattleStatus(window.currentBattleRoom, (status, winner) => {
-        if (status === 'finished') {
-            // Note: the winner from the other side's perspective is inverted here
-            const finalWinner = (winner === 'player' ? 'enemy' : 'player');
-            if (typeof endGame === 'function') endGame(finalWinner);
-        }
-    });
-
-    // Listen for emotes
-    window.NetworkManager.listenEmotes(window.currentBattleRoom, (data) => {
-        if (typeof displayEmote === 'function') displayEmote(data.username, data.emoteId);
-    });
+    if (!window.currentBattleRoom) return;
+    console.log("🎮 Multiplayer active (P2P) for room:", window.currentBattleRoom);
 }
 window.initMultiplayerSync = initMultiplayerSync;
 

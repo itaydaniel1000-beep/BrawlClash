@@ -60,7 +60,10 @@ function update(dt, now) {
         playerMaxElixir = Math.min(20, 10 + Math.floor(playerKills / 3));
     }
 
-    aiUpdate(dt, now);
+    // In multiplayer, don't run local AI — the opponent is a real player whose actions arrive via PeerJS.
+    if (!currentBattleRoom) {
+        aiUpdate(dt, now);
+    }
     updateUI();
 
     if (playerSafe && enemySafe && (playerSafe.isDead || enemySafe.isDead)) {
