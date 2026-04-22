@@ -51,13 +51,10 @@ function claimUsername() {
         const overlay = document.getElementById('username-overlay');
         if (overlay) overlay.style.display = 'none';
         updateStatsUI();
-        
-        if (window.NetworkManager) {
-            window.NetworkManager.init(name, (id) => {
-                console.log("🎮 Network presence established for:", name, "ID:", id);
-            });
-        }
 
+        // NetworkManager.init runs from initNetworkListeners (called by goToLobby).
+        // Don't call it here too — starting two PeerJS instances means one overrides
+        // the other and the surviving peer never fires 'open'.
         goToLobby();
     }
 }
