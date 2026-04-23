@@ -28,9 +28,11 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     // Buff source: local admin hacks for our own spawns, remote buffs piggy-backed
     // on the wire for opponent spawns. This lets the admin's boosted units hit just as
     // hard on the opponent's screen even though they have no admin panel of their own.
+    // `adminHacks` is a `let` in globals.js so window.adminHacks is undefined;
+    // use the bare name for reliable lexical-scope access.
     const buffs = isRemote
         ? (remoteBuffs || {})
-        : (team === 'player' ? (window.adminHacks || {}) : {});
+        : (team === 'player' ? ((typeof adminHacks !== 'undefined') ? adminHacks : {}) : {});
 
     let entity;
     if (card.type === 'unit') {

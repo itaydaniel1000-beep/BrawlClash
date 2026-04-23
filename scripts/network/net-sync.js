@@ -2,11 +2,15 @@
 
 // Build the admin-buff payload piggy-backed onto every spawn so the opponent's
 // client renders the same souped-up unit the admin actually placed locally.
+// NOTE: `adminHacks` is `let` in globals.js, so `window.adminHacks` is undefined
+// — we rely on the bare name resolving through lexical scope (net-sync.js loads
+// after globals.js) to read the real values.
 function _collectSpawnBuffs() {
-    const h = window.adminHacks || {};
+    const h = (typeof adminHacks !== 'undefined') ? adminHacks : {};
     return {
         doubleDamage: !!h.doubleDamage,
-        superSpeed: !!h.superSpeed
+        superSpeed: !!h.superSpeed,
+        godMode: !!h.godMode
     };
 }
 
