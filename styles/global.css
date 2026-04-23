@@ -58,11 +58,14 @@ body {
 @media (max-width: 600px) {
     html { font-size: 14px; }
     #app {
-        height: min(96vh, calc(96vw * 3 / 2));
-        border-radius: 8px;
+        /* Use the full phone viewport — no outer margins — so the battle
+           canvas has as much room as possible. */
+        height: min(100vh, calc(100vw * 3 / 2));
+        border-radius: 0;
+        box-shadow: none;
     }
+    body { overflow: hidden; }
 }
 @media (max-width: 400px) {
     html { font-size: 13px; }
-    #app { height: min(94vh, calc(94vw * 3 / 2)); }
 }

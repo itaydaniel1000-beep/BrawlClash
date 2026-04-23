@@ -124,3 +124,15 @@
     width: 60px;
     text-align: left;
 }
+
+/* Mobile in-battle — shrink the bottom UI so the map gets more vertical
+   room. Declared here (not battle-ui.css) because game.css loads LATER in
+   index.html and a plain `.bottom-ui { height: 160px }` rule here would
+   otherwise override the battle-ui.css mobile override. */
+@media (max-width: 600px) {
+    .bottom-ui {
+        height: 92px;
+        padding: 4px 6px;
+    }
+    .elixir-container { height: 22px; padding: 0 12px; gap: 6px; }
+}

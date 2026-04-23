@@ -109,6 +109,49 @@
     filter: brightness(1.1);
 }
 
+/* Emote bubble + selector float above the battle UI instead of taking their
+   own layout space in the flex column (which otherwise steals ~90px of canvas
+   room on mobile). The JS toggles .active on the selector to show/hide it. */
+.emote-bubble-btn {
+    position: absolute;
+    bottom: 175px;
+    right: 12px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 120;
+}
+.emote-selector {
+    position: absolute;
+    bottom: 225px;
+    right: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 6px;
+    z-index: 120;
+}
+.emote-selector.active { display: flex; }
+.emote-option {
+    width: 38px; height: 38px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
+    cursor: pointer;
+}
+.emote-option:active { background: rgba(255,255,255,0.2); }
+
 /* Mobile in-battle deck: side-panels can't fit alongside the #app box on a
    phone-sized viewport (their fixed-position formula resolves to negative X).
    buildDeck() now pushes every card into the centre row on mobile; we just
@@ -143,6 +186,12 @@
         width: 18px !important; height: 18px !important; font-size: 0.55rem !important;
         bottom: 2px !important; left: 2px !important;
     }
-    .bottom-ui { height: 120px; }
-    #release-freeze-btn { bottom: 135px; padding: 8px 14px; font-size: 0.9rem; }
+    .bottom-ui { height: 92px; padding: 4px 6px; }
+    .deck-wrapper { margin-bottom: 4px; }
+    .elixir-container { height: 22px; padding: 0 12px; gap: 6px; }
+    .elixir-bar-bg { height: 16px; }
+    #release-freeze-btn { bottom: 105px; padding: 6px 12px; font-size: 0.85rem; }
+    /* Pause button: keep it small and in the corner so it doesn't eat map space */
+    .top-bar { top: 6px; right: 6px; }
+    .top-bar .bs-btn { padding: 6px 10px; font-size: 0.8rem; }
 }
