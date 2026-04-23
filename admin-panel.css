@@ -18,6 +18,17 @@
     pointer-events: auto;
 }
 
+/* While the admin panel is open on desktop, slide the #app board to the
+   LEFT by ~half the panel's width so its right edge (where PLAY, the deck's
+   last few cards, etc. live) no longer sits underneath the panel — clicks
+   would be consumed by the panel container even with pointer-events
+   propagation, because the lobby buttons ARE behind the panel's bounding
+   box in that area. */
+body.admin-panel-open #app {
+    transform: translateX(-260px);
+    transition: transform 0.25s ease-out;
+}
+
 .admin-panel-container {
     width: 90%;
     max-width: 460px;
@@ -49,6 +60,8 @@
         width: 94%;
         max-width: 480px;
     }
+    /* Don't shift #app on mobile — the panel covers the screen as a modal. */
+    body.admin-panel-open #app { transform: none; }
 }
 .admin-section-title {
     font-family: 'Fredoka One', cursive;

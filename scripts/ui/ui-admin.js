@@ -13,7 +13,18 @@ function openAdminMenu() {
 
     const overlay = document.getElementById('admin-panel-overlay');
     if (!overlay) return;
+    // The admin panel's markup sits INSIDE #app, but we want to slide #app
+    // left when the panel opens — otherwise the panel gets carried along
+    // with #app and ends up in the wrong place. Reparent it to <body> once
+    // so it stays pinned to the viewport.
+    if (overlay.parentElement !== document.body) {
+        document.body.appendChild(overlay);
+    }
     overlay.style.display = 'flex';
+    // Flag the body so CSS can slide #app left and out of the panel's way on
+    // desktop. The mobile media-query opts out so the phone modal still
+    // covers the full screen the way it always did.
+    document.body.classList.add('admin-panel-open');
 
     const boolToggles = [
         { id: 'toggle-infinite-elixir',  key: 'infiniteElixir' },
@@ -132,6 +143,7 @@ function _renderGrantedExtras(isSuper, myGrant) {
 function closeAdminMenu() {
     const overlay = document.getElementById('admin-panel-overlay');
     if (overlay) overlay.style.display = 'none';
+    document.body.classList.remove('admin-panel-open');
 }
 window.closeAdminMenu = closeAdminMenu;
 
