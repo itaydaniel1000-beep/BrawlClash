@@ -47,8 +47,9 @@ function manualJoinRoom() {
 
     if (window.NetworkManager) {
         // If they only typed the 4-digit part, add the prefix
-        if (code.length === 4) {
-            code = "BC-" + code;
+        // Accept bare 3-digit codes (we prepend "BC-" ourselves), or the full "BC-123".
+        if (/^\d{1,3}$/.test(code)) {
+            code = "BC-" + code.padStart(3, '0');
         }
         
         console.log("🔗 Connecting to Battle Code:", code);

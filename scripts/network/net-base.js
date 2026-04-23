@@ -46,45 +46,54 @@ const NetworkManager = {
 
         // PeerJS always initialises — uses PeerJS's free default broker.
         // Add public STUN + TURN (Open Relay) so WebRTC can cross restrictive NATs/firewalls.
-        const peerId = "BC-" + Math.random().toString(36).substr(2, 4).toUpperCase();
-        this.peer = new Peer(peerId, {
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' },
-                    {
-                        urls: 'turn:openrelay.metered.ca:80',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    },
-                    {
-                        urls: 'turn:openrelay.metered.ca:443',
-                        username: 'openrelayproject',
-                        credential: 'openrelayproject'
-                    }
-                ]
-            }
-        });
+        // 3-digit numeric battle codes (user-facing shorter than the old 4-char alnum).
+        // With only 1000 possible IDs collisions will happen, so we retry on
+        // 'unavailable-id' with a freshly-rolled code (up to MAX_TRIES).
+        const ICE = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:global.stun.twilio.com:3478' },
+                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+            ]
+        };
+        const MAX_TRIES = 12;
+        const self = this;
+        const tryOpenPeer = (attempt) => {
+            const peerId = "BC-" + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            console.log(`📡 PeerJS: trying ID ${peerId} (attempt ${attempt + 1}/${MAX_TRIES})`);
+            const p = new Peer(peerId, { config: ICE });
 
-        this.peer.on('open', (id) => {
-            console.log("📡 PeerJS: Connected with ID: " + id);
-            if (this.db) this.updatePresence(id);
-            // Refresh the social overlay's code display if it's open
-            const myIdDisplay = document.getElementById('my-peer-id-display');
-            if (myIdDisplay) {
-                const parts = id.split('-');
-                myIdDisplay.innerText = parts[parts.length - 1];
-                myIdDisplay.setAttribute('data-full-id', id);
-            }
-        });
+            p.on('open', (id) => {
+                self.peer = p;
+                console.log("📡 PeerJS: Connected with ID: " + id);
+                if (self.db) self.updatePresence(id);
+                const myIdDisplay = document.getElementById('my-peer-id-display');
+                if (myIdDisplay) {
+                    const parts = id.split('-');
+                    myIdDisplay.innerText = parts[parts.length - 1];
+                    myIdDisplay.setAttribute('data-full-id', id);
+                }
+            });
 
-        this.peer.on('connection', (conn) => {
-            this.handleConnection(conn);
-        });
+            p.on('connection', (conn) => self.handleConnection(conn));
 
-        this.peer.on('error', (err) => {
-            console.error("📡 PeerJS Error:", err);
-        });
+            p.on('error', (err) => {
+                const isTaken = err && (err.type === 'unavailable-id' || /taken|unavailable/i.test(err.message || ''));
+                if (isTaken && attempt + 1 < MAX_TRIES) {
+                    console.warn(`📡 PeerJS: ${peerId} taken, rolling another…`);
+                    try { p.destroy(); } catch (e) {}
+                    tryOpenPeer(attempt + 1);
+                    return;
+                }
+                console.error("📡 PeerJS Error:", err);
+            });
+
+            // Expose the in-flight peer immediately so outgoing `.connect()` calls don't
+            // race past us while we're still waiting for 'open'.
+            self.peer = p;
+        };
+        tryOpenPeer(0);
     },
 
     getPeerInstance: function() {

@@ -400,7 +400,7 @@
                     <div style="color: #bdc3c7; font-size: 0.85rem; margin-bottom: 5px;">קוד הקרב שלך:</div>
                     <div id="my-peer-id-display" style="color: #f1c40f; font-weight: bold; font-size: 2.2rem; letter-spacing: 4px; margin-bottom: 15px; text-shadow: 0 0 15px rgba(241, 196, 15, 0.4);">טוען...</div>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="manual-join-input" placeholder="הכנס קוד של חבר..." style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: rgba(0,0,0,0.4); color: white; font-family: 'Assistant', sans-serif; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 1.1rem;">
+                        <input type="text" id="manual-join-input" placeholder="הכנס קוד (3 ספרות)..." maxlength="3" inputmode="numeric" pattern="\d{3}" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: rgba(0,0,0,0.4); color: white; font-family: 'Assistant', sans-serif; text-align: center; font-weight: bold; text-transform: uppercase; font-size: 1.1rem;">
                         <button onclick="manualJoinRoom()" class="bs-btn bs-btn-primary" style="padding: 10px 20px; font-size: 1rem; box-shadow: 0 4px #2980b9;">שחק! ⚔️</button>
                     </div>
                 </div>
@@ -443,7 +443,7 @@
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
-    <script src="scripts/network/net-base.js?v=3.3"></script>
+    <script src="scripts/network/net-base.js?v=3.9"></script>
     <script src="scripts/network/net-social.js?v=3.7"></script>
     <script src="scripts/network/net-sync.js?v=3.7"></script>
     <script src="network-logic.js?v=3.8"></script>
@@ -463,7 +463,7 @@
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
     <script src="scripts/ui/ui-admin.js?v=3.8"></script>
-    <script src="scripts/ui/ui-social.js?v=3.3"></script>
+    <script src="scripts/ui/ui-social.js?v=3.9"></script>
     
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=3.3"></script>
