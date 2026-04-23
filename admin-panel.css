@@ -1,13 +1,22 @@
 /* --- Admin Panel Styles --- */
 #admin-panel-overlay {
-    background: rgba(10, 20, 50, 0.95);
+    background: rgba(10, 20, 50, 0.55);
     z-index: 20000;
+    /* Desktop: the panel docks against the RIGHT edge of the viewport.
+       The page root is `dir="rtl"`, which flips the flexbox main-axis, so
+       `flex-end` would end up on the LEFT. Forcing `direction: ltr` on the
+       overlay makes `flex-end` mean "right" again. The panel itself still
+       reads RTL because `.admin-panel-container` sets `direction: rtl`. */
+    direction: ltr;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    padding-right: 20px;
 }
 
 .admin-panel-container {
     width: 90%;
-    max-width: 480px;
-    max-height: 90vh;
+    max-width: 460px;
+    max-height: 92vh;
     overflow-y: auto;
     background: #192a56 !important;
     border: 4px solid #34495e;
@@ -18,6 +27,20 @@
     align-items: stretch;
     box-shadow: 0 15px 40px rgba(0,0,0,0.6);
     direction: rtl;
+}
+
+/* On a phone-sized viewport the right-side docking makes no sense —
+   revert to a centred modal so the panel stays reachable with a thumb. */
+@media (max-width: 700px) {
+    #admin-panel-overlay {
+        justify-content: center !important;
+        background: rgba(10, 20, 50, 0.95);
+        padding-right: 0;
+    }
+    .admin-panel-container {
+        width: 94%;
+        max-width: 480px;
+    }
 }
 .admin-section-title {
     font-family: 'Fredoka One', cursive;
