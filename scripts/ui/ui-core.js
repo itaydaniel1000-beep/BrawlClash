@@ -103,11 +103,38 @@ function openScreen(screenId) {
         if (typeof renderLeaderboard === 'function') renderLeaderboard();
     } else if (screenId === 'social-overlay') {
         if (typeof renderSocialPlayers === 'function') renderSocialPlayers();
+    } else if (screenId === 'guide-screen') {
+        // Pick the tab that matches the current device: touch-capable phone ⇒
+        // mobile tab, otherwise desktop. User can still flip manually.
+        const prefersMobile = window.innerWidth <= 600 ||
+            (('ontouchstart' in window) && !window.matchMedia('(pointer:fine)').matches);
+        showGuideTab(prefersMobile ? 'mobile' : 'desktop');
     }
 
     // Use switchScreen so the nuclear-fix .active class toggles visibility/opacity properly
     switchScreen(screenId);
 }
+
+function showGuideTab(which) {
+    document.querySelectorAll('.guide-panel').forEach(p => {
+        p.style.display = (p.dataset.guidePanel === which) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.guide-tab-btn').forEach(b => {
+        const active = (b.dataset.guideTab === which);
+        b.style.background = active ? '#f1c40f' : 'rgba(255,255,255,0.08)';
+        b.style.color = active ? '#000' : '#fff';
+        b.style.borderColor = active ? '#f1c40f' : 'rgba(255,255,255,0.15)';
+    });
+}
+window.showGuideTab = showGuideTab;
+
+// Tab click handlers — delegated so a single listener covers both buttons.
+document.addEventListener('click', (e) => {
+    const tabBtn = e.target.closest('.guide-tab-btn');
+    if (tabBtn && tabBtn.dataset.guideTab) {
+        showGuideTab(tabBtn.dataset.guideTab);
+    }
+});
 
 function closeScreen(screenId) {
     const target = document.getElementById(screenId);

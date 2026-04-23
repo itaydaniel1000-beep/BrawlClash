@@ -96,6 +96,9 @@
                         <button class="side-btn social-btn" onclick="openPlayersTab()">
                             <span class="btn-icon">👥</span>
                         </button>
+                        <button class="side-btn guide-btn" onclick="openScreen('guide-screen')" title="מדריך">
+                            <span class="btn-icon">📖</span>
+                        </button>
                     </div>
                 </div>
 
@@ -293,6 +296,80 @@
             </div>
         </div>
 
+        <!-- Guide / How-to-play Screen -->
+        <div id="guide-screen" class="screen overlay" style="background: linear-gradient(135deg, #16213e, #0f3460);">
+            <div class="menu-box guide-box" style="max-width: 560px; width: 94%; max-height: 90vh; overflow-y: auto; text-align: right;">
+                <h2 style="color: #f1c40f; display: flex; align-items: center; justify-content: center; gap: 10px;">📖 מדריך השחקן</h2>
+
+                <div id="guide-tabs" style="display: flex; gap: 8px; justify-content: center; margin: 12px 0 18px; flex-wrap: wrap;">
+                    <button type="button" class="guide-tab-btn" data-guide-tab="mobile" style="flex: 1; min-width: 120px; padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-family: 'Assistant', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer;">📱 טלפון</button>
+                    <button type="button" class="guide-tab-btn" data-guide-tab="desktop" style="flex: 1; min-width: 120px; padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-family: 'Assistant', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer;">💻 מחשב</button>
+                </div>
+
+                <section class="guide-panel" data-guide-panel="mobile" style="display: none; color: #e8eaed; line-height: 1.65;">
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">👆 לחיצה רגילה</h3>
+                    <p style="margin: 0 0 12px;">בחר קלף מהסרגל התחתון, ואז טאפ על הצד שלך (החצי התחתון של המפה) כדי להניח יחידה. טאפ נוסף — הנחה נוספת.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🫳 לחיצה ארוכה = הנחה רצופה</h3>
+                    <p style="margin: 0 0 12px;">החזק אצבע על המפה (≥0.4 שניות). הקלף יישאר "מוחזק" וימשיך להניח יחידות כל כמה רגעים במקום שהאצבע נמצאת — גם אם האליקסיר נגמר הקלף נשאר מוחזק וההנחה תחזור ברגע שיהיה מספיק אליקסיר. שחרור האצבע מסיים.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🧊 כפתור הפריז של הקלף</h3>
+                    <p style="margin: 0 0 12px;">טאפ על הכפתור הקטן בפינה של הקלף (❄️) כדי להניח את היחידה בהקפאה — היא לא תזוז עד שיחידה שלך תעבור לידה או שתלחץ על כפתור "שחרור פריז" למטה.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">⚡ אליקסיר</h3>
+                    <p style="margin: 0 0 12px;">האליקסיר מתמלא עם הזמן. לכל קלף יש עלות מוצגת עליו; אין מספיק — אין הנחה.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🎯 הצד שלך</h3>
+                    <p style="margin: 0 0 12px;">ניתן להניח רק בחצי התחתון של המפה (הצד שלך). הצד השני שייך ליריב/בוט.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🏠 כפתורי הלובי</h3>
+                    <ul style="margin: 0 0 12px; padding-right: 20px;">
+                        <li><b>🦸 דמויות</b> — בחר עד 8 דמויות לדק. לחיצה על דמות פותחת שדרוג (עולה מטבעות) או הוספה לדק.</li>
+                        <li><b>⭐ כוחות</b> — בחר סטאר-פאוור לכל דמות.</li>
+                        <li><b>🛒 חנות / 🎟️ PASS</b> — חבילות ומטבעות.</li>
+                        <li><b>👥 חברים</b> — הזמנות לקרבות P2P; ראה את הקוד שלך (3 ספרות).</li>
+                    </ul>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">⚔️ מולטיפלייר (P2P)</h3>
+                    <p style="margin: 0 0 12px;">פתח את 👥. הקוד שלך (שלוש ספרות) מוצג למעלה — שלח אותו לחבר. או הזן את הקוד של חבר ולחץ "שחק!" — תוצג לו הזמנה. אישור → שניכם באותו קרב.</p>
+                </section>
+
+                <section class="guide-panel" data-guide-panel="desktop" style="display: none; color: #e8eaed; line-height: 1.65;">
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🖱️ קליק שמאלי</h3>
+                    <p style="margin: 0 0 12px;">בחר קלף מהסרגל, ואז לחץ על הצד שלך (החצי התחתון) כדי להניח יחידה.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">⇧ Shift-קליק = שמירה על הקלף</h3>
+                    <p style="margin: 0 0 12px;">החזק Shift בזמן הקליק — הקלף נשאר מסומן אחרי ההנחה כך שהלחיצה הבאה מניחה עוד אחד מאותו סוג. שחרור Shift בלבד לא משנה את המצב; לחיצה שוב על הקלף בדק תבטל את הבחירה.</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🫳 לחיצה ארוכה עם העכבר</h3>
+                    <p style="margin: 0 0 12px;">לחץ והחזק את כפתור העכבר על המפה. אותו אפקט כמו Shift+קליק אבל עם הנחה אוטומטית חוזרת כל 0.25 שניות כל עוד לחוץ (בנוסף, הקלף נשאר מוחזק גם אם אין אליקסיר — ההנחות יחזרו כשהוא ימלא).</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🧊 כפתור הפריז של הקלף</h3>
+                    <p style="margin: 0 0 12px;">לחץ על ❄️ בפינת הקלף — היחידה תונח קפואה, ותיתקע במקומה עד שחבר של הצוות יעבור לידה או שתלחץ על "שחרור פריז".</p>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🎯 כללי הקרב</h3>
+                    <ul style="margin: 0 0 12px; padding-right: 20px;">
+                        <li>האליקסיר מתמלא עם הזמן — כל קלף מציג עלות.</li>
+                        <li>ניתן להניח רק בחצי התחתון (הצד שלך). אזור ה-EMZ מרחיב את הטריטוריה שלך מעבר לקו החצי.</li>
+                        <li>כל כספת מתחילה עם 5000 HP. הראשון שהופך את הכספת של היריב להרוסה מנצח.</li>
+                    </ul>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🏠 לובי</h3>
+                    <ul style="margin: 0 0 12px; padding-right: 20px;">
+                        <li><b>🦸 דמויות</b> — בחר 8 לדק, קליק על דמות → שדרוג או בחירה.</li>
+                        <li><b>⭐ כוחות</b> — סטאר-פאוור לכל דמות.</li>
+                        <li><b>🛒 חנות / 🎟️ PASS</b> — משאבים נוספים.</li>
+                        <li><b>👥 חברים</b> — הזמנות לקרבות P2P.</li>
+                    </ul>
+
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">⚔️ מולטיפלייר (P2P)</h3>
+                    <p style="margin: 0 0 12px;">פתח את 👥. הקוד שלך (3 ספרות) מוצג למעלה. שלח אותו לחבר או הזן את הקוד של חבר בתיבת הטקסט ולחץ "שחק! ⚔️" כדי לשלוח הזמנה. אחרי אישור — שניכם נכנסים לאותו קרב ורואים בזמן אמת אחד את הפעולות של השני.</p>
+                </section>
+
+                <button onclick="closeScreen('guide-screen')" class="bs-btn bs-btn-danger" style="width: 100%; margin-top: 12px;">סגור</button>
+            </div>
+        </div>
+
         <!-- NEW: Username Overlay -->
         <div id="username-overlay" class="screen overlay" style="background: linear-gradient(135deg, #2980b9, #2c3e50); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
             <div class="menu-box" style="max-width: 400px; width: 90%; text-align: center; border: 5px solid #f1c40f;">
@@ -458,7 +535,7 @@
     <script src="scripts/entities/projectile.js"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=3.3"></script>
+    <script src="scripts/ui/ui-core.js?v=5.8"></script>
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
