@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="styles/global.css?v=5.3">
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=3.3">
-    <link rel="stylesheet" href="styles/lobby.css?v=5.9">
+    <link rel="stylesheet" href="styles/lobby.css?v=6.1">
     <link rel="stylesheet" href="styles/battle-ui.css?v=5.3">
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=5.7">
@@ -55,6 +55,7 @@
                 <span>☰</span>
             </div>
 
+
             <!-- Top Bar -->
             <div class="home-top-bar">
                 <div class="resource-container" style="flex: 1.5;">
@@ -96,15 +97,17 @@
                         <button class="side-btn social-btn" onclick="openPlayersTab()">
                             <span class="btn-icon">👥</span>
                         </button>
-                        <button class="side-btn guide-btn" onclick="openScreen('guide-screen')" title="מדריך">
-                            <span class="btn-icon">📖</span>
-                            <!-- Bouncing hint pointing at the 📖 button. Hidden once the user
-                                 opens the guide (guide-js sets `data-guide-seen` + persists). -->
-                            <span id="guide-hint" class="guide-hint" aria-hidden="true">
+                        <!-- Wrapper lets the bouncing hint sit next to the 📖 button
+                             without being clipped by `.side-btn { overflow: hidden }`. -->
+                        <div class="guide-btn-wrap" style="position: relative;">
+                            <button class="side-btn guide-btn" onclick="openScreen('guide-screen')" title="מדריך">
+                                <span class="btn-icon">📖</span>
+                            </button>
+                            <div id="guide-hint" class="guide-hint" aria-hidden="true">
                                 <span class="guide-hint-label">מדריך חדש!</span>
                                 <span class="guide-hint-arrow">👉</span>
-                            </span>
-                        </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

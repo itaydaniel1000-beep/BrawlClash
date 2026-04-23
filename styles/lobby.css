@@ -589,18 +589,25 @@
     .play-text { font-size: 1.7rem; }
 }
 
-/* Bouncing hint attached to the 📖 guide button. Body gets `data-guide-seen="1"`
-   once the player opens the guide (see ui-core.js), which instantly hides it. */
+/* Bouncing hint that points at the 📖 guide button. Sits inside a sibling
+   wrapper next to the button (NOT inside .side-btn, which has
+   `overflow: hidden`) so it's never clipped. Vertically aligned with the
+   button's middle via top:50%. Hidden automatically once
+   `body[data-guide-seen="1"]` is set by ui-core.js. */
 .guide-hint {
     position: absolute;
     top: 50%;
-    left: -132px; /* sits to the LEFT of the guide button in the visual layout */
+    /* Sidebar is docked to the right edge of #app, so the hint has to go to the
+       LEFT of the button (inward, toward the lobby centre). Using `right` is
+       easier than `left: calc(...)` because it anchors to the button's left edge. */
+    right: calc(100% + 10px);
     transform: translateY(-50%);
     display: flex;
     align-items: center;
     gap: 6px;
     pointer-events: none;
     z-index: 50;
+    white-space: nowrap;
     animation: guide-hint-bounce 0.9s ease-in-out infinite;
 }
 
@@ -623,14 +630,17 @@
 }
 
 @keyframes guide-hint-bounce {
+    /* Bounce TOWARD the guide button (right in the RTL lobby). */
     0%, 100% { transform: translate(0, -50%); }
     50%      { transform: translate(10px, -50%); }
 }
 
-body[data-guide-seen="1"] .guide-hint { display: none; }
+body[data-guide-seen="1"] .guide-hint { display: none !important; }
 
 @media (max-width: 600px) {
-    .guide-hint { left: -110px; }
-    .guide-hint-label { font-size: 0.7rem; padding: 3px 8px; }
-    .guide-hint-arrow { font-size: 1.3rem; }
+    /* Shrink the hint on mobile; positioning is already relative to the
+       button wrapper so it stays next to the 📖 button automatically. */
+    .guide-hint { right: calc(100% + 6px); }
+    .guide-hint-label { font-size: 0.65rem; padding: 3px 7px; }
+    .guide-hint-arrow { font-size: 1.1rem; }
 }
