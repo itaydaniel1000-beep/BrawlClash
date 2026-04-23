@@ -29,10 +29,12 @@
 }
 
 /* While ANY admin overlay is open on desktop, slide the #app board to the
-   LEFT by ~half the panel's width so its right edge (PLAY, deck, etc.)
-   stays clickable. `left:` (not `transform:`) to avoid sub-pixel blurring. */
+   LEFT just enough to clear the now-narrower panel. Keeps #app fully
+   on-screen even on 1024-wide laptops (a bigger shift used to cut the
+   left edge off) and keeps turrets / buildings on the right of the map
+   visible. `left:` (not `transform:`) avoids sub-pixel blurring. */
 body.admin-panel-open #app {
-    left: -260px;
+    left: -180px;
     transition: left 0.25s ease-out;
 }
 
@@ -53,7 +55,7 @@ body.admin-panel-open #app {
    buttons further left so they don't sit underneath the docked panel. */
 @media (min-width: 701px) {
     body.admin-panel-open #admin-floating-controls {
-        right: 520px !important;
+        right: 440px !important;
     }
 }
 
@@ -80,13 +82,13 @@ body.admin-panel-open #app {
 
 .admin-panel-container {
     width: 90%;
-    max-width: 460px;
+    max-width: 380px;           /* narrower than before so it overlaps less of #app */
     max-height: 92vh;
     overflow-y: auto;
     background: #192a56 !important;
     border: 4px solid #34495e;
     border-radius: 30px;
-    padding: 20px 24px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
