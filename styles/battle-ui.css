@@ -108,3 +108,41 @@
 #release-freeze-btn:hover {
     filter: brightness(1.1);
 }
+
+/* Mobile in-battle deck: side-panels can't fit alongside the #app box on a
+   phone-sized viewport (their fixed-position formula resolves to negative X).
+   buildDeck() now pushes every card into the centre row on mobile; we just
+   need the centre row to accommodate all 8 cards inside #app. */
+@media (max-width: 600px) {
+    .side-panel { display: none !important; }
+    .deck-wrapper {
+        gap: 0;
+        margin-bottom: 8px;
+        width: 100%;
+    }
+    #deck-center {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 6px !important;
+        padding: 4px 6px;
+        width: 100%;
+        justify-content: flex-start;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+    #deck-center .card {
+        flex: 0 0 auto;
+        width: 52px;
+        height: 72px;
+    }
+    #deck-center .card .card-icon { font-size: 1.6rem; }
+    #deck-center .card .card-name { font-size: 0.55rem; }
+    #deck-center .card .card-cost { width: 18px; height: 18px; font-size: 0.75rem; }
+    #deck-center .card .card-freeze-btn {
+        width: 18px !important; height: 18px !important; font-size: 0.55rem !important;
+        bottom: 2px !important; left: 2px !important;
+    }
+    .bottom-ui { height: 120px; }
+    #release-freeze-btn { bottom: 135px; padding: 8px 14px; font-size: 0.9rem; }
+}

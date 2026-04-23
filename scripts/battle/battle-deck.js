@@ -81,9 +81,14 @@ function buildDeck() {
         }
 
         // Distribute by type: buildings → left, units → center, auras → right
-        // mr-p is classified as building in CARDS but visually belongs with the auras
+        // mr-p is classified as building in CARDS but visually belongs with the auras.
+        // On narrow viewports the fixed side-panels sit off-screen, so we collapse
+        // the whole deck into the centre row (which is inside #app and gains a
+        // scroll/wrap layout via the mobile CSS).
+        const collapseToCenter = window.innerWidth <= 600;
         let target;
-        if (card.type === 'building' && cardId !== 'mr-p') target = leftEl;
+        if (collapseToCenter) target = centerEl;
+        else if (card.type === 'building' && cardId !== 'mr-p') target = leftEl;
         else if (card.type === 'unit') target = centerEl;
         else target = rightEl;
 
