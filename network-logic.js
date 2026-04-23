@@ -42,21 +42,128 @@ function displayEmote(senderName, emoteId) {
 window.displayEmote = displayEmote;
 window.initNetworkListeners = initNetworkListeners;
 
-function claimUsername() {
-    const input = document.getElementById('username-input');
-    const name = input ? input.value.trim() : null;
-    if (name) {
-        playerStats.username = name;
-        localStorage.setItem('brawlclash_username', name);
-        const overlay = document.getElementById('username-overlay');
-        if (overlay) overlay.style.display = 'none';
-        updateStatsUI();
+// ---------------------------------------------------------------------------
+// Username uniqueness — best-effort "online lock" via PeerJS.
+//
+// With no backend, true cross-device permanent uniqueness isn't possible. What
+// we can do is: while a device is holding the name, no OTHER device can claim
+// it. We achieve this by opening a dedicated lock-Peer whose id is derived
+// from the username. The PeerJS broker rejects duplicate ids with an
+// `unavailable-id` error — that's our "name is taken" signal.
+//
+// Limitations:
+//   • If the holder closes their tab, the lock is released ~30 s later (broker
+//     heartbeat). Another device can then claim the same name.
+//   • Hash collisions (different names → same lock id) are unlikely but
+//     possible; the lock space is 36^7 ≈ 78 billion, which is fine in practice.
+// ---------------------------------------------------------------------------
 
-        // NetworkManager.init runs from initNetworkListeners (called by goToLobby).
-        // Don't call it here too — starting two PeerJS instances means one overrides
-        // the other and the surviving peer never fires 'open'.
-        goToLobby();
+function _peerIdForName(name) {
+    // djb2 hash → base-36. Deterministic, ASCII-safe (works with Hebrew input).
+    const s = (name || '').toLowerCase().trim();
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    return 'bc-lock-' + h.toString(36);
+}
+
+let _usernameLockPeer = null;
+
+function tryClaimUsernameLock(name) {
+    return new Promise((resolve, reject) => {
+        if (!window.Peer) { resolve(null); return; } // PeerJS missing → skip check
+        // If we already hold a lock for this exact name, no need to re-acquire.
+        const wantedId = _peerIdForName(name);
+        if (_usernameLockPeer && _usernameLockPeer.id === wantedId && !_usernameLockPeer.disconnected && !_usernameLockPeer.destroyed) {
+            resolve(_usernameLockPeer);
+            return;
+        }
+        // Release any previous lock for a different name first.
+        try { if (_usernameLockPeer) _usernameLockPeer.destroy(); } catch (e) {}
+        _usernameLockPeer = null;
+
+        const p = new Peer(wantedId);
+        const timer = setTimeout(() => {
+            // Broker unreachable — fail-open so the game still works offline.
+            resolve(p);
+        }, 6000);
+        p.on('open', () => { clearTimeout(timer); _usernameLockPeer = p; resolve(p); });
+        p.on('error', (err) => {
+            clearTimeout(timer);
+            const taken = err && (err.type === 'unavailable-id' || /taken|unavailable/i.test(err.message || ''));
+            if (taken) {
+                try { p.destroy(); } catch (e) {}
+                reject(new Error('name-taken'));
+            } else {
+                // Non-uniqueness error (network, etc.) — fail-open.
+                _usernameLockPeer = p;
+                resolve(p);
+            }
+        });
+    });
+}
+window.tryClaimUsernameLock = tryClaimUsernameLock;
+
+// Release the lock when the tab closes so the name frees up for others.
+window.addEventListener('beforeunload', () => {
+    try { if (_usernameLockPeer) _usernameLockPeer.destroy(); } catch (e) {}
+});
+
+// Returning user flow — if we already have a username in localStorage, try to
+// re-acquire the online lock in the background. If somebody else has grabbed
+// it since our last session, clear our local state and force a re-claim.
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (!playerStats || !playerStats.username) return;
+        tryClaimUsernameLock(playerStats.username).catch(() => {
+            console.warn('🔒 username-lock: name is now held by another device — forcing re-claim');
+            playerStats.username = null;
+            try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
+            const overlay = document.getElementById('username-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.classList.add('active');
+            }
+            const feedback = document.getElementById('username-feedback');
+            if (feedback) {
+                feedback.style.color = '#ff7675';
+                feedback.innerText = '❌ השם שלך נלקח ע״י מכשיר אחר. בחר שם חדש.';
+            }
+        });
+    }, 1500); // let PeerJS-broker warm up first
+});
+
+async function claimUsername() {
+    const input = document.getElementById('username-input');
+    const submitBtn = document.getElementById('username-submit-btn');
+    const feedback = document.getElementById('username-feedback');
+    const name = input ? input.value.trim() : null;
+    if (!name) return;
+
+    if (feedback) { feedback.style.color = '#ffeaa7'; feedback.innerText = '⌛ בודק זמינות של השם…'; }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.7'; }
+
+    try {
+        await tryClaimUsernameLock(name);
+    } catch (e) {
+        // Name is currently held by another device.
+        if (feedback) { feedback.style.color = '#ff7675'; feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. בחר שם אחר.'; }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+        return;
     }
+
+    if (feedback) feedback.innerText = '';
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+
+    playerStats.username = name;
+    localStorage.setItem('brawlclash_username', name);
+    const overlay = document.getElementById('username-overlay');
+    if (overlay) overlay.style.display = 'none';
+    updateStatsUI();
+
+    // NetworkManager.init runs from initNetworkListeners (called by goToLobby).
+    // Don't call it here too — starting two PeerJS instances means one overrides
+    // the other and the surviving peer never fires 'open'.
+    goToLobby();
 }
 window.claimUsername = claimUsername;
 

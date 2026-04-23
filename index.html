@@ -420,8 +420,12 @@
             <div class="menu-box" style="max-width: 400px; width: 90%; text-align: center; border: 5px solid #f1c40f;">
                 <h1 style="color: #f1c40f; font-size: 2.5rem; margin-bottom: 20px; text-shadow: 0 4px #000;">ברוך הבא!</h1>
                 <p style="color: white; font-size: 1.2rem; margin-bottom: 25px;">איך קוראים לך ב-BrawlClash?</p>
-                <input type="text" id="username-input" placeholder="הכנס שם משתמש..." maxlength="12" style="width: 100%; padding: 15px; border-radius: 12px; border: 3px solid #34495e; font-size: 1.2rem; font-family: 'Assistant', sans-serif; text-align: center; margin-bottom: 20px; color: #000;">
-                <button onclick="claimUsername()" class="bs-btn bs-btn-success" style="width: 100%; font-size: 1.5rem; padding: 15px;">התחל לשחק!</button>
+                <input type="text" id="username-input" placeholder="הכנס שם משתמש..." maxlength="12" style="width: 100%; padding: 15px; border-radius: 12px; border: 3px solid #34495e; font-size: 1.2rem; font-family: 'Assistant', sans-serif; text-align: center; margin-bottom: 12px; color: #000;">
+                <!-- Feedback area for the username-lock check: shows "בודק..."
+                     while the PeerJS-based uniqueness probe runs and
+                     "❌ השם תפוס במכשיר אחר" if the name is in use elsewhere. -->
+                <div id="username-feedback" style="min-height: 22px; color: #ffeaa7; font-size: 0.95rem; margin-bottom: 12px;"></div>
+                <button id="username-submit-btn" onclick="claimUsername()" class="bs-btn bs-btn-success" style="width: 100%; font-size: 1.5rem; padding: 15px;">התחל לשחק!</button>
             </div>
         </div>
 
@@ -568,7 +572,7 @@
     <script src="scripts/network/net-base.js?v=4.0"></script>
     <script src="scripts/network/net-social.js?v=3.7"></script>
     <script src="scripts/network/net-sync.js?v=4.0"></script>
-    <script src="network-logic.js?v=3.8"></script>
+    <script src="network-logic.js?v=6.3"></script>
     
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=4.1"></script>
