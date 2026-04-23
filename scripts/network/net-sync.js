@@ -90,6 +90,20 @@ NetworkManager.sendAdminConfig = function() {
     });
 };
 
+// Broadcast an emote to every connected peer. The local side also displays
+// its own emote immediately so the sender sees it float over their half of
+// the field (not just the opponent's copy).
+NetworkManager.sendEmote = function(roomId, sender, emoteId) {
+    if (typeof displayEmote === 'function') {
+        try { displayEmote(sender, emoteId); } catch (e) {}
+    }
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try { conn.send({ type: 'EMOTE', sender, emoteId }); } catch (e) {}
+        }
+    });
+};
+
 // Fired when the local player quits a P2P battle voluntarily. The opponent
 // receives winnerIsYou=true with reason=forfeit so they see a proper win screen
 // instead of being silently stranded.
@@ -192,6 +206,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data);
             } else if (data.type === 'ADMIN_CONFIG') {
                 if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
+            } else if (data.type === 'EMOTE') {
+                if (typeof displayEmote === 'function') displayEmote(data.sender, data.emoteId);
             }
         });
     });
