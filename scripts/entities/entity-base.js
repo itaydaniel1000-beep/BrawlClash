@@ -68,13 +68,15 @@ class Entity {
     drawHpBar(ctx, yOffset = 2) {
         ctx.save();
         const hpPercent = Math.max(0, this.hp / this.maxHp);
-        const barWidth = 40;
-        const barHeight = 6;
-        const barY = this.y - this.radius - yOffset;
+        // A little taller than before so the numeric label fits INSIDE the
+        // coloured bar without getting squashed.
+        const barWidth = 50;
+        const barHeight = 13;
+        const barY = this.y - this.radius - yOffset - barHeight;
 
         if (this.shieldHp > 0) {
             ctx.fillStyle = '#7ed6df';
-            ctx.fillRect(this.x - barWidth / 2, barY - barHeight - 2, barWidth * (this.shieldHp / 500), barHeight / 2);
+            ctx.fillRect(this.x - barWidth / 2, barY - (barHeight / 2) - 2, barWidth * (this.shieldHp / 500), barHeight / 2);
         }
 
         ctx.fillStyle = '#000';
@@ -82,19 +84,16 @@ class Entity {
         ctx.fillStyle = this.team === 'player' ? '#74b9ff' : '#ff7675';
         ctx.fillRect(this.x - barWidth / 2, barY, barWidth * hpPercent, barHeight);
 
-        // Numeric HP readout above the bar — makes it easy to see exactly how
-        // much health every unit has. Label position is just above the bar so
-        // it doesn't clash with the unit icon or the shield chip.
+        // Numeric HP readout rendered ON TOP of the bar, centred both axes.
         const label = Math.max(0, Math.round(this.hp)) + '/' + Math.round(this.maxHp);
-        ctx.font = 'bold 12px "Assistant", sans-serif';
+        ctx.font = 'bold 10px "Assistant", sans-serif';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'alphabetic';
-        const textY = barY - (this.shieldHp > 0 ? barHeight + 6 : 3);
+        ctx.textBaseline = 'middle';
         ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.strokeText(label, this.x, textY);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.strokeText(label, this.x, barY + barHeight / 2);
         ctx.fillStyle = '#fff';
-        ctx.fillText(label, this.x, textY);
+        ctx.fillText(label, this.x, barY + barHeight / 2);
         ctx.restore();
     }
 }
@@ -188,13 +187,18 @@ class Safe extends Entity {
         ctx.restore();
 
         const hpPercent = Math.max(0, this.hp / this.maxHp);
-        ctx.fillStyle = '#000'; ctx.fillRect(this.x - 40, this.y - 60, 80, 10);
+        // Slightly taller Safe bar so the numeric label fits inside it.
+        const sfW = 92, sfH = 16, sfY = this.y - 62;
+        ctx.fillStyle = '#000'; ctx.fillRect(this.x - sfW / 2, sfY, sfW, sfH);
         ctx.fillStyle = this.team === 'player' ? '#74b9ff' : '#ff7675';
-        ctx.fillRect(this.x - 40, this.y - 60, 80 * hpPercent, 10);
-        ctx.fillStyle = 'white'; ctx.font = 'bold 12px "Assistant", sans-serif'; ctx.textAlign = 'center';
+        ctx.fillRect(this.x - sfW / 2, sfY, sfW * hpPercent, sfH);
+        ctx.font = 'bold 12px "Assistant", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
         const label = `${Math.max(0, Math.floor(this.hp))}/${Math.round(this.maxHp)}`;
-        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-        ctx.strokeText(label, this.x, this.y - 68);
-        ctx.fillText(label, this.x, this.y - 68);
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.9)';
+        ctx.strokeText(label, this.x, sfY + sfH / 2);
+        ctx.fillStyle = 'white';
+        ctx.fillText(label, this.x, sfY + sfH / 2);
     }
 }
