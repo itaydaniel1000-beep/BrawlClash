@@ -1,22 +1,93 @@
 // ui-admin.js - Admin Panel UI Logic
 
 function openAdminMenu() {
-    if (playerStats.username !== ADMIN_USERNAME) {
+    const isSuper = playerStats.username === ADMIN_USERNAME;
+    const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+    const myGrant = (playerStats.username && grants[playerStats.username]) || null;
+
+    // Super-admin always allowed; anyone else needs a stored grant.
+    if (!isSuper && !myGrant) {
         console.warn("🚫 Unauthorized Admin Access Attempt");
         return;
     }
-    
+
     const overlay = document.getElementById('admin-panel-overlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-        // Sync toggles with current states
-        updateAdminToggleUI('infiniteElixir', 'toggle-infinite-elixir');
-        updateAdminToggleUI('godMode', 'toggle-god-mode');
-        updateAdminToggleUI('doubleDamage', 'toggle-double-damage');
-        updateAdminToggleUI('superSpeed', 'toggle-super-speed');
-    }
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+
+    updateAdminToggleUI('infiniteElixir', 'toggle-infinite-elixir');
+    updateAdminToggleUI('godMode', 'toggle-god-mode');
+    updateAdminToggleUI('doubleDamage', 'toggle-double-damage');
+    updateAdminToggleUI('superSpeed', 'toggle-super-speed');
+
+    // Show each toggle row only if its feature is part of the user's grant.
+    // Super-admin sees every row regardless.
+    const toggles = [
+        { id: 'toggle-infinite-elixir', key: 'infiniteElixir' },
+        { id: 'toggle-god-mode',        key: 'godMode' },
+        { id: 'toggle-double-damage',   key: 'doubleDamage' },
+        { id: 'toggle-super-speed',     key: 'superSpeed' }
+    ];
+    toggles.forEach(t => {
+        const btn = document.getElementById(t.id);
+        const row = btn && btn.closest('.hack-row');
+        if (!row) return;
+        row.style.display = (isSuper || (myGrant && myGrant[t.key])) ? '' : 'none';
+    });
+
+    // Currency editors + max-levels actions are super-admin only (they're raw
+    // setters, not part of a grant contract).
+    document.querySelectorAll('#admin-panel-overlay .admin-divider, #admin-panel-overlay .editor-section-title, #admin-panel-overlay .editor-row').forEach(el => {
+        el.style.display = isSuper ? '' : 'none';
+    });
+
+    _renderGrantedExtras(isSuper, myGrant);
 }
 window.openAdminMenu = openAdminMenu;
+
+// Build a read-only strip inside the admin panel that shows the non-toggle
+// powers a granted user received — parametric multipliers, starting/max
+// elixir overrides, currency/trophy bumps they've already collected, and
+// any custom JS injected by the AI. Super-admin doesn't need this (they use
+// the real setters).
+function _renderGrantedExtras(isSuper, myGrant) {
+    const container = document.querySelector('#admin-panel-overlay .admin-panel-container');
+    if (!container) return;
+    let extras = document.getElementById('granted-extras');
+    if (!extras) {
+        extras = document.createElement('div');
+        extras.id = 'granted-extras';
+        extras.style.cssText = 'margin: 8px 0; display: flex; flex-direction: column; gap: 6px;';
+        // Insert right before the close button at the bottom.
+        const closeBtn = container.querySelector('.admin-close-btn-footer');
+        if (closeBtn) container.insertBefore(extras, closeBtn);
+        else container.appendChild(extras);
+    }
+    extras.innerHTML = '';
+    if (isSuper || !myGrant) { extras.style.display = 'none'; return; }
+    extras.style.display = 'flex';
+
+    const add = (label, emoji) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); border-radius: 10px; padding: 6px 10px; color: #ecf0f1; font-size: 0.88rem; display: flex; align-items: center; gap: 8px;';
+        row.innerHTML = `<span style="font-size: 1.1rem;">${emoji}</span><span>${label}</span>`;
+        extras.appendChild(row);
+    };
+
+    if (myGrant.speedMultiplier > 1)   add(`מהירות ×${myGrant.speedMultiplier} פעיל`, '⚡');
+    if (myGrant.dmgMultiplier > 1)     add(`נזק ×${myGrant.dmgMultiplier} פעיל`, '⚔️');
+    if (myGrant.hpMultiplier > 1)      add(`חיים ×${myGrant.hpMultiplier} פעיל`, '❤️');
+    if (myGrant.safeHpMultiplier > 1)  add(`כספת ×${myGrant.safeHpMultiplier} פעיל`, '🏰');
+    if (myGrant.startingElixir)        add(`התחלה עם ${myGrant.startingElixir} אליקסיר`, '🧪');
+    if (myGrant.maxElixir)             add(`תקרת אליקסיר ${myGrant.maxElixir}`, '📈');
+    if (myGrant.coins)                 add(`קיבלת ${myGrant.coins} מטבעות`, '🪙');
+    if (myGrant.gems)                  add(`קיבלת ${myGrant.gems} יהלומים`, '💎');
+    if (myGrant.trophies)              add(`קיבלת ${myGrant.trophies} גביעים`, '🏆');
+    if (myGrant.maxLevels)             add('רמות מקס לכל הדמויות', '🚀');
+    if (myGrant.customJS)              add('כוח מיוחד פעיל (AI)', '🎁');
+
+    if (!extras.firstChild) extras.style.display = 'none';
+}
 
 function closeAdminMenu() {
     const overlay = document.getElementById('admin-panel-overlay');
