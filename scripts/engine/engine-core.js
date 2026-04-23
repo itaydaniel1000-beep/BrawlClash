@@ -50,11 +50,8 @@ function initGame() {
 
         playerSafe = new Safe(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 60, 'player');
         enemySafe = new Safe(CONFIG.CANVAS_WIDTH / 2, 60, 'enemy');
-
-        if (difficulty === 'hard') {
-            enemySafe.maxHp *= 1.3;
-            enemySafe.hp = enemySafe.maxHp;
-        }
+        // Both safes keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
+        // per-difficulty bonus for the enemy safe.
 
         buildDeck();
         updateUI();
