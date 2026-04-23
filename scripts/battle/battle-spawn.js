@@ -41,6 +41,8 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     const speedMult = Math.max(1, buffs.speedMultiplier || 0);
     const dmgMult   = Math.max(1, buffs.dmgMultiplier || 0);
     const hpMult    = Math.max(1, buffs.hpMultiplier || 0);
+    const atkSpdMult = Math.max(1, (team === 'player' ? adminHacks.attackSpeedMultiplier : 0) || 0);
+    const radMult   = Math.max(1, (team === 'player' ? adminHacks.radiusMultiplier : 0) || 0);
 
     let entity;
     if (card.type === 'unit') {
@@ -53,18 +55,26 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         if (speedMult > 1) { entity.speed *= speedMult; entity.attackSpeed /= speedMult; }
         if (dmgMult > 1)   { entity.attackDamage *= dmgMult; }
         if (hpMult > 1)    { entity.maxHp *= hpMult; entity.hp = entity.maxHp; }
+        if (atkSpdMult > 1){ entity.attackSpeed /= atkSpdMult; }
+        if (radMult > 1)   { entity.radius *= radMult; }
+        if (team === 'player' && adminHacks.infiniteRange)       entity.attackRange = 9999;
+        if (team === 'player' && adminHacks.permanentInvisible)  { entity.isInvisible = true; entity._permInvis = true; }
         units.push(entity);
     } else if (card.type === 'building') {
         entity = new Building(x, y, team, typeStr);
         if (buffs.doubleDamage) entity.attackDamage *= 2;
         if (dmgMult > 1) entity.attackDamage *= dmgMult;
         if (hpMult > 1)  { entity.maxHp *= hpMult; entity.hp = entity.maxHp; }
+        if (atkSpdMult > 1){ entity.attackSpeed /= atkSpdMult; }
+        if (radMult > 1)   { entity.radius *= radMult; }
+        if (team === 'player' && adminHacks.infiniteRange) entity.attackRange = 9999;
         buildings.push(entity);
     } else if (card.type === 'aura') {
         entity = new Aura(x, y, team, typeStr);
         if (buffs.doubleDamage) entity.attackDamage *= 1.5;
         if (dmgMult > 1) entity.attackDamage *= dmgMult;
         if (hpMult > 1)  { entity.maxHp *= hpMult; entity.hp = entity.maxHp; }
+        if (radMult > 1) entity.radius *= radMult;
         auras.push(entity);
 
         if (typeStr === 'pam' && team === 'player' && playerStarPowers['pam'] === 'sp1') {
@@ -84,6 +94,23 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         entity.maxHp *= 1.3;
         entity.hp = entity.maxHp;
         if (entity.attackDamage !== undefined) entity.attackDamage *= 0.8;
+    }
+
+    // Enemy-nerf: admin-granted weakening of bot units (HP and damage divided).
+    // Applied only to locally-simulated enemies (not remote P2P spawns, since the
+    // opponent would be a real player who shouldn't be retroactively nerfed).
+    if (team === 'enemy' && !isRemote && !currentBattleRoom) {
+        const nerf = adminHacks.enemyNerfFactor || 0;
+        if (nerf > 1) {
+            entity.maxHp /= nerf;
+            entity.hp = entity.maxHp;
+            if (entity.attackDamage !== undefined) entity.attackDamage /= nerf;
+        }
+    }
+
+    // Full refund — instantly return the elixir that was deducted above.
+    if (team === 'player' && !isRemote && adminHacks.fullRefund && card && card.cost) {
+        playerElixir = Math.min(playerMaxElixir, playerElixir + card.cost);
     }
 }
 window.spawnEntity = spawnEntity;

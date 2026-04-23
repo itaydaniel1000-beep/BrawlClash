@@ -284,23 +284,41 @@ window.applyGrantFlags = applyGrantFlags;
 function _mergePersistentHacks(flags) {
     if (typeof adminHacks === 'undefined') return;
     let changed = false;
-    ['godMode', 'doubleDamage', 'superSpeed', 'infiniteElixir'].forEach(k => {
+    [
+        'godMode', 'doubleDamage', 'superSpeed', 'infiniteElixir',
+        'infiniteRange', 'permanentInvisible', 'freeCards', 'fullRefund',
+        'safeShoots', 'safeHeals', 'doubleSafe',
+        'disableBot', 'autoIncome', 'allStarPowers'
+    ].forEach(k => {
         if (flags[k] === true && !adminHacks[k]) { adminHacks[k] = true; changed = true; }
     });
-    // Parametric multipliers / overrides — last-writer-wins.
-    ['speedMultiplier', 'dmgMultiplier', 'hpMultiplier', 'safeHpMultiplier',
-     'startingElixir', 'maxElixir'].forEach(k => {
-        if (flags[k] && adminHacks[k] !== flags[k]) { adminHacks[k] = flags[k]; changed = true; }
+    // Parametric / numeric / string fields — last-writer-wins.
+    [
+        'speedMultiplier', 'dmgMultiplier', 'hpMultiplier', 'safeHpMultiplier',
+        'startingElixir', 'maxElixir',
+        'attackSpeedMultiplier', 'radiusMultiplier', 'elixirRateMultiplier',
+        'timeScale', 'botSlowdownFactor', 'enemyNerfFactor', 'safeRegen',
+        'botOnlyCardId'
+    ].forEach(k => {
+        if (flags[k] !== undefined && flags[k] !== 0 && flags[k] !== '' && adminHacks[k] !== flags[k]) {
+            adminHacks[k] = flags[k]; changed = true;
+        }
     });
     if (changed && typeof saveAdminHacks === 'function') saveAdminHacks();
     if (changed && typeof updateStatsUI === 'function') updateStatsUI();
 }
 function _anyPersistentHack(flags) {
-    return !!(flags.godMode || flags.doubleDamage || flags.superSpeed || flags.infiniteElixir);
+    return !!(flags.godMode || flags.doubleDamage || flags.superSpeed || flags.infiniteElixir ||
+              flags.infiniteRange || flags.permanentInvisible || flags.freeCards || flags.fullRefund ||
+              flags.safeShoots || flags.safeHeals || flags.doubleSafe ||
+              flags.disableBot || flags.autoIncome || flags.allStarPowers);
 }
 function _anyParametric(flags) {
     return !!(flags.speedMultiplier || flags.dmgMultiplier || flags.hpMultiplier ||
-              flags.safeHpMultiplier || flags.startingElixir || flags.maxElixir);
+              flags.safeHpMultiplier || flags.startingElixir || flags.maxElixir ||
+              flags.attackSpeedMultiplier || flags.radiusMultiplier || flags.elixirRateMultiplier ||
+              flags.timeScale || flags.botSlowdownFactor || flags.enemyNerfFactor || flags.safeRegen ||
+              flags.botOnlyCardId);
 }
 
 // Release the lock when the tab closes so the name frees up for others.

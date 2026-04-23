@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=5.7">
     <link rel="stylesheet" href="styles/animations.css?v=3.3">
-    <link rel="stylesheet" href="admin-panel.css?v=3.3">
+    <link rel="stylesheet" href="admin-panel.css?v=7.1">
     <style>
         /* Force Active Screen Visibility */
         #app { display: flex !important; visibility: visible !important; min-width: 320px; }
@@ -520,43 +520,59 @@
         <div id="admin-panel-overlay" class="overlay" style="display: none;">
             <div class="admin-panel-container">
                 <div class="admin-title">🛠️ תפריט מנהל 🛠️</div>
-                
-                <div class="hack-row">
-                    <div class="hack-label">🧪 אליקסיר אינסופי</div>
-                    <div id="toggle-infinite-elixir" class="toggle-switch-btn" onclick="toggleAdminHack('infiniteElixir')">כבוי</div>
-                </div>
-                
-                <div class="hack-row">
-                    <div class="hack-label">🛡️ מצב אלוהים (אל-מוות)</div>
-                    <div id="toggle-god-mode" class="toggle-switch-btn" onclick="toggleAdminHack('godMode')">כבוי</div>
-                </div>
-                
-                <div class="hack-row">
-                    <div class="hack-label">⚔️ נזק כפול</div>
-                    <div id="toggle-double-damage" class="toggle-switch-btn" onclick="toggleAdminHack('doubleDamage')">כבוי</div>
-                </div>
-                
-                <div class="hack-row">
-                    <div class="hack-label">⚡ מהירות על</div>
-                    <div id="toggle-super-speed" class="toggle-switch-btn" onclick="toggleAdminHack('superSpeed')">כבוי</div>
-                </div>
-                
+
+                <div class="admin-section-title">⚔️ יחידות</div>
+                <div class="hack-row"><div class="hack-label">🛡️ גוד-מוד</div><div id="toggle-god-mode" class="toggle-switch-btn" onclick="toggleAdminHack('godMode')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">💥 נזק כפול</div><div id="toggle-double-damage" class="toggle-switch-btn" onclick="toggleAdminHack('doubleDamage')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">⚡ מהירות-על</div><div id="toggle-super-speed" class="toggle-switch-btn" onclick="toggleAdminHack('superSpeed')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">🎯 טווח אינסופי</div><div id="toggle-infiniteRange" class="toggle-switch-btn" onclick="toggleAdminHack('infiniteRange')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">👻 בלתי נראים</div><div id="toggle-permanentInvisible" class="toggle-switch-btn" onclick="toggleAdminHack('permanentInvisible')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">❤️ חיים ×</div><input type="number" step="0.5" min="1" max="20" value="1" class="admin-num-input" oninput="setAdminNumber('hpMultiplier', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">⚔️ נזק ×</div><input type="number" step="0.5" min="1" max="20" value="1" class="admin-num-input" oninput="setAdminNumber('dmgMultiplier', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">🏃 מהירות ×</div><input type="number" step="0.5" min="1" max="20" value="1" class="admin-num-input" oninput="setAdminNumber('speedMultiplier', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">⚡ מהירות-תקיפה ×</div><input type="number" step="0.5" min="1" max="10" value="1" class="admin-num-input" oninput="setAdminNumber('attackSpeedMultiplier', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">📏 גודל ×</div><input type="number" step="0.5" min="0.3" max="5" value="1" class="admin-num-input" oninput="setAdminNumber('radiusMultiplier', this.value)"></div>
+
+                <div class="admin-section-title">🧪 אליקסיר</div>
+                <div class="hack-row"><div class="hack-label">∞ אליקסיר אינסופי</div><div id="toggle-infinite-elixir" class="toggle-switch-btn" onclick="toggleAdminHack('infiniteElixir')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">🎁 קלפים חינם (עלות 0)</div><div id="toggle-freeCards" class="toggle-switch-btn" onclick="toggleAdminHack('freeCards')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">↩️ Refund מלא</div><div id="toggle-fullRefund" class="toggle-switch-btn" onclick="toggleAdminHack('fullRefund')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">🚀 התחלה עם</div><input type="number" step="1" min="0" max="30" value="0" class="admin-num-input" oninput="setAdminNumber('startingElixir', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">📈 תקרה</div><input type="number" step="1" min="0" max="30" value="0" class="admin-num-input" oninput="setAdminNumber('maxElixir', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">⏩ מילוי אליקסיר ×</div><input type="number" step="0.5" min="1" max="10" value="1" class="admin-num-input" oninput="setAdminNumber('elixirRateMultiplier', this.value)"></div>
+
+                <div class="admin-section-title">🏰 כספת</div>
+                <div class="hack-row"><div class="hack-label">❤️ כספת HP ×</div><input type="number" step="0.5" min="1" max="20" value="1" class="admin-num-input" oninput="setAdminNumber('safeHpMultiplier', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">🔫 הכספת יורה לכל המפה</div><div id="toggle-safeShoots" class="toggle-switch-btn" onclick="toggleAdminHack('safeShoots')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">💊 כספת מרפאה</div><div id="toggle-safeHeals" class="toggle-switch-btn" onclick="toggleAdminHack('safeHeals')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">🩸 רגן כספת (HP/ש׳)</div><input type="number" step="10" min="0" max="500" value="0" class="admin-num-input" oninput="setAdminNumber('safeRegen', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">🏰🏰 שתי כספות</div><div id="toggle-doubleSafe" class="toggle-switch-btn" onclick="toggleAdminHack('doubleSafe')">כבוי</div></div>
+
+                <div class="admin-section-title">🤖 בוט / אויב</div>
+                <div class="hack-row"><div class="hack-label">🛑 השבת בוט</div><div id="toggle-disableBot" class="toggle-switch-btn" onclick="toggleAdminHack('disableBot')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">🐢 בוט איטי פי</div><input type="number" step="0.5" min="0" max="20" value="0" class="admin-num-input" oninput="setAdminNumber('botSlowdownFactor', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">📉 אויב חלש פי</div><input type="number" step="0.5" min="0" max="20" value="0" class="admin-num-input" oninput="setAdminNumber('enemyNerfFactor', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">🎴 בוט רק עם קלף</div><input type="text" placeholder="לדוגמה: bruce" value="" class="admin-num-input" style="width: 90px;" oninput="setAdminNumber('botOnlyCardId', this.value.trim().toLowerCase())"></div>
+
+                <div class="admin-section-title">🎮 משחק</div>
+                <div class="hack-row"><div class="hack-label">⏱️ קצב זמן (0.5=סלואו, 3=מהיר)</div><input type="number" step="0.1" min="0" max="10" value="1" class="admin-num-input" oninput="setAdminNumber('timeScale', this.value)"></div>
+                <div class="hack-row"><div class="hack-label">💰 הכנסה אוטומטית (+100🪙 +5💎 / 10ש׳)</div><div id="toggle-autoIncome" class="toggle-switch-btn" onclick="toggleAdminHack('autoIncome')">כבוי</div></div>
+                <div class="hack-row"><div class="hack-label">⭐ כל הסטאר-פאוורס</div><div id="toggle-allStarPowers" class="toggle-switch-btn" onclick="toggleAdminHack('allStarPowers')">כבוי</div></div>
+
                 <div class="admin-divider"></div>
-                
+
                 <div class="editor-section-title">💰 עריכת מטבעות 💰</div>
-                
                 <div class="editor-row">
                     <div class="editor-label">🪙 זהב</div>
                     <input type="number" id="admin-gold-input" class="editor-input" value="1">
                     <button class="editor-set-btn gold" onclick="setAdminCurrency('coins')">הגדר</button>
                 </div>
-                
                 <div class="editor-row">
                     <div class="editor-label">💎 יהלומים</div>
                     <input type="number" id="admin-gems-input" class="editor-input" value="1">
                     <button class="editor-set-btn gems" onclick="setAdminCurrency('gems')">הגדר</button>
                 </div>
-                
+
                 <button class="admin-close-btn-footer" onclick="closeAdminMenu()">סגור</button>
             </div>
         </div>
@@ -610,17 +626,17 @@
     
     <!-- Game Core & Config -->
     <script src="config.js"></script>
-    <script src="globals.js?v=3.8"></script>
+    <script src="globals.js?v=7.1"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
     <script src="scripts/network/net-base.js?v=4.0"></script>
     <script src="scripts/network/net-social.js?v=3.7"></script>
     <script src="scripts/network/net-sync.js?v=6.5"></script>
-    <script src="network-logic.js?v=7.0"></script>
+    <script src="network-logic.js?v=7.1"></script>
     
     <!-- Entities Module -->
-    <script src="scripts/entities/entity-base.js?v=4.1"></script>
+    <script src="scripts/entities/entity-base.js?v=7.1"></script>
     <script src="scripts/entities/effects.js"></script>
     <script src="scripts/entities/unit-core.js?v=3.3"></script>
     <script src="scripts/entities/unit-logic.js?v=3.3"></script>
@@ -633,19 +649,19 @@
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
-    <script src="scripts/ui/ui-admin.js?v=6.9"></script>
+    <script src="scripts/ui/ui-admin.js?v=7.2"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     
     <!-- AI & Battle Module -->
-    <script src="scripts/ai/ai-core.js?v=3.3"></script>
+    <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
-    <script src="scripts/battle/battle-spawn.js?v=6.5"></script>
-    <script src="scripts/battle/battle-input.js?v=5.7"></script>
-    <script src="scripts/battle/battle-deck.js?v=5.2"></script>
+    <script src="scripts/battle/battle-spawn.js?v=7.1"></script>
+    <script src="scripts/battle/battle-input.js?v=7.1"></script>
+    <script src="scripts/battle/battle-deck.js?v=7.1"></script>
     
     <!-- Engine Module -->
-    <script src="scripts/engine/engine-core.js?v=6.5"></script>
-    <script src="scripts/engine/engine-physics.js?v=3.8"></script>
+    <script src="scripts/engine/engine-core.js?v=7.1"></script>
+    <script src="scripts/engine/engine-physics.js?v=7.1"></script>
     <script src="scripts/engine/engine-renderer.js?v=4.9"></script>
     <script src="scripts/engine/engine-input.js?v=5.5"></script>
 </body>

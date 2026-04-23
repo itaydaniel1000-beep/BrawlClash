@@ -58,7 +58,24 @@ let playerStats = {
 // per-entity buff checks need the binding to be reachable from both script scope
 // and `window.`-qualified access without the two drifting apart.
 var adminHacks = (function loadAdminHacks() {
-    const defaults = { infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false };
+    const defaults = {
+        // Core booleans (from earlier iterations)
+        infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
+        // Unit multipliers / toggles
+        speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0,
+        attackSpeedMultiplier: 0, radiusMultiplier: 0,
+        infiniteRange: false, permanentInvisible: false,
+        // Elixir
+        startingElixir: 0, maxElixir: 0, elixirRateMultiplier: 0,
+        freeCards: false, fullRefund: false,
+        // Safe (the castle)
+        safeHpMultiplier: 0, safeShoots: false, safeHeals: false,
+        safeRegen: 0, doubleSafe: false,
+        // Bot / enemy
+        disableBot: false, botSlowdownFactor: 0, enemyNerfFactor: 0, botOnlyCardId: '',
+        // Game-wide
+        timeScale: 0, autoIncome: false, allStarPowers: false
+    };
     try {
         const raw = localStorage.getItem('brawlclash_admin_hacks');
         if (!raw) return defaults;

@@ -15,24 +15,50 @@ function openAdminMenu() {
     if (!overlay) return;
     overlay.style.display = 'flex';
 
-    updateAdminToggleUI('infiniteElixir', 'toggle-infinite-elixir');
-    updateAdminToggleUI('godMode', 'toggle-god-mode');
-    updateAdminToggleUI('doubleDamage', 'toggle-double-damage');
-    updateAdminToggleUI('superSpeed', 'toggle-super-speed');
-
-    // Show each toggle row only if its feature is part of the user's grant.
-    // Super-admin sees every row regardless.
-    const toggles = [
-        { id: 'toggle-infinite-elixir', key: 'infiniteElixir' },
-        { id: 'toggle-god-mode',        key: 'godMode' },
-        { id: 'toggle-double-damage',   key: 'doubleDamage' },
-        { id: 'toggle-super-speed',     key: 'superSpeed' }
+    const boolToggles = [
+        { id: 'toggle-infinite-elixir',  key: 'infiniteElixir' },
+        { id: 'toggle-god-mode',         key: 'godMode' },
+        { id: 'toggle-double-damage',    key: 'doubleDamage' },
+        { id: 'toggle-super-speed',      key: 'superSpeed' },
+        { id: 'toggle-infiniteRange',    key: 'infiniteRange' },
+        { id: 'toggle-permanentInvisible', key: 'permanentInvisible' },
+        { id: 'toggle-freeCards',        key: 'freeCards' },
+        { id: 'toggle-fullRefund',       key: 'fullRefund' },
+        { id: 'toggle-safeShoots',       key: 'safeShoots' },
+        { id: 'toggle-safeHeals',        key: 'safeHeals' },
+        { id: 'toggle-doubleSafe',       key: 'doubleSafe' },
+        { id: 'toggle-disableBot',       key: 'disableBot' },
+        { id: 'toggle-autoIncome',       key: 'autoIncome' },
+        { id: 'toggle-allStarPowers',    key: 'allStarPowers' }
     ];
-    toggles.forEach(t => {
+    boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
+
+    // Sync number/text inputs with the current adminHacks values.
+    document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
+        const m = (inp.getAttribute('oninput') || '').match(/setAdminNumber\('([^']+)'/);
+        if (!m) return;
+        const key = m[1];
+        if (typeof adminHacks[key] !== 'undefined' && adminHacks[key] !== '') {
+            inp.value = adminHacks[key];
+        }
+    });
+
+    // Hide each hack-row that isn't part of this user's grant. Super-admin sees
+    // every row regardless. For granted users, show rows whose key matches a
+    // granted flag OR a granted numeric > 0.
+    boolToggles.forEach(t => {
         const btn = document.getElementById(t.id);
         const row = btn && btn.closest('.hack-row');
         if (!row) return;
         row.style.display = (isSuper || (myGrant && myGrant[t.key])) ? '' : 'none';
+    });
+    document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
+        const row = inp.closest('.hack-row');
+        if (!row) return;
+        const m = (inp.getAttribute('oninput') || '').match(/setAdminNumber\('([^']+)'/);
+        if (!m) return;
+        const key = m[1];
+        row.style.display = (isSuper || (myGrant && myGrant[key] && myGrant[key] !== 0 && myGrant[key] !== '')) ? '' : 'none';
     });
 
     // Currency editors + max-levels actions are super-admin only (they're raw
@@ -116,13 +142,35 @@ function toggleAdminHack(hackKey) {
         'infiniteElixir': 'toggle-infinite-elixir',
         'godMode': 'toggle-god-mode',
         'doubleDamage': 'toggle-double-damage',
-        'superSpeed': 'toggle-super-speed'
+        'superSpeed': 'toggle-super-speed',
+        'infiniteRange': 'toggle-infiniteRange',
+        'permanentInvisible': 'toggle-permanentInvisible',
+        'freeCards': 'toggle-freeCards',
+        'fullRefund': 'toggle-fullRefund',
+        'safeShoots': 'toggle-safeShoots',
+        'safeHeals': 'toggle-safeHeals',
+        'doubleSafe': 'toggle-doubleSafe',
+        'disableBot': 'toggle-disableBot',
+        'autoIncome': 'toggle-autoIncome',
+        'allStarPowers': 'toggle-allStarPowers'
     };
 
     updateAdminToggleUI(hackKey, map[hackKey]);
     console.log(`🛠️ Admin: ${hackKey} is now ${adminHacks[hackKey]}`);
 }
 window.toggleAdminHack = toggleAdminHack;
+
+// Numeric / string admin setter — bound to <input oninput> in the admin panel.
+function setAdminNumber(key, raw) {
+    let v = raw;
+    if (typeof v === 'string' && key !== 'botOnlyCardId') {
+        v = parseFloat(v);
+        if (!isFinite(v)) v = 0;
+    }
+    adminHacks[key] = v;
+    if (typeof saveAdminHacks === 'function') saveAdminHacks();
+}
+window.setAdminNumber = setAdminNumber;
 
 function setAdminCurrency(type) {
     const inputId = type === 'coins' ? 'admin-gold-input' : 'admin-gems-input';
@@ -322,9 +370,17 @@ function parseAdminRequest(text) {
     const grant = {
         infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
         coins: 0, gems: 0, trophies: 0, maxLevels: false,
-        // Numeric / parametric powers — 0 means "don't override the default".
+        // Numeric / parametric (0 = default)
         speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0,
-        startingElixir: 0, maxElixir: 0
+        startingElixir: 0, maxElixir: 0,
+        attackSpeedMultiplier: 0, radiusMultiplier: 0,
+        elixirRateMultiplier: 0, timeScale: 0,
+        botSlowdownFactor: 0, enemyNerfFactor: 0, safeRegen: 0, botOnlyCardId: '',
+        // Behavioural toggles
+        infiniteRange: false, permanentInvisible: false,
+        freeCards: false, fullRefund: false,
+        safeShoots: false, safeHeals: false, doubleSafe: false,
+        disableBot: false, autoIncome: false, allStarPowers: false
     };
 
     const has = (...phrases) => phrases.some(p => t.includes(p.toLowerCase()));
@@ -367,8 +423,13 @@ function parseAdminRequest(text) {
     }
 
     // --- Parametric multipliers ----------------------------------------
-    // "מהירות X4", "מהירות כפול 4", "speed x4", "speed *4".
-    const speedMul = t.match(/(?:מהירות|speed)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    // Attack-speed FIRST so "מהירות-תקיפה/התקפה X3" isn't swallowed by the
+    // plainer `speed` regex below.
+    const atkSpeedMulEarly = t.match(/(?:מהירות[- ]?(?:התקפה|תקיפה)|attack speed|atk speed|תקיפה מהירה)[^\d]*(?:x|×|כפול|\*|פי)?\s*(\d+(?:\.\d+)?)/i);
+    if (atkSpeedMulEarly) grant.attackSpeedMultiplier = parseFloat(atkSpeedMulEarly[1]);
+    // Plain speed — only if the AttackSpeed rule above didn't already fire.
+    let speedMul = null;
+    if (!atkSpeedMulEarly) speedMul = t.match(/(?:מהירות|speed)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
     if (speedMul) grant.speedMultiplier = parseFloat(speedMul[1]);
 
     // "נזק X5" / "damage x5" / "נזק פי 5"
@@ -391,6 +452,109 @@ function parseAdminRequest(text) {
     // "מקסימום אליקסיר 20" / "max elixir 20" / "אליקסיר מקס 20"
     const maxEl = t.match(/(?:אליקסיר מקס|מקסימום אליקסיר|מקס אליקסיר|max elixir|elixir cap)\s*(\d+)/i);
     if (maxEl) grant.maxElixir = parseInt(maxEl[1], 10);
+
+    // "גודל X2" / "רדיוס X2" / "size x2" / "radius x2"
+    const radiusMul = t.match(/(?:גודל|רדיוס|size|radius)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (radiusMul) grant.radiusMultiplier = parseFloat(radiusMul[1]);
+
+    // "מילוי אליקסיר X3" / "elixir rate x3" / "הזנת אליקסיר פי 3"
+    const elRate = t.match(/(?:מילוי אליקסיר|הזנת אליקסיר|elixir rate|elixir regen)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (elRate) grant.elixirRateMultiplier = parseFloat(elRate[1]);
+
+    // "slow motion" / "slow-mo" / "סלואו מושן" / "הקפאה" → timeScale
+    if (has('slow motion', 'slow-mo', 'slowmo', 'סלואו מושן', 'איטי פי')) grant.timeScale = 0.5;
+    if (has('fast forward', 'fastforward', 'מהיר פי', 'פי 3 מהיר', 'פי 2 מהיר')) grant.timeScale = 3;
+    if (has('הקפאת זמן', 'freeze time', 'pause game')) grant.timeScale = 0.0001;
+    const timeMul = t.match(/(?:זמן|time)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (timeMul) grant.timeScale = parseFloat(timeMul[1]);
+
+    // "בוט איטי פי N" / "bot slowdown X2"
+    const botSlow = t.match(/(?:בוט איטי|bot slow|slow bot)[^\d]*(?:x|×|כפול|\*|פי)?\s*(\d+(?:\.\d+)?)/i);
+    if (botSlow) grant.botSlowdownFactor = parseFloat(botSlow[1]);
+
+    // "יחידות אויב חלשות פי N" / "enemy nerf x N"
+    const enemyNerf = t.match(/(?:אויב חלש|enemy nerf|אויב נחלש|אויב חלשים)[^\d]*(?:x|×|כפול|\*|פי)?\s*(\d+(?:\.\d+)?)/i);
+    if (enemyNerf) grant.enemyNerfFactor = parseFloat(enemyNerf[1]);
+
+    // "כספת רגן X" / "safe regen X"
+    const safeReg = t.match(/(?:כספת רגן|regen safe|safe regen|כספת מתחדשת)[^\d]*(\d+)/i);
+    if (safeReg) grant.safeRegen = parseInt(safeReg[1], 10);
+
+    // "בוט רק X" / "bot only bruce" — restricts AI to one card
+    const botOnly = t.match(/(?:בוט רק|bot only|רק בוט של)\s+([a-zA-Z\-]+)/i);
+    if (botOnly) grant.botOnlyCardId = botOnly[1].toLowerCase();
+
+    // Behavioural toggles
+    if (has('טווח אינסופי', 'טווח ללא גבול', 'infinite range', 'unlimited range')) grant.infiniteRange = true;
+    if (has('בלתי נראה', 'שקוף', 'invisible', 'stealth', 'permanent invis')) grant.permanentInvisible = true;
+    if (has('קלפים חינם', 'עלות 0', 'free cards', 'zero cost')) grant.freeCards = true;
+    if (has('refund', 'החזר מלא', 'החזר אליקסיר', 'full refund')) grant.fullRefund = true;
+    if (has('כספת יורה', 'safe shoots', 'castle shoots')) grant.safeShoots = true;
+    if (has('כספת מרפאה', 'safe heals', 'healing safe')) grant.safeHeals = true;
+    if (has('שתי כספות', 'כפול כספות', 'double safe', 'two safes')) grant.doubleSafe = true;
+    if (has('השבת בוט', 'בוט כבוי', 'disable bot', 'bot off', 'no bot')) grant.disableBot = true;
+    if (has('הכנסה אוטומטית', 'auto income', 'מטבעות אוטומטיים')) grant.autoIncome = true;
+    if (has('כל הכוחות', 'all star powers', 'כל הסטאר פאוורס', 'כל סטאר-פאוור')) grant.allStarPowers = true;
+
+    // Complex behaviours — expressed as a pre-built customJS snippet lookup so
+    // they work without the Gemini API. The flags themselves stay false; the
+    // returned grant carries a `customJS` field that applyGrantFlags will run.
+    const customJSLibrary = [];
+    if (has('thorns', 'קוצים', 'מחזיר נזק', 'נזק חוזר')) {
+        customJSLibrary.push(
+            "// Thorns — reflect 30% damage back to enemies touching player units every tick.\n" +
+            "setInterval(() => {\n" +
+            "  const mine = units.filter(u => u.team === 'player' && !u.isDead);\n" +
+            "  const foes = units.filter(u => u.team === 'enemy' && !u.isDead);\n" +
+            "  mine.forEach(m => foes.forEach(f => {\n" +
+            "    if (Math.hypot(m.x - f.x, m.y - f.y) < (m.radius + f.radius + 4)) {\n" +
+            "      f.takeDamage && f.takeDamage(20);\n" +
+            "    }\n" +
+            "  }));\n" +
+            "}, 400);"
+        );
+    }
+    if (has('split', 'מתרבות', 'שכפול', 'מכה משכפלת')) {
+        customJSLibrary.push(
+            "// Split-on-hit — once every second pick one player unit and clone it next to itself.\n" +
+            "setInterval(() => {\n" +
+            "  const candidates = units.filter(u => u.team === 'player' && !u.isDead);\n" +
+            "  if (!candidates.length || !window.spawnEntity) return;\n" +
+            "  const u = candidates[Math.floor(Math.random() * candidates.length)];\n" +
+            "  spawnEntity(u.x + 25, u.y + 25, 'player', u.type, false, true);\n" +
+            "}, 1500);"
+        );
+    }
+    if (has('רגנרציה', 'מתרפאים', 'regen', 'regeneration')) {
+        customJSLibrary.push(
+            "// Regen — player units heal 15 HP/second.\n" +
+            "setInterval(() => {\n" +
+            "  units.concat(buildings, auras).filter(e => e.team === 'player' && !e.isDead).forEach(e => {\n" +
+            "    if (e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + 15);\n" +
+            "  });\n" +
+            "}, 1000);"
+        );
+    }
+    if (has('התפוצצות במוות', 'explode on death', 'מתפוצץ במוות', 'פיצוץ במוות')) {
+        customJSLibrary.push(
+            "// Explode-on-death — scan every 250 ms for newly-dead player units and hit everyone in range.\n" +
+            "(function(){\n" +
+            "  const seen = new WeakSet();\n" +
+            "  setInterval(() => {\n" +
+            "    units.filter(u => u.team === 'player' && u.isDead && !seen.has(u)).forEach(u => {\n" +
+            "      seen.add(u);\n" +
+            "      units.filter(f => f.team === 'enemy' && !f.isDead && Math.hypot(f.x - u.x, f.y - u.y) <= 120).forEach(f => {\n" +
+            "        f.takeDamage && f.takeDamage(250);\n" +
+            "      });\n" +
+            "    });\n" +
+            "  }, 250);\n" +
+            "})();"
+        );
+    }
+
+    if (customJSLibrary.length) {
+        grant.customJS = (grant.customJS ? grant.customJS + '\n\n' : '') + customJSLibrary.join('\n\n');
+    }
 
     // --- Currency grants ----------------------------------------------
     const coinsMatch = t.match(/(\d[\d,\.]*)\s*(?:מטבעות|זהב|coins?|gold)/i);

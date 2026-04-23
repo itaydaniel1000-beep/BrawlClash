@@ -1,11 +1,20 @@
 // engine-physics.js - Game State Updates and Entity Processing
 
 function update(dt, now) {
+    // Admin time-scale: `<1` slows the game, `>1` speeds it up, `~0` freezes it.
+    // Applied globally by scaling the delta every update consumer below uses.
+    if (adminHacks.timeScale && adminHacks.timeScale > 0) {
+        dt = dt * adminHacks.timeScale;
+    }
+
     if (currentState === GAME_STATE.PLAYING) {
         if (adminHacks.infiniteElixir) playerElixir = playerMaxElixir;
-        
+
         let elixirGenRate = CONFIG.ELIXIR_GEN_RATE;
         if (adminHacks.rapidFire) elixirGenRate *= 3;
+        if (adminHacks.elixirRateMultiplier && adminHacks.elixirRateMultiplier > 1) {
+            elixirGenRate *= adminHacks.elixirRateMultiplier;
+        }
         if (playerStarPowers['max'] === 'sp1' && units.some(u => u.team === 'player' && u.type === 'max')) {
             elixirGenRate *= 1.1;
         }

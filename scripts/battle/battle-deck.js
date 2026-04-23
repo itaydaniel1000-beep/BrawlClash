@@ -35,7 +35,7 @@ function buildDeck() {
 
         cardEl.onclick = (e) => {
             e.stopPropagation();
-            const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
+            const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
             if (!canAfford) return;
 
             // Picking a card cancels the Bull dash-selection mode
@@ -60,7 +60,7 @@ function buildDeck() {
         if (freezeBtn) {
             freezeBtn.onclick = (e) => {
                 e.stopPropagation();
-                const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
+                const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
                 if (!canAfford) return;
 
                 // Picking a freeze cancels Bull dash-selection mode

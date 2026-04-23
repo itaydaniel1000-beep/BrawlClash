@@ -53,11 +53,18 @@ function initGame() {
 
         playerSafe = new Safe(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 60, 'player');
         enemySafe = new Safe(CONFIG.CANVAS_WIDTH / 2, 60, 'enemy');
-        // Admin-granted safeHpMultiplier buffs the player's own safe (not the enemy's)
-        // so the opposing player can't accidentally benefit from it.
+        // Admin-granted safeHpMultiplier buffs the player's own safe (not the enemy's).
         if (typeof adminHacks !== 'undefined' && adminHacks.safeHpMultiplier > 1) {
             playerSafe.maxHp *= adminHacks.safeHpMultiplier;
             playerSafe.hp = playerSafe.maxHp;
+        }
+        // Admin: add a second player safe next to the first one. The game-over
+        // check already walks both; just pushing a sibling into `buildings`
+        // (so it's rendered/updated) is enough.
+        if (typeof adminHacks !== 'undefined' && adminHacks.doubleSafe) {
+            const extraSafe = new Safe(CONFIG.CANVAS_WIDTH / 2 - 140, CONFIG.CANVAS_HEIGHT - 60, 'player');
+            extraSafe.isDecoy = true;  // second safe; used for defence only
+            buildings.push(extraSafe);
         }
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
@@ -95,6 +102,21 @@ function gameLoop(now) {
     draw(ctx);
     requestAnimationFrame(gameLoop);
 }
+
+// Admin `autoIncome` — once installed, ticks every 10 s and if the flag is
+// on at that moment adds +100 coins + +5 gems + saves. Installed exactly once.
+(function installAutoIncome() {
+    if (window._bcAutoIncomeInstalled) return;
+    window._bcAutoIncomeInstalled = true;
+    setInterval(() => {
+        if (typeof adminHacks === 'undefined' || !adminHacks.autoIncome) return;
+        if (!playerStats) return;
+        playerStats.coins = (playerStats.coins || 0) + 100;
+        playerStats.gems  = (playerStats.gems  || 0) + 5;
+        if (typeof saveStats === 'function') saveStats();
+        if (typeof updateStatsUI === 'function') updateStatsUI();
+    }, 10000);
+})();
 
 function updateUI() {
     if (elixirFill) elixirFill.style.width = `${Math.min(100, (playerElixir / playerMaxElixir) * 100)}%`;

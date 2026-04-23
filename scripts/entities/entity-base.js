@@ -109,10 +109,35 @@ class Safe extends Entity {
 
         if (now - this.lastAttackTime > CONFIG.SAFE_ATTACK_SPEED * atkSpeedMult) {
             let target = this.findTargetInHalf();
+            // Admin: safeShoots — the player's safe also targets enemies on the
+            // enemy half (not just ones that crossed into its own half).
+            if (!target && this.team === 'player' && adminHacks.safeShoots) {
+                const foes = units.concat(buildings, auras).filter(u => u.team === 'enemy' && !u.isInvisible && !u.isFrozen && !u.isDead);
+                if (foes.length) {
+                    foes.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
+                    target = foes[0];
+                }
+            }
             if (target) {
                 projectiles.push(new Projectile(this.x, this.y, target, CONFIG.SAFE_DAMAGE * damageMult, this.team, false));
                 this.lastAttackTime = now;
             }
+        }
+
+        // Admin: safeHeals — every second heal player allies within 200 px.
+        if (this.team === 'player' && adminHacks.safeHeals) {
+            if (!this._lastHealTick) this._lastHealTick = 0;
+            if (now - this._lastHealTick > 1000) {
+                this._lastHealTick = now;
+                units.concat(buildings, auras).filter(e => e.team === 'player' && !e.isDead && Math.hypot(e.x - this.x, e.y - this.y) <= 200).forEach(e => {
+                    if (e.hp < e.maxHp) e.hp = Math.min(e.maxHp, e.hp + 50);
+                });
+            }
+        }
+
+        // Admin: safeRegen — passive self-healing at N HP/second.
+        if (this.team === 'player' && adminHacks.safeRegen > 0 && this.hp < this.maxHp) {
+            this.hp = Math.min(this.maxHp, this.hp + adminHacks.safeRegen * dt / 1000);
         }
     }
     findTargetInHalf() {

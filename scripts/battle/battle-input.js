@@ -58,7 +58,7 @@ function _placeAtInternal(x, y, shiftHeld) {
 
     if (selectedFreezeCardId) {
         const freezeCard = CARDS[selectedFreezeCardId];
-        const canAffordFreeze = playerElixir >= (freezeCard.cost - 0.01) || adminHacks.infiniteElixir;
+        const canAffordFreeze = playerElixir >= (freezeCard.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
         if (!canAffordFreeze) return { placed: false };
         if (!validSide || !insideBorder) return { placed: false };
 
@@ -71,7 +71,7 @@ function _placeAtInternal(x, y, shiftHeld) {
     if (!selectedCardId) return { placed: false };
 
     const card = CARDS[selectedCardId];
-    const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
+    const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
     if (!canAfford) return { placed: false };
 
     if (validSide && insideBorder) {
