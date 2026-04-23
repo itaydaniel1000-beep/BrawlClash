@@ -24,7 +24,7 @@ function openAdminMenu() {
     // Flag the body so CSS can slide #app left and out of the panel's way on
     // desktop. The mobile media-query opts out so the phone modal still
     // covers the full screen the way it always did.
-    document.body.classList.add('admin-panel-open');
+    _refreshAdminOpenClass();
 
     const boolToggles = [
         { id: 'toggle-infinite-elixir',  key: 'infiniteElixir' },
@@ -143,9 +143,48 @@ function _renderGrantedExtras(isSuper, myGrant) {
 function closeAdminMenu() {
     const overlay = document.getElementById('admin-panel-overlay');
     if (overlay) overlay.style.display = 'none';
-    document.body.classList.remove('admin-panel-open');
+    _refreshAdminOpenClass();
 }
 window.closeAdminMenu = closeAdminMenu;
+
+// Wipes every admin-hack back to its default (0 / false / '') — single-click
+// reset for the super-admin. Refreshes the open panel's UI so every toggle
+// and number input reflects the defaults immediately.
+function resetAdminPanel() {
+    const defaults = {
+        infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
+        speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0,
+        attackSpeedMultiplier: 0, radiusMultiplier: 0,
+        infiniteRange: false, permanentInvisible: false,
+        startingElixir: 0, maxElixir: 0, elixirRateMultiplier: 0,
+        freeCards: false, fullRefund: false,
+        safeHpMultiplier: 0, safeShoots: false, safeHeals: false,
+        safeRegen: 0, doubleSafe: false,
+        disableBot: false, botSlowdownFactor: 0, enemyNerfFactor: 0, botOnlyCardId: '',
+        timeScale: 0, autoIncome: false, allStarPowers: false,
+        deleteUnit: false, canGrantAdmin: false, canRevokeAdmin: false
+    };
+    Object.assign(adminHacks, defaults);
+    saveAdminHacks();
+    if (typeof showTransientToast === 'function') showTransientToast('🔄 תפריט המנהל אופס');
+    // Re-rendering the panel re-syncs every row's toggle label + number
+    // input value against the now-default adminHacks values.
+    openAdminMenu();
+}
+window.resetAdminPanel = resetAdminPanel;
+
+// Shared helper so ANY of the three admin overlays being open keeps the
+// `admin-panel-open` body class (and thus the #app left-shift) alive; it
+// only clears once all of them are closed.
+function _refreshAdminOpenClass() {
+    const ids = ['admin-panel-overlay', 'grant-admin-overlay', 'revoke-admin-overlay'];
+    const anyOpen = ids.some(id => {
+        const el = document.getElementById(id);
+        return el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none';
+    });
+    document.body.classList.toggle('admin-panel-open', anyOpen);
+}
+window._refreshAdminOpenClass = _refreshAdminOpenClass;
 
 function updateAdminToggleUI(hackKey, elementId) {
     const el = document.getElementById(elementId);
@@ -276,11 +315,15 @@ window.maxAllLevels = maxAllLevels;
 function openGrantAdminModal() {
     const overlay = document.getElementById('grant-admin-overlay');
     if (!overlay) return;
+    // Reparent to <body> so the #app transform doesn't drag the overlay
+    // along with the rest of the lobby — same trick as the main admin panel.
+    if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
     overlay.style.display = 'flex';
     overlay.classList.add('active');
     document.getElementById('grant-admin-result').innerText = '';
     document.getElementById('grant-admin-target').value = '';
     document.getElementById('grant-admin-desc').value = '';
+    _refreshAdminOpenClass();
 }
 window.openGrantAdminModal = openGrantAdminModal;
 
@@ -289,6 +332,7 @@ function closeGrantAdminModal() {
     if (!overlay) return;
     overlay.style.display = 'none';
     overlay.classList.remove('active');
+    _refreshAdminOpenClass();
 }
 window.closeGrantAdminModal = closeGrantAdminModal;
 
@@ -883,10 +927,12 @@ window.submitGrantAdmin = submitGrantAdmin;
 function openRevokeAdminModal() {
     const overlay = document.getElementById('revoke-admin-overlay');
     if (!overlay) return;
+    if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
     overlay.style.display = 'flex';
     overlay.classList.add('active');
     document.getElementById('revoke-admin-target').value = '';
     document.getElementById('revoke-admin-result').innerText = '';
+    _refreshAdminOpenClass();
 }
 window.openRevokeAdminModal = openRevokeAdminModal;
 
@@ -895,6 +941,7 @@ function closeRevokeAdminModal() {
     if (!overlay) return;
     overlay.style.display = 'none';
     overlay.classList.remove('active');
+    _refreshAdminOpenClass();
 }
 window.closeRevokeAdminModal = closeRevokeAdminModal;
 
