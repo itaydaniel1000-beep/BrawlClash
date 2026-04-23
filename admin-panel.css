@@ -1,10 +1,13 @@
 /* --- Admin Panel Styles --- */
 #admin-panel-overlay {
-    /* Desktop: transparent overlay — no dark backdrop, and clicks pass through
-       to the game UI behind it. Only the panel container intercepts clicks
-       so the player can keep interacting with everything else (place units,
-       open menus) while the admin panel is open on the right. */
+    /* Desktop: transparent overlay — no dark backdrop, no blur on whatever's
+       behind it, and clicks pass through to the game UI. Only the panel
+       container itself intercepts clicks so the player can keep interacting
+       with everything else (place units, open menus) while the admin panel
+       is open on the right. */
     background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     pointer-events: none;
     z-index: 20000;
     direction: ltr;
@@ -20,13 +23,12 @@
 
 /* While the admin panel is open on desktop, slide the #app board to the
    LEFT by ~half the panel's width so its right edge (where PLAY, the deck's
-   last few cards, etc. live) no longer sits underneath the panel — clicks
-   would be consumed by the panel container even with pointer-events
-   propagation, because the lobby buttons ARE behind the panel's bounding
-   box in that area. */
+   last few cards, etc. live) no longer sits underneath the panel.
+   Using `left:` instead of `transform: translateX()` avoids the sub-pixel
+   re-rasterisation that was making text inside #app look blurry. */
 body.admin-panel-open #app {
-    transform: translateX(-260px);
-    transition: transform 0.25s ease-out;
+    left: -260px;
+    transition: left 0.25s ease-out;
 }
 
 .admin-panel-container {
@@ -61,7 +63,7 @@ body.admin-panel-open #app {
         max-width: 480px;
     }
     /* Don't shift #app on mobile — the panel covers the screen as a modal. */
-    body.admin-panel-open #app { transform: none; }
+    body.admin-panel-open #app { left: 0; }
 }
 .admin-section-title {
     font-family: 'Fredoka One', cursive;
