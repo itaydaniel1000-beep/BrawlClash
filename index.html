@@ -317,22 +317,46 @@
             </div>
         </div>
 
-        <!-- Grant-Admin Modal (super-admin only) -->
+        <!-- Grant-Admin Modal (super-admin only) — AI-powered chat interface -->
         <div id="grant-admin-overlay" class="screen overlay" style="display: none; background: linear-gradient(135deg, #4a148c, #1a1a2e); z-index: 7000;">
-            <div class="menu-box" style="max-width: 520px; width: 94%; text-align: right; border: 4px solid #8e44ad;">
-                <h2 style="color: #f1c40f; display: flex; align-items: center; justify-content: center; gap: 8px;">✨ הענקת אדמין</h2>
-                <p style="color: #bdc3c7; font-size: 0.9rem; text-align: center; margin-bottom: 14px;">תכתוב שם משתמש + מה שיקבל באדמין פאנל — והכל יחובר אליו בעזרת AI.</p>
+            <div class="menu-box" style="max-width: 560px; width: 94%; max-height: 92vh; overflow-y: auto; text-align: right; border: 4px solid #8e44ad;">
+                <h2 style="color: #f1c40f; display: flex; align-items: center; justify-content: center; gap: 8px;">✨ הענקת אדמין <span style="font-size: 0.7em; color: #bdc3c7;">(AI)</span></h2>
 
-                <label for="grant-admin-target" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שם המשתמש:</label>
+                <!-- Target username stays as a separate field so the AI is unambiguous. -->
+                <label for="grant-admin-target" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שם המשתמש הממוקד:</label>
                 <input type="text" id="grant-admin-target" placeholder="לדוגמה: itay123" maxlength="24" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; margin-bottom: 12px; color: #000;">
 
-                <label for="grant-admin-desc" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">מה לתת לו (בטקסט חופשי):</label>
-                <textarea id="grant-admin-desc" placeholder="לדוגמה: תן לו גוד מוד ונזק כפול וגם אליקסיר אינסופי" rows="3" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; resize: vertical; color: #000;"></textarea>
+                <!-- AI chat log. User messages + AI replies stack here. -->
+                <label style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שיחה עם ה-AI:</label>
+                <div id="grant-admin-chat" style="max-height: 240px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 2px solid #34495e; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="color: #bdc3c7; text-align: center; font-size: 0.85rem;">כתוב מה לתת או לשאול, וה-AI יחליט מה להוסיף / להסיר. לדוגמה: "תן לו גוד מוד ו-1000 מטבעות", "קח לו את ההרשאות", "מה אפשר להעניק?", "מהירות כפול 4".</div>
+                </div>
 
-                <div id="grant-admin-result" style="min-height: 22px; margin: 10px 0; color: #2ecc71; font-size: 0.9rem;"></div>
+                <label for="grant-admin-desc" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">ההודעה שלך:</label>
+                <textarea id="grant-admin-desc" placeholder="כתוב הודעה ל-AI..." rows="2" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; resize: vertical; color: #000;"></textarea>
 
-                <button onclick="submitGrantAdmin()" class="bs-btn bs-btn-success" style="width: 100%; font-size: 1.1rem;">שלח ✈️</button>
+                <div id="grant-admin-result" style="min-height: 22px; margin: 8px 0; color: #2ecc71; font-size: 0.9rem;"></div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="submitGrantAdmin()" class="bs-btn bs-btn-success" style="flex: 1; font-size: 1.05rem;">שלח ✈️</button>
+                    <button onclick="openAiSettings()" class="bs-btn" style="background: #34495e; color: #fff; padding: 0 14px;" title="הגדרות AI (מפתח API)">⚙️</button>
+                </div>
                 <button onclick="closeGrantAdminModal()" class="bs-btn bs-btn-danger" style="width: 100%; margin-top: 8px;">סגור</button>
+            </div>
+        </div>
+
+        <!-- AI Settings popover — paste Gemini API key to switch from the
+             built-in pattern-matcher to real Google Gemini responses. -->
+        <div id="ai-settings-overlay" class="screen overlay" style="display: none; background: rgba(0,0,0,0.82); z-index: 7200;">
+            <div class="menu-box" style="max-width: 460px; width: 94%; text-align: right; border: 4px solid #34495e;">
+                <h2 style="color: #f1c40f;">⚙️ הגדרות AI</h2>
+                <p style="color: #bdc3c7; font-size: 0.88rem; margin-bottom: 10px;">הזן מפתח Gemini API (Google AI Studio, חינמי) כדי להפעיל צ'אט AI אמיתי. ללא מפתח — התגובות מטופלות ע"י פארסר מקומי.</p>
+                <p style="color: #95a5a6; font-size: 0.75rem; margin-bottom: 10px;">המפתח נשמר רק במכשיר הזה ב-localStorage. <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #74b9ff;">קבל מפתח →</a></p>
+                <input type="password" id="gemini-key-input" placeholder="AIza…" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Courier New', monospace; font-size: 0.95rem; margin-bottom: 10px; color: #000;">
+                <div id="ai-settings-status" style="min-height: 20px; font-size: 0.85rem; color: #2ecc71; margin-bottom: 8px;"></div>
+                <button onclick="saveAiSettings()" class="bs-btn bs-btn-success" style="width: 100%;">שמור</button>
+                <button onclick="clearAiSettings()" class="bs-btn" style="width: 100%; margin-top: 8px; background: #7f8c8d;">מחק מפתח</button>
+                <button onclick="closeAiSettings()" class="bs-btn bs-btn-danger" style="width: 100%; margin-top: 8px;">סגור</button>
             </div>
         </div>
 
@@ -609,7 +633,7 @@
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
-    <script src="scripts/ui/ui-admin.js?v=6.6"></script>
+    <script src="scripts/ui/ui-admin.js?v=6.7"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     
     <!-- AI & Battle Module -->

@@ -109,6 +109,122 @@ function closeGrantAdminModal() {
 }
 window.closeGrantAdminModal = closeGrantAdminModal;
 
+// --- Chat log helpers ------------------------------------------------------
+function _appendChatMsg(role, text) {
+    const chat = document.getElementById('grant-admin-chat');
+    if (!chat) return;
+    const b = document.createElement('div');
+    const isUser = role === 'user';
+    b.style.cssText = [
+        'max-width: 85%',
+        isUser ? 'align-self: flex-start' : 'align-self: flex-end',
+        isUser ? 'background: #2980b9' : 'background: #2d3436',
+        'color: #fff',
+        'padding: 7px 11px',
+        'border-radius: 12px',
+        isUser ? 'border-bottom-left-radius: 4px' : 'border-bottom-right-radius: 4px',
+        'line-height: 1.5',
+        'white-space: pre-wrap'
+    ].join('; ');
+    b.innerText = text;
+    chat.appendChild(b);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// --- AI settings modal -----------------------------------------------------
+function openAiSettings() {
+    const overlay = document.getElementById('ai-settings-overlay');
+    const input = document.getElementById('gemini-key-input');
+    const status = document.getElementById('ai-settings-status');
+    if (!overlay) return;
+    if (input) input.value = localStorage.getItem('brawlclash_gemini_key') || '';
+    if (status) status.innerText = input && input.value ? '✓ מפתח שמור. לחץ שמור כדי להחליף או מחק.' : 'אין מפתח. בלעדיו משתמשים בפארסר מקומי.';
+    overlay.style.display = 'flex';
+    overlay.classList.add('active');
+}
+window.openAiSettings = openAiSettings;
+
+function closeAiSettings() {
+    const overlay = document.getElementById('ai-settings-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    overlay.classList.remove('active');
+}
+window.closeAiSettings = closeAiSettings;
+
+function saveAiSettings() {
+    const input = document.getElementById('gemini-key-input');
+    const status = document.getElementById('ai-settings-status');
+    const key = (input && input.value || '').trim();
+    if (key) {
+        try { localStorage.setItem('brawlclash_gemini_key', key); } catch (e) {}
+        if (status) { status.style.color = '#2ecc71'; status.innerText = '✓ מפתח נשמר.'; }
+    } else {
+        if (status) { status.style.color = '#e74c3c'; status.innerText = 'הזן מפתח קודם.'; }
+    }
+}
+window.saveAiSettings = saveAiSettings;
+
+function clearAiSettings() {
+    try { localStorage.removeItem('brawlclash_gemini_key'); } catch (e) {}
+    const input = document.getElementById('gemini-key-input');
+    const status = document.getElementById('ai-settings-status');
+    if (input) input.value = '';
+    if (status) { status.style.color = '#2ecc71'; status.innerText = '✓ המפתח נמחק. חזרה לפארסר מקומי.'; }
+}
+window.clearAiSettings = clearAiSettings;
+
+// --- Real-AI (Gemini) call -------------------------------------------------
+// Sends the super-admin's message to Google Gemini with instructions to
+// respond in JSON. Returns { reply, flags } or throws on network/quota errors.
+async function callGeminiGrantAI(userMessage, targetName) {
+    const key = localStorage.getItem('brawlclash_gemini_key');
+    if (!key) throw new Error('no-key');
+    const systemPreamble = [
+        "You are the admin-grant AI for a browser game called BrawlClash. The user talking to you is the super-admin. They want to grant (or revoke) admin-panel powers on another player's account.",
+        "Always reply in Hebrew, casually.",
+        "Return JSON ONLY (no markdown, no code fences) with this shape:",
+        "{",
+        '  "reply": "<short friendly Hebrew response, 1-3 sentences>",',
+        '  "flags": { "godMode": bool, "doubleDamage": bool, "superSpeed": bool, "infiniteElixir": bool,',
+        '             "speedMultiplier": number, "dmgMultiplier": number, "hpMultiplier": number,',
+        '             "safeHpMultiplier": number, "startingElixir": number, "maxElixir": number,',
+        '             "coins": number, "gems": number, "trophies": number, "maxLevels": bool, "_revoke": bool }',
+        "}",
+        "Only include fields that should CHANGE. Omit the whole `flags` key if the user is just chatting / asking questions.",
+        "If the user says things like 'revoke', 'הסר', 'בטל הכל' — set `_revoke: true` and omit everything else.",
+        "If they say 'הכל' / 'all' — set godMode, doubleDamage, superSpeed, infiniteElixir all to true.",
+        `Target username (context): "${targetName || '(not specified)'}".`
+    ].join('\n');
+    const body = {
+        contents: [
+            { role: 'user', parts: [{ text: systemPreamble + '\n\n---\n\nUser: ' + userMessage }] }
+        ],
+        generationConfig: { temperature: 0.3, response_mime_type: 'application/json' }
+    };
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(key), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+        const errTxt = await res.text().catch(() => '');
+        throw new Error('api:' + res.status + ' ' + errTxt.slice(0, 180));
+    }
+    const json = await res.json();
+    const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch (e) {
+        // Fallback — try to extract {...} substring if the model wrapped in prose.
+        const m = text.match(/\{[\s\S]*\}/);
+        if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
+    }
+    if (!parsed) return { reply: text || '(תגובה ריקה מה-AI)', flags: null };
+    return { reply: parsed.reply || '(ללא טקסט)', flags: parsed.flags || null };
+}
+window.callGeminiGrantAI = callGeminiGrantAI;
+
 // Pattern-matcher that converts free-text (Hebrew + English) into a grant
 // payload. Not an LLM — this game has no backend / API key — but it covers
 // the common things the super-admin actually wants to hand out:
@@ -214,7 +330,30 @@ function _saveAdminGrants(obj) {
 }
 window._loadAdminGrants = _loadAdminGrants;
 
-function submitGrantAdmin() {
+// Short Hebrew summary of whatever the flags object contains — used by the
+// parser-fallback path to build a "reply" bubble when no real AI is wired up.
+function _describeFlags(f) {
+    if (!f) return '';
+    const bits = [];
+    if (f._revoke) bits.push('הסרת הרשאות');
+    if (f.godMode) bits.push('גוד-מוד');
+    if (f.doubleDamage) bits.push('נזק כפול');
+    if (f.superSpeed) bits.push('מהירות-על');
+    if (f.infiniteElixir) bits.push('אליקסיר אינסופי');
+    if (f.speedMultiplier) bits.push(`מהירות ×${f.speedMultiplier}`);
+    if (f.dmgMultiplier) bits.push(`נזק ×${f.dmgMultiplier}`);
+    if (f.hpMultiplier) bits.push(`חיים ×${f.hpMultiplier}`);
+    if (f.safeHpMultiplier) bits.push(`כספת ×${f.safeHpMultiplier}`);
+    if (f.startingElixir) bits.push(`התחלה ${f.startingElixir} אליקסיר`);
+    if (f.maxElixir) bits.push(`מקס אליקסיר ${f.maxElixir}`);
+    if (f.coins) bits.push(`${f.coins} 🪙`);
+    if (f.gems) bits.push(`${f.gems} 💎`);
+    if (f.trophies) bits.push(`${f.trophies} 🏆`);
+    if (f.maxLevels) bits.push('רמות מקס');
+    return bits.join(', ');
+}
+
+async function submitGrantAdmin() {
     // Only the super-admin can use this — defence in depth on top of the
     // visibility toggle on #grant-admin-btn.
     if (playerStats.username !== ADMIN_USERNAME) {
@@ -223,20 +362,57 @@ function submitGrantAdmin() {
     }
 
     const target = (document.getElementById('grant-admin-target').value || '').trim();
-    const desc = (document.getElementById('grant-admin-desc').value || '').trim();
+    const descEl = document.getElementById('grant-admin-desc');
+    const desc = (descEl.value || '').trim();
     const result = document.getElementById('grant-admin-result');
+    result.innerText = '';
 
     if (!target) { result.style.color = '#e74c3c'; result.innerText = 'חסר שם משתמש'; return; }
     if (!desc)   { result.style.color = '#e74c3c'; result.innerText = 'חסר תיאור של מה לתת לו'; return; }
 
-    const parsed = parseAdminRequest(desc);
+    // Push the user's message into the chat log immediately for responsiveness.
+    _appendChatMsg('user', desc);
+    descEl.value = '';
+
+    // Prefer real Gemini replies if a key is configured; otherwise fall back
+    // to the deterministic local pattern-matcher.
+    let reply = '';
+    let parsed = null;
+    const hasKey = !!localStorage.getItem('brawlclash_gemini_key');
+    if (hasKey) {
+        _appendChatMsg('ai', '⌛ חושב…');
+        try {
+            const r = await callGeminiGrantAI(desc, target);
+            // Replace the "thinking" bubble with the real reply.
+            const chat = document.getElementById('grant-admin-chat');
+            if (chat && chat.lastChild) chat.lastChild.innerText = r.reply || '(ללא תגובה)';
+            reply = r.reply || '';
+            parsed = r.flags || null;
+        } catch (e) {
+            const chat = document.getElementById('grant-admin-chat');
+            if (chat && chat.lastChild) {
+                chat.lastChild.style.background = '#c0392b';
+                chat.lastChild.innerText = '⚠️ שגיאת AI: ' + (e && e.message || 'unknown') + '\nחוזר לפארסר מקומי.';
+            }
+            parsed = parseAdminRequest(desc);
+            reply = 'הפעלתי פארסר מקומי.';
+        }
+    } else {
+        // No API key — pattern-matcher fallback with a synthetic "reply".
+        parsed = parseAdminRequest(desc);
+        const preview = _describeFlags(parsed);
+        reply = preview ? `בסדר, אני נותן ל-${target}: ${preview}` : 'לא הצלחתי לזהות יכולת מההודעה. נסה: "גוד מוד", "1000 מטבעות", "מהירות כפול 4", "בטל הכל"…';
+        _appendChatMsg('ai', reply + '\n(להפעלת AI אמיתי, לחץ ⚙️ והזן מפתח Gemini.)');
+    }
+
+    if (!parsed) parsed = {};
     const anyHack = parsed.infiniteElixir || parsed.godMode || parsed.doubleDamage || parsed.superSpeed;
     const anyMult = parsed.speedMultiplier || parsed.dmgMultiplier || parsed.hpMultiplier || parsed.safeHpMultiplier;
     const anyElixirOverride = parsed.startingElixir || parsed.maxElixir;
     const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 || parsed.maxLevels;
     if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot) {
-        result.style.color = '#e74c3c';
-        result.innerText = "לא זיהיתי יכולת. נסה: 'גוד מוד' / 'נזק כפול' / 'אליקסיר אינסופי' / 'הכל' / 'מהירות X4' / 'חיים X5' / 'נזק X10' / 'כספת X3' / 'התחלה של 20 אליקסיר' / '1000 מטבעות' / '100 יהלומים' / '500 גביעים' / 'רמה מקסימלית' / 'בטל הכל'.";
+        // No concrete grant change — treat as pure chat. The AI's reply is
+        // already in the chat log; nothing else to persist.
         return;
     }
 
