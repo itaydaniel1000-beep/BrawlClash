@@ -32,11 +32,25 @@ function clientToCanvasCoords(clientX, clientY) {
     };
 }
 
-function handleCanvasClick(e) {
-    if (!canvas) return;
-    e.preventDefault();
-    const { x, y } = clientToCanvasCoords(e.clientX, e.clientY);
-    const shiftHeld = e.shiftKey;
+// --- Long-press = Shift shortcut (touch + mouse) ---------------------------
+// Holding the pointer on the canvas for ≥LONG_PRESS_MS after a placement acts
+// like Shift was held during the click: the card stays selected so the next
+// tap places another of the same unit. Works on both phone (tap-and-hold) and
+// desktop (mouse press-and-hold).
+let longPressTimer = null;
+const LONG_PRESS_MS = 400;
+
+function _retroactivelyReselect(cardId) {
+    if (!cardId || !CARDS[cardId]) return;
+    if (selectedCardId) return; // either already shift-held or another card was picked
+    selectedCardId = cardId;
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    const cardEl = document.getElementById(`card-${cardId}`);
+    if (cardEl) cardEl.classList.add('selected');
+}
+
+function _placeAt(clientX, clientY, shiftHeld) {
+    const { x, y } = clientToCanvasCoords(clientX, clientY);
 
     if (isSelectingBullDash) {
         let clickedBull = units.find(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed && Math.hypot(u.x - x, u.y - y) <= u.radius * 2);
@@ -52,18 +66,14 @@ function handleCanvasClick(e) {
         return;
     }
 
-    // The map is the entire white-bordered field — units can be placed anywhere
-    // inside the 600×900 canvas (minus a small edge margin handled by spawnEntity).
-    // Previously placement was restricted to the bottom half (or inside an EMZ
-    // aura that extended the territory), but the user's intent is that the whole
-    // bordered area is one continuous placeable map.
+    // The whole white-bordered field is placeable; spawnEntity clamps near the edge.
     const inMap = x >= 10 && x <= (CONFIG.CANVAS_WIDTH - 10) &&
                   y >= 10 && y <= (CONFIG.CANVAS_HEIGHT - 10);
 
     if (selectedFreezeCardId) {
         const freezeCard = CARDS[selectedFreezeCardId];
         const canAffordFreeze = playerElixir >= (freezeCard.cost - 0.01) || adminHacks.infiniteElixir;
-        if (!canAffordFreeze) return; // Not enough elixir — can't place
+        if (!canAffordFreeze) return;
         if (!inMap) return;
 
         spawnEntity(x, y, 'player', selectedFreezeCardId, true);
@@ -76,15 +86,13 @@ function handleCanvasClick(e) {
 
     const card = CARDS[selectedCardId];
     const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
-    if (!canAfford) return; // Not enough elixir — can't place
+    if (!canAfford) return;
 
     if (inMap) {
         const cardToContinue = selectedCardId;
         spawnEntity(x, y, 'player', selectedCardId);
 
         if (shiftHeld) {
-            // Keep the card selected even if elixir is depleted — it will wait until there's
-            // enough elixir for the next placement instead of being auto-deselected.
             selectedCardId = cardToContinue;
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
             const cardEl = document.getElementById(`card-${cardToContinue}`);
@@ -95,6 +103,36 @@ function handleCanvasClick(e) {
         }
     }
 }
+
+function handleCanvasPress(e) {
+    if (!canvas) return;
+    e.preventDefault();
+
+    // Capture the card selection BEFORE placement so the long-press timer
+    // can restore it if the user keeps the pointer pressed past the threshold.
+    const cardBeforePlace = selectedCardId;
+
+    _placeAt(e.clientX, e.clientY, !!e.shiftKey);
+
+    // Start (or restart) the long-press timer. If it fires while the user is
+    // still pressing, treat it as Shift — re-select the card that was just
+    // placed so the next tap places another of the same type.
+    clearTimeout(longPressTimer);
+    if (cardBeforePlace && !e.shiftKey) {
+        longPressTimer = setTimeout(() => {
+            _retroactivelyReselect(cardBeforePlace);
+            longPressTimer = null;
+        }, LONG_PRESS_MS);
+    }
+}
+
+function handleCanvasRelease() {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+}
+
+// Back-compat wrapper — other code still references `handleCanvasClick`.
+function handleCanvasClick(e) { return handleCanvasPress(e); }
 
 function handleMouseMove(e) {
     if (!canvas) return;

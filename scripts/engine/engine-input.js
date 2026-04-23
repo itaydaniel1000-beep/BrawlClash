@@ -79,8 +79,17 @@ function handleShiftRelease(e) {
 
 function initGameListeners() {
     if (canvas) {
-        canvas.removeEventListener('mousedown', handleCanvasClick);
-        canvas.addEventListener('mousedown', handleCanvasClick);
+        // Pointer events unify mouse + touch so long-press on a phone and
+        // mouse press-and-hold on desktop both drive the same Shift-on-release
+        // shortcut (see battle-input.js).
+        canvas.removeEventListener('pointerdown', handleCanvasPress);
+        canvas.addEventListener('pointerdown', handleCanvasPress);
+        canvas.removeEventListener('pointerup', handleCanvasRelease);
+        canvas.addEventListener('pointerup', handleCanvasRelease);
+        canvas.removeEventListener('pointercancel', handleCanvasRelease);
+        canvas.addEventListener('pointercancel', handleCanvasRelease);
+        canvas.removeEventListener('pointerleave', handleCanvasRelease);
+        canvas.addEventListener('pointerleave', handleCanvasRelease);
         canvas.removeEventListener('mousemove', handleMouseMove);
         canvas.addEventListener('mousemove', handleMouseMove);
     }
