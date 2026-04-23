@@ -163,6 +163,11 @@
                     <button id="grant-admin-btn" onclick="openGrantAdminModal()" class="admin-btn grant-admin-btn" style="display: none; background: #8e44ad; margin-right: 8px;" title="הענקת אדמין למשתמש">
                         <span>✨</span>
                     </button>
+                    <!-- Revoke-admin button: same visibility rules, but strips the
+                         admin panel from whichever username the super-admin types in. -->
+                    <button id="revoke-admin-btn" onclick="openRevokeAdminModal()" class="admin-btn revoke-admin-btn" style="display: none; background: #c0392b; margin-right: 8px;" title="מחיקת אדמין למשתמש">
+                        <span>🚫</span>
+                    </button>
                 </div>
 
                 <div class="bottom-center"></div>
@@ -328,6 +333,22 @@
 
                 <button onclick="submitGrantAdmin()" class="bs-btn bs-btn-success" style="width: 100%; font-size: 1.1rem;">שלח ✈️</button>
                 <button onclick="closeGrantAdminModal()" class="bs-btn bs-btn-danger" style="width: 100%; margin-top: 8px;">סגור</button>
+            </div>
+        </div>
+
+        <!-- Revoke-Admin Modal (super-admin only) -->
+        <div id="revoke-admin-overlay" class="screen overlay" style="display: none; background: linear-gradient(135deg, #7b0a0a, #1a1a2e); z-index: 7000;">
+            <div class="menu-box" style="max-width: 460px; width: 94%; text-align: right; border: 4px solid #c0392b;">
+                <h2 style="color: #ff7675; display: flex; align-items: center; justify-content: center; gap: 8px;">🚫 מחיקת אדמין</h2>
+                <p style="color: #bdc3c7; font-size: 0.9rem; text-align: center; margin-bottom: 14px;">הזן שם משתמש — והאדמין פאנל שלו יוסר לחלוטין.</p>
+
+                <label for="revoke-admin-target" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שם המשתמש:</label>
+                <input type="text" id="revoke-admin-target" placeholder="לדוגמה: itay123" maxlength="24" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; margin-bottom: 12px; color: #000;">
+
+                <div id="revoke-admin-result" style="min-height: 22px; margin: 4px 0 10px; color: #2ecc71; font-size: 0.9rem;"></div>
+
+                <button onclick="submitRevokeAdmin()" class="bs-btn bs-btn-danger" style="width: 100%; font-size: 1.1rem;">מחק אדמין 🚫</button>
+                <button onclick="closeRevokeAdminModal()" class="bs-btn" style="width: 100%; margin-top: 8px; background: #7f8c8d;">סגור</button>
             </div>
         </div>
 
@@ -584,11 +605,11 @@
     <script src="scripts/entities/projectile.js"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=6.2"></script>
+    <script src="scripts/ui/ui-core.js?v=6.6"></script>
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
-    <script src="scripts/ui/ui-admin.js?v=6.5"></script>
+    <script src="scripts/ui/ui-admin.js?v=6.6"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     
     <!-- AI & Battle Module -->

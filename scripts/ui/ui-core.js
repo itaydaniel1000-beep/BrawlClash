@@ -87,9 +87,11 @@ function updateStatsUI() {
             console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}, granted=${hasGrant}`, "color: #e74c3c; font-weight: bold;");
         }
     }
-    // ✨ Grant-admin button: ONLY the super-admin can grant admin to others.
+    // ✨ / 🚫 — only the super-admin can grant or revoke admin for others.
     const grantBtn = document.getElementById('grant-admin-btn');
     if (grantBtn) grantBtn.style.display = isAdmin ? 'flex' : 'none';
+    const revokeBtn = document.getElementById('revoke-admin-btn');
+    if (revokeBtn) revokeBtn.style.display = isAdmin ? 'flex' : 'none';
     
     if (typeof updateTrophyUI === 'function') updateTrophyUI();
     if (typeof updateHomeScreen === 'function') updateHomeScreen();

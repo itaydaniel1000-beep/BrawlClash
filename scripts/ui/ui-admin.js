@@ -284,6 +284,68 @@ window.submitGrantAdmin = submitGrantAdmin;
 
 // On boot, if the local player's username has a pending grant, apply it so the
 // admin panel + its perks are active immediately on this device.
+// ---------------------------------------------------------------------------
+// Revoke-admin modal — super-admin only. Types a username, click → that
+// username's grant is replaced with a `_revoke` payload (new grantId) and
+// persisted. Next time the target's client queries the admin oracle they
+// get the revocation and `applyGrantFlags` wipes their hacks locally.
+// ---------------------------------------------------------------------------
+
+function openRevokeAdminModal() {
+    const overlay = document.getElementById('revoke-admin-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.classList.add('active');
+    document.getElementById('revoke-admin-target').value = '';
+    document.getElementById('revoke-admin-result').innerText = '';
+}
+window.openRevokeAdminModal = openRevokeAdminModal;
+
+function closeRevokeAdminModal() {
+    const overlay = document.getElementById('revoke-admin-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    overlay.classList.remove('active');
+}
+window.closeRevokeAdminModal = closeRevokeAdminModal;
+
+function submitRevokeAdmin() {
+    if (playerStats.username !== ADMIN_USERNAME) {
+        console.warn('🚫 revoke-admin called from non-super-admin');
+        return;
+    }
+    const target = (document.getElementById('revoke-admin-target').value || '').trim();
+    const result = document.getElementById('revoke-admin-result');
+    if (!target) {
+        result.style.color = '#e74c3c';
+        result.innerText = 'חסר שם משתמש';
+        return;
+    }
+
+    // Store a revoke "grant" so the target picks it up via the oracle channel.
+    const revokeFlags = { _revoke: true, grantId: 'rev-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) };
+    const grants = _loadAdminGrants();
+    grants[target] = revokeFlags;
+    _saveAdminGrants(grants);
+
+    // If the super-admin is revoking themselves — unlikely, but possible —
+    // apply locally too.
+    if (target === playerStats.username && typeof applyGrantFlags === 'function') {
+        applyGrantFlags(revokeFlags);
+    }
+
+    // Nudge any currently-connected peer to refresh via ADMIN_CONFIG. Real
+    // cross-device revocation happens when the target's client next queries
+    // the oracle (on next load / re-login).
+    if (window.NetworkManager && typeof window.NetworkManager.sendAdminConfig === 'function') {
+        try { window.NetworkManager.sendAdminConfig(); } catch (e) {}
+    }
+
+    result.style.color = '#2ecc71';
+    result.innerText = `✓ ${target} יאבד את ההרשאות (יחול כשיתחבר)`;
+}
+window.submitRevokeAdmin = submitRevokeAdmin;
+
 function applyAdminGrantForLocalUser() {
     if (!playerStats || !playerStats.username) return;
     const grants = _loadAdminGrants();
