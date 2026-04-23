@@ -8,33 +8,13 @@ function drawBackground(ctx) {
     const height = (typeof CONFIG !== 'undefined' ? CONFIG.CANVAS_HEIGHT : 900) || 900;
     
     ctx.save();
-    
-    // 1. Base Grass (Bright Green)
-    ctx.fillStyle = '#4cd137'; 
-    ctx.fillRect(0, 0, width, height);
-    
-    // 2. Checkerboard Pattern
-    const tileSize = 50;
-    ctx.fillStyle = '#44bd32'; // Darker Green
-    for (let y = 0; y < height; y += tileSize) {
-        for (let x = 0; x < width; x += tileSize) {
-            if ((Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0) {
-                ctx.fillRect(x, y, tileSize, tileSize);
-            }
-        }
-    }
 
-    // 3. Field Details (Fidelity details)
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    const detailPoints = [
-        {x: 60, y: 60, s: '🌸'}, {x: 540, y: 60, s: '🌸'},
-        {x: 60, y: 840, s: '🌿'}, {x: 540, y: 840, s: '🌿'},
-        {x: 300, y: 250, s: '🌼'}
-    ];
-    detailPoints.forEach(p => ctx.fillText(p.s, p.x, p.y));
+    // Background + checkerboard + emoji details removed — the user wanted the
+    // whole green field gone, leaving only the white map border, center line,
+    // and center circle. The canvas itself has a transparent background (see
+    // game.css), so anything we don't draw here falls through to the container.
 
-    // 4. White Field Lines (Ultra Robust)
+    // White Field Lines
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)'; 
     ctx.lineWidth = 4;
     
