@@ -112,6 +112,25 @@ function openUpgradeModal(id) {
         btn.innerText = 'שדרג!';
     }
 
+    // The actual upgrade action — deducts coins, bumps the level, persists, and
+    // re-opens the modal so the user sees the new stats/cost immediately.
+    // (This handler was missing after the monolithic file was split, which is
+    //  why "upgrade" was a no-op even with enough coins.)
+    btn.onclick = () => {
+        if (!currentlyUpgradingId) return;
+        const lvl = playerStats.levels[currentlyUpgradingId];
+        if (lvl >= MAX_LEVEL) return;
+        const price = lvl * 200;
+        if (playerStats.coins < price) return;
+        playerStats.coins -= price;
+        playerStats.levels[currentlyUpgradingId]++;
+        saveStats();
+        updateStatsUI();
+        if (typeof AudioController !== 'undefined') AudioController.play('upgrade');
+        renderCharCards();
+        openUpgradeModal(currentlyUpgradingId);
+    };
+
     const selectBtn = document.getElementById('upgrade-select-btn');
     const isInDeck = playerDeck.includes(id);
     selectBtn.innerText = isInDeck ? "הסר מהדק" : "בחר לדק";
