@@ -109,36 +109,58 @@ function closeGrantAdminModal() {
 }
 window.closeGrantAdminModal = closeGrantAdminModal;
 
-// Lightweight "AI" parser — maps free-text (Hebrew + English) to admin flags.
-// It's not a real LLM call because this game has no backend / API key; the
-// pattern matcher handles the common phrases the super-admin actually needs
-// ("godMode", "גוד מוד", "הכל", "נזק כפול", "מהירות", etc.).
+// Pattern-matcher that converts free-text (Hebrew + English) into a grant
+// payload. Not an LLM — this game has no backend / API key — but it covers
+// the common things the super-admin actually wants to hand out:
+//   • persistent hacks: godMode, doubleDamage, superSpeed, infiniteElixir
+//   • one-shot grants: coins, gems, trophies, maxLevels
+//   • shortcuts: "הכל" / "all" toggles every persistent hack on
 function parseAdminRequest(text) {
     const t = (text || '').toLowerCase();
-    const hacks = { infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false };
+    const grant = {
+        infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
+        coins: 0, gems: 0, trophies: 0, maxLevels: false
+    };
 
     const has = (...phrases) => phrases.some(p => t.includes(p.toLowerCase()));
 
-    // Shorthand: "הכל" / "all" → everything on
-    if (has('הכל', 'all')) {
-        hacks.infiniteElixir = true; hacks.godMode = true;
-        hacks.doubleDamage = true; hacks.superSpeed = true;
-        return hacks;
+    if (has('הכל', 'all everything', 'everything', 'all powers')) {
+        grant.infiniteElixir = true; grant.godMode = true;
+        grant.doubleDamage = true; grant.superSpeed = true;
     }
 
-    if (has('גוד מוד', 'גודמוד', 'חסין', 'אלמוות', 'אל-מוות', 'god mode', 'godmode', 'invincible')) {
-        hacks.godMode = true;
+    if (has('גוד מוד', 'גודמוד', 'חסין', 'אלמוות', 'אל-מוות', 'בלתי פגיע',
+            'god mode', 'godmode', 'invincible', 'immortal')) {
+        grant.godMode = true;
     }
-    if (has('נזק כפול', 'כפול נזק', 'נזק X2', 'נזק x2', 'double damage', 'doubledamage', 'double dmg')) {
-        hacks.doubleDamage = true;
+    if (has('נזק כפול', 'כפול נזק', 'נזק x2', 'נזק *2', 'נזק חזק', 'double damage',
+            'doubledamage', 'double dmg', '2x damage')) {
+        grant.doubleDamage = true;
     }
-    if (has('מהירות', 'מהיר', 'super speed', 'superspeed', 'fast')) {
-        hacks.superSpeed = true;
+    if (has('מהירות על', 'מהירות-על', 'מהירות כפולה', 'מהיר', 'מהר', 'מהירות',
+            'super speed', 'superspeed', 'fast', 'speed boost')) {
+        grant.superSpeed = true;
     }
-    if (has('אליקסיר אינסופי', 'אליקסיר חופשי', 'אליקסיר ללא הגבלה', 'אינסופי', 'infinite elixir', 'infiniteelixir', 'unlimited')) {
-        hacks.infiniteElixir = true;
+    if (has('אליקסיר אינסופי', 'אליקסיר חופשי', 'אליקסיר ללא הגבלה', 'אליקסיר אין סופי',
+            'אין סופי', 'אינסופי', 'infinite elixir', 'infiniteelixir', 'unlimited elixir')) {
+        grant.infiniteElixir = true;
     }
-    return hacks;
+
+    // "מקסימום רמות" / "max levels" / "רמה מקסימלית לכולם"
+    if (has('רמה מקסימלית', 'רמות מקס', 'מקס רמות', 'רמות מקסימום', 'כל הדמויות מקסימום',
+            'max levels', 'max level', 'maximum level')) {
+        grant.maxLevels = true;
+    }
+
+    // Numeric grants: accepts "1000 מטבעות" / "500 coins" / "coins: 1000" etc.
+    const coinsMatch = t.match(/(\d[\d,\.]*)\s*(?:מטבעות|זהב|coins?|gold)/i);
+    if (coinsMatch) grant.coins = parseInt(coinsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
+    const gemsMatch = t.match(/(\d[\d,\.]*)\s*(?:יהלומים|יהלום|gems?|diamonds?)/i);
+    if (gemsMatch) grant.gems = parseInt(gemsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
+    const trophiesMatch = t.match(/(\d[\d,\.]*)\s*(?:גביעים|גביע|trophies|trophy)/i);
+    if (trophiesMatch) grant.trophies = parseInt(trophiesMatch[1].replace(/[,\.]/g, ''), 10) || 0;
+
+    return grant;
 }
 window.parseAdminRequest = parseAdminRequest;
 
@@ -169,35 +191,47 @@ function submitGrantAdmin() {
     if (!target) { result.style.color = '#e74c3c'; result.innerText = 'חסר שם משתמש'; return; }
     if (!desc)   { result.style.color = '#e74c3c'; result.innerText = 'חסר תיאור של מה לתת לו'; return; }
 
-    const flags = parseAdminRequest(desc);
-    const anyOn = Object.values(flags).some(v => v);
-    if (!anyOn) {
+    const parsed = parseAdminRequest(desc);
+    const anyHack = parsed.infiniteElixir || parsed.godMode || parsed.doubleDamage || parsed.superSpeed;
+    const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 || parsed.maxLevels;
+    if (!anyHack && !anyOneShot) {
         result.style.color = '#e74c3c';
-        result.innerText = "ה-AI לא זיהה שום יכולת. נסה: 'גוד מוד', 'נזק כפול', 'מהירות', 'אליקסיר אינסופי', או 'הכל'.";
+        result.innerText = "לא זיהיתי יכולת. נסה: 'גוד מוד', 'נזק כפול', 'מהירות', 'אליקסיר אינסופי', 'הכל', '1000 מטבעות', '100 יהלומים', '500 גביעים', 'רמה מקסימלית'.";
         return;
     }
 
-    // Persist the grant.
+    // Fresh grantId so the target applies one-shot rewards idempotently:
+    // re-running the form bumps the id → coins/gems get handed out again.
+    const flags = { ...parsed, grantId: 'g-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) };
+
+    // Persist the grant on the super-admin's device. Other devices fetch it
+    // via `queryAdminForGrant` → QUERY_GRANT over PeerJS lock-peer.
     const grants = _loadAdminGrants();
     grants[target] = flags;
     _saveAdminGrants(grants);
 
-    // If the target IS the locally-logged-in player, apply immediately to
-    // their adminHacks so the change is visible without a reload.
-    if (target === playerStats.username) {
-        Object.assign(adminHacks, flags);
-        if (typeof saveAdminHacks === 'function') saveAdminHacks();
+    // If the target is the locally-logged-in player, apply immediately.
+    if (target === playerStats.username && typeof applyGrantFlags === 'function') {
+        applyGrantFlags(flags);
     }
 
-    // If we're in a P2P battle with someone of this name, push ADMIN_CONFIG
-    // so their units become buffed on all screens right away.
+    // In an active P2P battle, push persistent hacks through ADMIN_CONFIG so
+    // they take effect for the opposing client right away.
     if (window.NetworkManager && typeof window.NetworkManager.sendAdminConfig === 'function') {
         try { window.NetworkManager.sendAdminConfig(); } catch (e) {}
     }
 
-    const active = Object.keys(flags).filter(k => flags[k]).join(', ');
+    const parts = [];
+    if (flags.godMode) parts.push('גוד-מוד');
+    if (flags.doubleDamage) parts.push('נזק כפול');
+    if (flags.superSpeed) parts.push('מהירות-על');
+    if (flags.infiniteElixir) parts.push('אליקסיר אינסופי');
+    if (flags.coins) parts.push(`${flags.coins} 🪙`);
+    if (flags.gems) parts.push(`${flags.gems} 💎`);
+    if (flags.trophies) parts.push(`${flags.trophies} 🏆`);
+    if (flags.maxLevels) parts.push('רמות מקס');
     result.style.color = '#2ecc71';
-    result.innerText = `✓ ${target} קיבל: ${active}`;
+    result.innerText = `✓ ${target} יקבל: ${parts.join(', ')} (יחול כשיהיה מחובר)`;
 }
 window.submitGrantAdmin = submitGrantAdmin;
 
@@ -207,10 +241,8 @@ function applyAdminGrantForLocalUser() {
     if (!playerStats || !playerStats.username) return;
     const grants = _loadAdminGrants();
     const mine = grants[playerStats.username];
-    if (mine) {
-        Object.assign(adminHacks, mine);
-        if (typeof saveAdminHacks === 'function') saveAdminHacks();
-        // Also make the ⚙️ admin button visible for the granted user.
+    if (mine && typeof applyGrantFlags === 'function') {
+        applyGrantFlags(mine);
         const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn)');
         if (adminBtn) adminBtn.style.display = 'flex';
     }

@@ -70,23 +70,31 @@ let _usernameLockPeer = null;
 
 function tryClaimUsernameLock(name) {
     return new Promise((resolve, reject) => {
-        if (!window.Peer) { resolve(null); return; } // PeerJS missing → skip check
-        // If we already hold a lock for this exact name, no need to re-acquire.
+        if (!window.Peer) { reject(new Error('no-peerjs')); return; }
         const wantedId = _peerIdForName(name);
         if (_usernameLockPeer && _usernameLockPeer.id === wantedId && !_usernameLockPeer.disconnected && !_usernameLockPeer.destroyed) {
             resolve(_usernameLockPeer);
             return;
         }
-        // Release any previous lock for a different name first.
         try { if (_usernameLockPeer) _usernameLockPeer.destroy(); } catch (e) {}
         _usernameLockPeer = null;
 
         const p = new Peer(wantedId);
+        // Fail-CLOSED on timeout: the user asked for cross-device uniqueness,
+        // so if we can't get a definitive "yes" from the broker we refuse to
+        // accept the name instead of silently letting two devices share it.
         const timer = setTimeout(() => {
-            // Broker unreachable — fail-open so the game still works offline.
+            try { p.destroy(); } catch (e) {}
+            reject(new Error('broker-timeout'));
+        }, 7000);
+        p.on('open', () => {
+            clearTimeout(timer);
+            _usernameLockPeer = p;
+            // Once the lock is held, host a "grant oracle" on it so other users
+            // can query their pending admin grants (see ADMIN_GRANT messages).
+            _setupLockPeerMessageHandlers(p);
             resolve(p);
-        }, 6000);
-        p.on('open', () => { clearTimeout(timer); _usernameLockPeer = p; resolve(p); });
+        });
         p.on('error', (err) => {
             clearTimeout(timer);
             const taken = err && (err.type === 'unavailable-id' || /taken|unavailable/i.test(err.message || ''));
@@ -94,14 +102,129 @@ function tryClaimUsernameLock(name) {
                 try { p.destroy(); } catch (e) {}
                 reject(new Error('name-taken'));
             } else {
-                // Non-uniqueness error (network, etc.) — fail-open.
-                _usernameLockPeer = p;
-                resolve(p);
+                clearTimeout(timer);
+                try { p.destroy(); } catch (e) {}
+                reject(new Error('broker-error:' + (err && err.type || 'unknown')));
             }
         });
     });
 }
 window.tryClaimUsernameLock = tryClaimUsernameLock;
+
+// ---------------------------------------------------------------------------
+// Admin grant over PeerJS — every user's lock-peer doubles as a "grant oracle".
+// When a target client opens their lock, they ask the super-admin's lock-peer
+// "do you have a grant for my username?". The super-admin responds with the
+// flags (or nothing) and the target applies them locally. This bypasses the
+// lack of a shared backend while the super-admin is online.
+// ---------------------------------------------------------------------------
+
+const _appliedGrantIds = (() => {
+    try { return new Set(JSON.parse(localStorage.getItem('brawlclash_admin_applied') || '[]')); }
+    catch (e) { return new Set(); }
+})();
+function _markGrantApplied(id) {
+    _appliedGrantIds.add(id);
+    try { localStorage.setItem('brawlclash_admin_applied', JSON.stringify([..._appliedGrantIds])); }
+    catch (e) {}
+}
+
+function _setupLockPeerMessageHandlers(peer) {
+    peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'QUERY_GRANT' && typeof data.username === 'string') {
+                // Only the super-admin actually has grants; everyone else ignores.
+                if (playerStats.username !== ADMIN_USERNAME) { try { conn.send({ type: 'GRANT_RESPONSE', flags: null }); } catch (e) {} return; }
+                const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+                const flags = grants[data.username] || null;
+                try { conn.send({ type: 'GRANT_RESPONSE', flags }); } catch (e) {}
+            }
+        });
+    });
+}
+
+function queryAdminForGrant() {
+    if (!_usernameLockPeer || !playerStats.username) return;
+    if (playerStats.username === ADMIN_USERNAME) return; // super-admin never needs to ask themselves
+    const adminLockId = _peerIdForName(ADMIN_USERNAME);
+    let conn;
+    try { conn = _usernameLockPeer.connect(adminLockId, { reliable: true }); }
+    catch (e) { return; }
+    if (!conn) return;
+    const giveUp = setTimeout(() => { try { conn.close(); } catch (e) {} }, 5000);
+    conn.on('open', () => {
+        try { conn.send({ type: 'QUERY_GRANT', username: playerStats.username }); }
+        catch (e) {}
+    });
+    conn.on('data', (data) => {
+        clearTimeout(giveUp);
+        if (data && data.type === 'GRANT_RESPONSE' && data.flags) {
+            if (typeof applyGrantFlags === 'function') applyGrantFlags(data.flags);
+        }
+        try { conn.close(); } catch (e) {}
+    });
+    conn.on('error', () => { clearTimeout(giveUp); });
+}
+window.queryAdminForGrant = queryAdminForGrant;
+
+// Apply a grant payload to the local player. Persistent hack flags merge into
+// `adminHacks`; one-shot grants (coins/gems/trophies/maxLevels) apply once per
+// unique `grantId` so repeated receipts don't keep stacking rewards.
+function applyGrantFlags(flags) {
+    if (!flags) return;
+    // One-shot idempotence — skip if we've already applied this grantId.
+    if (flags.grantId && _appliedGrantIds.has(flags.grantId)) {
+        // Persistent hacks should still be ensured (they stay on even after
+        // idempotent receipts) — merge just the boolean flags.
+        _mergePersistentHacks(flags);
+        return;
+    }
+    _mergePersistentHacks(flags);
+
+    // One-shot grants.
+    let changed = false;
+    if (flags.coins && flags.coins > 0) { playerStats.coins += flags.coins; changed = true; }
+    if (flags.gems && flags.gems > 0) { playerStats.gems += flags.gems; changed = true; }
+    if (flags.trophies && flags.trophies > 0) { playerTrophies += flags.trophies; changed = true; }
+    if (flags.maxLevels && typeof CARDS === 'object') {
+        Object.keys(CARDS).forEach(id => { playerStats.levels[id] = MAX_LEVEL; });
+        changed = true;
+    }
+    if (typeof saveStats === 'function') saveStats();
+    if (typeof updateStatsUI === 'function') updateStatsUI();
+
+    if (flags.grantId) _markGrantApplied(flags.grantId);
+
+    if (changed || _anyPersistentHack(flags)) {
+        if (typeof showTransientToast === 'function') {
+            const parts = [];
+            if (flags.godMode) parts.push('גוד-מוד');
+            if (flags.doubleDamage) parts.push('נזק כפול');
+            if (flags.superSpeed) parts.push('מהירות-על');
+            if (flags.infiniteElixir) parts.push('אליקסיר אינסופי');
+            if (flags.coins) parts.push(`${flags.coins} מטבעות`);
+            if (flags.gems) parts.push(`${flags.gems} יהלומים`);
+            if (flags.trophies) parts.push(`${flags.trophies} גביעים`);
+            if (flags.maxLevels) parts.push('רמות מקס');
+            showTransientToast('⚡ הרשאות אדמין: ' + parts.join(', '));
+        }
+    }
+}
+window.applyGrantFlags = applyGrantFlags;
+
+function _mergePersistentHacks(flags) {
+    if (typeof adminHacks === 'undefined') return;
+    let changed = false;
+    ['godMode', 'doubleDamage', 'superSpeed', 'infiniteElixir'].forEach(k => {
+        if (flags[k] === true && !adminHacks[k]) { adminHacks[k] = true; changed = true; }
+    });
+    if (changed && typeof saveAdminHacks === 'function') saveAdminHacks();
+    if (changed && typeof updateStatsUI === 'function') updateStatsUI();
+}
+function _anyPersistentHack(flags) {
+    return !!(flags.godMode || flags.doubleDamage || flags.superSpeed || flags.infiniteElixir);
+}
 
 // Release the lock when the tab closes so the name frees up for others.
 window.addEventListener('beforeunload', () => {
@@ -114,22 +237,31 @@ window.addEventListener('beforeunload', () => {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (!playerStats || !playerStats.username) return;
-        tryClaimUsernameLock(playerStats.username).catch(() => {
-            console.warn('🔒 username-lock: name is now held by another device — forcing re-claim');
-            playerStats.username = null;
-            try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
-            const overlay = document.getElementById('username-overlay');
-            if (overlay) {
-                overlay.style.display = 'flex';
-                overlay.classList.add('active');
-            }
-            const feedback = document.getElementById('username-feedback');
-            if (feedback) {
-                feedback.style.color = '#ff7675';
-                feedback.innerText = '❌ השם שלך נלקח ע״י מכשיר אחר. בחר שם חדש.';
-            }
-        });
-    }, 1500); // let PeerJS-broker warm up first
+        tryClaimUsernameLock(playerStats.username)
+            .then(() => {
+                // Lock re-acquired — ask for any pending admin grant for this name.
+                setTimeout(queryAdminForGrant, 500);
+            })
+            .catch((err) => {
+                // Only force a re-claim for actual "name taken" rejection.
+                // Broker timeouts / generic errors shouldn't eject the user.
+                if (err && err.message === 'name-taken') {
+                    console.warn('🔒 username-lock: name is now held by another device — forcing re-claim');
+                    playerStats.username = null;
+                    try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
+                    const overlay = document.getElementById('username-overlay');
+                    if (overlay) {
+                        overlay.style.display = 'flex';
+                        overlay.classList.add('active');
+                    }
+                    const feedback = document.getElementById('username-feedback');
+                    if (feedback) {
+                        feedback.style.color = '#ff7675';
+                        feedback.innerText = '❌ השם שלך נלקח ע״י מכשיר אחר. בחר שם חדש.';
+                    }
+                }
+            });
+    }, 1500);
 });
 
 async function claimUsername() {
@@ -145,8 +277,16 @@ async function claimUsername() {
     try {
         await tryClaimUsernameLock(name);
     } catch (e) {
-        // Name is currently held by another device.
-        if (feedback) { feedback.style.color = '#ff7675'; feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. בחר שם אחר.'; }
+        if (feedback) {
+            feedback.style.color = '#ff7675';
+            if (e && e.message === 'name-taken') {
+                feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. בחר שם אחר.';
+            } else if (e && e.message === 'broker-timeout') {
+                feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
+            } else {
+                feedback.innerText = '❌ שגיאת רשת, נסה שוב.';
+            }
+        }
         if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
         return;
     }
@@ -159,6 +299,9 @@ async function claimUsername() {
     const overlay = document.getElementById('username-overlay');
     if (overlay) overlay.style.display = 'none';
     updateStatsUI();
+
+    // Ask the super-admin's lock-peer if this name has a pending grant.
+    setTimeout(queryAdminForGrant, 800);
 
     // NetworkManager.init runs from initNetworkListeners (called by goToLobby).
     // Don't call it here too — starting two PeerJS instances means one overrides
