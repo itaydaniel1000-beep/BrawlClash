@@ -119,10 +119,23 @@ function parseAdminRequest(text) {
     const t = (text || '').toLowerCase();
     const grant = {
         infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
-        coins: 0, gems: 0, trophies: 0, maxLevels: false
+        coins: 0, gems: 0, trophies: 0, maxLevels: false,
+        // Numeric / parametric powers — 0 means "don't override the default".
+        speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0,
+        startingElixir: 0, maxElixir: 0
     };
 
     const has = (...phrases) => phrases.some(p => t.includes(p.toLowerCase()));
+
+    // --- Revocation ------------------------------------------------------
+    // If the super-admin says "הסר", "בטל", "revoke" etc., wipe the grant.
+    if (has('הסר הכל', 'בטל הכל', 'הורד אדמין', 'הוריד הרשאות', 'הסר אדמין',
+            'הוריד אדמין', 'revoke', 'remove admin', 'clear admin', 'reset admin',
+            'no admin', 'קח ממנו') ||
+        /^\s*(בטל|הסר|הורד|revoke|remove|clear|reset)\b/i.test(text || '')) {
+        grant._revoke = true;
+        return grant;
+    }
 
     if (has('הכל', 'all everything', 'everything', 'all powers')) {
         grant.infiniteElixir = true; grant.godMode = true;
@@ -137,22 +150,47 @@ function parseAdminRequest(text) {
             'doubledamage', 'double dmg', '2x damage')) {
         grant.doubleDamage = true;
     }
-    if (has('מהירות על', 'מהירות-על', 'מהירות כפולה', 'מהיר', 'מהר', 'מהירות',
+    if (has('מהירות על', 'מהירות-על', 'מהירות כפולה', 'מהיר', 'מהר',
             'super speed', 'superspeed', 'fast', 'speed boost')) {
         grant.superSpeed = true;
     }
     if (has('אליקסיר אינסופי', 'אליקסיר חופשי', 'אליקסיר ללא הגבלה', 'אליקסיר אין סופי',
-            'אין סופי', 'אינסופי', 'infinite elixir', 'infiniteelixir', 'unlimited elixir')) {
+            'infinite elixir', 'infiniteelixir', 'unlimited elixir')) {
         grant.infiniteElixir = true;
     }
 
-    // "מקסימום רמות" / "max levels" / "רמה מקסימלית לכולם"
     if (has('רמה מקסימלית', 'רמות מקס', 'מקס רמות', 'רמות מקסימום', 'כל הדמויות מקסימום',
             'max levels', 'max level', 'maximum level')) {
         grant.maxLevels = true;
     }
 
-    // Numeric grants: accepts "1000 מטבעות" / "500 coins" / "coins: 1000" etc.
+    // --- Parametric multipliers ----------------------------------------
+    // "מהירות X4", "מהירות כפול 4", "speed x4", "speed *4".
+    const speedMul = t.match(/(?:מהירות|speed)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (speedMul) grant.speedMultiplier = parseFloat(speedMul[1]);
+
+    // "נזק X5" / "damage x5" / "נזק פי 5"
+    const dmgMul = t.match(/(?:נזק|damage|dmg)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (dmgMul) grant.dmgMultiplier = parseFloat(dmgMul[1]);
+
+    // "חיים X5" / "hp x5" / "חיים פי 5"
+    const hpMul = t.match(/(?:חיים|hp|health)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (hpMul) grant.hpMultiplier = parseFloat(hpMul[1]);
+
+    // "כספת X3" / "safe hp x3"
+    const safeMul = t.match(/(?:כספת|safe(?: hp)?)[^\d]*(?:x|×|כפול|\*|פי)\s*(\d+(?:\.\d+)?)/i);
+    if (safeMul) grant.safeHpMultiplier = parseFloat(safeMul[1]);
+
+    // --- Starting / max elixir ----------------------------------------
+    // "טעינה של 20 אליקסיר בהתחלה", "התחלה של 20 אליקסיר", "starting elixir 20".
+    const startEl = t.match(/(?:התחלה של|התחיל עם|התחלתי|טעינה של|starting elixir|start with|start elixir|initial elixir)\s*(\d+)/i);
+    if (startEl) grant.startingElixir = parseInt(startEl[1], 10);
+
+    // "מקסימום אליקסיר 20" / "max elixir 20" / "אליקסיר מקס 20"
+    const maxEl = t.match(/(?:אליקסיר מקס|מקסימום אליקסיר|מקס אליקסיר|max elixir|elixir cap)\s*(\d+)/i);
+    if (maxEl) grant.maxElixir = parseInt(maxEl[1], 10);
+
+    // --- Currency grants ----------------------------------------------
     const coinsMatch = t.match(/(\d[\d,\.]*)\s*(?:מטבעות|זהב|coins?|gold)/i);
     if (coinsMatch) grant.coins = parseInt(coinsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
     const gemsMatch = t.match(/(\d[\d,\.]*)\s*(?:יהלומים|יהלום|gems?|diamonds?)/i);
@@ -193,10 +231,12 @@ function submitGrantAdmin() {
 
     const parsed = parseAdminRequest(desc);
     const anyHack = parsed.infiniteElixir || parsed.godMode || parsed.doubleDamage || parsed.superSpeed;
+    const anyMult = parsed.speedMultiplier || parsed.dmgMultiplier || parsed.hpMultiplier || parsed.safeHpMultiplier;
+    const anyElixirOverride = parsed.startingElixir || parsed.maxElixir;
     const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 || parsed.maxLevels;
-    if (!anyHack && !anyOneShot) {
+    if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot) {
         result.style.color = '#e74c3c';
-        result.innerText = "לא זיהיתי יכולת. נסה: 'גוד מוד', 'נזק כפול', 'מהירות', 'אליקסיר אינסופי', 'הכל', '1000 מטבעות', '100 יהלומים', '500 גביעים', 'רמה מקסימלית'.";
+        result.innerText = "לא זיהיתי יכולת. נסה: 'גוד מוד' / 'נזק כפול' / 'אליקסיר אינסופי' / 'הכל' / 'מהירות X4' / 'חיים X5' / 'נזק X10' / 'כספת X3' / 'התחלה של 20 אליקסיר' / '1000 מטבעות' / '100 יהלומים' / '500 גביעים' / 'רמה מקסימלית' / 'בטל הכל'.";
         return;
     }
 
@@ -222,10 +262,17 @@ function submitGrantAdmin() {
     }
 
     const parts = [];
+    if (flags._revoke) parts.push('הסרת הרשאות');
     if (flags.godMode) parts.push('גוד-מוד');
     if (flags.doubleDamage) parts.push('נזק כפול');
     if (flags.superSpeed) parts.push('מהירות-על');
     if (flags.infiniteElixir) parts.push('אליקסיר אינסופי');
+    if (flags.speedMultiplier) parts.push(`מהירות ×${flags.speedMultiplier}`);
+    if (flags.dmgMultiplier) parts.push(`נזק ×${flags.dmgMultiplier}`);
+    if (flags.hpMultiplier) parts.push(`חיים ×${flags.hpMultiplier}`);
+    if (flags.safeHpMultiplier) parts.push(`כספת ×${flags.safeHpMultiplier}`);
+    if (flags.startingElixir) parts.push(`התחלה ${flags.startingElixir} אליקסיר`);
+    if (flags.maxElixir) parts.push(`מקס אליקסיר ${flags.maxElixir}`);
     if (flags.coins) parts.push(`${flags.coins} 🪙`);
     if (flags.gems) parts.push(`${flags.gems} 💎`);
     if (flags.trophies) parts.push(`${flags.trophies} 🏆`);

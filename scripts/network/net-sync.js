@@ -10,7 +10,12 @@ function _collectSpawnBuffs() {
     return {
         doubleDamage: !!h.doubleDamage,
         superSpeed: !!h.superSpeed,
-        godMode: !!h.godMode
+        godMode: !!h.godMode,
+        // Parametric multipliers ride the wire so the opponent's render of
+        // admin-buffed spawns matches what the admin actually sees.
+        speedMultiplier: +h.speedMultiplier || 0,
+        dmgMultiplier: +h.dmgMultiplier || 0,
+        hpMultiplier: +h.hpMultiplier || 0
     };
 }
 
@@ -71,7 +76,11 @@ NetworkManager.sendAdminConfig = function() {
             infiniteElixir: !!h.infiniteElixir,
             godMode: !!h.godMode,
             doubleDamage: !!h.doubleDamage,
-            superSpeed: !!h.superSpeed
+            superSpeed: !!h.superSpeed,
+            speedMultiplier: +h.speedMultiplier || 0,
+            dmgMultiplier: +h.dmgMultiplier || 0,
+            hpMultiplier: +h.hpMultiplier || 0,
+            safeHpMultiplier: +h.safeHpMultiplier || 0
         }
     };
     Object.values(this.connections).forEach(conn => {

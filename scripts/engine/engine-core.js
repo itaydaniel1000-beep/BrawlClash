@@ -39,8 +39,11 @@ function initGame() {
 
         units = []; buildings = []; projectiles = []; auras = [];
         particles = []; floatingTexts = [];
-        playerElixir = 5; enemyElixir = 5; aiDeaths = []; pendingRebuilds = [];
-        playerMaxElixir = 10; playerKills = 0;
+        // Admin-granted overrides: startingElixir / maxElixir (0 = use default).
+        const startE = (typeof adminHacks !== 'undefined' && adminHacks.startingElixir) ? adminHacks.startingElixir : 5;
+        const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;
+        playerElixir = startE; enemyElixir = 5; aiDeaths = []; pendingRebuilds = [];
+        playerMaxElixir = maxE; playerKills = 0;
         selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false;
 
         hardAIState = 0; aiDelayTimer = 0; hardAIAttackY = 250; hardAIEmzPlaced = false;
@@ -50,7 +53,13 @@ function initGame() {
 
         playerSafe = new Safe(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT - 60, 'player');
         enemySafe = new Safe(CONFIG.CANVAS_WIDTH / 2, 60, 'enemy');
-        // Both safes keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
+        // Admin-granted safeHpMultiplier buffs the player's own safe (not the enemy's)
+        // so the opposing player can't accidentally benefit from it.
+        if (typeof adminHacks !== 'undefined' && adminHacks.safeHpMultiplier > 1) {
+            playerSafe.maxHp *= adminHacks.safeHpMultiplier;
+            playerSafe.hp = playerSafe.maxHp;
+        }
+        // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
         buildDeck();

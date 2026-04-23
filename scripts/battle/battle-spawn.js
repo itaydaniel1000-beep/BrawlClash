@@ -34,6 +34,14 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         ? (remoteBuffs || {})
         : (team === 'player' ? ((typeof adminHacks !== 'undefined') ? adminHacks : {}) : {});
 
+    // Custom admin-granted multipliers (speed / damage / hp) stack ON TOP of
+    // the boolean hacks — so "speed x4" gives 4× base speed even if `superSpeed`
+    // is also on. Only the local player's spawns get them; remote units pick
+    // up the values from `remoteBuffs` so opponents see the same buffed unit.
+    const speedMult = Math.max(1, buffs.speedMultiplier || 0);
+    const dmgMult   = Math.max(1, buffs.dmgMultiplier || 0);
+    const hpMult    = Math.max(1, buffs.hpMultiplier || 0);
+
     let entity;
     if (card.type === 'unit') {
         entity = new Unit(x, y, 15, team, typeStr);
@@ -42,14 +50,21 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
             entity.speed *= 2;
             entity.attackSpeed /= 2;
         }
+        if (speedMult > 1) { entity.speed *= speedMult; entity.attackSpeed /= speedMult; }
+        if (dmgMult > 1)   { entity.attackDamage *= dmgMult; }
+        if (hpMult > 1)    { entity.maxHp *= hpMult; entity.hp = entity.maxHp; }
         units.push(entity);
     } else if (card.type === 'building') {
         entity = new Building(x, y, team, typeStr);
         if (buffs.doubleDamage) entity.attackDamage *= 2;
+        if (dmgMult > 1) entity.attackDamage *= dmgMult;
+        if (hpMult > 1)  { entity.maxHp *= hpMult; entity.hp = entity.maxHp; }
         buildings.push(entity);
     } else if (card.type === 'aura') {
         entity = new Aura(x, y, team, typeStr);
         if (buffs.doubleDamage) entity.attackDamage *= 1.5;
+        if (dmgMult > 1) entity.attackDamage *= dmgMult;
+        if (hpMult > 1)  { entity.maxHp *= hpMult; entity.hp = entity.maxHp; }
         auras.push(entity);
 
         if (typeStr === 'pam' && team === 'player' && playerStarPowers['pam'] === 'sp1') {

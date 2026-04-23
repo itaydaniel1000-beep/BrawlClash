@@ -173,36 +173,62 @@ window.queryAdminForGrant = queryAdminForGrant;
 // unique `grantId` so repeated receipts don't keep stacking rewards.
 function applyGrantFlags(flags) {
     if (!flags) return;
-    // One-shot idempotence — skip if we've already applied this grantId.
-    if (flags.grantId && _appliedGrantIds.has(flags.grantId)) {
-        // Persistent hacks should still be ensured (they stay on even after
-        // idempotent receipts) — merge just the boolean flags.
-        _mergePersistentHacks(flags);
+
+    // Revocation — wipes adminHacks and the stored grant record entirely.
+    if (flags._revoke) {
+        if (typeof adminHacks !== 'undefined') {
+            adminHacks.infiniteElixir = false; adminHacks.godMode = false;
+            adminHacks.doubleDamage = false; adminHacks.superSpeed = false;
+            adminHacks.speedMultiplier = 0; adminHacks.dmgMultiplier = 0;
+            adminHacks.hpMultiplier = 0;    adminHacks.safeHpMultiplier = 0;
+            adminHacks.startingElixir = 0;  adminHacks.maxElixir = 0;
+            if (typeof saveAdminHacks === 'function') saveAdminHacks();
+        }
+        // Drop any saved grant for this username so the ⚙️ admin button goes away.
+        if (typeof _loadAdminGrants === 'function' && playerStats && playerStats.username) {
+            const grants = _loadAdminGrants();
+            delete grants[playerStats.username];
+            try { localStorage.setItem('brawlclash_admin_grants', JSON.stringify(grants)); } catch (e) {}
+        }
+        if (typeof updateStatsUI === 'function') updateStatsUI();
+        if (flags.grantId) _markGrantApplied(flags.grantId);
+        if (typeof showTransientToast === 'function') showTransientToast('🔒 הרשאות אדמין הוסרו');
         return;
     }
+
+    // One-shot idempotence — same grantId never re-applies coins etc. but
+    // persistent hacks/multipliers are always re-asserted (they stay on).
+    const alreadyApplied = flags.grantId && _appliedGrantIds.has(flags.grantId);
     _mergePersistentHacks(flags);
 
-    // One-shot grants.
     let changed = false;
-    if (flags.coins && flags.coins > 0) { playerStats.coins += flags.coins; changed = true; }
-    if (flags.gems && flags.gems > 0) { playerStats.gems += flags.gems; changed = true; }
-    if (flags.trophies && flags.trophies > 0) { playerTrophies += flags.trophies; changed = true; }
-    if (flags.maxLevels && typeof CARDS === 'object') {
-        Object.keys(CARDS).forEach(id => { playerStats.levels[id] = MAX_LEVEL; });
-        changed = true;
+    if (!alreadyApplied) {
+        if (flags.coins && flags.coins > 0) { playerStats.coins += flags.coins; changed = true; }
+        if (flags.gems && flags.gems > 0) { playerStats.gems += flags.gems; changed = true; }
+        if (flags.trophies && flags.trophies > 0) { playerTrophies += flags.trophies; changed = true; }
+        if (flags.maxLevels && typeof CARDS === 'object') {
+            Object.keys(CARDS).forEach(id => { playerStats.levels[id] = MAX_LEVEL; });
+            changed = true;
+        }
     }
     if (typeof saveStats === 'function') saveStats();
     if (typeof updateStatsUI === 'function') updateStatsUI();
 
     if (flags.grantId) _markGrantApplied(flags.grantId);
 
-    if (changed || _anyPersistentHack(flags)) {
+    if (changed || _anyPersistentHack(flags) || _anyParametric(flags)) {
         if (typeof showTransientToast === 'function') {
             const parts = [];
             if (flags.godMode) parts.push('גוד-מוד');
             if (flags.doubleDamage) parts.push('נזק כפול');
             if (flags.superSpeed) parts.push('מהירות-על');
             if (flags.infiniteElixir) parts.push('אליקסיר אינסופי');
+            if (flags.speedMultiplier) parts.push(`מהירות ×${flags.speedMultiplier}`);
+            if (flags.dmgMultiplier) parts.push(`נזק ×${flags.dmgMultiplier}`);
+            if (flags.hpMultiplier) parts.push(`חיים ×${flags.hpMultiplier}`);
+            if (flags.safeHpMultiplier) parts.push(`כספת ×${flags.safeHpMultiplier}`);
+            if (flags.startingElixir) parts.push(`התחלה ${flags.startingElixir} אליקסיר`);
+            if (flags.maxElixir) parts.push(`מקס אליקסיר ${flags.maxElixir}`);
             if (flags.coins) parts.push(`${flags.coins} מטבעות`);
             if (flags.gems) parts.push(`${flags.gems} יהלומים`);
             if (flags.trophies) parts.push(`${flags.trophies} גביעים`);
@@ -219,11 +245,20 @@ function _mergePersistentHacks(flags) {
     ['godMode', 'doubleDamage', 'superSpeed', 'infiniteElixir'].forEach(k => {
         if (flags[k] === true && !adminHacks[k]) { adminHacks[k] = true; changed = true; }
     });
+    // Parametric multipliers / overrides — last-writer-wins.
+    ['speedMultiplier', 'dmgMultiplier', 'hpMultiplier', 'safeHpMultiplier',
+     'startingElixir', 'maxElixir'].forEach(k => {
+        if (flags[k] && adminHacks[k] !== flags[k]) { adminHacks[k] = flags[k]; changed = true; }
+    });
     if (changed && typeof saveAdminHacks === 'function') saveAdminHacks();
     if (changed && typeof updateStatsUI === 'function') updateStatsUI();
 }
 function _anyPersistentHack(flags) {
     return !!(flags.godMode || flags.doubleDamage || flags.superSpeed || flags.infiniteElixir);
+}
+function _anyParametric(flags) {
+    return !!(flags.speedMultiplier || flags.dmgMultiplier || flags.hpMultiplier ||
+              flags.safeHpMultiplier || flags.startingElixir || flags.maxElixir);
 }
 
 // Release the lock when the tab closes so the name frees up for others.
