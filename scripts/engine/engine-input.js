@@ -75,6 +75,12 @@ function handleShiftRelease(e) {
         selectedFreezeCardId = null;
         document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
     }
+    // …and disarms the admin "delete enemy unit" mode if it was being held
+    // open by Shift — consistent with the card-placement behaviour.
+    if (typeof isSelectingDeleteTarget !== 'undefined' && isSelectingDeleteTarget) {
+        isSelectingDeleteTarget = false;
+        if (typeof _resetDeleteUnitButtonStyle === 'function') _resetDeleteUnitButtonStyle();
+    }
 }
 
 function initGameListeners() {
