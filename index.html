@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=5.7">
     <link rel="stylesheet" href="styles/animations.css?v=3.3">
-    <link rel="stylesheet" href="admin-panel.css?v=9.0">
+    <link rel="stylesheet" href="admin-panel.css?v=9.3">
     <style>
         /* Force Active Screen Visibility */
         #app { display: flex !important; visibility: visible !important; min-width: 320px; }
@@ -32,6 +32,23 @@
 </head>
 
 <body>
+    <!-- Floating admin controls — fixed to the bottom-right of the viewport so
+         the super-admin (and delegates) can open ⚙️ / ✨ / 🚫 from both the
+         lobby (stacks below PLAY) and mid-battle. Visibility driven by
+         updateStatsUI; individual button display follows the same
+         super-admin-or-granted rules as before. -->
+    <div id="admin-floating-controls" style="display: none;">
+        <button onclick="openAdminMenu()" class="admin-btn" id="admin-btn-floating" title="תפריט מנהל">
+            <span>⚙️</span>
+        </button>
+        <button id="grant-admin-btn" onclick="openGrantAdminModal()" class="admin-btn grant-admin-btn" style="display: none; background: #8e44ad;" title="הענקת אדמין למשתמש">
+            <span>✨</span>
+        </button>
+        <button id="revoke-admin-btn" onclick="openRevokeAdminModal()" class="admin-btn revoke-admin-btn" style="display: none; background: #c0392b;" title="מחיקת אדמין למשתמש">
+            <span>🚫</span>
+        </button>
+    </div>
+
     <!-- Side Panels for UI (visible outside the #app board) -->
     <!-- #app is aspect-ratio 2:3 with height:100vh, so half-width = (50vh * 2 / 3) = ~33vh -->
     <!-- Place side panels just outside #app edges with a small gap -->
@@ -152,21 +169,6 @@
                         <div class="bp-info">
                             <span class="bp-title">PASS</span>
                         </div>
-                    </button>
-                    <button onclick="openAdminMenu()" class="admin-btn">
-                        <span>⚙️</span>
-                    </button>
-                    <!-- Grant-admin button: lets the super-admin (danniel1234!) open
-                         a modal that AI-parses a free-text description into admin
-                         flags and attaches them to any username. Hidden for
-                         everyone else (show/hide handled by updateStatsUI). -->
-                    <button id="grant-admin-btn" onclick="openGrantAdminModal()" class="admin-btn grant-admin-btn" style="display: none; background: #8e44ad; margin-right: 8px;" title="הענקת אדמין למשתמש">
-                        <span>✨</span>
-                    </button>
-                    <!-- Revoke-admin button: same visibility rules, but strips the
-                         admin panel from whichever username the super-admin types in. -->
-                    <button id="revoke-admin-btn" onclick="openRevokeAdminModal()" class="admin-btn revoke-admin-btn" style="display: none; background: #c0392b; margin-right: 8px;" title="מחיקת אדמין למשתמש">
-                        <span>🚫</span>
                     </button>
                 </div>
 
@@ -689,11 +691,11 @@
     <script src="scripts/entities/projectile.js"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=7.7"></script>
+    <script src="scripts/ui/ui-core.js?v=9.1"></script>
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
-    <script src="scripts/ui/ui-admin.js?v=8.9"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.1"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     
     <!-- AI & Battle Module -->

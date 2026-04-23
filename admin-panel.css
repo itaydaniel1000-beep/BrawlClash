@@ -36,6 +36,27 @@ body.admin-panel-open #app {
     transition: left 0.25s ease-out;
 }
 
+/* Floating admin controls — stacked vertically at the bottom-right corner
+   of the viewport. Always on top of everything (z-index:15000), fixed so
+   they're visible in both lobby and battle. updateStatsUI flips the inline
+   `display` between 'none' and 'flex' based on the user's permissions. */
+#admin-floating-controls {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 15000;
+    flex-direction: column;
+    gap: 10px;
+    transition: right 0.25s ease-out;
+}
+/* When any admin overlay is open on desktop, slide the floating admin-control
+   buttons further left so they don't sit underneath the docked panel. */
+@media (min-width: 701px) {
+    body.admin-panel-open #admin-floating-controls {
+        right: 520px !important;
+    }
+}
+
 /* Reset button at the top of the admin panel — wipes every hack back to
    defaults in one click. Appears below the title and above the sections. */
 .admin-reset-btn {

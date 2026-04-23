@@ -79,7 +79,7 @@ function updateStatsUI() {
     const isAdmin = playerStats.username && playerStats.username.trim() === ADMIN_USERNAME;
     // Regular ⚙️ admin button: visible for super-admin AND for anyone who
     // has a pending grant attached to their username.
-    const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn)');
+    const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
     if (adminBtn) {
         const hasGrant = !!(playerStats.username && typeof _loadAdminGrants === 'function' && _loadAdminGrants()[playerStats.username]);
         adminBtn.style.display = (isAdmin || hasGrant) ? 'flex' : 'none';
@@ -90,9 +90,19 @@ function updateStatsUI() {
     // ✨ / 🚫 — the super-admin always sees both. A granted user sees
     // whichever capability they were given (`canGrantAdmin` / `canRevokeAdmin`).
     const grantBtn = document.getElementById('grant-admin-btn');
-    if (grantBtn) grantBtn.style.display = (isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canGrantAdmin)) ? 'flex' : 'none';
+    const showGrant = isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canGrantAdmin);
+    if (grantBtn) grantBtn.style.display = showGrant ? 'flex' : 'none';
     const revokeBtn = document.getElementById('revoke-admin-btn');
-    if (revokeBtn) revokeBtn.style.display = (isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canRevokeAdmin)) ? 'flex' : 'none';
+    const showRevoke = isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canRevokeAdmin);
+    if (revokeBtn) revokeBtn.style.display = showRevoke ? 'flex' : 'none';
+
+    // The fixed-position wrapper for all three admin buttons — shown if ANY
+    // button inside it is supposed to be visible.
+    const floatingAdmin = document.getElementById('admin-floating-controls');
+    if (floatingAdmin) {
+        const anyAdminBtnVisible = !!((isAdmin || hasGrant) || showGrant || showRevoke);
+        floatingAdmin.style.display = anyAdminBtnVisible ? 'flex' : 'none';
+    }
     
     if (typeof updateTrophyUI === 'function') updateTrophyUI();
     if (typeof updateHomeScreen === 'function') updateHomeScreen();

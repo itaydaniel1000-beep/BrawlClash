@@ -991,7 +991,7 @@ function applyAdminGrantForLocalUser() {
     const mine = grants[playerStats.username];
     if (mine && typeof applyGrantFlags === 'function') {
         applyGrantFlags(mine);
-        const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn)');
+        const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
         if (adminBtn) adminBtn.style.display = 'flex';
     }
 }
