@@ -518,3 +518,73 @@
     text-shadow: 4px 4px 0 #1b5e20;
     letter-spacing: 2px;
 }
+
+/* -------- Mobile lobby (phone viewports, ≤ 600px wide) -------- */
+/* The desktop lobby assumes ~600px of horizontal room: 140px left sidebar +
+   flexible brawler center + 140px right sidebar + wide PLAY/PASS buttons.
+   On a real phone (#app is ~352px wide) the left sidebar overflows and the
+   bottom row falls off the bottom of the container. Scale everything down
+   here instead of hiding pieces of the UI. */
+@media (max-width: 600px) {
+    /* Top bar: wraps onto two short rows if the content doesn't fit horizontally.
+       Hide the ornamental trophy progress bar so the profile pill stays compact. */
+    .home-top-bar { padding: 10px 60px 10px 10px; gap: 8px; flex-wrap: wrap; row-gap: 6px; }
+    .resource-container { gap: 6px; flex: 0 1 auto; }
+    .resource-item { padding: 4px 8px; font-size: 0.85rem; }
+    .resource-icon { font-size: 1rem; }
+    .user-profile { padding: 3px 8px 3px 3px; }
+    .profile-icon { width: 30px; height: 30px; font-size: 1rem; margin-left: 6px; border-width: 2px; }
+    .user-name { font-size: 0.75rem; }
+    .trophy-road-bar { display: none; }
+    .trophy-road-container { margin-top: 0; }
+    .trophy-road-text { padding: 1px 6px; font-size: 0.7rem; border-width: 1.5px; }
+    .mini-trophy { font-size: 0.75rem; }
+    .menu-hamburger-corner { top: 8px; right: 8px; width: 38px; height: 38px; font-size: 1.1rem; }
+
+    /* Main area: compact sidebars so both fit alongside the brawler. */
+    .home-sidebar { width: 78px; padding: 0 8px; }
+    .side-btn { width: 58px; height: 58px; border-width: 3px; border-radius: 14px; box-shadow: 0 4px 0 #1c5982, 0 6px 10px rgba(0,0,0,0.3); }
+    .side-btn:active { box-shadow: 0 1px 0 #1c5982; }
+    .shop-btn { box-shadow: 0 4px 0 #b71c1c, 0 6px 10px rgba(0,0,0,0.3); }
+    .brawlers-btn { box-shadow: 0 4px 0 #0d47a1, 0 6px 10px rgba(0,0,0,0.3); }
+    .sp-btn { box-shadow: 0 4px 0 #e65100, 0 6px 10px rgba(0,0,0,0.3); }
+    .side-btn .btn-icon { font-size: 1.6rem; margin-bottom: 2px; }
+    .side-btn .btn-label { font-size: 0.6rem; }
+    .side-btn-group { gap: 12px; }
+
+    .home-sidebar.right .side-btn { width: 48px; height: 48px; border-radius: 10px; }
+    .home-sidebar.right .btn-icon { font-size: 1.3rem; }
+
+    /* Featured brawler — scale down the giant emoji so it doesn't eat
+       all the vertical room and push PLAY off the screen. */
+    .brawler-icon-large { font-size: 7rem; }
+    .brawler-platform { width: 180px; height: 35px; }
+    .brawler-name-text { font-size: 1.8rem; text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; }
+    .speech-bubble { font-size: 0.9rem; padding: 5px 12px; }
+
+    /* Bottom bar: smaller PLAY/PASS, compact gap, hug the bottom. */
+    .home-bottom-bar { padding: 0 12px; bottom: 10px; }
+    .bottom-left { gap: 8px; }
+    .bottom-right { min-width: 0; gap: 8px; }
+    .brawl-pass-btn { width: 90px; height: 60px; border-width: 3px; border-radius: 12px; box-shadow: 0 5px 0 #d35400, 0 8px 14px rgba(0,0,0,0.3); }
+    .brawl-pass-btn:active { box-shadow: 0 2px 0 #d35400; }
+    .bp-icon { font-size: 1.6rem; }
+    .bp-title { font-size: 0.7rem; margin-top: -2px; }
+    .admin-btn { width: 36px; height: 36px; font-size: 1rem; border-width: 2px; }
+    .play-btn { width: 140px; height: 62px; border-width: 4px; border-radius: 16px; box-shadow: 0 6px 0 #1b5e20, 0 10px 16px rgba(0,0,0,0.4); }
+    .play-btn:active { box-shadow: 0 2px 0 #1b5e20; }
+    .play-text { font-size: 2rem; text-shadow: 2px 2px 0 #1b5e20; }
+}
+
+/* Extra-tight phones (≤ 400px wide): trim a little more. */
+@media (max-width: 400px) {
+    .home-sidebar { width: 70px; padding: 0 6px; }
+    .side-btn { width: 52px; height: 52px; }
+    .side-btn .btn-icon { font-size: 1.4rem; }
+    .side-btn .btn-label { font-size: 0.55rem; }
+    .brawler-icon-large { font-size: 6rem; }
+    .brawler-name-text { font-size: 1.5rem; }
+    .brawl-pass-btn { width: 80px; height: 54px; }
+    .play-btn { width: 120px; height: 56px; }
+    .play-text { font-size: 1.7rem; }
+}
