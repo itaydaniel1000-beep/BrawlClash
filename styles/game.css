@@ -1,6 +1,10 @@
 /* Game Screen & Battle UI */
 #game-screen {
-    background-color: #4cd137;
+    /* Dark background — the green field lives inside the canvas now, and any
+       area outside the canvas (e.g. where the emote column sits in the flex
+       column) should blend in with the surrounding black, not show a
+       floating green strip. */
+    background-color: #0d1117;
 }
 
 #canvas-container {
