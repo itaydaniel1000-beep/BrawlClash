@@ -34,18 +34,23 @@ function clientToCanvasCoords(clientX, clientY) {
 
 // --- Long-press = continuous Shift-placement (touch + mouse) --------------
 // Tapping places once (normal behaviour). Holding the pointer down while a
-// card is selected keeps placing the same card at the pointer position until
-// either the pointer is released, the player runs out of elixir, or the card
-// is deselected. It's "normal click + Shift + auto-repeat" all in one.
+// card is selected *keeps the card selected* for the duration of the hold,
+// repeatedly placing it at the current pointer position whenever the player
+// can afford it. Releasing ends the hold and deselects the card.
 const LONG_PRESS_MS = 400;      // first auto-repeat delay
 const AUTO_REPEAT_MS = 250;     // subsequent auto-repeat cadence
 let autoPlaceTimer = null;      // setTimeout handle for next auto-repeat
 let lastPointerPos = null;      // { x, y } internal coords, tracked via pointermove
+let isLongPressing = false;     // set once the 400 ms threshold is crossed
 
-function _canPlaceCard(cardId) {
-    if (!cardId || !CARDS[cardId]) return false;
-    const c = CARDS[cardId];
-    return playerElixir >= (c.cost - 0.01) || adminHacks.infiniteElixir;
+function _selectCard(cardId) {
+    if (!cardId || !CARDS[cardId]) return;
+    if (selectedCardId === cardId) return;
+    selectedCardId = cardId;
+    selectedFreezeCardId = null;
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    const el = document.getElementById(`card-${cardId}`);
+    if (el) el.classList.add('selected');
 }
 
 function _placeAtInternal(x, y, shiftHeld) {
@@ -117,29 +122,27 @@ function _placeAt(clientX, clientY, shiftHeld) {
 function _scheduleAutoRepeat(cardId, delay) {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = setTimeout(() => {
-        // Stop if pointer was released.
+        // If release fired while we were waiting, the timer's already cleared.
         if (!autoPlaceTimer) return;
-        // Card must still be available in our deck and affordable.
-        if (!_canPlaceCard(cardId) || !CARDS[cardId]) {
-            autoPlaceTimer = null;
-            return;
-        }
-        // Re-select it if a previous placement deselected it.
-        if (selectedCardId !== cardId) {
-            selectedCardId = cardId;
-            selectedFreezeCardId = null;
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-            const cardEl = document.getElementById(`card-${cardId}`);
-            if (cardEl) cardEl.classList.add('selected');
-        }
+        if (!CARDS[cardId]) { autoPlaceTimer = null; return; }
+
+        // Crossing the LONG_PRESS_MS threshold flips us into long-press mode.
+        // The card is KEPT SELECTED for the entire hold — even while the
+        // player is out of elixir — so placements resume automatically as
+        // soon as the elixir bar refills.
+        isLongPressing = true;
+        _selectCard(cardId);
+
         const pos = lastPointerPos;
-        if (!pos) { autoPlaceTimer = null; return; }
-        const res = _placeAtInternal(pos.x, pos.y, /* shiftHeld */ false);
-        if (res.placed) {
-            _scheduleAutoRepeat(cardId, AUTO_REPEAT_MS);
-        } else {
-            autoPlaceTimer = null;
+        if (pos) {
+            // Pass shiftHeld=true so a successful placement doesn't deselect
+            // the card mid-hold — the selection must stay stable throughout.
+            _placeAtInternal(pos.x, pos.y, /* shiftHeld */ true);
         }
+
+        // Keep scheduling as long as the pointer is held. We only stop inside
+        // handleCanvasRelease (or if the card disappears from CARDS).
+        _scheduleAutoRepeat(cardId, AUTO_REPEAT_MS);
     }, delay);
 }
 
@@ -150,13 +153,13 @@ function handleCanvasPress(e) {
     const cardBeforePlace = selectedCardId;
     const res = _placeAt(e.clientX, e.clientY, !!e.shiftKey);
 
-    // If placement succeeded and shift wasn't held, arm the long-press
-    // auto-repeat: after LONG_PRESS_MS, the same card keeps placing at the
-    // current pointer position every AUTO_REPEAT_MS until the pointer is
-    // released or we run out of elixir.
+    // Start the long-press timer. If it fires while the pointer is still
+    // down, we enter long-press mode: the card stays selected throughout
+    // and is placed repeatedly at the pointer's current position.
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = null;
-    if (res && res.placed && cardBeforePlace && !e.shiftKey) {
+    isLongPressing = false;
+    if (res && cardBeforePlace && !e.shiftKey) {
         _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS);
     }
 }
@@ -164,6 +167,13 @@ function handleCanvasPress(e) {
 function handleCanvasRelease() {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = null;
+    if (isLongPressing) {
+        // Long-press ended — the card was held during the press and should
+        // now be released (deselected), mirroring keyboard Shift being lifted.
+        isLongPressing = false;
+        selectedCardId = null;
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    }
 }
 
 function handleCanvasPointerMove(e) {
