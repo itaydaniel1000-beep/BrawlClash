@@ -70,16 +70,31 @@ class Entity {
         const hpPercent = Math.max(0, this.hp / this.maxHp);
         const barWidth = 40;
         const barHeight = 6;
+        const barY = this.y - this.radius - yOffset;
 
         if (this.shieldHp > 0) {
-            ctx.fillStyle = '#7ed6df'; 
-            ctx.fillRect(this.x - barWidth / 2, this.y - this.radius - yOffset - barHeight - 2, barWidth * (this.shieldHp / 500), barHeight / 2);
+            ctx.fillStyle = '#7ed6df';
+            ctx.fillRect(this.x - barWidth / 2, barY - barHeight - 2, barWidth * (this.shieldHp / 500), barHeight / 2);
         }
 
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x - barWidth / 2, this.y - this.radius - yOffset, barWidth, barHeight);
+        ctx.fillRect(this.x - barWidth / 2, barY, barWidth, barHeight);
         ctx.fillStyle = this.team === 'player' ? '#74b9ff' : '#ff7675';
-        ctx.fillRect(this.x - barWidth / 2, this.y - this.radius - yOffset, barWidth * hpPercent, barHeight);
+        ctx.fillRect(this.x - barWidth / 2, barY, barWidth * hpPercent, barHeight);
+
+        // Numeric HP readout above the bar — makes it easy to see exactly how
+        // much health every unit has. Label position is just above the bar so
+        // it doesn't clash with the unit icon or the shield chip.
+        const label = Math.max(0, Math.round(this.hp)) + '/' + Math.round(this.maxHp);
+        ctx.font = 'bold 12px "Assistant", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        const textY = barY - (this.shieldHp > 0 ? barHeight + 6 : 3);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.strokeText(label, this.x, textY);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(label, this.x, textY);
         ctx.restore();
     }
 }
@@ -176,7 +191,10 @@ class Safe extends Entity {
         ctx.fillStyle = '#000'; ctx.fillRect(this.x - 40, this.y - 60, 80, 10);
         ctx.fillStyle = this.team === 'player' ? '#74b9ff' : '#ff7675';
         ctx.fillRect(this.x - 40, this.y - 60, 80 * hpPercent, 10);
-        ctx.fillStyle = 'white'; ctx.font = '12px Arial'; ctx.textAlign = 'center';
-        ctx.fillText(`${Math.floor(this.hp)}`, this.x, this.y - 50);
+        ctx.fillStyle = 'white'; ctx.font = 'bold 12px "Assistant", sans-serif'; ctx.textAlign = 'center';
+        const label = `${Math.max(0, Math.floor(this.hp))}/${Math.round(this.maxHp)}`;
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+        ctx.strokeText(label, this.x, this.y - 68);
+        ctx.fillText(label, this.x, this.y - 68);
     }
 }
