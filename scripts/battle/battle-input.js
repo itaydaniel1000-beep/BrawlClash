@@ -1,11 +1,41 @@
 // battle-input.js - Canvas Interaction and Ghost Rendering
 
+// The <canvas> is styled with `object-fit: contain` (game.css), which letterboxes
+// its internal buffer inside the rendered element box when the element's aspect
+// ratio differs from the canvas's 2:3. Naive `(clientX - rect.left) * (canvas.width
+// / rect.width)` produces wrong coordinates inside those letterbox bars — the unit
+// ends up offset from where the cursor actually is. This helper computes the
+// real drawn-content box and maps from screen coords into the canvas's 600×900
+// internal space correctly.
+function clientToCanvasCoords(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const canvasAspect = canvas.width / canvas.height;   // 600/900 = 2/3
+    const rectAspect = rect.width / rect.height;
+
+    let contentW, contentH, contentLeft, contentTop;
+    if (rectAspect > canvasAspect) {
+        // Rendered element is wider than the content — letterbox bars on left/right
+        contentH = rect.height;
+        contentW = rect.height * canvasAspect;
+        contentLeft = rect.left + (rect.width - contentW) / 2;
+        contentTop = rect.top;
+    } else {
+        // Rendered element is taller — letterbox bars on top/bottom
+        contentW = rect.width;
+        contentH = rect.width / canvasAspect;
+        contentLeft = rect.left;
+        contentTop = rect.top + (rect.height - contentH) / 2;
+    }
+    return {
+        x: (clientX - contentLeft) * (canvas.width / contentW),
+        y: (clientY - contentTop) * (canvas.height / contentH)
+    };
+}
+
 function handleCanvasClick(e) {
     if (!canvas) return;
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const { x, y } = clientToCanvasCoords(e.clientX, e.clientY);
     const shiftHeld = e.shiftKey;
 
     if (isSelectingBullDash) {
@@ -64,11 +94,9 @@ function handleCanvasClick(e) {
 
 function handleMouseMove(e) {
     if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    mouseX = (e.clientX - rect.left) * scaleX;
-    mouseY = (e.clientY - rect.top) * scaleY;
+    const { x, y } = clientToCanvasCoords(e.clientX, e.clientY);
+    mouseX = x;
+    mouseY = y;
 }
 
 function drawGhost(ctx) {
