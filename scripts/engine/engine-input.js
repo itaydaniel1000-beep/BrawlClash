@@ -90,6 +90,10 @@ function initGameListeners() {
         canvas.addEventListener('pointercancel', handleCanvasRelease);
         canvas.removeEventListener('pointerleave', handleCanvasRelease);
         canvas.addEventListener('pointerleave', handleCanvasRelease);
+        // pointermove fires for both touch and mouse, keeping the ghost +
+        // auto-repeat target glued to wherever the user is dragging.
+        canvas.removeEventListener('pointermove', handleCanvasPointerMove);
+        canvas.addEventListener('pointermove', handleCanvasPointerMove);
         canvas.removeEventListener('mousemove', handleMouseMove);
         canvas.addEventListener('mousemove', handleMouseMove);
     }

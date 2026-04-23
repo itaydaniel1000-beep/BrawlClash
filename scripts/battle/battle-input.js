@@ -32,26 +32,23 @@ function clientToCanvasCoords(clientX, clientY) {
     };
 }
 
-// --- Long-press = Shift shortcut (touch + mouse) ---------------------------
-// Holding the pointer on the canvas for ≥LONG_PRESS_MS after a placement acts
-// like Shift was held during the click: the card stays selected so the next
-// tap places another of the same unit. Works on both phone (tap-and-hold) and
-// desktop (mouse press-and-hold).
-let longPressTimer = null;
-const LONG_PRESS_MS = 400;
+// --- Long-press = continuous Shift-placement (touch + mouse) --------------
+// Tapping places once (normal behaviour). Holding the pointer down while a
+// card is selected keeps placing the same card at the pointer position until
+// either the pointer is released, the player runs out of elixir, or the card
+// is deselected. It's "normal click + Shift + auto-repeat" all in one.
+const LONG_PRESS_MS = 400;      // first auto-repeat delay
+const AUTO_REPEAT_MS = 250;     // subsequent auto-repeat cadence
+let autoPlaceTimer = null;      // setTimeout handle for next auto-repeat
+let lastPointerPos = null;      // { x, y } internal coords, tracked via pointermove
 
-function _retroactivelyReselect(cardId) {
-    if (!cardId || !CARDS[cardId]) return;
-    if (selectedCardId) return; // either already shift-held or another card was picked
-    selectedCardId = cardId;
-    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-    const cardEl = document.getElementById(`card-${cardId}`);
-    if (cardEl) cardEl.classList.add('selected');
+function _canPlaceCard(cardId) {
+    if (!cardId || !CARDS[cardId]) return false;
+    const c = CARDS[cardId];
+    return playerElixir >= (c.cost - 0.01) || adminHacks.infiniteElixir;
 }
 
-function _placeAt(clientX, clientY, shiftHeld) {
-    const { x, y } = clientToCanvasCoords(clientX, clientY);
-
+function _placeAtInternal(x, y, shiftHeld) {
     if (isSelectingBullDash) {
         let clickedBull = units.find(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed && Math.hypot(u.x - x, u.y - y) <= u.radius * 2);
         if (clickedBull) {
@@ -63,32 +60,37 @@ function _placeAt(clientX, clientY, shiftHeld) {
                 if (dashBtn) dashBtn.style.backgroundColor = '#8c7ae6';
             }
         }
-        return;
+        return { placed: false };
     }
 
-    // The whole white-bordered field is placeable; spawnEntity clamps near the edge.
-    const inMap = x >= 10 && x <= (CONFIG.CANVAS_WIDTH - 10) &&
-                  y >= 10 && y <= (CONFIG.CANVAS_HEIGHT - 10);
+    // Each side places only on its own half of the field (or inside an EMZ
+    // aura their team owns). For the local human the player side is the
+    // BOTTOM half (y > height/2).
+    const bottomHalf = y > (CONFIG.CANVAS_HEIGHT / 2);
+    const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(x - a.x, y - a.y) <= a.radius);
+    const validSide = bottomHalf || insideOwnEmz;
+    const insideBorder = x >= 10 && x <= (CONFIG.CANVAS_WIDTH - 10) &&
+                         y >= 10 && y <= (CONFIG.CANVAS_HEIGHT - 10);
 
     if (selectedFreezeCardId) {
         const freezeCard = CARDS[selectedFreezeCardId];
         const canAffordFreeze = playerElixir >= (freezeCard.cost - 0.01) || adminHacks.infiniteElixir;
-        if (!canAffordFreeze) return;
-        if (!inMap) return;
+        if (!canAffordFreeze) return { placed: false };
+        if (!validSide || !insideBorder) return { placed: false };
 
         spawnEntity(x, y, 'player', selectedFreezeCardId, true);
         selectedFreezeCardId = null;
         document.querySelectorAll('.card').forEach(c => c.style.boxShadow = 'none');
-        return;
+        return { placed: true };
     }
 
-    if (!selectedCardId) return;
+    if (!selectedCardId) return { placed: false };
 
     const card = CARDS[selectedCardId];
     const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
-    if (!canAfford) return;
+    if (!canAfford) return { placed: false };
 
-    if (inMap) {
+    if (validSide && insideBorder) {
         const cardToContinue = selectedCardId;
         spawnEntity(x, y, 'player', selectedCardId);
 
@@ -101,34 +103,75 @@ function _placeAt(clientX, clientY, shiftHeld) {
             selectedCardId = null;
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
         }
+        return { placed: true, cardId: cardToContinue };
     }
+    return { placed: false };
+}
+
+function _placeAt(clientX, clientY, shiftHeld) {
+    const pt = clientToCanvasCoords(clientX, clientY);
+    lastPointerPos = pt;
+    return _placeAtInternal(pt.x, pt.y, shiftHeld);
+}
+
+function _scheduleAutoRepeat(cardId, delay) {
+    clearTimeout(autoPlaceTimer);
+    autoPlaceTimer = setTimeout(() => {
+        // Stop if pointer was released.
+        if (!autoPlaceTimer) return;
+        // Card must still be available in our deck and affordable.
+        if (!_canPlaceCard(cardId) || !CARDS[cardId]) {
+            autoPlaceTimer = null;
+            return;
+        }
+        // Re-select it if a previous placement deselected it.
+        if (selectedCardId !== cardId) {
+            selectedCardId = cardId;
+            selectedFreezeCardId = null;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            const cardEl = document.getElementById(`card-${cardId}`);
+            if (cardEl) cardEl.classList.add('selected');
+        }
+        const pos = lastPointerPos;
+        if (!pos) { autoPlaceTimer = null; return; }
+        const res = _placeAtInternal(pos.x, pos.y, /* shiftHeld */ false);
+        if (res.placed) {
+            _scheduleAutoRepeat(cardId, AUTO_REPEAT_MS);
+        } else {
+            autoPlaceTimer = null;
+        }
+    }, delay);
 }
 
 function handleCanvasPress(e) {
     if (!canvas) return;
     e.preventDefault();
 
-    // Capture the card selection BEFORE placement so the long-press timer
-    // can restore it if the user keeps the pointer pressed past the threshold.
     const cardBeforePlace = selectedCardId;
+    const res = _placeAt(e.clientX, e.clientY, !!e.shiftKey);
 
-    _placeAt(e.clientX, e.clientY, !!e.shiftKey);
-
-    // Start (or restart) the long-press timer. If it fires while the user is
-    // still pressing, treat it as Shift — re-select the card that was just
-    // placed so the next tap places another of the same type.
-    clearTimeout(longPressTimer);
-    if (cardBeforePlace && !e.shiftKey) {
-        longPressTimer = setTimeout(() => {
-            _retroactivelyReselect(cardBeforePlace);
-            longPressTimer = null;
-        }, LONG_PRESS_MS);
+    // If placement succeeded and shift wasn't held, arm the long-press
+    // auto-repeat: after LONG_PRESS_MS, the same card keeps placing at the
+    // current pointer position every AUTO_REPEAT_MS until the pointer is
+    // released or we run out of elixir.
+    clearTimeout(autoPlaceTimer);
+    autoPlaceTimer = null;
+    if (res && res.placed && cardBeforePlace && !e.shiftKey) {
+        _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS);
     }
 }
 
 function handleCanvasRelease() {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
+    clearTimeout(autoPlaceTimer);
+    autoPlaceTimer = null;
+}
+
+function handleCanvasPointerMove(e) {
+    if (!canvas) return;
+    const pt = clientToCanvasCoords(e.clientX, e.clientY);
+    lastPointerPos = pt;
+    mouseX = pt.x;
+    mouseY = pt.y;
 }
 
 // Back-compat wrapper — other code still references `handleCanvasClick`.
@@ -149,10 +192,13 @@ function drawGhost(ctx) {
     ctx.save();
     ctx.globalAlpha = 0.4;
 
-    // Match the placement rule in handleCanvasClick — anywhere inside the
-    // outer white border is a valid spot.
-    let valid = mouseX >= 10 && mouseX <= (CONFIG.CANVAS_WIDTH - 10) &&
-                mouseY >= 10 && mouseY <= (CONFIG.CANVAS_HEIGHT - 10);
+    // Match the placement rule in _placeAtInternal — player's side is the
+    // bottom half of the field (plus anywhere inside an own-team EMZ aura).
+    const insideBorder = mouseX >= 10 && mouseX <= (CONFIG.CANVAS_WIDTH - 10) &&
+                         mouseY >= 10 && mouseY <= (CONFIG.CANVAS_HEIGHT - 10);
+    const bottomHalf = mouseY > (CONFIG.CANVAS_HEIGHT / 2);
+    const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(mouseX - a.x, mouseY - a.y) <= a.radius);
+    let valid = insideBorder && (bottomHalf || insideOwnEmz);
 
     ctx.beginPath();
     ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
