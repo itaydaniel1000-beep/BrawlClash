@@ -52,13 +52,19 @@ function handleCanvasClick(e) {
         return;
     }
 
+    // The map is the entire white-bordered field — units can be placed anywhere
+    // inside the 600×900 canvas (minus a small edge margin handled by spawnEntity).
+    // Previously placement was restricted to the bottom half (or inside an EMZ
+    // aura that extended the territory), but the user's intent is that the whole
+    // bordered area is one continuous placeable map.
+    const inMap = x >= 10 && x <= (CONFIG.CANVAS_WIDTH - 10) &&
+                  y >= 10 && y <= (CONFIG.CANVAS_HEIGHT - 10);
+
     if (selectedFreezeCardId) {
         const freezeCard = CARDS[selectedFreezeCardId];
         const canAffordFreeze = playerElixir >= (freezeCard.cost - 0.01) || adminHacks.infiniteElixir;
         if (!canAffordFreeze) return; // Not enough elixir — can't place
-
-        let valid = y > (CONFIG.CANVAS_HEIGHT / 2) || auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(x - a.x, y - a.y) <= a.radius);
-        if (!valid) return;
+        if (!inMap) return;
 
         spawnEntity(x, y, 'player', selectedFreezeCardId, true);
         selectedFreezeCardId = null;
@@ -72,9 +78,7 @@ function handleCanvasClick(e) {
     const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir;
     if (!canAfford) return; // Not enough elixir — can't place
 
-    let valid = y > (CONFIG.CANVAS_HEIGHT / 2) || auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(x - a.x, y - a.y) <= a.radius);
-
-    if (valid) {
+    if (inMap) {
         const cardToContinue = selectedCardId;
         spawnEntity(x, y, 'player', selectedCardId);
 
@@ -107,7 +111,10 @@ function drawGhost(ctx) {
     ctx.save();
     ctx.globalAlpha = 0.4;
 
-    let valid = mouseY > (CONFIG.CANVAS_HEIGHT / 2) || auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(mouseX - a.x, mouseY - a.y) <= a.radius);
+    // Match the placement rule in handleCanvasClick — anywhere inside the
+    // outer white border is a valid spot.
+    let valid = mouseX >= 10 && mouseX <= (CONFIG.CANVAS_WIDTH - 10) &&
+                mouseY >= 10 && mouseY <= (CONFIG.CANVAS_HEIGHT - 10);
 
     ctx.beginPath();
     ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
