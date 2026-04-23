@@ -46,10 +46,9 @@ class Entity {
         
         floatingTexts.push(new FloatingText(this.x, this.y, `-${Math.round(finalAmount)}`, '#ff7675'));
         
-        if (this instanceof Safe && finalAmount > 50) {
-            screenShakeTime = 10; 
-            screenShakeIntensity = 5;
-        }
+        // Screen shake on heavy hits was intentionally disabled per user request —
+        // the shake felt disorienting during fast exchanges. Re-enable by restoring
+        // the `screenShakeTime = 10; screenShakeIntensity = 5;` block here.
 
         if (this.hp <= 0) {
             this.hp = 0;
