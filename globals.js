@@ -21,6 +21,9 @@ let currentState = GAME_STATE.MENU;
 let lastTime = 0;
 let difficulty = 'hard';
 let isSelectingBullDash = false;
+// Admin "delete next click" mode — toggled by the admin-delete button, consumed
+// by the next canvas click that lands on an enemy unit.
+var isSelectingDeleteTarget = false;
 let selectedFreezeCardId = null;
 let selectedCardId = null;
 let playerTrophies = parseInt(localStorage.getItem('brawlclash_trophies')) || 0;
@@ -74,7 +77,10 @@ var adminHacks = (function loadAdminHacks() {
         // Bot / enemy
         disableBot: false, botSlowdownFactor: 0, enemyNerfFactor: 0, botOnlyCardId: '',
         // Game-wide
-        timeScale: 0, autoIncome: false, allStarPowers: false
+        timeScale: 0, autoIncome: false, allStarPowers: false,
+        // Manual "delete an enemy unit" power — a floating button appears
+        // above the elixir bar during battle while this flag is on.
+        deleteUnit: false
     };
     try {
         const raw = localStorage.getItem('brawlclash_admin_hacks');

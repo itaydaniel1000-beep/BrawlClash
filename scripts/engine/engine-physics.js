@@ -7,6 +7,18 @@ function update(dt, now) {
         dt = dt * adminHacks.timeScale;
     }
 
+    // Keep the 🗑️ delete-enemy-unit button in sync with the admin flag +
+    // current game state so it only shows up during an active battle.
+    const delBtn = document.getElementById('admin-delete-btn');
+    if (delBtn) {
+        const show = !!adminHacks.deleteUnit && currentState === GAME_STATE.PLAYING;
+        delBtn.style.display = show ? 'block' : 'none';
+        if (!show && isSelectingDeleteTarget) {
+            isSelectingDeleteTarget = false;
+            if (typeof _resetDeleteUnitButtonStyle === 'function') _resetDeleteUnitButtonStyle();
+        }
+    }
+
     if (currentState === GAME_STATE.PLAYING) {
         if (adminHacks.infiniteElixir) playerElixir = playerMaxElixir;
 

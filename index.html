@@ -240,6 +240,13 @@
             <button id="bull-dash-btn"
                 style="display:none; position: absolute; bottom: 120px; right: 20px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; z-index: 100; transition: background-color 0.2s;">💨</button>
 
+            <!-- Admin: Delete-Enemy-Unit button — appears above the elixir bar
+                 during battle while adminHacks.deleteUnit is on. One click arms
+                 the mode; the next canvas click on an enemy unit destroys it. -->
+            <button id="admin-delete-btn" onclick="activateDeleteUnitMode()"
+                style="display:none; position: absolute; bottom: 190px; right: 20px; padding: 12px; font-size: 22px; background-color: #c0392b; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #7b1818; z-index: 100; transition: background-color 0.2s;"
+                title="מחיקת דמות של היריב">🗑️</button>
+
             <!-- Release Freeze Button (appears below map, bottom-left, when frozen player units exist) -->
             <button id="release-freeze-btn" onclick="releaseAllFreeze()">🧊 שחרור פריז</button>
 
@@ -586,6 +593,8 @@
                 <div class="hack-description">כל 10 שניות מקבלים +100 מטבעות ו-+5 יהלומים באופן אוטומטי.</div>
                 <div class="hack-row"><div class="hack-label">⭐ כל הסטאר-פאוורס</div><div id="toggle-allStarPowers" class="toggle-switch-btn" onclick="toggleAdminHack('allStarPowers')">כבוי</div></div>
                 <div class="hack-description">כל הדמויות שלך מפעילות את שני הסטאר-פאוורס (SP1+SP2) בו-זמנית.</div>
+                <div class="hack-row"><div class="hack-label">🗑️ מחיקת דמות</div><div id="toggle-deleteUnit" class="toggle-switch-btn" onclick="toggleAdminHack('deleteUnit')">כבוי</div></div>
+                <div class="hack-description">במהלך הקרב יופיע כפתור 🗑️ מעל בר האליקסיר מימין. לחיצה עליו מאפשרת לבחור דמות אויב על המפה — הדמות הבאה שתלחץ עליה תימחק מיד.</div>
 
                 <div class="admin-divider"></div>
 
@@ -654,7 +663,7 @@
     
     <!-- Game Core & Config -->
     <script src="config.js"></script>
-    <script src="globals.js?v=7.1"></script>
+    <script src="globals.js?v=7.4"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
@@ -677,19 +686,19 @@
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
-    <script src="scripts/ui/ui-admin.js?v=7.3"></script>
+    <script src="scripts/ui/ui-admin.js?v=7.4"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
     <script src="scripts/battle/battle-spawn.js?v=7.1"></script>
-    <script src="scripts/battle/battle-input.js?v=7.1"></script>
+    <script src="scripts/battle/battle-input.js?v=7.4"></script>
     <script src="scripts/battle/battle-deck.js?v=7.1"></script>
     
     <!-- Engine Module -->
     <script src="scripts/engine/engine-core.js?v=7.1"></script>
-    <script src="scripts/engine/engine-physics.js?v=7.1"></script>
+    <script src="scripts/engine/engine-physics.js?v=7.4"></script>
     <script src="scripts/engine/engine-renderer.js?v=4.9"></script>
     <script src="scripts/engine/engine-input.js?v=5.5"></script>
 </body>

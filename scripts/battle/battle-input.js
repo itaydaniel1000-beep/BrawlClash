@@ -33,6 +33,25 @@ function _selectCard(cardId) {
 }
 
 function _placeAtInternal(x, y, shiftHeld) {
+    // Admin "delete next click" — consume the click, remove the clicked
+    // enemy entity (unit / building / aura), and exit the mode.
+    if (typeof isSelectingDeleteTarget !== 'undefined' && isSelectingDeleteTarget) {
+        const candidates = units.concat(buildings, auras).filter(e =>
+            e && e.team === 'enemy' && !e.isDead &&
+            Math.hypot((e.x || 0) - x, (e.y || 0) - y) <= ((e.radius || 15) + 20));
+        if (candidates.length) {
+            // Pick the closest one so overlapping enemies don't ambiguously resolve.
+            candidates.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+            const victim = candidates[0];
+            victim.isDead = true;
+            victim.hp = 0;
+            if (typeof showTransientToast === 'function') showTransientToast('🗑️ הדמות נמחקה');
+        }
+        isSelectingDeleteTarget = false;
+        if (typeof _resetDeleteUnitButtonStyle === 'function') _resetDeleteUnitButtonStyle();
+        return { placed: false };
+    }
+
     if (isSelectingBullDash) {
         let clickedBull = units.find(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed && Math.hypot(u.x - x, u.y - y) <= u.radius * 2);
         if (clickedBull) {

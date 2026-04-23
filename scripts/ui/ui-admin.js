@@ -29,7 +29,8 @@ function openAdminMenu() {
         { id: 'toggle-doubleSafe',       key: 'doubleSafe' },
         { id: 'toggle-disableBot',       key: 'disableBot' },
         { id: 'toggle-autoIncome',       key: 'autoIncome' },
-        { id: 'toggle-allStarPowers',    key: 'allStarPowers' }
+        { id: 'toggle-allStarPowers',    key: 'allStarPowers' },
+        { id: 'toggle-deleteUnit',       key: 'deleteUnit' }
     ];
     boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
 
@@ -163,13 +164,41 @@ function toggleAdminHack(hackKey) {
         'doubleSafe': 'toggle-doubleSafe',
         'disableBot': 'toggle-disableBot',
         'autoIncome': 'toggle-autoIncome',
-        'allStarPowers': 'toggle-allStarPowers'
+        'allStarPowers': 'toggle-allStarPowers',
+        'deleteUnit': 'toggle-deleteUnit'
     };
 
     updateAdminToggleUI(hackKey, map[hackKey]);
     console.log(`🛠️ Admin: ${hackKey} is now ${adminHacks[hackKey]}`);
 }
 window.toggleAdminHack = toggleAdminHack;
+
+// Clicked the 🗑️ button on the battle screen: arm the "next click kills an
+// enemy" mode. Consumed by handleCanvasPress (see battle-input.js).
+function activateDeleteUnitMode() {
+    if (!adminHacks.deleteUnit) return;
+    isSelectingDeleteTarget = true;
+    // Also cancel any conflicting selection modes so the cursor's intent is clear.
+    if (typeof isSelectingBullDash !== 'undefined') isSelectingBullDash = false;
+    selectedCardId = null;
+    selectedFreezeCardId = null;
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+    const btn = document.getElementById('admin-delete-btn');
+    if (btn) {
+        btn.style.boxShadow = '0 0 18px 4px #e74c3c, 0 6px #7b1818';
+        btn.style.backgroundColor = '#e74c3c';
+    }
+    if (typeof showTransientToast === 'function') showTransientToast('🗑️ לחץ על דמות אויב כדי למחוק אותה');
+}
+window.activateDeleteUnitMode = activateDeleteUnitMode;
+
+function _resetDeleteUnitButtonStyle() {
+    const btn = document.getElementById('admin-delete-btn');
+    if (!btn) return;
+    btn.style.boxShadow = '0 6px #7b1818';
+    btn.style.backgroundColor = '#c0392b';
+}
+window._resetDeleteUnitButtonStyle = _resetDeleteUnitButtonStyle;
 
 // Numeric / string admin setter — bound to <input oninput> in the admin panel.
 function setAdminNumber(key, raw) {
