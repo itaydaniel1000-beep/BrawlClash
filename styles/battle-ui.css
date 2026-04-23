@@ -182,11 +182,14 @@
     #deck-center .card .card-icon { font-size: 1.6rem; }
     #deck-center .card .card-name { font-size: 0.55rem; }
     #deck-center .card .card-cost { width: 18px; height: 18px; font-size: 0.75rem; }
-    #deck-center .card .card-freeze-btn {
-        width: 18px !important; height: 18px !important; font-size: 0.55rem !important;
-        bottom: 2px !important; left: 2px !important;
+    /* On mobile shrink the freeze chip. It's in-flow below the card (not
+       absolute) so no positioning overrides are needed. */
+    #deck-center .card-freeze-btn {
+        width: 18px !important; height: 18px !important; font-size: 0.6rem !important;
     }
-    .bottom-ui { height: 92px; padding: 4px 6px; }
+    /* Extra height so the freeze chip that now sits BELOW each card has room.
+       card (72) + gap (4) + freeze (18) + elixir bar + padding ≈ 120. */
+    .bottom-ui { height: 120px; padding: 4px 6px; }
     .deck-wrapper { margin-bottom: 4px; }
     .elixir-container { height: 22px; padding: 0 12px; gap: 6px; }
     .elixir-bar-bg { height: 16px; }

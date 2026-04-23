@@ -22,6 +22,12 @@ function buildDeck() {
         const card = CARDS[cardId];
         if (!card) return;
 
+        // Each deck slot is now a column: card on top, freeze button directly
+        // below it (instead of the button overlapping the card art).
+        const slot = document.createElement('div');
+        slot.className = 'card-slot';
+        slot.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:4px;';
+
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
         cardEl.id = `card-${cardId}`;
@@ -30,8 +36,20 @@ function buildDeck() {
             <div class="card-cost">${card.cost}</div>
             <div class="card-icon">${card.icon}</div>
             <div class="card-name">${card.name}</div>
-            <div class="card-freeze-btn" style="position:absolute; bottom:5px; left:5px; background:#74b9ff; border:2px solid white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; cursor:pointer; color:white; box-shadow:0 2px #54a0ff; transition: transform 0.1s; z-index: 100;">🧊</div>
         `;
+
+        const freezeBtnEl = document.createElement('div');
+        freezeBtnEl.className = 'card-freeze-btn';
+        freezeBtnEl.style.cssText = 'background:#74b9ff; border:2px solid white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; cursor:pointer; color:white; box-shadow:0 2px #54a0ff; transition: transform 0.1s;';
+        freezeBtnEl.innerText = '🧊';
+
+        slot.appendChild(cardEl);
+        slot.appendChild(freezeBtnEl);
+        // The rest of the code still looks for `cardEl` — but we'll also
+        // return the slot below so buildDeck appends IT (not the bare card)
+        // to the deck container.
+        cardEl._wrapperSlot = slot;
+        cardEl._freezeBtn = freezeBtnEl;
 
         cardEl.onclick = (e) => {
             e.stopPropagation();
@@ -56,7 +74,7 @@ function buildDeck() {
             }
         };
 
-        const freezeBtn = cardEl.querySelector('.card-freeze-btn');
+        const freezeBtn = cardEl._freezeBtn || cardEl.querySelector('.card-freeze-btn');
         if (freezeBtn) {
             freezeBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -93,7 +111,8 @@ function buildDeck() {
         else target = rightEl;
 
         if (!target) target = centerEl;
-        target.appendChild(cardEl);
+        // Append the whole slot (card + freeze button below) so they stack.
+        target.appendChild(cardEl._wrapperSlot || cardEl);
     });
 }
 window.buildDeck = buildDeck;
