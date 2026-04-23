@@ -173,12 +173,20 @@ function toggleAdminHack(hackKey) {
 }
 window.toggleAdminHack = toggleAdminHack;
 
-// Clicked the 🗑️ button on the battle screen: arm the "next click kills an
-// enemy" mode. Consumed by handleCanvasPress (see battle-input.js).
+// The 🗑️ button is a TOGGLE: first click arms the delete-enemy-unit mode
+// (stays armed for multiple deletions); clicking it again disarms it.
+// Works the same on desktop and mobile — no Shift required.
 function activateDeleteUnitMode() {
     if (!adminHacks.deleteUnit) return;
+    if (isSelectingDeleteTarget) {
+        // Already armed → treat the click as "turn it off".
+        isSelectingDeleteTarget = false;
+        _resetDeleteUnitButtonStyle();
+        if (typeof showTransientToast === 'function') showTransientToast('🗑️ מחיקת דמות: כבוי');
+        return;
+    }
     isSelectingDeleteTarget = true;
-    // Also cancel any conflicting selection modes so the cursor's intent is clear.
+    // Cancel any conflicting selection modes so the cursor's intent is clear.
     if (typeof isSelectingBullDash !== 'undefined') isSelectingBullDash = false;
     selectedCardId = null;
     selectedFreezeCardId = null;
@@ -188,7 +196,7 @@ function activateDeleteUnitMode() {
         btn.style.boxShadow = '0 0 18px 4px #e74c3c, 0 6px #7b1818';
         btn.style.backgroundColor = '#e74c3c';
     }
-    if (typeof showTransientToast === 'function') showTransientToast('🗑️ לחץ על דמות אויב כדי למחוק אותה');
+    if (typeof showTransientToast === 'function') showTransientToast('🗑️ לחץ על דמויות אויב למחיקה. לחץ שוב על 🗑️ לכיבוי.');
 }
 window.activateDeleteUnitMode = activateDeleteUnitMode;
 

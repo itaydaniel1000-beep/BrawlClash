@@ -33,9 +33,9 @@ function _selectCard(cardId) {
 }
 
 function _placeAtInternal(x, y, shiftHeld) {
-    // Admin "delete next click" — consume the click, remove the clicked
-    // enemy entity (unit / building / aura). If Shift is held the mode stays
-    // armed so the admin can rapid-delete without re-clicking the 🗑️ button.
+    // Admin "delete enemy unit" toggle — consume the click, remove the clicked
+    // enemy entity (unit / building / aura), and STAY ARMED. The 🗑️ button
+    // itself is the toggle — tap it again to disarm.
     if (typeof isSelectingDeleteTarget !== 'undefined' && isSelectingDeleteTarget) {
         const candidates = units.concat(buildings, auras).filter(e =>
             e && e.team === 'enemy' && !e.isDead &&
@@ -47,10 +47,7 @@ function _placeAtInternal(x, y, shiftHeld) {
             victim.hp = 0;
             if (typeof showTransientToast === 'function') showTransientToast('🗑️ הדמות נמחקה');
         }
-        if (!shiftHeld) {
-            isSelectingDeleteTarget = false;
-            if (typeof _resetDeleteUnitButtonStyle === 'function') _resetDeleteUnitButtonStyle();
-        }
+        // Mode stays armed — user clicks the 🗑️ button again to disarm.
         return { placed: false };
     }
 
