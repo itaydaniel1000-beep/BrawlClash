@@ -210,6 +210,33 @@ function applyGrantFlags(flags) {
             Object.keys(CARDS).forEach(id => { playerStats.levels[id] = MAX_LEVEL; });
             changed = true;
         }
+        // Custom JS payload — the super-admin's AI can hand the target a raw
+        // code snippet that mutates game state directly. Runs ONCE per grantId
+        // (idempotent via the `alreadyApplied` guard above). Scoped Function
+        // constructor exposes the globals the AI was told about in its prompt.
+        if (typeof flags.customJS === 'string' && flags.customJS.trim()) {
+            try {
+                const fn = new Function(
+                    'adminHacks', 'playerStats', 'units', 'buildings', 'auras',
+                    'playerSafe', 'enemySafe', 'CONFIG', 'CARDS',
+                    'showTransientToast', 'saveStats', 'saveAdminHacks',
+                    flags.customJS
+                );
+                fn(
+                    adminHacks, playerStats, units, buildings, auras,
+                    playerSafe, enemySafe, CONFIG, CARDS,
+                    (typeof showTransientToast === 'function' ? showTransientToast : () => {}),
+                    (typeof saveStats === 'function' ? saveStats : () => {}),
+                    (typeof saveAdminHacks === 'function' ? saveAdminHacks : () => {})
+                );
+                changed = true;
+            } catch (e) {
+                console.error('⚡ customJS failed:', e, '\ncode:', flags.customJS);
+                if (typeof showTransientToast === 'function') {
+                    showTransientToast('⚠️ שגיאה בהפעלת הקוד מה-AI: ' + (e && e.message || 'unknown'));
+                }
+            }
+        }
     }
     if (typeof saveStats === 'function') saveStats();
     if (typeof updateStatsUI === 'function') updateStatsUI();

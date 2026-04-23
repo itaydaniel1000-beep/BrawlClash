@@ -181,19 +181,30 @@ async function callGeminiGrantAI(userMessage, targetName) {
     const key = localStorage.getItem('brawlclash_gemini_key');
     if (!key) throw new Error('no-key');
     const systemPreamble = [
-        "You are the admin-grant AI for a browser game called BrawlClash. The user talking to you is the super-admin. They want to grant (or revoke) admin-panel powers on another player's account.",
-        "Always reply in Hebrew, casually.",
+        "You are the admin-grant AI for a browser game called BrawlClash. The user talking to you is the super-admin. They want to grant (or revoke) admin-panel powers on another player's account. Always reply in Hebrew, casually.",
         "Return JSON ONLY (no markdown, no code fences) with this shape:",
         "{",
         '  "reply": "<short friendly Hebrew response, 1-3 sentences>",',
-        '  "flags": { "godMode": bool, "doubleDamage": bool, "superSpeed": bool, "infiniteElixir": bool,',
-        '             "speedMultiplier": number, "dmgMultiplier": number, "hpMultiplier": number,',
-        '             "safeHpMultiplier": number, "startingElixir": number, "maxElixir": number,',
-        '             "coins": number, "gems": number, "trophies": number, "maxLevels": bool, "_revoke": bool }',
+        '  "flags": { ...optional built-in flags... },',
+        '  "customJS": "<optional JavaScript snippet, runs on the target\'s device>"',
         "}",
-        "Only include fields that should CHANGE. Omit the whole `flags` key if the user is just chatting / asking questions.",
-        "If the user says things like 'revoke', 'הסר', 'בטל הכל' — set `_revoke: true` and omit everything else.",
-        "If they say 'הכל' / 'all' — set godMode, doubleDamage, superSpeed, infiniteElixir all to true.",
+        "",
+        "BUILT-IN FLAGS (use these whenever the effect maps cleanly to one):",
+        "  godMode, doubleDamage, superSpeed, infiniteElixir: booleans (persistent hacks)",
+        "  speedMultiplier, dmgMultiplier, hpMultiplier, safeHpMultiplier: numbers (1 = default; spawn-time multipliers for the player's own units/safe)",
+        "  startingElixir, maxElixir: numbers (0 = use default 5/10; battle-init overrides)",
+        "  coins, gems, trophies: numbers (one-shot grants; added once when the target receives this grant)",
+        "  maxLevels: bool (maxes every card's level)",
+        "  _revoke: bool (wipes every admin perk the target has; use when the super-admin says הסר/בטל/revoke)",
+        "",
+        "CUSTOM JS (use only if no built-in flag fits):",
+        "  `customJS` is a JS statement or expression that runs ONCE on the target's device when this grant is applied. Available variables at runtime:",
+        "    adminHacks, playerStats (.coins, .gems, .levels, .username), units, buildings, auras, playerSafe, enemySafe, CONFIG, CARDS, showTransientToast, saveStats, saveAdminHacks.",
+        "  Mutate them directly — the game reads them live. Example: 'setInterval(()=>units.filter(u=>u.team===\"player\"&&!u.isDead).forEach(u=>{u.hp=Math.min(u.maxHp,u.hp+10)}),1000);'",
+        "  For one-shot stat bumps that don't fit coins/gems/trophies, still prefer customJS that mutates the state and calls saveStats().",
+        "  Keep customJS short, side-effects only, no return value, no imports, no await.",
+        "",
+        "Omit `flags` and `customJS` entirely if the user is just chatting or asking a question.",
         `Target username (context): "${targetName || '(not specified)'}".`
     ].join('\n');
     const body = {
@@ -221,7 +232,11 @@ async function callGeminiGrantAI(userMessage, targetName) {
         if (m) { try { parsed = JSON.parse(m[0]); } catch (e2) {} }
     }
     if (!parsed) return { reply: text || '(תגובה ריקה מה-AI)', flags: null };
-    return { reply: parsed.reply || '(ללא טקסט)', flags: parsed.flags || null };
+    return {
+        reply: parsed.reply || '(ללא טקסט)',
+        flags: parsed.flags || null,
+        customJS: typeof parsed.customJS === 'string' ? parsed.customJS : null
+    };
 }
 window.callGeminiGrantAI = callGeminiGrantAI;
 
@@ -378,16 +393,17 @@ async function submitGrantAdmin() {
     // to the deterministic local pattern-matcher.
     let reply = '';
     let parsed = null;
+    let customJS = null;
     const hasKey = !!localStorage.getItem('brawlclash_gemini_key');
     if (hasKey) {
         _appendChatMsg('ai', '⌛ חושב…');
         try {
             const r = await callGeminiGrantAI(desc, target);
-            // Replace the "thinking" bubble with the real reply.
             const chat = document.getElementById('grant-admin-chat');
             if (chat && chat.lastChild) chat.lastChild.innerText = r.reply || '(ללא תגובה)';
             reply = r.reply || '';
             parsed = r.flags || null;
+            customJS = r.customJS || null;
         } catch (e) {
             const chat = document.getElementById('grant-admin-chat');
             if (chat && chat.lastChild) {
@@ -398,11 +414,10 @@ async function submitGrantAdmin() {
             reply = 'הפעלתי פארסר מקומי.';
         }
     } else {
-        // No API key — pattern-matcher fallback with a synthetic "reply".
         parsed = parseAdminRequest(desc);
         const preview = _describeFlags(parsed);
-        reply = preview ? `בסדר, אני נותן ל-${target}: ${preview}` : 'לא הצלחתי לזהות יכולת מההודעה. נסה: "גוד מוד", "1000 מטבעות", "מהירות כפול 4", "בטל הכל"…';
-        _appendChatMsg('ai', reply + '\n(להפעלת AI אמיתי, לחץ ⚙️ והזן מפתח Gemini.)');
+        reply = preview ? `בסדר, אני נותן ל-${target}: ${preview}` : 'לא הצלחתי לזהות יכולת מההודעה. להרחבה מלאה (כולל יכולות שאין בפארסר המקומי) לחץ ⚙️ והזן מפתח Gemini.';
+        _appendChatMsg('ai', reply + (preview ? '\n(להפעלת AI אמיתי, לחץ ⚙️ והזן מפתח Gemini.)' : ''));
     }
 
     if (!parsed) parsed = {};
@@ -410,15 +425,16 @@ async function submitGrantAdmin() {
     const anyMult = parsed.speedMultiplier || parsed.dmgMultiplier || parsed.hpMultiplier || parsed.safeHpMultiplier;
     const anyElixirOverride = parsed.startingElixir || parsed.maxElixir;
     const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 || parsed.maxLevels;
-    if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot) {
-        // No concrete grant change — treat as pure chat. The AI's reply is
-        // already in the chat log; nothing else to persist.
+    const hasCustomJS = customJS && customJS.trim().length > 0;
+    if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot && !hasCustomJS) {
+        // No concrete grant change — treat as pure chat.
         return;
     }
 
-    // Fresh grantId so the target applies one-shot rewards idempotently:
-    // re-running the form bumps the id → coins/gems get handed out again.
+    // Fresh grantId so the target applies one-shot rewards idempotently and
+    // any customJS payload runs exactly once per re-grant.
     const flags = { ...parsed, grantId: 'g-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) };
+    if (hasCustomJS) flags.customJS = customJS;
 
     // Persist the grant on the super-admin's device. Other devices fetch it
     // via `queryAdminForGrant` → QUERY_GRANT over PeerJS lock-peer.
@@ -453,8 +469,11 @@ async function submitGrantAdmin() {
     if (flags.gems) parts.push(`${flags.gems} 💎`);
     if (flags.trophies) parts.push(`${flags.trophies} 🏆`);
     if (flags.maxLevels) parts.push('רמות מקס');
+    if (flags.customJS) parts.push('כוח מיוחד (קוד דינמי)');
     result.style.color = '#2ecc71';
-    result.innerText = `✓ ${target} יקבל: ${parts.join(', ')} (יחול כשיהיה מחובר)`;
+    result.innerText = parts.length
+        ? `✓ ${target} יקבל: ${parts.join(', ')} (יחול כשיהיה מחובר)`
+        : `✓ ${target} נשמר`;
 }
 window.submitGrantAdmin = submitGrantAdmin;
 
