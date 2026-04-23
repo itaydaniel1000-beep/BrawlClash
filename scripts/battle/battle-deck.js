@@ -6,8 +6,25 @@ function releaseAllFreeze() {
         e.hp = e.maxHp || e.hp;
     });
     AudioController.play('upgrade');
+    // Tell the opponent to un-freeze the matching units on THEIR screen
+    // (those same units are team='enemy' over there because remote spawns
+    // flip sides). Without this the opponent keeps seeing them frozen.
+    if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
+        window.NetworkManager && typeof window.NetworkManager.broadcastReleaseFreeze === 'function') {
+        try { window.NetworkManager.broadcastReleaseFreeze(); } catch (e) {}
+    }
 }
 window.releaseAllFreeze = releaseAllFreeze;
+
+// Handler invoked when an opponent tells us they released their frozen units.
+// On this client those units are on the 'enemy' team, so we unfreeze that set.
+function handleRemoteReleaseFreeze() {
+    [...units, ...buildings, ...auras].filter(e => e.team === 'enemy' && e.isFrozen).forEach(e => {
+        e.isFrozen = false;
+        e.hp = e.maxHp || e.hp;
+    });
+}
+window.handleRemoteReleaseFreeze = handleRemoteReleaseFreeze;
 
 function buildDeck() {
     const leftEl = document.getElementById('deck-left');

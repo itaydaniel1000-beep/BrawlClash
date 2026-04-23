@@ -41,6 +41,8 @@ NetworkManager.sendInvite = function(targetPeerId, senderName) {
                 if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
             } else if (data.type === 'EMOTE') {
                 if (typeof displayEmote === 'function') displayEmote(data.sender, data.emoteId);
+            } else if (data.type === 'RELEASE_FREEZE') {
+                if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
             }
         });
     });
@@ -76,6 +78,8 @@ NetworkManager.handleConnection = function(conn) {
             if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
         } else if (data.type === 'EMOTE') {
             if (typeof displayEmote === 'function') displayEmote(data.sender, data.emoteId);
+        } else if (data.type === 'RELEASE_FREEZE') {
+            if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
         }
     });
 };

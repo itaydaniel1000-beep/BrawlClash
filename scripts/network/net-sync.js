@@ -91,6 +91,16 @@ NetworkManager.sendAdminConfig = function() {
     });
 };
 
+// Tell the opponent to un-freeze the units WE just unfroze — same batch rule,
+// just on the other team's perspective.
+NetworkManager.broadcastReleaseFreeze = function() {
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try { conn.send({ type: 'RELEASE_FREEZE' }); } catch (e) {}
+        }
+    });
+};
+
 // Broadcast an emote to every connected peer. The local side also displays
 // its own emote immediately so the sender sees it float over their half of
 // the field (not just the opponent's copy).
@@ -209,6 +219,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
             } else if (data.type === 'EMOTE') {
                 if (typeof displayEmote === 'function') displayEmote(data.sender, data.emoteId);
+            } else if (data.type === 'RELEASE_FREEZE') {
+                if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
             }
         });
     });
