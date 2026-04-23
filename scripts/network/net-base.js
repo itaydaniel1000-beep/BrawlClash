@@ -60,7 +60,10 @@ const NetworkManager = {
         const MAX_TRIES = 12;
         const self = this;
         const tryOpenPeer = (attempt) => {
-            const peerId = "BC-" + Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            // Pure 3-digit numeric ID (no "BC-" prefix) so the battle code the user
+            // reads is exactly what the peer id is — no cognitive split between the
+            // display code and the underlying PeerJS identifier.
+            const peerId = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             console.log(`📡 PeerJS: trying ID ${peerId} (attempt ${attempt + 1}/${MAX_TRIES})`);
             const p = new Peer(peerId, { config: ICE });
 
@@ -70,8 +73,7 @@ const NetworkManager = {
                 if (self.db) self.updatePresence(id);
                 const myIdDisplay = document.getElementById('my-peer-id-display');
                 if (myIdDisplay) {
-                    const parts = id.split('-');
-                    myIdDisplay.innerText = parts[parts.length - 1];
+                    myIdDisplay.innerText = id;
                     myIdDisplay.setAttribute('data-full-id', id);
                 }
             });

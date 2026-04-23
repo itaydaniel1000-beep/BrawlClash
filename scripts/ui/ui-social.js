@@ -8,8 +8,8 @@ function openPlayersTab() {
     if (myIdDisplay && window.NetworkManager) {
         const peer = window.NetworkManager.getPeerInstance();
         if (peer && peer.id) {
-            const parts = peer.id.split('-');
-            myIdDisplay.innerText = parts[parts.length - 1];
+            // peer.id is already the pure 3-digit code — no more "BC-" prefix to strip
+            myIdDisplay.innerText = peer.id;
             myIdDisplay.setAttribute('data-full-id', peer.id);
         } else {
             myIdDisplay.innerText = "מתחבר...";
@@ -46,12 +46,7 @@ function manualJoinRoom() {
     if (!code) return;
 
     if (window.NetworkManager) {
-        // If they only typed the 4-digit part, add the prefix
-        // Accept bare 3-digit codes (we prepend "BC-" ourselves), or the full "BC-123".
-        if (/^\d{1,3}$/.test(code)) {
-            code = "BC-" + code.padStart(3, '0');
-        }
-        
+        // joinRoom normalises the input (strips a legacy "BC-" prefix, pads to 3 digits)
         console.log("🔗 Connecting to Battle Code:", code);
         window.NetworkManager.joinRoom(code);
     }

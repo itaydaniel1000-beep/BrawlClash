@@ -117,7 +117,7 @@ function _watchConnectionForMidBattleClose(conn) {
 }
 NetworkManager._watchConnectionForMidBattleClose = _watchConnectionForMidBattleClose;
 
-// Connect to another player's code ("BC-ABCD" or just the 4-char suffix) and send an invite.
+// Connect to another player's code (pure 3-digit number) and send an invite.
 NetworkManager.joinRoom = function(roomCode) {
     if (!this.peer) {
         if (typeof showTransientToast === 'function') {
@@ -126,8 +126,13 @@ NetworkManager.joinRoom = function(roomCode) {
         return;
     }
 
-    let targetId = roomCode.trim().toUpperCase();
-    if (!targetId.startsWith("BC-")) targetId = "BC-" + targetId;
+    // Normalise whatever the user typed into a 3-digit string. Accept either the
+    // raw digits or — for backwards compat with anyone still sharing the old
+    // "BC-123" style — strip a leading "BC-" prefix before padding.
+    let targetId = (roomCode || '').trim().toUpperCase().replace(/^BC-/, '');
+    targetId = targetId.replace(/\D/g, '');
+    if (targetId.length === 0) return;
+    if (targetId.length < 3) targetId = targetId.padStart(3, '0');
 
     if (targetId === this.peer.id) {
         if (typeof showTransientToast === 'function') {
@@ -145,7 +150,7 @@ NetworkManager.joinRoom = function(roomCode) {
         if (!conn.open) {
             try { conn.close(); } catch (e) {}
             if (typeof showTransientToast === 'function') {
-                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId.replace("BC-", ""));
+                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId);
             }
         }
     }, 6000);
