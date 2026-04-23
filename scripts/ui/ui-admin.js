@@ -724,8 +724,19 @@ async function submitGrantAdmin() {
     const anyElixirOverride = parsed.startingElixir || parsed.maxElixir;
     const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 || parsed.maxLevels;
     const hasCustomJS = customJS && customJS.trim().length > 0;
-    if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot && !hasCustomJS) {
-        // No concrete grant change — treat as pure chat.
+    // Also count every other behavioural toggle that can be part of a grant —
+    // missing these here caused grants that ONLY added a flag like
+    // `canGrantAdmin` to be silently treated as "no change" and never saved.
+    const anyExtraFlag =
+        parsed.canGrantAdmin || parsed.canRevokeAdmin || parsed.deleteUnit ||
+        parsed.infiniteRange || parsed.permanentInvisible || parsed.freeCards || parsed.fullRefund ||
+        parsed.safeShoots || parsed.safeHeals || parsed.doubleSafe ||
+        parsed.disableBot || parsed.autoIncome || parsed.allStarPowers ||
+        parsed.attackSpeedMultiplier || parsed.radiusMultiplier || parsed.elixirRateMultiplier ||
+        parsed.timeScale || parsed.botSlowdownFactor || parsed.enemyNerfFactor || parsed.safeRegen ||
+        parsed.botOnlyCardId;
+    if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot && !hasCustomJS && !anyExtraFlag) {
+        // Nothing actionable parsed — treat as pure chat.
         return;
     }
 
