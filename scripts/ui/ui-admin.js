@@ -39,14 +39,15 @@ function updateAdminToggleUI(hackKey, elementId) {
 
 function toggleAdminHack(hackKey) {
     adminHacks[hackKey] = !adminHacks[hackKey];
-    
+    if (typeof saveAdminHacks === 'function') saveAdminHacks();
+
     const map = {
         'infiniteElixir': 'toggle-infinite-elixir',
         'godMode': 'toggle-god-mode',
         'doubleDamage': 'toggle-double-damage',
         'superSpeed': 'toggle-super-speed'
     };
-    
+
     updateAdminToggleUI(hackKey, map[hackKey]);
     console.log(`🛠️ Admin: ${hackKey} is now ${adminHacks[hackKey]}`);
 }
@@ -72,7 +73,7 @@ window.setAdminCurrency = setAdminCurrency;
 function maxAllLevels() {
     Object.keys(CARDS).forEach(id => {
         playerStats.levels[id] = MAX_LEVEL;
-        sessionStorage.setItem(`brawlclash_level_${id}`, MAX_LEVEL);
+        localStorage.setItem(`brawlclash_level_${id}`, MAX_LEVEL);
     });
     saveStats();
     updateStatsUI();

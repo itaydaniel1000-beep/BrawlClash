@@ -47,7 +47,7 @@ function claimUsername() {
     const name = input ? input.value.trim() : null;
     if (name) {
         playerStats.username = name;
-        sessionStorage.setItem('brawlclash_username', name);
+        localStorage.setItem('brawlclash_username', name);
         const overlay = document.getElementById('username-overlay');
         if (overlay) overlay.style.display = 'none';
         updateStatsUI();

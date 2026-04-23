@@ -30,7 +30,7 @@ function renderSPSelection() {
             btn.onclick = (e) => {
                 e.stopPropagation();
                 playerStarPowers[key] = sp.id;
-                sessionStorage.setItem('brawlclash_sp', JSON.stringify(playerStarPowers));
+                localStorage.setItem('brawlclash_sp', JSON.stringify(playerStarPowers));
                 renderSPSelection();
             };
             optionsContainer.appendChild(btn);

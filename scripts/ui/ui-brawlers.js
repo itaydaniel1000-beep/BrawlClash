@@ -11,7 +11,7 @@ function toggleCardInDeck(id) {
             return;
         }
     }
-    sessionStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck));
+    localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck));
     renderCharCards();
     updateHomeScreen();
 }
@@ -49,7 +49,7 @@ function renderCharCards() {
         cardEl.onclick = () => {
             if (isStarringMode) {
                 favoriteBrawler = id;
-                sessionStorage.setItem('brawlclash_favorite', id);
+                localStorage.setItem('brawlclash_favorite', id);
                 isStarringMode = false;
                 const starBtn = document.getElementById('star-mode-btn');
                 if (starBtn) starBtn.style.backgroundColor = '#f1c40f';
@@ -123,7 +123,7 @@ function openUpgradeModal(id) {
         } else {
             alert("אפשר לבחור עד 8 דמויות!");
         }
-        sessionStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck));
+        localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck));
         openUpgradeModal(id); 
         renderCharCards();
     };

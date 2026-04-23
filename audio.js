@@ -47,7 +47,7 @@ const AudioController = {
     },
     toggleMute: function() {
         this.isMuted = !this.isMuted;
-        sessionStorage.setItem('brawlclash_muted', this.isMuted);
+        localStorage.setItem('brawlclash_muted', this.isMuted);
     }
 };
 

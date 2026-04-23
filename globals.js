@@ -1,51 +1,76 @@
 // globals.js - Global State and Shared Variables
 
+// One-time migration: copy any existing brawlclash_* values from sessionStorage
+// into localStorage so users who already played in a tab don't lose progress
+// when we switch the persistence backend. sessionStorage gets wiped on tab
+// close, which is why coins / gems / admin toggles appeared to "reset" on reload
+// in freshly-opened tabs.
+try {
+    if (!localStorage.getItem('brawlclash_migrated_v1')) {
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && key.startsWith('brawlclash_') && localStorage.getItem(key) === null) {
+                localStorage.setItem(key, sessionStorage.getItem(key));
+            }
+        }
+        localStorage.setItem('brawlclash_migrated_v1', '1');
+    }
+} catch (e) { /* storage disabled — nothing we can do */ }
+
 let currentState = GAME_STATE.MENU;
 let lastTime = 0;
 let difficulty = 'hard';
 let isSelectingBullDash = false;
 let selectedFreezeCardId = null;
 let selectedCardId = null;
-let playerTrophies = parseInt(sessionStorage.getItem('brawlclash_trophies')) || 0;
+let playerTrophies = parseInt(localStorage.getItem('brawlclash_trophies')) || 0;
 let spEntrySource = 'battle'; // 'lobby' or 'battle'
 let mouseX = 0, mouseY = 0;
 
 let playerDeck = [];
 try {
-    const savedDeck = sessionStorage.getItem('brawlclash_deck');
+    const savedDeck = localStorage.getItem('brawlclash_deck');
     if (savedDeck) playerDeck = JSON.parse(savedDeck);
     else playerDeck = Object.keys(CARDS).slice(0, 8); 
 } catch(e) { 
     playerDeck = Object.keys(CARDS).slice(0, 8);
 }
 let tempDeck = [];
-let favoriteBrawler = sessionStorage.getItem('brawlclash_favorite') || null;
+let favoriteBrawler = localStorage.getItem('brawlclash_favorite') || null;
 let isStarringMode = false;
 let playerStarPowers = {};
 try {
-    const savedSP = sessionStorage.getItem('brawlclash_sp');
+    const savedSP = localStorage.getItem('brawlclash_sp');
     if (savedSP) playerStarPowers = JSON.parse(savedSP);
 } catch(e) { playerStarPowers = {}; }
 
 // --- Player Stats & Levels ---
 let playerStats = {
-    coins: parseInt(sessionStorage.getItem('brawlclash_coins')) || 1000,
-    gems: parseInt(sessionStorage.getItem('brawlclash_gems')) || 100,
+    coins: parseInt(localStorage.getItem('brawlclash_coins')) || 1000,
+    gems: parseInt(localStorage.getItem('brawlclash_gems')) || 100,
     levels: {},
-    claimedTiers: JSON.parse(sessionStorage.getItem('brawlclash_claimed')) || [],
-    username: sessionStorage.getItem('brawlclash_username') || null
+    claimedTiers: JSON.parse(localStorage.getItem('brawlclash_claimed')) || [],
+    username: localStorage.getItem('brawlclash_username') || null
 };
 
 // Admin Hacks (Developer Menu)
 // NOTE: `var` (not `let`) so it attaches to window — the PeerJS sync code and
 // per-entity buff checks need the binding to be reachable from both script scope
 // and `window.`-qualified access without the two drifting apart.
-var adminHacks = {
-    infiniteElixir: false,
-    godMode: false,
-    doubleDamage: false,
-    superSpeed: false
-};
+var adminHacks = (function loadAdminHacks() {
+    const defaults = { infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false };
+    try {
+        const raw = localStorage.getItem('brawlclash_admin_hacks');
+        if (!raw) return defaults;
+        const parsed = JSON.parse(raw);
+        return Object.assign({}, defaults, parsed || {});
+    } catch (e) { return defaults; }
+})();
+
+function saveAdminHacks() {
+    try { localStorage.setItem('brawlclash_admin_hacks', JSON.stringify(adminHacks)); }
+    catch (e) { /* storage full / disabled */ }
+}
 
 // Opponent's admin settings, learned at battle-start via the ADMIN_CONFIG
 // handshake. Lets the non-admin client render the admin's units/safe with the
@@ -60,22 +85,22 @@ var opponentAdminHacks = {
 
 // Initialize levels & clamp to max
 Object.keys(CARDS).forEach(id => {
-    let lvl = parseInt(sessionStorage.getItem(`brawlclash_level_${id}`)) || 1;
+    let lvl = parseInt(localStorage.getItem(`brawlclash_level_${id}`)) || 1;
     if (lvl > MAX_LEVEL) {
         lvl = MAX_LEVEL;
-        sessionStorage.setItem(`brawlclash_level_${id}`, MAX_LEVEL);
+        localStorage.setItem(`brawlclash_level_${id}`, MAX_LEVEL);
     }
     playerStats.levels[id] = lvl;
 });
 
 function saveStats() {
-    sessionStorage.setItem('brawlclash_coins', playerStats.coins);
-    sessionStorage.setItem('brawlclash_gems', playerStats.gems);
-    sessionStorage.setItem('brawlclash_claimed', JSON.stringify(playerStats.claimedTiers));
-    sessionStorage.setItem('brawlclash_trophies', playerTrophies);
-    if (playerStats.username) sessionStorage.setItem('brawlclash_username', playerStats.username);
+    localStorage.setItem('brawlclash_coins', playerStats.coins);
+    localStorage.setItem('brawlclash_gems', playerStats.gems);
+    localStorage.setItem('brawlclash_claimed', JSON.stringify(playerStats.claimedTiers));
+    localStorage.setItem('brawlclash_trophies', playerTrophies);
+    if (playerStats.username) localStorage.setItem('brawlclash_username', playerStats.username);
     Object.keys(playerStats.levels).forEach(id => {
-        sessionStorage.setItem(`brawlclash_level_${id}`, playerStats.levels[id]);
+        localStorage.setItem(`brawlclash_level_${id}`, playerStats.levels[id]);
     });
 }
 
