@@ -588,3 +588,49 @@
     .play-btn { width: 120px; height: 56px; }
     .play-text { font-size: 1.7rem; }
 }
+
+/* Bouncing hint attached to the 📖 guide button. Body gets `data-guide-seen="1"`
+   once the player opens the guide (see ui-core.js), which instantly hides it. */
+.guide-hint {
+    position: absolute;
+    top: 50%;
+    left: -132px; /* sits to the LEFT of the guide button in the visual layout */
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+    z-index: 50;
+    animation: guide-hint-bounce 0.9s ease-in-out infinite;
+}
+
+.guide-hint-label {
+    background: #f1c40f;
+    color: #2c3e50;
+    font-family: 'Assistant', sans-serif;
+    font-weight: 800;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 2px solid #fff;
+    box-shadow: 0 3px 0 #b7950b, 0 6px 10px rgba(0,0,0,0.35);
+    white-space: nowrap;
+}
+
+.guide-hint-arrow {
+    font-size: 1.6rem;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+
+@keyframes guide-hint-bounce {
+    0%, 100% { transform: translate(0, -50%); }
+    50%      { transform: translate(10px, -50%); }
+}
+
+body[data-guide-seen="1"] .guide-hint { display: none; }
+
+@media (max-width: 600px) {
+    .guide-hint { left: -110px; }
+    .guide-hint-label { font-size: 0.7rem; padding: 3px 8px; }
+    .guide-hint-arrow { font-size: 1.3rem; }
+}

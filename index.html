@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="styles/global.css?v=5.3">
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=3.3">
-    <link rel="stylesheet" href="styles/lobby.css?v=4.4">
+    <link rel="stylesheet" href="styles/lobby.css?v=5.9">
     <link rel="stylesheet" href="styles/battle-ui.css?v=5.3">
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=5.7">
@@ -98,6 +98,12 @@
                         </button>
                         <button class="side-btn guide-btn" onclick="openScreen('guide-screen')" title="מדריך">
                             <span class="btn-icon">📖</span>
+                            <!-- Bouncing hint pointing at the 📖 button. Hidden once the user
+                                 opens the guide (guide-js sets `data-guide-seen` + persists). -->
+                            <span id="guide-hint" class="guide-hint" aria-hidden="true">
+                                <span class="guide-hint-label">מדריך חדש!</span>
+                                <span class="guide-hint-arrow">👉</span>
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -307,6 +313,11 @@
                 </div>
 
                 <section class="guide-panel" data-guide-panel="mobile" style="display: none; color: #e8eaed; line-height: 1.65;">
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🦸 דמויות (12)</h3>
+                    <div id="guide-chars-mobile" style="margin: 0 0 12px;">
+                        <!-- Character list is injected on open -->
+                    </div>
+
                     <h3 style="color: #74b9ff; margin-bottom: 6px;">👆 לחיצה רגילה</h3>
                     <p style="margin: 0 0 12px;">בחר קלף מהסרגל התחתון, ואז טאפ על הצד שלך (החצי התחתון של המפה) כדי להניח יחידה. טאפ נוסף — הנחה נוספת.</p>
 
@@ -335,6 +346,11 @@
                 </section>
 
                 <section class="guide-panel" data-guide-panel="desktop" style="display: none; color: #e8eaed; line-height: 1.65;">
+                    <h3 style="color: #74b9ff; margin-bottom: 6px;">🦸 דמויות (12)</h3>
+                    <div id="guide-chars-desktop" style="margin: 0 0 12px;">
+                        <!-- Character list is injected on open -->
+                    </div>
+
                     <h3 style="color: #74b9ff; margin-bottom: 6px;">🖱️ קליק שמאלי</h3>
                     <p style="margin: 0 0 12px;">בחר קלף מהסרגל, ואז לחץ על הצד שלך (החצי התחתון) כדי להניח יחידה.</p>
 
@@ -535,7 +551,7 @@
     <script src="scripts/entities/projectile.js"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=5.8"></script>
+    <script src="scripts/ui/ui-core.js?v=5.9"></script>
     <script src="scripts/ui/ui-brawlers.js?v=4.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=3.8"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
