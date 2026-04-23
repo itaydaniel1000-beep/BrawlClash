@@ -54,6 +54,33 @@ NetworkManager.updateBattleResult = function(roomId, iWon, reason) {
     }
 };
 
+// At battle start, each client broadcasts whether it's running the admin panel
+// and with which toggles. The receiver stores this in `opponentAdminHacks` so
+// that buffs tied to the admin's own entities (notably godMode on their safe,
+// which isn't re-spawned mid-game and so can't piggy-back on SYNC_SPAWN) are
+// respected on the non-admin's screen.
+NetworkManager.sendAdminConfig = function() {
+    const h = (typeof adminHacks !== 'undefined') ? adminHacks : {};
+    const isAdmin = (typeof playerStats !== 'undefined' &&
+        typeof ADMIN_USERNAME !== 'undefined' &&
+        playerStats && playerStats.username === ADMIN_USERNAME);
+    const payload = {
+        type: 'ADMIN_CONFIG',
+        isAdmin: !!isAdmin,
+        hacks: {
+            infiniteElixir: !!h.infiniteElixir,
+            godMode: !!h.godMode,
+            doubleDamage: !!h.doubleDamage,
+            superSpeed: !!h.superSpeed
+        }
+    };
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try { conn.send(payload); } catch (e) { /* ignore */ }
+        }
+    });
+};
+
 // Fired when the local player quits a P2P battle voluntarily. The opponent
 // receives winnerIsYou=true with reason=forfeit so they see a proper win screen
 // instead of being silently stranded.
@@ -149,6 +176,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleRemoteSpawn === 'function') handleRemoteSpawn(data);
             } else if (data.type === 'GAME_OVER') {
                 if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data);
+            } else if (data.type === 'ADMIN_CONFIG') {
+                if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
             }
         });
     });

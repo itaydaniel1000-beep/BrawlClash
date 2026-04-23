@@ -15,10 +15,13 @@ class Entity {
 
     takeDamage(amount) {
         if (this.isDead) return;
-        if (this.team === 'player' && adminHacks.godMode) return; 
+        if (this.team === 'player' && adminHacks.godMode) return;
+        // When the opponent is the admin, their entities (enemy on our screen)
+        // inherit godMode — exchanged at battle start via ADMIN_CONFIG.
+        if (this.team === 'enemy' && typeof opponentAdminHacks !== 'undefined' && opponentAdminHacks.godMode) return;
 
         let finalAmount = amount;
-        if (this.team === 'enemy' && adminHacks.doubleDamage) finalAmount *= 2; 
+        if (this.team === 'enemy' && adminHacks.doubleDamage) finalAmount *= 2;
 
         if (this.type === 'bruce' && this.team === 'player' && playerStarPowers['bruce'] === 'sp1') {
             finalAmount *= 0.7; 

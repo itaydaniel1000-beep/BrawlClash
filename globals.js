@@ -37,7 +37,21 @@ let playerStats = {
 };
 
 // Admin Hacks (Developer Menu)
-let adminHacks = {
+// NOTE: `var` (not `let`) so it attaches to window — the PeerJS sync code and
+// per-entity buff checks need the binding to be reachable from both script scope
+// and `window.`-qualified access without the two drifting apart.
+var adminHacks = {
+    infiniteElixir: false,
+    godMode: false,
+    doubleDamage: false,
+    superSpeed: false
+};
+
+// Opponent's admin settings, learned at battle-start via the ADMIN_CONFIG
+// handshake. Lets the non-admin client render the admin's units/safe with the
+// correct buffs (e.g. godMode on the admin's safe that we see as `enemy`).
+var opponentAdminHacks = {
+    isAdmin: false,
     infiniteElixir: false,
     godMode: false,
     doubleDamage: false,

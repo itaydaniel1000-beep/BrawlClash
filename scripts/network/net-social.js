@@ -37,6 +37,8 @@ NetworkManager.sendInvite = function(targetPeerId, senderName) {
                 if (typeof handleRemoteSpawn === 'function') handleRemoteSpawn(data);
             } else if (data.type === 'GAME_OVER') {
                 if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data);
+            } else if (data.type === 'ADMIN_CONFIG') {
+                if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
             }
         });
     });
@@ -68,6 +70,8 @@ NetworkManager.handleConnection = function(conn) {
             if (typeof handleRemoteSpawn === 'function') handleRemoteSpawn(data);
         } else if (data.type === 'GAME_OVER') {
             if (typeof handleNetworkGameOver === 'function') handleNetworkGameOver(data);
+        } else if (data.type === 'ADMIN_CONFIG') {
+            if (typeof handleAdminConfig === 'function') handleAdminConfig(data);
         }
     });
 };

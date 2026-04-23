@@ -42,6 +42,31 @@ function handleRemoteSpawn(data) {
     spawnEntity(data.x, data.y, 'enemy', data.unitType, false, true, data.buffs || null);
 }
 
+// Receive the opponent's admin settings at battle start. Stored globally so
+// entity-base can consult them when resolving damage against enemy-team entities
+// (the admin's own units/safe on our screen).
+function handleAdminConfig(data) {
+    if (!data || !data.hacks) return;
+    opponentAdminHacks = {
+        isAdmin: !!data.isAdmin,
+        infiniteElixir: !!data.hacks.infiniteElixir,
+        godMode: !!data.hacks.godMode,
+        doubleDamage: !!data.hacks.doubleDamage,
+        superSpeed: !!data.hacks.superSpeed
+    };
+    if (data.isAdmin) {
+        const active = [];
+        if (data.hacks.godMode) active.push('גוד מוד');
+        if (data.hacks.doubleDamage) active.push('נזק כפול');
+        if (data.hacks.superSpeed) active.push('מהירות-על');
+        if (data.hacks.infiniteElixir) active.push('אליקסיר אינסופי');
+        if (active.length > 0 && typeof showTransientToast === 'function') {
+            showTransientToast(`⚠️ היריב הוא אדמין: ${active.join(', ')}`);
+        }
+    }
+}
+window.handleAdminConfig = handleAdminConfig;
+
 function handleShiftRelease(e) {
     if (e.key !== 'Shift') return;
     // Releasing Shift cancels any held card / freeze selection

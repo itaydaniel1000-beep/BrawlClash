@@ -98,7 +98,26 @@ window.initMultiplayerSync = initMultiplayerSync;
 // Global listener for battleAccepted (used by ui-manager.js)
 window.addEventListener('battleAccepted', (e) => {
     const { roomId, opponent, isHost } = e.detail;
+    // Reset opponent's admin flags so stale values from a previous match don't
+    // bleed into this one. Will be re-populated when the opponent's ADMIN_CONFIG
+    // message arrives (if they're an admin).
+    if (typeof opponentAdminHacks !== 'undefined') {
+        opponentAdminHacks = { isAdmin: false, infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false };
+    }
     startMultiplayerBattle(roomId, isHost, opponent);
     // Wait a bit for the screen transition then init sync
     setTimeout(initMultiplayerSync, 1000);
+
+    // Exchange admin settings so the non-admin side knows to render the admin's
+    // units/safe with the correct buffs (godMode especially, since safes don't
+    // go through SYNC_SPAWN). Fire twice — once immediately for the fast path,
+    // once after a short delay to cover a peer that's still finalising its
+    // data-channel handshake when the invite is accepted.
+    const sendCfg = () => {
+        if (window.NetworkManager && typeof window.NetworkManager.sendAdminConfig === 'function') {
+            window.NetworkManager.sendAdminConfig();
+        }
+    };
+    sendCfg();
+    setTimeout(sendCfg, 600);
 });
