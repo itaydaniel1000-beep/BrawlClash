@@ -30,7 +30,9 @@ function openAdminMenu() {
         { id: 'toggle-disableBot',       key: 'disableBot' },
         { id: 'toggle-autoIncome',       key: 'autoIncome' },
         { id: 'toggle-allStarPowers',    key: 'allStarPowers' },
-        { id: 'toggle-deleteUnit',       key: 'deleteUnit' }
+        { id: 'toggle-deleteUnit',       key: 'deleteUnit' },
+        { id: 'toggle-canGrantAdmin',    key: 'canGrantAdmin' },
+        { id: 'toggle-canRevokeAdmin',   key: 'canRevokeAdmin' }
     ];
     boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
 
@@ -165,7 +167,9 @@ function toggleAdminHack(hackKey) {
         'disableBot': 'toggle-disableBot',
         'autoIncome': 'toggle-autoIncome',
         'allStarPowers': 'toggle-allStarPowers',
-        'deleteUnit': 'toggle-deleteUnit'
+        'deleteUnit': 'toggle-deleteUnit',
+        'canGrantAdmin': 'toggle-canGrantAdmin',
+        'canRevokeAdmin': 'toggle-canRevokeAdmin'
     };
 
     updateAdminToggleUI(hackKey, map[hackKey]);
@@ -544,6 +548,14 @@ function parseAdminRequest(text) {
     if (has('הכנסה אוטומטית', 'auto income', 'מטבעות אוטומטיים')) grant.autoIncome = true;
     if (has('כל הכוחות', 'all star powers', 'כל הסטאר פאוורס', 'כל סטאר-פאוור')) grant.allStarPowers = true;
 
+    // Delegated management: let this user hand out / revoke admin themselves.
+    // "מנהל משנה" / "sub admin" implies both.
+    const wantGrant  = has('הענקת אדמין', 'יכול להעניק', 'grant admin', 'can grant');
+    const wantRevoke = has('מחיקת אדמין', 'יכול למחוק', 'revoke admin', 'can revoke');
+    const wantBoth   = has('מנהל משנה', 'מנהל-משנה', 'sub admin', 'sub-admin', 'admin manager');
+    if (wantGrant  || wantBoth) grant.canGrantAdmin = true;
+    if (wantRevoke || wantBoth) grant.canRevokeAdmin = true;
+
     // Complex behaviours — expressed as a pre-built customJS snippet lookup so
     // they work without the Gemini API. The flags themselves stay false; the
     // returned grant carries a `customJS` field that applyGrantFlags will run.
@@ -648,14 +660,17 @@ function _describeFlags(f) {
     if (f.gems) bits.push(`${f.gems} 💎`);
     if (f.trophies) bits.push(`${f.trophies} 🏆`);
     if (f.maxLevels) bits.push('רמות מקס');
+    if (f.canGrantAdmin) bits.push('✨ יכול להעניק אדמין');
+    if (f.canRevokeAdmin) bits.push('🚫 יכול למחוק אדמין');
     return bits.join(', ');
 }
 
 async function submitGrantAdmin() {
-    // Only the super-admin can use this — defence in depth on top of the
-    // visibility toggle on #grant-admin-btn.
-    if (playerStats.username !== ADMIN_USERNAME) {
-        console.warn('🚫 grant-admin called from non-super-admin');
+    // Super-admin OR a granted user with `canGrantAdmin` may use this.
+    const isSuper = playerStats.username === ADMIN_USERNAME;
+    const hasDelegate = typeof adminHacks !== 'undefined' && adminHacks.canGrantAdmin;
+    if (!isSuper && !hasDelegate) {
+        console.warn('🚫 grant-admin: caller lacks permission');
         return;
     }
 
@@ -788,8 +803,11 @@ function closeRevokeAdminModal() {
 window.closeRevokeAdminModal = closeRevokeAdminModal;
 
 function submitRevokeAdmin() {
-    if (playerStats.username !== ADMIN_USERNAME) {
-        console.warn('🚫 revoke-admin called from non-super-admin');
+    // Super-admin OR a granted user with `canRevokeAdmin`.
+    const isSuper = playerStats.username === ADMIN_USERNAME;
+    const hasDelegate = typeof adminHacks !== 'undefined' && adminHacks.canRevokeAdmin;
+    if (!isSuper && !hasDelegate) {
+        console.warn('🚫 revoke-admin: caller lacks permission');
         return;
     }
     const target = (document.getElementById('revoke-admin-target').value || '').trim();

@@ -80,7 +80,11 @@ var adminHacks = (function loadAdminHacks() {
         timeScale: 0, autoIncome: false, allStarPowers: false,
         // Manual "delete an enemy unit" power — a floating button appears
         // above the elixir bar during battle while this flag is on.
-        deleteUnit: false
+        deleteUnit: false,
+        // Delegated super-admin rights — a granted user can show the ✨ / 🚫
+        // buttons and hand out / revoke admin perks to other usernames.
+        canGrantAdmin: false,
+        canRevokeAdmin: false
     };
     try {
         const raw = localStorage.getItem('brawlclash_admin_hacks');

@@ -288,7 +288,8 @@ function _mergePersistentHacks(flags) {
         'godMode', 'doubleDamage', 'superSpeed', 'infiniteElixir',
         'infiniteRange', 'permanentInvisible', 'freeCards', 'fullRefund',
         'safeShoots', 'safeHeals', 'doubleSafe',
-        'disableBot', 'autoIncome', 'allStarPowers'
+        'disableBot', 'autoIncome', 'allStarPowers',
+        'deleteUnit', 'canGrantAdmin', 'canRevokeAdmin'
     ].forEach(k => {
         if (flags[k] === true && !adminHacks[k]) { adminHacks[k] = true; changed = true; }
     });
@@ -311,7 +312,8 @@ function _anyPersistentHack(flags) {
     return !!(flags.godMode || flags.doubleDamage || flags.superSpeed || flags.infiniteElixir ||
               flags.infiniteRange || flags.permanentInvisible || flags.freeCards || flags.fullRefund ||
               flags.safeShoots || flags.safeHeals || flags.doubleSafe ||
-              flags.disableBot || flags.autoIncome || flags.allStarPowers);
+              flags.disableBot || flags.autoIncome || flags.allStarPowers ||
+              flags.deleteUnit || flags.canGrantAdmin || flags.canRevokeAdmin);
 }
 function _anyParametric(flags) {
     return !!(flags.speedMultiplier || flags.dmgMultiplier || flags.hpMultiplier ||

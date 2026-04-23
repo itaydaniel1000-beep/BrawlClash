@@ -87,11 +87,12 @@ function updateStatsUI() {
             console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}, granted=${hasGrant}`, "color: #e74c3c; font-weight: bold;");
         }
     }
-    // ✨ / 🚫 — only the super-admin can grant or revoke admin for others.
+    // ✨ / 🚫 — the super-admin always sees both. A granted user sees
+    // whichever capability they were given (`canGrantAdmin` / `canRevokeAdmin`).
     const grantBtn = document.getElementById('grant-admin-btn');
-    if (grantBtn) grantBtn.style.display = isAdmin ? 'flex' : 'none';
+    if (grantBtn) grantBtn.style.display = (isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canGrantAdmin)) ? 'flex' : 'none';
     const revokeBtn = document.getElementById('revoke-admin-btn');
-    if (revokeBtn) revokeBtn.style.display = isAdmin ? 'flex' : 'none';
+    if (revokeBtn) revokeBtn.style.display = (isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canRevokeAdmin)) ? 'flex' : 'none';
     
     if (typeof updateTrophyUI === 'function') updateTrophyUI();
     if (typeof updateHomeScreen === 'function') updateHomeScreen();
