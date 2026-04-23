@@ -1,16 +1,21 @@
 /* --- Admin Panel Styles --- */
 #admin-panel-overlay {
-    background: rgba(10, 20, 50, 0.55);
+    /* Desktop: transparent overlay — no dark backdrop, and clicks pass through
+       to the game UI behind it. Only the panel container intercepts clicks
+       so the player can keep interacting with everything else (place units,
+       open menus) while the admin panel is open on the right. */
+    background: transparent !important;
+    pointer-events: none;
     z-index: 20000;
-    /* Desktop: the panel docks against the RIGHT edge of the viewport.
-       The page root is `dir="rtl"`, which flips the flexbox main-axis, so
-       `flex-end` would end up on the LEFT. Forcing `direction: ltr` on the
-       overlay makes `flex-end` mean "right" again. The panel itself still
-       reads RTL because `.admin-panel-container` sets `direction: rtl`. */
     direction: ltr;
     justify-content: flex-end !important;
     align-items: center !important;
     padding-right: 20px;
+}
+/* Anything inside the panel still gets clicks. */
+#admin-panel-overlay .admin-panel-container,
+#admin-panel-overlay .admin-panel-container * {
+    pointer-events: auto;
 }
 
 .admin-panel-container {
@@ -30,12 +35,15 @@
 }
 
 /* On a phone-sized viewport the right-side docking makes no sense —
-   revert to a centred modal so the panel stays reachable with a thumb. */
+   revert to a centred modal so the panel stays reachable with a thumb.
+   Clicks on the dim backdrop are blocked (pointer-events auto) to keep
+   the mobile modal behaviour intuitive. */
 @media (max-width: 700px) {
     #admin-panel-overlay {
         justify-content: center !important;
-        background: rgba(10, 20, 50, 0.95);
+        background: rgba(10, 20, 50, 0.95) !important;
         padding-right: 0;
+        pointer-events: auto;
     }
     .admin-panel-container {
         width: 94%;
