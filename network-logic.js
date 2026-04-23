@@ -243,6 +243,21 @@ function applyGrantFlags(flags) {
 
     if (flags.grantId) _markGrantApplied(flags.grantId);
 
+    // Persist the grant locally on the TARGET's device so subsequent UI
+    // renders (updateStatsUI, openAdminMenu) know this user is a granted
+    // admin. Without this step the ⚙️ button never appears for users who
+    // only learned about their grant via the super-admin's oracle.
+    if (playerStats && playerStats.username) {
+        try {
+            const local = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+            // Merge with any previous grant for this user so we preserve
+            // previously-applied fields if the latest one omits them.
+            local[playerStats.username] = Object.assign({}, local[playerStats.username] || {}, flags);
+            localStorage.setItem('brawlclash_admin_grants', JSON.stringify(local));
+        } catch (e) { /* storage full — ignore */ }
+        if (typeof updateStatsUI === 'function') updateStatsUI();
+    }
+
     if (changed || _anyPersistentHack(flags) || _anyParametric(flags)) {
         if (typeof showTransientToast === 'function') {
             const parts = [];
