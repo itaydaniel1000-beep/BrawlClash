@@ -37,6 +37,16 @@ body.admin-panel-open #app {
     left: -180px;
     transition: left 0.25s ease-out;
 }
+/* The in-battle side panels (#deck-left with Scrappy / Penny, #deck-right
+   with aura cards) are `position: fixed` with their horizontal position
+   computed relative to viewport centre. When #app shifts left they stay
+   put — so deck-left ends up sitting UNDER the canvas, hiding Scrappy and
+   Penny. Shift both panels by the same amount so they stay aligned with
+   #app's new position. */
+body.admin-panel-open #deck-left,
+body.admin-panel-open #deck-right {
+    margin-left: -180px !important;
+}
 
 /* Floating admin controls — stacked vertically at the bottom-right corner
    of the viewport. Always on top of everything (z-index:15000), fixed so
