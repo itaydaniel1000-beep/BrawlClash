@@ -46,11 +46,21 @@ function openAdminMenu() {
     // Hide each hack-row that isn't part of this user's grant. Super-admin sees
     // every row regardless. For granted users, show rows whose key matches a
     // granted flag OR a granted numeric > 0.
+    // Keep the `.hack-description` chip just below each row in sync with its
+    // row's visibility so granted users don't see orphan explanations.
+    const setRowVisibility = (row, show) => {
+        if (!row) return;
+        row.style.display = show ? '' : 'none';
+        const next = row.nextElementSibling;
+        if (next && next.classList.contains('hack-description')) {
+            next.style.display = show ? '' : 'none';
+        }
+    };
+
     boolToggles.forEach(t => {
         const btn = document.getElementById(t.id);
         const row = btn && btn.closest('.hack-row');
-        if (!row) return;
-        row.style.display = (isSuper || (myGrant && myGrant[t.key])) ? '' : 'none';
+        setRowVisibility(row, isSuper || (myGrant && myGrant[t.key]));
     });
     document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
         const row = inp.closest('.hack-row');
@@ -58,7 +68,8 @@ function openAdminMenu() {
         const m = (inp.getAttribute('oninput') || '').match(/setAdminNumber\('([^']+)'/);
         if (!m) return;
         const key = m[1];
-        row.style.display = (isSuper || (myGrant && myGrant[key] && myGrant[key] !== 0 && myGrant[key] !== '')) ? '' : 'none';
+        const granted = myGrant && myGrant[key] && myGrant[key] !== 0 && myGrant[key] !== '';
+        setRowVisibility(row, isSuper || granted);
     });
 
     // Currency editors + max-levels actions are super-admin only (they're raw

@@ -38,6 +38,15 @@
     font-family: 'Assistant', sans-serif;
     text-align: center;
 }
+/* Small description line under each admin control — explains what the hack does. */
+.hack-description {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.62);
+    line-height: 1.35;
+    margin: -6px 8px 10px 8px;
+    padding: 0 4px;
+    text-align: right;
+}
 
 .admin-title {
     font-family: 'Fredoka One', cursive;
