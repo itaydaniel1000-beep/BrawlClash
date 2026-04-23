@@ -356,26 +356,55 @@ async function callGeminiGrantAI(userMessage, targetName) {
         "Return JSON ONLY (no markdown, no code fences) with this shape:",
         "{",
         '  "reply": "<short friendly Hebrew response, 1-3 sentences>",',
-        '  "flags": { ...optional built-in flags... },',
+        '  "flags": { ...optional built-in flags, use EXACTLY these key names... },',
         '  "customJS": "<optional JavaScript snippet, runs on the target\'s device>"',
         "}",
         "",
-        "BUILT-IN FLAGS (use these whenever the effect maps cleanly to one):",
-        "  godMode, doubleDamage, superSpeed, infiniteElixir: booleans (persistent hacks)",
-        "  speedMultiplier, dmgMultiplier, hpMultiplier, safeHpMultiplier: numbers (1 = default; spawn-time multipliers for the player's own units/safe)",
-        "  startingElixir, maxElixir: numbers (0 = use default 5/10; battle-init overrides)",
-        "  coins, gems, trophies: numbers (one-shot grants; added once when the target receives this grant)",
-        "  maxLevels: bool (maxes every card's level)",
-        "  _revoke: bool (wipes every admin perk the target has; use when the super-admin says הסר/בטל/revoke)",
+        "BUILT-IN FLAGS — use EXACTLY these key names (camelCase), nothing else.",
+        "Every flag you want to set goes inside `flags`. Omit it if you don't need it.",
+        "",
+        "  Persistent hacks (booleans):",
+        "    godMode, doubleDamage, superSpeed, infiniteElixir,",
+        "    infiniteRange         — units hit from anywhere",
+        "    permanentInvisible    — units invisible for the whole battle",
+        "    freeCards             — every card costs 0 elixir",
+        "    fullRefund            — full elixir refund after placement",
+        "    safeShoots            — safe shoots enemies on the whole map",
+        "    safeHeals             — safe heals allies in range",
+        "    doubleSafe            — adds a 2nd player safe",
+        "    disableBot            — bot plays nothing",
+        "    autoIncome            — +100🪙 +5💎 every 10s",
+        "    allStarPowers         — both SP1 & SP2 active on every brawler",
+        "    deleteUnit            — shows the 🗑️ button in battle",
+        "    canGrantAdmin         — target gets the ✨ button (can grant admin to others)",
+        "    canRevokeAdmin        — target gets the 🚫 button (can revoke admin)",
+        "",
+        "  Parametric multipliers (numbers; 0 = no override, 1 = default, >1 = buff):",
+        "    speedMultiplier, dmgMultiplier, hpMultiplier, safeHpMultiplier,",
+        "    attackSpeedMultiplier, radiusMultiplier, elixirRateMultiplier,",
+        "    timeScale (0.5 slow-mo, 3 fast-forward), botSlowdownFactor, enemyNerfFactor,",
+        "    safeRegen (HP/sec)",
+        "",
+        "  Elixir overrides (numbers; 0 = use default 5/10):",
+        "    startingElixir, maxElixir",
+        "",
+        "  String: botOnlyCardId (one of: bruce, bull, leon, pam, max, 8bit, emz, spike, tara, scrappy, penny, mr-p)",
+        "",
+        "  One-shot rewards (numbers, added once when the grant is received):",
+        "    coins, gems, trophies",
+        "  One-shot bool: maxLevels (max every card).",
+        "",
+        "  Revocation: set `_revoke: true` (alone) to wipe every admin perk the",
+        "  target has. Use it when the user says הסר / בטל / revoke / remove admin.",
         "",
         "CUSTOM JS (use only if no built-in flag fits):",
         "  `customJS` is a JS statement or expression that runs ONCE on the target's device when this grant is applied. Available variables at runtime:",
         "    adminHacks, playerStats (.coins, .gems, .levels, .username), units, buildings, auras, playerSafe, enemySafe, CONFIG, CARDS, showTransientToast, saveStats, saveAdminHacks.",
         "  Mutate them directly — the game reads them live. Example: 'setInterval(()=>units.filter(u=>u.team===\"player\"&&!u.isDead).forEach(u=>{u.hp=Math.min(u.maxHp,u.hp+10)}),1000);'",
-        "  For one-shot stat bumps that don't fit coins/gems/trophies, still prefer customJS that mutates the state and calls saveStats().",
         "  Keep customJS short, side-effects only, no return value, no imports, no await.",
         "",
-        "Omit `flags` and `customJS` entirely if the user is just chatting or asking a question.",
+        "If the user's message maps to ANY of the built-in flags above, you MUST put them in the `flags` object. Don't just talk about doing it — emit the flag. Example: user says 'תן לה הענקת אדמין ומחיקת אדמין' → reply plus `flags: {canGrantAdmin: true, canRevokeAdmin: true}`.",
+        "Omit `flags` and `customJS` entirely only if the user is just chatting or asking a question with no action intent.",
         `Target username (context): "${targetName || '(not specified)'}".`
     ].join('\n');
     const body = {
@@ -405,11 +434,55 @@ async function callGeminiGrantAI(userMessage, targetName) {
     if (!parsed) return { reply: text || '(תגובה ריקה מה-AI)', flags: null };
     return {
         reply: parsed.reply || '(ללא טקסט)',
-        flags: parsed.flags || null,
+        flags: parsed.flags ? _normalizeGeminiFlags(parsed.flags) : null,
         customJS: typeof parsed.customJS === 'string' ? parsed.customJS : null
     };
 }
 window.callGeminiGrantAI = callGeminiGrantAI;
+
+// Safety net: map common AI-produced key aliases back onto our canonical
+// field names so a slightly-off response from Gemini still takes effect.
+function _normalizeGeminiFlags(raw) {
+    if (!raw || typeof raw !== 'object') return raw;
+    const aliases = {
+        // canGrantAdmin / canRevokeAdmin
+        canGrant:        'canGrantAdmin',    grant_admin:   'canGrantAdmin',
+        grantAdmin:      'canGrantAdmin',    adminGrant:    'canGrantAdmin',
+        canRevoke:       'canRevokeAdmin',   revoke_admin:  'canRevokeAdmin',
+        revokeAdmin:     'canRevokeAdmin',   adminRevoke:   'canRevokeAdmin',
+        // common short names
+        deleteUnits:     'deleteUnit',       delete_unit:   'deleteUnit',
+        invisible:       'permanentInvisible',  stealth:    'permanentInvisible',
+        free_cards:      'freeCards',        zeroCost:      'freeCards',
+        full_refund:     'fullRefund',       refund:        'fullRefund',
+        safe_shoots:     'safeShoots',       safe_heals:    'safeHeals',
+        safe_regen:      'safeRegen',
+        double_safe:     'doubleSafe',
+        disable_bot:     'disableBot',       bot_off:       'disableBot',
+        auto_income:     'autoIncome',
+        all_star_powers: 'allStarPowers',    allSP:         'allStarPowers',
+        infinite_range:  'infiniteRange',
+        attack_speed:    'attackSpeedMultiplier',
+        size:            'radiusMultiplier', radius:        'radiusMultiplier',
+        elixir_rate:     'elixirRateMultiplier',
+        time_scale:      'timeScale',
+        bot_slowdown:    'botSlowdownFactor',
+        enemy_nerf:      'enemyNerfFactor',
+        start_elixir:    'startingElixir',   initialElixir: 'startingElixir',
+                                             initial_elixir:'startingElixir',
+        max_elixir:      'maxElixir',
+        max_levels:      'maxLevels',        maxLevel:      'maxLevels',
+        bot_only_card:   'botOnlyCardId',    botCard:       'botOnlyCardId',
+        revoke:          '_revoke'
+    };
+    const out = {};
+    Object.keys(raw).forEach(k => {
+        const canonical = aliases[k] || k;
+        out[canonical] = raw[k];
+    });
+    return out;
+}
+window._normalizeGeminiFlags = _normalizeGeminiFlags;
 
 // Pattern-matcher that converts free-text (Hebrew + English) into a grant
 // payload. Not an LLM — this game has no backend / API key — but it covers
