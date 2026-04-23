@@ -3,7 +3,7 @@
 function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, remoteBuffs = null) {
     if (team === 'player' && currentBattleRoom && !isRemote) {
         if (window.NetworkManager) {
-            window.NetworkManager.syncSpawn(currentBattleRoom, x, y, typeStr);
+            window.NetworkManager.syncSpawn(currentBattleRoom, x, y, typeStr, isFrozen);
         }
     }
 

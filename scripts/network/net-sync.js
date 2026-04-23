@@ -19,7 +19,7 @@ function _collectSpawnBuffs() {
     };
 }
 
-NetworkManager.syncSpawn = function(roomId, x, y, unitType) {
+NetworkManager.syncSpawn = function(roomId, x, y, unitType, isFrozen) {
     // Send to all active peer connections.
     // NOTE: the message envelope uses `type:'SYNC_SPAWN'` for routing, so the unit
     // type goes into `unitType` — an inner `type` field would overwrite the envelope.
@@ -31,7 +31,8 @@ NetworkManager.syncSpawn = function(roomId, x, y, unitType) {
                 x: CONFIG.CANVAS_WIDTH - x, // Flip for opponent
                 y: CONFIG.CANVAS_HEIGHT - y, // Flip for opponent
                 unitType: unitType,
-                buffs: buffs
+                buffs: buffs,
+                isFrozen: !!isFrozen
             });
         }
     });
