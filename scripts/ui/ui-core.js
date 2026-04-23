@@ -76,15 +76,20 @@ function updateStatsUI() {
     const trophyEl = document.getElementById('trophy-count');
     if (trophyEl) trophyEl.innerText = playerTrophies.toLocaleString();
 
-    const adminBtn = document.querySelector('.admin-btn');
+    const isAdmin = playerStats.username && playerStats.username.trim() === ADMIN_USERNAME;
+    // Regular ⚙️ admin button: visible for super-admin AND for anyone who
+    // has a pending grant attached to their username.
+    const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn)');
     if (adminBtn) {
-        const isAdmin = playerStats.username && playerStats.username.trim() === ADMIN_USERNAME;
-        adminBtn.style.display = isAdmin ? 'flex' : 'none';
-        
+        const hasGrant = !!(playerStats.username && typeof _loadAdminGrants === 'function' && _loadAdminGrants()[playerStats.username]);
+        adminBtn.style.display = (isAdmin || hasGrant) ? 'flex' : 'none';
         if (playerStats.username && playerStats.username !== "null") {
-            console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}`, "color: #e74c3c; font-weight: bold;");
+            console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}, granted=${hasGrant}`, "color: #e74c3c; font-weight: bold;");
         }
     }
+    // ✨ Grant-admin button: ONLY the super-admin can grant admin to others.
+    const grantBtn = document.getElementById('grant-admin-btn');
+    if (grantBtn) grantBtn.style.display = isAdmin ? 'flex' : 'none';
     
     if (typeof updateTrophyUI === 'function') updateTrophyUI();
     if (typeof updateHomeScreen === 'function') updateHomeScreen();
