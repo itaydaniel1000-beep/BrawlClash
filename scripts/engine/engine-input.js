@@ -39,9 +39,10 @@ function handleNetworkGameOver(data) {
 
 function handleRemoteSpawn(data) {
     // data.unitType is the unit kind; data.type is the envelope tag 'SYNC_SPAWN'
-    // `isFrozen` rides along so a freeze-placement (❄️ card button) shows up
-    // on the opponent's screen as a frozen unit too.
-    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, data.buffs || null);
+    // `isFrozen` and `level` ride along so a freeze-placement (❄️ card) stays
+    // frozen on the opponent's screen and the unit gets the same
+    // getLevelScale() boost the sender's copy already had.
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, data.buffs || null, data.level || 1);
 }
 
 // Receive the opponent's admin settings at battle start. Stored globally so

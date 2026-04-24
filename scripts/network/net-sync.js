@@ -20,19 +20,23 @@ function _collectSpawnBuffs() {
 }
 
 NetworkManager.syncSpawn = function(roomId, x, y, unitType, isFrozen) {
-    // Send to all active peer connections.
-    // NOTE: the message envelope uses `type:'SYNC_SPAWN'` for routing, so the unit
-    // type goes into `unitType` — an inner `type` field would overwrite the envelope.
     const buffs = _collectSpawnBuffs();
+    // Send our card's current level too. `Unit`/`Building`/`Aura` apply
+    // `getLevelScale(type)` only for team==='player' spawns, so a remote
+    // spawn arrives at base stats on the opponent's screen — the unit looks
+    // weaker than it is on the sender's screen. Shipping the level lets
+    // the receiver scale it to match.
+    const level = (typeof playerStats !== 'undefined' && playerStats.levels && playerStats.levels[unitType]) || 1;
     Object.values(this.connections).forEach(conn => {
         if (conn.open) {
             conn.send({
                 type: 'SYNC_SPAWN',
-                x: CONFIG.CANVAS_WIDTH - x, // Flip for opponent
-                y: CONFIG.CANVAS_HEIGHT - y, // Flip for opponent
+                x: CONFIG.CANVAS_WIDTH - x,
+                y: CONFIG.CANVAS_HEIGHT - y,
                 unitType: unitType,
                 buffs: buffs,
-                isFrozen: !!isFrozen
+                isFrozen: !!isFrozen,
+                level: level
             });
         }
     });

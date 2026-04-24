@@ -1,6 +1,6 @@
 // battle-spawn.js - Entity Spawning and Initial Interaction
 
-function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, remoteBuffs = null) {
+function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, remoteBuffs = null, remoteLevel = 0) {
     if (team === 'player' && currentBattleRoom && !isRemote) {
         if (window.NetworkManager) {
             window.NetworkManager.syncSpawn(currentBattleRoom, x, y, typeStr, isFrozen);
@@ -85,6 +85,17 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
                 }
             });
         }
+    }
+
+    // Remote-spawn level scaling: Unit/Building/Aura constructors apply
+    // `getLevelScale(type)` only for their own-team ('player') spawns, so a
+    // remote ('enemy') copy would show up at base stats — the unit looks
+    // weaker on the opponent's screen than on the sender's. If the sender
+    // shipped their level over the wire, apply the same multiplier here.
+    if (isRemote && remoteLevel > 1 && card && card.type) {
+        const scale = 1 + (remoteLevel - 1) * 0.05;
+        if (entity.maxHp) { entity.maxHp *= scale; entity.hp = entity.maxHp; }
+        if (entity.attackDamage !== undefined) entity.attackDamage *= scale;
     }
 
     if (isFrozen) entity.isFrozen = true;
