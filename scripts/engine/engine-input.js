@@ -1,6 +1,8 @@
 // engine-input.js - Event Listeners and Input Handling
 
 function handleNetworkGameOver(data) {
+    console.log('[GAME-OVER-DIAG v9.36] handleNetworkGameOver called with data=' + JSON.stringify(data));
+    console.trace('[GAME-OVER-DIAG v9.36] stack at GAME_OVER reception');
     if (currentState === GAME_STATE.GAMEOVER) return;
     currentState = GAME_STATE.GAMEOVER;
     // Back-compat: older payloads sent a bare `winner` username. New payloads send

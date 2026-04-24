@@ -107,6 +107,9 @@ function update(dt, now) {
 
     if (playerSafe && enemySafe && (playerSafe.isDead || enemySafe.isDead)) {
         if (currentState !== GAME_STATE.GAMEOVER) {
+            console.log('[GAME-OVER-DIAG v9.36] local game-over: playerSafe.isDead=' + playerSafe.isDead +
+                ' (hp=' + playerSafe.hp + '/' + playerSafe.maxHp + ') enemySafe.isDead=' + enemySafe.isDead +
+                ' (hp=' + enemySafe.hp + '/' + enemySafe.maxHp + ')');
             let winStatus = "lose";
             if (playerSafe.isDead) {
                 playerTrophies = Math.max(0, playerTrophies - 3);

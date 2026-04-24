@@ -180,6 +180,7 @@ function _watchConnectionForMidBattleClose(conn) {
         const notOver = typeof currentState !== 'undefined'
             && typeof GAME_STATE !== 'undefined'
             && currentState !== GAME_STATE.GAMEOVER;
+        console.log('[GAME-OVER-DIAG v9.36] connection close: inBattle=' + inBattle + ' notOver=' + notOver + ' — will force forfeit=' + (inBattle && notOver));
         if (inBattle && notOver && typeof handleNetworkGameOver === 'function') {
             handleNetworkGameOver({ winnerIsYou: true, reason: 'forfeit' });
         }
