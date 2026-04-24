@@ -105,6 +105,25 @@ NetworkManager.broadcastReleaseFreeze = function() {
     });
 };
 
+// Our safe just fired at (targetX, targetY). Tell the opponent so their
+// `enemySafe` (== our safe, viewed from the other side) fires the same shot at
+// the same target, instead of each client independently picking a different
+// victim from its local sim. Coords are flipped into the receiver's space.
+NetworkManager.broadcastSafeFire = function(targetX, targetY, damage) {
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try {
+                conn.send({
+                    type: 'SAFE_FIRE',
+                    targetX: CONFIG.CANVAS_WIDTH  - targetX,
+                    targetY: CONFIG.CANVAS_HEIGHT - targetY,
+                    damage: damage
+                });
+            } catch (e) { /* ignore */ }
+        }
+    });
+};
+
 // Broadcast an emote to every connected peer. The local side also displays
 // its own emote immediately so the sender sees it float over their half of
 // the field (not just the opponent's copy).
@@ -225,6 +244,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof displayEmote === 'function') displayEmote(data.sender, data.emoteId);
             } else if (data.type === 'RELEASE_FREEZE') {
                 if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
+            } else if (data.type === 'SAFE_FIRE') {
+                if (typeof handleRemoteSafeFire === 'function') handleRemoteSafeFire(data);
             }
         });
     });

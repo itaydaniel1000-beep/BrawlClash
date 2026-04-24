@@ -106,19 +106,32 @@ class Safe extends Entity {
         this.lastAttackTime = 0;
     }
     update(dt, now) {
-        if (this.isDead || this.isFrozen) return; 
+        if (this.isDead || this.isFrozen) return;
+
+        // In P2P, the ENEMY safe is really the opponent's own safe viewed from
+        // our side. Each client used to independently run safe-targeting for
+        // BOTH safes, and because unit positions drift slightly between sims
+        // the two copies would pick different victims ("on his screen the safe
+        // shoots unit A, on mine it shoots unit B"). Solution: let each client
+        // be authoritative only over its OWN player-safe, and receive the
+        // opponent's shots via SAFE_FIRE messages (see handleRemoteSafeFire).
+        const inP2P = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
+        if (inP2P && this.team === 'enemy') {
+            // safeHeals / safeRegen below are player-team only, so returning here is fine.
+            return;
+        }
 
         let atkSpeedMult = 1;
         let damageMult = 1;
         auras.forEach(a => {
             if (!a.isFrozen && a.team === this.team && Math.hypot(this.x - a.x, this.y - a.y) <= a.radius) {
                 if (a.type === 'max') atkSpeedMult = 0.5;
-                if (a.type === '8bit') damageMult = 1.1; 
+                if (a.type === '8bit') damageMult = 1.1;
             }
         });
 
         if (difficulty === 'hard' && this.team === 'enemy') {
-            damageMult *= 0.8; 
+            damageMult *= 0.8;
         }
 
         if (now - this.lastAttackTime > CONFIG.SAFE_ATTACK_SPEED * atkSpeedMult) {
@@ -133,8 +146,16 @@ class Safe extends Entity {
                 }
             }
             if (target) {
-                projectiles.push(new Projectile(this.x, this.y, target, CONFIG.SAFE_DAMAGE * damageMult, this.team, false));
+                const dmg = CONFIG.SAFE_DAMAGE * damageMult;
+                projectiles.push(new Projectile(this.x, this.y, target, dmg, this.team, false));
                 this.lastAttackTime = now;
+                // Tell the peer exactly which target we locked onto, so their
+                // enemy-safe mirrors this shot at the same unit instead of
+                // re-picking from its own drift-offset simulation.
+                if (inP2P && this.team === 'player' &&
+                    window.NetworkManager && typeof window.NetworkManager.broadcastSafeFire === 'function') {
+                    try { window.NetworkManager.broadcastSafeFire(target.x, target.y, dmg); } catch (e) {}
+                }
             }
         }
 

@@ -45,6 +45,32 @@ function handleRemoteSpawn(data) {
     spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, data.buffs || null, data.level || 1);
 }
 
+// The opponent's safe just fired — mirror the shot on our screen so BOTH
+// clients agree on which of our units is being targeted. Without this every
+// client runs its own safe-targeting logic and picks a different victim when
+// two candidates are close in distance, causing the "phone shoots one unit,
+// PC shoots the other" desync.
+function handleRemoteSafeFire(data) {
+    if (!enemySafe || enemySafe.isDead || enemySafe.isFrozen) return;
+    // Try to lock onto the nearest live player-team entity to the flipped
+    // target coords so the projectile homes correctly when the unit moves.
+    // If nothing is close (unit already died, etc.), fall back to a stationary
+    // phantom target at the given coords so the tracer still renders.
+    const candidates = units.concat(buildings, auras).filter(e => e && e.team === 'player' && !e.isDead);
+    let target = null;
+    let bestDist = 80; // tolerance — units drift a bit between the two sims
+    candidates.forEach(e => {
+        const d = Math.hypot(e.x - data.targetX, e.y - data.targetY);
+        if (d < bestDist) { bestDist = d; target = e; }
+    });
+    if (!target) {
+        target = { x: data.targetX, y: data.targetY, isDead: false };
+    }
+    const dmg = (typeof data.damage === 'number' && isFinite(data.damage)) ? data.damage : CONFIG.SAFE_DAMAGE;
+    projectiles.push(new Projectile(enemySafe.x, enemySafe.y, target, dmg, 'enemy', false));
+}
+window.handleRemoteSafeFire = handleRemoteSafeFire;
+
 // Receive the opponent's admin settings at battle start. Stored globally so
 // entity-base can consult them when resolving damage against enemy-team entities
 // (the admin's own units/safe on our screen).
