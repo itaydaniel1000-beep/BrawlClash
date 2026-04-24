@@ -22,9 +22,9 @@
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=3.3">
     <link rel="stylesheet" href="styles/lobby.css?v=6.1">
-    <link rel="stylesheet" href="styles/battle-ui.css?v=9.12">
+    <link rel="stylesheet" href="styles/battle-ui.css?v=9.26">
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
-    <link rel="stylesheet" href="styles/game.css?v=9.25">
+    <link rel="stylesheet" href="styles/game.css?v=9.26">
     <link rel="stylesheet" href="styles/animations.css?v=3.3">
     <link rel="stylesheet" href="admin-panel.css?v=9.7">
     <style>
@@ -51,7 +51,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v9.25
+        v9.26
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -251,36 +251,43 @@
 
         <!-- Game Screen -->
         <div id="game-screen" class="screen">
-            <!-- Top Bar -->
-            <div class="top-bar">
-                <button id="pause-btn" class="bs-btn bs-btn-small">⏸️ עצור</button>
-            </div>
-
-            <!-- Canvas Container -->
+            <!-- Canvas Container — the canvas and every floating control that
+                 should hug the map now live inside #canvas-wrap. The wrapper
+                 preserves the 2:3 aspect of the canvas via CSS, so controls
+                 pinned to its corners visually align with the canvas edges on
+                 every device (instead of floating out in the letterbox area
+                 like they did when they were pinned to #game-screen). -->
             <div id="canvas-container">
-                <canvas id="game-canvas" width="600" height="900"></canvas>
-            </div>
+                <div id="canvas-wrap">
+                    <canvas id="game-canvas" width="600" height="900"></canvas>
 
-            <button id="bull-dash-btn"
-                style="display:none; position: absolute; bottom: 120px; right: 20px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; z-index: 100; transition: background-color 0.2s;">💨</button>
+                    <!-- Top Bar: pause button hugging the top-right of the map -->
+                    <div class="top-bar">
+                        <button id="pause-btn" class="bs-btn bs-btn-small">⏸️ עצור</button>
+                    </div>
 
-            <!-- Admin: Delete-Enemy-Unit button — appears above the elixir bar
-                 during battle while adminHacks.deleteUnit is on. One click arms
-                 the mode; the next canvas click on an enemy unit destroys it. -->
-            <button id="admin-delete-btn" onclick="activateDeleteUnitMode()"
-                style="display:none; position: absolute; bottom: 190px; right: 20px; padding: 12px; font-size: 22px; background-color: #c0392b; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #7b1818; z-index: 100; transition: background-color 0.2s;"
-                title="מחיקת דמות של היריב">🗑️</button>
+                    <button id="bull-dash-btn"
+                        style="display:none; position: absolute; bottom: 10px; right: 60px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; z-index: 100; transition: background-color 0.2s;">💨</button>
 
-            <!-- Release Freeze Button (appears below map, bottom-left, when frozen player units exist) -->
-            <button id="release-freeze-btn" onclick="releaseAllFreeze()">🧊 שחרור פריז</button>
+                    <!-- Admin: Delete-Enemy-Unit button — stacks above bull-dash
+                         on the bottom-right of the map while adminHacks.deleteUnit
+                         is on. -->
+                    <button id="admin-delete-btn" onclick="activateDeleteUnitMode()"
+                        style="display:none; position: absolute; bottom: 70px; right: 60px; padding: 12px; font-size: 22px; background-color: #c0392b; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #7b1818; z-index: 100; transition: background-color 0.2s;"
+                        title="מחיקת דמות של היריב">🗑️</button>
 
-            <!-- NEW: Emote System -->
-            <div id="emote-bubble-btn" class="emote-bubble-btn">💭</div>
-            <div id="emote-selector" class="emote-selector">
-                <div class="emote-option" onclick="sendEmote('angry')">😡</div>
-                <div class="emote-option" onclick="sendEmote('laugh')">😂</div>
-                <div class="emote-option" onclick="sendEmote('thumb')">👍</div>
-                <div class="emote-option" onclick="sendEmote('cry')">😭</div>
+                    <!-- Release Freeze Button: hugs bottom-left of the map. -->
+                    <button id="release-freeze-btn" onclick="releaseAllFreeze()">🧊 שחרור פריז</button>
+
+                    <!-- Emote System: hugs bottom-right of the map. -->
+                    <div id="emote-bubble-btn" class="emote-bubble-btn">💭</div>
+                    <div id="emote-selector" class="emote-selector">
+                        <div class="emote-option" onclick="sendEmote('angry')">😡</div>
+                        <div class="emote-option" onclick="sendEmote('laugh')">😂</div>
+                        <div class="emote-option" onclick="sendEmote('thumb')">👍</div>
+                        <div class="emote-option" onclick="sendEmote('cry')">😭</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Bottom UI (Deck and Elixir) -->

@@ -28,9 +28,11 @@
 }
 
 .top-bar {
+    /* Hugs the TOP-RIGHT corner of the map (positioned relative to #canvas-wrap
+       so it travels with the canvas no matter how it's letterboxed). */
     position: absolute;
-    top: 20px;
-    left: 20px;
+    top: 10px;
+    right: 10px;
     z-index: 100;
 }
 
@@ -80,12 +82,14 @@
     text-shadow: 1px 1px 2px #000;
 }
 
-/* Release Freeze Button — appears below the map, bottom-left, only while player units are frozen */
+/* Release Freeze Button — hugs the BOTTOM-LEFT corner of the map (the button
+   lives inside #canvas-wrap, so `bottom: 10px` is 10 px from the canvas's
+   bottom edge, not from the bottom of the whole game-screen). */
 #release-freeze-btn {
     display: none;
     position: absolute;
-    bottom: 175px;
-    left: 20px;
+    bottom: 10px;
+    left: 10px;
     padding: 12px 22px;
     background: linear-gradient(to bottom, #74b9ff, #0984e3);
     color: #fff;
@@ -109,13 +113,12 @@
     filter: brightness(1.1);
 }
 
-/* Emote bubble + selector float above the battle UI instead of taking their
-   own layout space in the flex column (which otherwise steals ~90px of canvas
-   room on mobile). The JS toggles .active on the selector to show/hide it. */
+/* Emote bubble + selector hug the BOTTOM-RIGHT corner of the map (inside
+   #canvas-wrap), so they stay glued to the canvas regardless of letterbox. */
 .emote-bubble-btn {
     position: absolute;
-    bottom: 175px;
-    right: 12px;
+    bottom: 10px;
+    right: 10px;
     width: 42px;
     height: 42px;
     display: flex;
@@ -130,8 +133,8 @@
 }
 .emote-selector {
     position: absolute;
-    bottom: 225px;
-    right: 12px;
+    bottom: 60px;    /* sits just above the emote bubble */
+    right: 10px;
     display: none;
     flex-direction: column;
     gap: 6px;
@@ -198,7 +201,8 @@
     .deck-wrapper { margin-bottom: 4px; }
     .elixir-container { height: 22px; padding: 0 12px; gap: 6px; }
     .elixir-bar-bg { height: 16px; }
-    #release-freeze-btn { bottom: 105px; padding: 6px 12px; font-size: 0.85rem; }
+    /* On mobile the button sits inside #canvas-wrap — hug the bottom edge. */
+    #release-freeze-btn { bottom: 10px; padding: 6px 12px; font-size: 0.85rem; }
     /* Pause button: keep it small and in the corner so it doesn't eat map space */
     .top-bar { top: 6px; right: 6px; }
     .top-bar .bs-btn { padding: 6px 10px; font-size: 0.8rem; }

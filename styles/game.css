@@ -17,22 +17,27 @@
     background: #000;
 }
 
+/* Inner wrapper that IS the map area. Preserves the 2:3 aspect of the 600×900
+   canvas on every device, so its corners coincide with the canvas corners.
+   Every floating in-battle control (pause, emotes, release-freeze, dash,
+   delete-unit) is a child of this wrapper, so their absolute positioning is
+   measured from the CANVAS edges instead of from the full #game-screen.
+   That's what makes them "glued to the map" regardless of how much letterbox
+   space the viewport gives us. */
+#canvas-wrap {
+    position: relative;
+    aspect-ratio: 2 / 3;
+    max-width: 100%;
+    max-height: 100%;
+}
+
 #game-canvas {
     background-color: transparent;
     display: block;
     touch-action: none;
-    /* Preserve the 2:3 aspect ratio of the internal 600×900 drawing on every
-       device. The previous `width:100%; height:100%` rule stretched the
-       canvas to the container's shape, which on a PC (wider container) made
-       circles look like ellipses and horizontal movement appear faster than
-       on a phone. The underlying game coordinates are always 600×900, so
-       this change only affects visual layout — gameplay mechanics stay
-       identical across devices. Small black letterbox bars may appear on
-       containers whose ratio isn't exactly 2:3; that's acceptable in
-       exchange for a consistent look on all screens. */
-    aspect-ratio: 2 / 3;
-    max-width: 100%;
-    max-height: 100%;
+    /* Wrapper above has the aspect-ratio; the canvas simply fills it. */
+    width: 100%;
+    height: 100%;
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
 
