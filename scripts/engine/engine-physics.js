@@ -56,6 +56,24 @@ function update(dt, now) {
         }
 
         if (e.update) e.update(dt, now);
+
+        // Post-release HP ceiling lock: when the player releases a unit from
+        // freeze, the user explicitly does NOT want the HP to refill. We
+        // snapshot hp in releaseAllFreeze / handleRemoteReleaseFreeze and
+        // clamp it here so friendly healers (Pam, Scrappy SP2, safeHeals,
+        // etc.) can't push it upward for a brief window. Downward motion
+        // (damage, frostbite) is unaffected — only upward is capped.
+        if (e._postReleaseHpCapUntil) {
+            if (now < e._postReleaseHpCapUntil) {
+                if (typeof e._postReleaseHpCap === 'number' && e.hp > e._postReleaseHpCap) {
+                    e.hp = e._postReleaseHpCap;
+                }
+            } else {
+                delete e._postReleaseHpCap;
+                delete e._postReleaseHpCapUntil;
+            }
+        }
+
         if (e.isDead && !e.deathLogged && e.team === 'enemy' && e.type && CARDS[e.type]) {
             e.deathLogged = true;
             aiDeaths.push({ type: e.type, x: e.x, y: e.y, time: now });

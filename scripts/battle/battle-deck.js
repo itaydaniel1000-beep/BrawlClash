@@ -2,9 +2,16 @@
 
 function releaseAllFreeze() {
     // Un-freeze but KEEP the current HP — the user doesn't want release to
-    // double as a full heal.
+    // double as a full heal. To make this airtight we also LOCK the HP as a
+    // temporary ceiling for 2 seconds so no ambient healer (Pam aura at
+    // 15 HP/s, Scrappy SP2 at 50 HP/s, admin safeHeals, etc.) can bump the
+    // just-released unit back up. `hp` can still go DOWN normally — damage
+    // and frostbite aren't affected, only upward motion is capped.
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     [...units, ...buildings, ...auras].filter(e => e.team === 'player' && e.isFrozen).forEach(e => {
         e.isFrozen = false;
+        e._postReleaseHpCap = e.hp;
+        e._postReleaseHpCapUntil = now + 2000;
     });
     AudioController.play('upgrade');
     // Tell the opponent to un-freeze the matching units on THEIR screen
@@ -20,9 +27,12 @@ window.releaseAllFreeze = releaseAllFreeze;
 // Handler invoked when an opponent tells us they released their frozen units.
 // On this client those units are on the 'enemy' team, so we unfreeze that set.
 function handleRemoteReleaseFreeze() {
-    // Mirror the local rule: un-freeze without healing.
+    // Mirror the local rule: un-freeze + HP-ceiling lock for 2s, no heal.
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     [...units, ...buildings, ...auras].filter(e => e.team === 'enemy' && e.isFrozen).forEach(e => {
         e.isFrozen = false;
+        e._postReleaseHpCap = e.hp;
+        e._postReleaseHpCapUntil = now + 2000;
     });
 }
 window.handleRemoteReleaseFreeze = handleRemoteReleaseFreeze;
