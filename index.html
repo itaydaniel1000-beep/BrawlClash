@@ -51,7 +51,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v9.31
+        v9.32
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -634,6 +634,8 @@
                 <div class="hack-description">כל הדמויות שלך מפעילות את שני הסטאר-פאוורס (SP1+SP2) בו-זמנית.</div>
                 <div class="hack-row"><div class="hack-label">🗑️ מחיקת דמות</div><div id="toggle-deleteUnit" class="toggle-switch-btn" onclick="toggleAdminHack('deleteUnit')">כבוי</div></div>
                 <div class="hack-description">במהלך הקרב יופיע כפתור 🗑️ מעל בר האליקסיר מימין. לחיצה עליו מפעילה מצב מחיקה — כל דמות אויב שתלחץ עליה במפה תימחק מיד, והמצב נשאר דלוק עד שתלחץ שוב על הכפתור לכיבוי.</div>
+                <div class="hack-row"><div class="hack-label">🛡️ ביטול אדמין</div><div id="toggle-cancelAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('cancelAdmin')">כבוי</div></div>
+                <div class="hack-description">בקרבות P2P, אם היריב מפעיל את האדמין פאנל — כל הכוחות שלו מושבתים אוטומטית עד סוף הקרב. הכוחות שלו חוזרים מיד כשהמשחק נגמר. שימושי כדי לנטרל אדמין ששימוש לרעה.</div>
 
                 <div class="admin-section-title">🗝️ מנהל-משנה</div>
                 <div class="hack-row"><div class="hack-label">✨ יכול להעניק אדמין</div><div id="toggle-canGrantAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('canGrantAdmin')">כבוי</div></div>
@@ -708,13 +710,13 @@
     
     <!-- Game Core & Config -->
     <script src="config.js"></script>
-    <script src="globals.js?v=7.7"></script>
+    <script src="globals.js?v=9.32"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
     <script src="scripts/network/net-base.js?v=4.0"></script>
-    <script src="scripts/network/net-social.js?v=9.24"></script>
-    <script src="scripts/network/net-sync.js?v=9.24"></script>
+    <script src="scripts/network/net-social.js?v=9.32"></script>
+    <script src="scripts/network/net-sync.js?v=9.32"></script>
     <script src="network-logic.js?v=9.30"></script>
 
     <!-- Entities Module -->
@@ -743,9 +745,9 @@
 
     <!-- Engine Module -->
     <script src="scripts/engine/engine-core.js?v=7.1"></script>
-    <script src="scripts/engine/engine-physics.js?v=9.24"></script>
+    <script src="scripts/engine/engine-physics.js?v=9.32"></script>
     <script src="scripts/engine/engine-renderer.js?v=4.9"></script>
-    <script src="scripts/engine/engine-input.js?v=9.24"></script>
+    <script src="scripts/engine/engine-input.js?v=9.32"></script>
 </body>
 
 </html>

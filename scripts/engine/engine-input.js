@@ -33,6 +33,10 @@ function handleNetworkGameOver(data) {
     const overMenu = document.getElementById('game-over-menu');
     if (overMenu) overMenu.classList.add('active');
 
+    // If the opponent's "ביטול אדמין" suspended our hacks for this match,
+    // restore them now that the battle is over.
+    if (typeof restoreSuspendedAdmin === 'function') restoreSuspendedAdmin();
+
     // Clear battle-room after a beat so the next game starts fresh.
     setTimeout(() => { currentBattleRoom = null; }, 3000);
 }
@@ -42,7 +46,13 @@ function handleRemoteSpawn(data) {
     // `isFrozen` and `level` ride along so a freeze-placement (❄️ card) stays
     // frozen on the opponent's screen and the unit gets the same
     // getLevelScale() boost the sender's copy already had.
-    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, data.buffs || null, data.level || 1);
+    // "Cancel admin" guard: if WE turned on cancelAdmin for this match, strip
+    // any admin-buff payload the opponent's client happened to ship along.
+    // Normally they should already be suspended via SUSPEND_ADMIN, but this
+    // covers the race where SYNC_SPAWN arrives first.
+    const cancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
+    const buffs = cancelling ? null : (data.buffs || null);
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
 }
 
 // The opponent's safe just fired — mirror the shot on our screen so BOTH
@@ -81,6 +91,27 @@ window.handleRemoteSafeFire = handleRemoteSafeFire;
 function handleAdminConfig(data) {
     if (!data || !data.hacks) return;
     const h = data.hacks;
+
+    // "Cancel admin" path: if WE turned cancelAdmin on AND the opponent says
+    // they're admin, neutralise them. Tell their client to suspend its own
+    // adminHacks for the rest of this match, AND locally treat them as a
+    // non-admin so none of the opponent-buff paths fire.
+    const iAmCancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
+    if (iAmCancelling && data.isAdmin) {
+        if (window.NetworkManager && typeof window.NetworkManager.sendSuspendAdmin === 'function') {
+            try { window.NetworkManager.sendSuspendAdmin(); } catch (e) {}
+        }
+        opponentAdminHacks = {
+            isAdmin: false, infiniteElixir: false, godMode: false,
+            doubleDamage: false, superSpeed: false,
+            speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0
+        };
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🛡️ ביטול אדמין פעיל — כוחות האדמין של היריב הושבתו');
+        }
+        return;
+    }
+
     opponentAdminHacks = {
         isAdmin: !!data.isAdmin,
         infiniteElixir: !!h.infiniteElixir,
@@ -123,6 +154,42 @@ function handleAdminConfig(data) {
     }
 }
 window.handleAdminConfig = handleAdminConfig;
+
+// The opponent has "ביטול אדמין" on and just asked us to back off our own
+// admin hacks for the rest of this match. Snapshot the current adminHacks
+// object, zero out every field, and keep a restore handle so GAME_OVER /
+// quit can bring them back. Idempotent — a second SUSPEND_ADMIN during the
+// same match is a no-op (the backup is already captured).
+function handleSuspendAdmin() {
+    if (typeof adminHacks === 'undefined') return;
+    if (window._suspendedAdminBackup) return; // already suspended
+    try { window._suspendedAdminBackup = JSON.parse(JSON.stringify(adminHacks)); }
+    catch (e) { window._suspendedAdminBackup = Object.assign({}, adminHacks); }
+
+    Object.keys(adminHacks).forEach(k => {
+        const v = adminHacks[k];
+        if (typeof v === 'boolean') adminHacks[k] = false;
+        else if (typeof v === 'number') adminHacks[k] = 0;
+        else if (typeof v === 'string') adminHacks[k] = '';
+    });
+    if (typeof showTransientToast === 'function') {
+        showTransientToast('🛡️ היריב הפעיל ביטול-אדמין — כוחות האדמין שלך מושבתים עד סוף הקרב');
+    }
+}
+window.handleSuspendAdmin = handleSuspendAdmin;
+
+// Battle ended (GAME_OVER, forfeit, disconnect) — restore adminHacks to
+// whatever the backup captured. Safe to call unconditionally; a no-op
+// when there's no backup to restore.
+function restoreSuspendedAdmin() {
+    if (!window._suspendedAdminBackup) return;
+    try { Object.assign(adminHacks, window._suspendedAdminBackup); } catch (e) {}
+    window._suspendedAdminBackup = null;
+    if (typeof showTransientToast === 'function') {
+        showTransientToast('🛡️ המשחק הסתיים — כוחות האדמין שלך חזרו');
+    }
+}
+window.restoreSuspendedAdmin = restoreSuspendedAdmin;
 
 function handleShiftRelease(e) {
     if (e.key !== 'Shift') return;
@@ -204,6 +271,8 @@ function initGameListeners() {
             try { window.NetworkManager.notifyForfeit(); } catch (e) {}
             currentBattleRoom = null;
         }
+        // If ביטול אדמין suspended our hacks for this match, bring them back.
+        if (typeof restoreSuspendedAdmin === 'function') restoreSuspendedAdmin();
         gameLoopRunning = false;
         currentState = GAME_STATE.MENU;
         document.getElementById('pause-menu').classList.remove('active');

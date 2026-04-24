@@ -84,7 +84,12 @@ var adminHacks = (function loadAdminHacks() {
         // Delegated super-admin rights — a granted user can show the ✨ / 🚫
         // buttons and hand out / revoke admin perks to other usernames.
         canGrantAdmin: false,
-        canRevokeAdmin: false
+        canRevokeAdmin: false,
+        // "Cancel admin" — when on, the opponent's admin hacks are neutralised
+        // for the duration of a P2P match. We refuse to apply opponent buffs
+        // locally AND ask the opponent's client to temporarily wipe its own
+        // adminHacks (backed up + restored at match end).
+        cancelAdmin: false
     };
     try {
         const raw = localStorage.getItem('brawlclash_admin_hacks');

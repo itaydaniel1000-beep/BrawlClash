@@ -45,6 +45,8 @@ NetworkManager.sendInvite = function(targetPeerId, senderName) {
                 if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
             } else if (data.type === 'SAFE_FIRE') {
                 if (typeof handleRemoteSafeFire === 'function') handleRemoteSafeFire(data);
+            } else if (data.type === 'SUSPEND_ADMIN') {
+                if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
             }
         });
     });
@@ -84,6 +86,8 @@ NetworkManager.handleConnection = function(conn) {
             if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
         } else if (data.type === 'SAFE_FIRE') {
             if (typeof handleRemoteSafeFire === 'function') handleRemoteSafeFire(data);
+        } else if (data.type === 'SUSPEND_ADMIN') {
+            if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
         }
     });
 };

@@ -95,6 +95,19 @@ NetworkManager.sendAdminConfig = function() {
     });
 };
 
+// "Cancel admin" was turned on locally and the opponent just declared they
+// ARE an admin via ADMIN_CONFIG — ask them to suspend their hacks for the
+// duration of this match. Their client backs up adminHacks, wipes them,
+// and restores them when the battle ends. Only effective during an active
+// P2P match; no-op otherwise.
+NetworkManager.sendSuspendAdmin = function() {
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try { conn.send({ type: 'SUSPEND_ADMIN' }); } catch (e) { /* ignore */ }
+        }
+    });
+};
+
 // Tell the opponent to un-freeze the units WE just unfroze — same batch rule,
 // just on the other team's perspective.
 NetworkManager.broadcastReleaseFreeze = function() {
@@ -246,6 +259,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleRemoteReleaseFreeze === 'function') handleRemoteReleaseFreeze();
             } else if (data.type === 'SAFE_FIRE') {
                 if (typeof handleRemoteSafeFire === 'function') handleRemoteSafeFire(data);
+            } else if (data.type === 'SUSPEND_ADMIN') {
+                if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
             }
         });
     });

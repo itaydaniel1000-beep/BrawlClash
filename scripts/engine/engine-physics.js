@@ -130,6 +130,10 @@ function update(dt, now) {
         const overMenu = document.getElementById('game-over-menu');
         if (overMenu) overMenu.classList.add('active');
 
+        // If ביטול אדמין suspended our hacks for this match, restore them now
+        // that the battle has ended (safe destroyed on one side).
+        if (typeof restoreSuspendedAdmin === 'function') restoreSuspendedAdmin();
+
         if (currentBattleRoom) {
             setTimeout(() => { currentBattleRoom = null; }, 3000);
         }
