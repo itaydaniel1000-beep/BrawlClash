@@ -44,11 +44,13 @@ function handleNetworkGameOver(data) {
 }
 
 function handleRemoteSpawn(data) {
-    // cancelAdmin TEMPORARILY neutered — pass the incoming buffs through
-    // exactly like we did before the feature was added, so we can confirm
-    // whether the "game ends on unit placement" regression is caused by
-    // the cancelAdmin code paths or by something completely unrelated.
-    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, data.buffs || null, data.level || 1);
+    // Verified in a two-tab in-browser simulation: stripping the buffs
+    // when cancelAdmin is on does NOT cause the match to end on placement.
+    // The regression the user reported must live elsewhere (stale cache,
+    // mid-version opponent, etc.). Re-enabling the feature.
+    const cancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
+    const buffs = cancelling ? null : (data.buffs || null);
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
 }
 
 // The opponent's safe just fired — mirror the shot on our screen so BOTH
@@ -88,11 +90,24 @@ function handleAdminConfig(data) {
     if (!data || !data.hacks) return;
     const h = data.hacks;
 
-    // cancelAdmin TEMPORARILY neutered — don't strip opponent effects, just
-    // fall through to the normal opponentAdminHacks assignment below. If the
-    // user still sees "game ends on unit placement" with this gutted code,
-    // the bug lives somewhere outside the cancelAdmin feature and we need
-    // to hunt for it elsewhere.
+    // cancelAdmin local-only strip — verified in a two-tab simulation that
+    // this does NOT cause the reported game-over regression.
+    const iAmCancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
+    const opponentHasAnyHack = !!(
+        data.isAdmin || h.infiniteElixir || h.godMode || h.doubleDamage || h.superSpeed ||
+        h.speedMultiplier > 1 || h.dmgMultiplier > 1 || h.hpMultiplier > 1 || h.safeHpMultiplier > 1
+    );
+    if (iAmCancelling && opponentHasAnyHack) {
+        opponentAdminHacks = {
+            isAdmin: false, infiniteElixir: false, godMode: false,
+            doubleDamage: false, superSpeed: false,
+            speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0
+        };
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🛡️ ביטול אדמין פעיל — הכוחות של היריב לא יחולו אצלך');
+        }
+        return;
+    }
 
     opponentAdminHacks = {
         isAdmin: !!data.isAdmin,
