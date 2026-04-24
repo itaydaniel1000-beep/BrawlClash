@@ -23,16 +23,9 @@ class Building extends Entity {
             this.maxHp = 1000; this.hp = 1000; this.color = '#54a0ff'; this.attackRange = 0; 
         }
 
-        // Unified level-scaling: applied to both teams in vs-bot, skipped in
-        // P2P for both sides. See unit-core.js for the rationale.
-        const inP2PForScale = (
-            (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
-            (typeof window !== 'undefined' && !!window.currentBattleRoom)
-        );
-        const scale = inP2PForScale ? 1 : (typeof getLevelScale === 'function' ? getLevelScale(type) : 1);
-        this.maxHp *= scale;
-        this.hp = this.maxHp;
-        this.attackDamage *= scale;
+        // Level scaling removed — matches unit-core.js. Every building uses
+        // its base stats (Scrappy always 800, Penny always 600, Mr-P always
+        // 1000) so both devices agree regardless of local upgrade levels.
     }
 
     update(dt, now) {
