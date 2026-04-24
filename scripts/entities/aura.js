@@ -41,15 +41,14 @@ class Aura extends Entity {
             this.maxHp = 99999; this.hp = this.maxHp;
         }
 
-        if (team === 'player' && type !== 'fire') {
-            // Mirror the Unit-class rule: skip level scaling in P2P so both
-            // devices show the same HP for the same aura type, regardless
-            // of each player's locally-stored upgrade level.
+        // Unified level-scaling: applied to both teams in vs-bot, skipped in
+        // P2P for both sides. 'fire' aura is excluded (hardcoded maxHp=99999).
+        if (type !== 'fire') {
             const inP2PForScale = (
                 (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
                 (typeof window !== 'undefined' && !!window.currentBattleRoom)
             );
-            const scale = inP2PForScale ? 1 : getLevelScale(type);
+            const scale = inP2PForScale ? 1 : (typeof getLevelScale === 'function' ? getLevelScale(type) : 1);
             this.maxHp *= scale;
             this.hp = this.maxHp;
         }

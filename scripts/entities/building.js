@@ -23,19 +23,16 @@ class Building extends Entity {
             this.maxHp = 1000; this.hp = 1000; this.color = '#54a0ff'; this.attackRange = 0; 
         }
 
-        if (team === 'player') {
-            // Mirror the Unit-class rule: skip level scaling in P2P so both
-            // devices show the same HP/damage for the same building type,
-            // regardless of each player's locally-stored upgrade level.
-            const inP2PForScale = (
-                (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
-                (typeof window !== 'undefined' && !!window.currentBattleRoom)
-            );
-            const scale = inP2PForScale ? 1 : getLevelScale(type);
-            this.maxHp *= scale;
-            this.hp = this.maxHp;
-            this.attackDamage *= scale;
-        }
+        // Unified level-scaling: applied to both teams in vs-bot, skipped in
+        // P2P for both sides. See unit-core.js for the rationale.
+        const inP2PForScale = (
+            (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
+            (typeof window !== 'undefined' && !!window.currentBattleRoom)
+        );
+        const scale = inP2PForScale ? 1 : (typeof getLevelScale === 'function' ? getLevelScale(type) : 1);
+        this.maxHp *= scale;
+        this.hp = this.maxHp;
+        this.attackDamage *= scale;
     }
 
     update(dt, now) {

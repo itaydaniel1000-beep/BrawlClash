@@ -29,23 +29,25 @@ class Unit extends Entity {
             }
         }
 
-        if (team === 'player') {
-            // Level scaling is DISABLED in P2P matches: each player's local
-            // progression would otherwise give them a different HP/damage
-            // number for the same unit on each device (bruce at level-1 has
-            // 1200 HP on the phone, at level-12 he has 1860 HP on the PC).
-            // That also made damage vs the opponent's safe look asymmetric
-            // between the two screens. In P2P we flatten everyone to base
-            // stats for fairness and sync. Vs-bot still uses level scaling.
-            const inP2PForScale = (
-                (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
-                (typeof window !== 'undefined' && !!window.currentBattleRoom)
-            );
-            const scale = (!inP2PForScale && typeof getLevelScale === 'function') ? getLevelScale(type) : 1;
-            this.maxHp *= scale;
-            this.hp = this.maxHp;
-            this.attackDamage *= scale;
-        }
+        // UNIFIED level-scaling rule (applied to BOTH teams — player and enemy):
+        //   • Vs-bot: scale every unit by the player's local level for that
+        //     type, so your level-12 Bruce (1860 HP) fights a level-12 Bruce
+        //     (1860 HP), not a base-1200 bot Bruce.
+        //   • P2P: scale stays at 1 for both sides, so both devices agree on
+        //     the exact same HP/damage numbers regardless of each player's
+        //     locally-stored progression.
+        // Doing it here in the constructor (instead of a post-spawn block in
+        // battle-spawn.js) is more robust against partial cache hits — as long
+        // as this file is fresh, stats are correct even if battle-spawn.js is
+        // still cached.
+        const inP2PForScale = (
+            (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
+            (typeof window !== 'undefined' && !!window.currentBattleRoom)
+        );
+        const scale = (!inP2PForScale && typeof getLevelScale === 'function') ? getLevelScale(type) : 1;
+        this.maxHp *= scale;
+        this.hp = this.maxHp;
+        this.attackDamage *= scale;
     }
 
     takeDamage(amount) {
