@@ -577,8 +577,47 @@ function parseAdminRequest(text) {
     }
 
     if (has('הכל', 'all everything', 'everything', 'all powers')) {
-        grant.infiniteElixir = true; grant.godMode = true;
-        grant.doubleDamage = true; grant.superSpeed = true;
+        // Hand out EVERY persistent hack available in the admin panel, plus
+        // generous defaults for the parametric multipliers, plus the one-shot
+        // currency rewards. The super-admin can still fine-tune afterwards by
+        // sending a follow-up grant with specific numbers.
+        // --- Boolean toggles -------------------------------------------
+        grant.infiniteElixir    = true;
+        grant.godMode           = true;
+        grant.doubleDamage      = true;
+        grant.superSpeed        = true;
+        grant.infiniteRange     = true;
+        grant.permanentInvisible= true;
+        grant.freeCards         = true;
+        grant.fullRefund        = true;
+        grant.safeShoots        = true;
+        grant.safeHeals         = true;
+        grant.doubleSafe        = true;
+        grant.disableBot        = true;
+        grant.autoIncome        = true;
+        grant.allStarPowers     = true;
+        grant.deleteUnit        = true;
+        grant.canGrantAdmin     = true;
+        grant.canRevokeAdmin    = true;
+        // --- Parametric multipliers ------------------------------------
+        grant.speedMultiplier       = 5;
+        grant.dmgMultiplier         = 10;
+        grant.hpMultiplier          = 10;
+        grant.safeHpMultiplier      = 10;
+        grant.attackSpeedMultiplier = 5;
+        grant.radiusMultiplier      = 2;
+        grant.elixirRateMultiplier  = 10;
+        grant.startingElixir        = 20;
+        grant.maxElixir             = 20;
+        grant.botSlowdownFactor     = 5;
+        grant.enemyNerfFactor       = 5;
+        grant.safeRegen             = 100;
+        // timeScale left at 0 (normal) — overriding time would be disorienting.
+        // --- One-shot rewards ------------------------------------------
+        grant.maxLevels = true;
+        grant.coins     = 9999999;
+        grant.gems      = 99999;
+        grant.trophies  = 99999;
     }
 
     if (has('גוד מוד', 'גודמוד', 'חסין', 'אלמוות', 'אל-מוות', 'בלתי פגיע',
