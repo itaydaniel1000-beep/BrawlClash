@@ -44,20 +44,11 @@ function handleNetworkGameOver(data) {
 }
 
 function handleRemoteSpawn(data) {
-    // data.unitType is the unit kind; data.type is the envelope tag 'SYNC_SPAWN'
-    // `isFrozen` and `level` ride along so a freeze-placement (❄️ card) stays
-    // frozen on the opponent's screen and the unit gets the same
-    // getLevelScale() boost the sender's copy already had.
-    // "Cancel admin" guard: if WE turned cancelAdmin on, drop every admin
-    // buff piggy-backed onto this spawn (doubleDamage, hpMult, dmgMult, etc.).
-    // Opponent-team units on our screen will use base stats regardless of
-    // what the opponent's admin panel had enabled.
-    const cancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
-    const buffs = cancelling ? null : (data.buffs || null);
-    console.log('[CANCEL-ADMIN v9.35] handleRemoteSpawn: cancelAdmin=' + cancelling +
-        ' unitType=' + data.unitType + ' incomingBuffs=' + JSON.stringify(data.buffs || {}) +
-        ' appliedBuffs=' + JSON.stringify(buffs || {}));
-    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
+    // cancelAdmin TEMPORARILY neutered — pass the incoming buffs through
+    // exactly like we did before the feature was added, so we can confirm
+    // whether the "game ends on unit placement" regression is caused by
+    // the cancelAdmin code paths or by something completely unrelated.
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, data.buffs || null, data.level || 1);
 }
 
 // The opponent's safe just fired — mirror the shot on our screen so BOTH
@@ -97,34 +88,11 @@ function handleAdminConfig(data) {
     if (!data || !data.hacks) return;
     const h = data.hacks;
 
-    // "Cancel admin" — if WE turned cancelAdmin on, we refuse to acknowledge
-    // ANY of the opponent's admin powers on our side, whether they're the
-    // super-admin or a granted admin. Just store an all-zero
-    // opponentAdminHacks so no buff path fires for opponent-team entities on
-    // our screen. We do NOT send anything back to their client — their view
-    // will still show their own buffs locally, but our view won't be
-    // affected, and most importantly they can't drop our safe's HP via
-    // safeHpMultiplier sync. Simple and robust.
-    const iAmCancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
-    const opponentHasAnyHack = !!(
-        data.isAdmin || h.infiniteElixir || h.godMode || h.doubleDamage || h.superSpeed ||
-        h.speedMultiplier > 1 || h.dmgMultiplier > 1 || h.hpMultiplier > 1 || h.safeHpMultiplier > 1
-    );
-    console.log('[CANCEL-ADMIN v9.35] handleAdminConfig: iAmCancelling=' + iAmCancelling +
-        ' opponentIsAdmin=' + !!data.isAdmin + ' opponentHasAnyHack=' + opponentHasAnyHack +
-        ' incomingHacks=' + JSON.stringify(h));
-
-    if (iAmCancelling && opponentHasAnyHack) {
-        opponentAdminHacks = {
-            isAdmin: false, infiniteElixir: false, godMode: false,
-            doubleDamage: false, superSpeed: false,
-            speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0
-        };
-        if (typeof showTransientToast === 'function') {
-            showTransientToast('🛡️ ביטול אדמין פעיל — הכוחות של היריב לא יחולו אצלך');
-        }
-        return;
-    }
+    // cancelAdmin TEMPORARILY neutered — don't strip opponent effects, just
+    // fall through to the normal opponentAdminHacks assignment below. If the
+    // user still sees "game ends on unit placement" with this gutted code,
+    // the bug lives somewhere outside the cancelAdmin feature and we need
+    // to hunt for it elsewhere.
 
     opponentAdminHacks = {
         isAdmin: !!data.isAdmin,
