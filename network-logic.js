@@ -407,41 +407,29 @@ async function claimUsername() {
 }
 window.claimUsername = claimUsername;
 
-// Re-opens the username overlay in "change name" mode: pre-fills the input
-// with the current username, swaps the title/prompt to reflect editing
-// rather than first-time entry, and shows the ✕ cancel button so the
-// player can back out without having to commit a new name.
+// Re-opens the username overlay in the exact same state the player saw on
+// their first visit: empty input, "ברוך הבא!" title, "התחל לשחק!" submit.
+// Clicking the green submit runs the normal claimUsername() flow, which
+// re-locks the new name via PeerJS and replaces playerStats.username +
+// localStorage. No pre-fill, no cancel, no customised labels — the user
+// explicitly asked for the plain welcome screen.
 function openUsernameChange() {
     const overlay  = document.getElementById('username-overlay');
     const input    = document.getElementById('username-input');
-    const title    = document.getElementById('username-overlay-title');
-    const prompt   = document.getElementById('username-overlay-prompt');
-    const cancel   = document.getElementById('username-cancel-btn');
-    const submit   = document.getElementById('username-submit-btn');
     const feedback = document.getElementById('username-feedback');
     if (!overlay) return;
 
-    if (input)  input.value = (playerStats && playerStats.username) ? playerStats.username : '';
-    if (title)  title.innerText  = 'שינוי שם משתמש';
-    if (prompt) prompt.innerText = 'איזה שם חדש תרצה?';
-    if (submit) submit.innerText = 'שמור';
-    if (cancel) cancel.style.display = 'flex';
+    // Reset to a blank welcome state regardless of what the overlay looked
+    // like last time it was opened.
+    if (input) input.value = '';
     if (feedback) feedback.innerText = '';
-    // Inline display was set to 'none' by claimUsername when it first closed
-    // the overlay; clear that so the .screen.active class (if present) or
-    // the explicit 'flex' below can show the element again.
+    // `claimUsername` sets display:none inline when it first closes the
+    // overlay, so the .screen class's `display: none` alone isn't enough to
+    // bring it back — force display:flex here.
     overlay.style.display = 'flex';
     if (input) setTimeout(() => input.focus(), 50);
 }
 window.openUsernameChange = openUsernameChange;
-
-// Hides the overlay without changing the name. Used by the ✕ button in
-// the overlay when the player opened it via ✏️ and changed their mind.
-function closeUsernameChange() {
-    const overlay = document.getElementById('username-overlay');
-    if (overlay) overlay.style.display = 'none';
-}
-window.closeUsernameChange = closeUsernameChange;
 
 function sendEmote(emoteId) {
     if (!currentBattleRoom || !playerStats.username) return;
