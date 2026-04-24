@@ -21,13 +21,18 @@
     background-color: transparent;
     display: block;
     touch-action: none;
-    /* Stretch to fill the entire canvas-container — no letterbox bars. The
-       internal 600×900 drawing is scaled by the GPU to whatever the element
-       renders at, so a phone (portrait-ish container) ends up with the map
-       filling every pixel. Click coordinates are still mapped correctly via
-       `clientToCanvasCoords` in battle-input.js. */
-    width: 100%;
-    height: 100%;
+    /* Preserve the 2:3 aspect ratio of the internal 600×900 drawing on every
+       device. The previous `width:100%; height:100%` rule stretched the
+       canvas to the container's shape, which on a PC (wider container) made
+       circles look like ellipses and horizontal movement appear faster than
+       on a phone. The underlying game coordinates are always 600×900, so
+       this change only affects visual layout — gameplay mechanics stay
+       identical across devices. Small black letterbox bars may appear on
+       containers whose ratio isn't exactly 2:3; that's acceptable in
+       exchange for a consistent look on all screens. */
+    aspect-ratio: 2 / 3;
+    max-width: 100%;
+    max-height: 100%;
     box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
 
