@@ -423,10 +423,16 @@ function openUsernameChange() {
     // like last time it was opened.
     if (input) input.value = '';
     if (feedback) feedback.innerText = '';
-    // `claimUsername` sets display:none inline when it first closes the
-    // overlay, so the .screen class's `display: none` alone isn't enough to
-    // bring it back — force display:flex here.
+    // Belt-and-suspenders reveal: claimUsername set inline display:none when
+    // it first closed the overlay, and the .screen.active machinery might
+    // still be tracking the previously-active screen (lobby). Force BOTH the
+    // class-based visibility and the inline style so the overlay definitely
+    // appears on top of everything without requiring a page refresh.
+    overlay.classList.add('active');
     overlay.style.display = 'flex';
+    overlay.style.visibility = 'visible';
+    overlay.style.opacity = '1';
+    overlay.style.zIndex = '9999';
     if (input) setTimeout(() => input.focus(), 50);
 }
 window.openUsernameChange = openUsernameChange;
