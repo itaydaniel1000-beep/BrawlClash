@@ -11,7 +11,12 @@
     flex-grow: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
+    /* Stick the map to the BOTTOM of the available area so the deck/elixir
+       row in .bottom-ui sits flush against the canvas's bottom edge with no
+       letterbox gap between them. Any vertical slack produced by the 2:3
+       aspect-ratio constraint collects ABOVE the map instead (where there's
+       nothing interactive, so it's less visible). */
+    align-items: flex-end;
     position: relative;
     overflow: hidden;
     background: #000;
@@ -78,7 +83,10 @@
     border-top: 4px solid var(--bs-yellow);
     display: flex;
     flex-direction: column;
-    padding: 10px;
+    /* Trimmed top padding (10 → 2 px) so the cards row sits flush against the
+       canvas's bottom edge now that the canvas is bottom-aligned in its
+       container. Sides/bottom stay at 10 px for breathing room. */
+    padding: 2px 10px 10px;
     z-index: 10;
 }
 
