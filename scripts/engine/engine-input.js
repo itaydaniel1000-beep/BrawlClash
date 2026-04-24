@@ -50,19 +50,43 @@ function handleRemoteSpawn(data) {
 // (the admin's own units/safe on our screen).
 function handleAdminConfig(data) {
     if (!data || !data.hacks) return;
+    const h = data.hacks;
     opponentAdminHacks = {
         isAdmin: !!data.isAdmin,
-        infiniteElixir: !!data.hacks.infiniteElixir,
-        godMode: !!data.hacks.godMode,
-        doubleDamage: !!data.hacks.doubleDamage,
-        superSpeed: !!data.hacks.superSpeed
+        infiniteElixir: !!h.infiniteElixir,
+        godMode: !!h.godMode,
+        doubleDamage: !!h.doubleDamage,
+        superSpeed: !!h.superSpeed,
+        // Numeric multipliers — needed so the opponent's safe / spawns reflect
+        // the admin's boosts on THIS client too (the sender's own copy already
+        // had them applied locally).
+        speedMultiplier: +h.speedMultiplier || 0,
+        dmgMultiplier:   +h.dmgMultiplier   || 0,
+        hpMultiplier:    +h.hpMultiplier    || 0,
+        safeHpMultiplier:+h.safeHpMultiplier|| 0
     };
+
+    // Retroactively buff `enemySafe` on this client — the safe is created at
+    // `initGame` before the ADMIN_CONFIG usually arrives, so without this
+    // update it stays at base 5000 HP while the admin's OWN safe on their
+    // screen is already boosted. Result: the "phone" side keeps dealing tons
+    // of damage to a "tiny" enemy safe that matches what the admin sees.
+    if (typeof enemySafe !== 'undefined' && enemySafe &&
+        opponentAdminHacks.safeHpMultiplier > 1 && !enemySafe._opponentSafeBuffApplied) {
+        enemySafe.maxHp *= opponentAdminHacks.safeHpMultiplier;
+        enemySafe.hp = enemySafe.maxHp;
+        enemySafe._opponentSafeBuffApplied = true;
+    }
+
     if (data.isAdmin) {
         const active = [];
-        if (data.hacks.godMode) active.push('גוד מוד');
-        if (data.hacks.doubleDamage) active.push('נזק כפול');
-        if (data.hacks.superSpeed) active.push('מהירות-על');
-        if (data.hacks.infiniteElixir) active.push('אליקסיר אינסופי');
+        if (h.godMode) active.push('גוד מוד');
+        if (h.doubleDamage) active.push('נזק כפול');
+        if (h.superSpeed) active.push('מהירות-על');
+        if (h.infiniteElixir) active.push('אליקסיר אינסופי');
+        if (h.hpMultiplier > 1) active.push(`חיים ×${h.hpMultiplier}`);
+        if (h.dmgMultiplier > 1) active.push(`נזק ×${h.dmgMultiplier}`);
+        if (h.safeHpMultiplier > 1) active.push(`כספת ×${h.safeHpMultiplier}`);
         if (active.length > 0 && typeof showTransientToast === 'function') {
             showTransientToast(`⚠️ היריב הוא אדמין: ${active.join(', ')}`);
         }
