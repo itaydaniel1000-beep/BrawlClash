@@ -1,9 +1,10 @@
 // battle-deck.js - In-Battle Deck Management
 
 function releaseAllFreeze() {
+    // Un-freeze but KEEP the current HP — the user doesn't want release to
+    // double as a full heal.
     [...units, ...buildings, ...auras].filter(e => e.team === 'player' && e.isFrozen).forEach(e => {
         e.isFrozen = false;
-        e.hp = e.maxHp || e.hp;
     });
     AudioController.play('upgrade');
     // Tell the opponent to un-freeze the matching units on THEIR screen
@@ -19,9 +20,9 @@ window.releaseAllFreeze = releaseAllFreeze;
 // Handler invoked when an opponent tells us they released their frozen units.
 // On this client those units are on the 'enemy' team, so we unfreeze that set.
 function handleRemoteReleaseFreeze() {
+    // Mirror the local rule: un-freeze without healing.
     [...units, ...buildings, ...auras].filter(e => e.team === 'enemy' && e.isFrozen).forEach(e => {
         e.isFrozen = false;
-        e.hp = e.maxHp || e.hp;
     });
 }
 window.handleRemoteReleaseFreeze = handleRemoteReleaseFreeze;
