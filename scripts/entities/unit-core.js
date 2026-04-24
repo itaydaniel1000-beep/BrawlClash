@@ -37,7 +37,10 @@ class Unit extends Entity {
             // That also made damage vs the opponent's safe look asymmetric
             // between the two screens. In P2P we flatten everyone to base
             // stats for fairness and sync. Vs-bot still uses level scaling.
-            const inP2PForScale = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
+            const inP2PForScale = (
+                (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
+                (typeof window !== 'undefined' && !!window.currentBattleRoom)
+            );
             const scale = (!inP2PForScale && typeof getLevelScale === 'function') ? getLevelScale(type) : 1;
             this.maxHp *= scale;
             this.hp = this.maxHp;

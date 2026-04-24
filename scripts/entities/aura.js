@@ -45,7 +45,10 @@ class Aura extends Entity {
             // Mirror the Unit-class rule: skip level scaling in P2P so both
             // devices show the same HP for the same aura type, regardless
             // of each player's locally-stored upgrade level.
-            const inP2PForScale = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
+            const inP2PForScale = (
+                (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom) ||
+                (typeof window !== 'undefined' && !!window.currentBattleRoom)
+            );
             const scale = inP2PForScale ? 1 : getLevelScale(type);
             this.maxHp *= scale;
             this.hp = this.maxHp;

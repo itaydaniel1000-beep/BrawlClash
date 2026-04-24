@@ -99,6 +99,21 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     if (isFrozen) entity.isFrozen = true;
     AudioController.play('spawn');
 
+    // Vs-bot: scale the AI's enemy units by the SAME level scale the player's
+    // own units of that type get, so a level-12 Bruce (1860 HP on the player's
+    // side) fights a level-12 Bruce (1860 HP) — not a base-stats 1200-HP copy.
+    // Keeps the bot match visually consistent with the player's progression.
+    // Skip in P2P (remote spawns, currentBattleRoom) — the level-scaling rule
+    // there is "both sides use base stats" (see unit-core.js / building.js).
+    if (team === 'enemy' && !isRemote && !currentBattleRoom &&
+        card && card.type && typeof getLevelScale === 'function') {
+        const botScale = getLevelScale(typeStr);
+        if (botScale > 1) {
+            if (entity.maxHp) { entity.maxHp *= botScale; entity.hp = entity.maxHp; }
+            if (entity.attackDamage !== undefined) entity.attackDamage *= botScale;
+        }
+    }
+
     if (difficulty === 'hard' && team === 'enemy' && !currentBattleRoom) {
         entity.maxHp *= 1.3;
         entity.hp = entity.maxHp;
