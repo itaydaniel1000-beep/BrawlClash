@@ -79,9 +79,13 @@ function updateStatsUI() {
     const isAdmin = playerStats.username && playerStats.username.trim() === ADMIN_USERNAME;
     // Regular ⚙️ admin button: visible for super-admin AND for anyone who
     // has a pending grant attached to their username.
+    // `hasGrant` is declared HERE (outside the `if (adminBtn)` block) so the
+    // `anyAdminBtnVisible` calculation further down can also read it — the
+    // previous version declared it inside the block and crashed with
+    // "hasGrant is not defined" on screens without that button.
+    const hasGrant = !!(playerStats.username && typeof _loadAdminGrants === 'function' && _loadAdminGrants()[playerStats.username]);
     const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
     if (adminBtn) {
-        const hasGrant = !!(playerStats.username && typeof _loadAdminGrants === 'function' && _loadAdminGrants()[playerStats.username]);
         adminBtn.style.display = (isAdmin || hasGrant) ? 'flex' : 'none';
         if (playerStats.username && playerStats.username !== "null") {
             console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}, granted=${hasGrant}`, "color: #e74c3c; font-weight: bold;");
