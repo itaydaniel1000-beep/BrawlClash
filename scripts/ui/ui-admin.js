@@ -43,7 +43,8 @@ function openAdminMenu() {
         { id: 'toggle-allStarPowers',    key: 'allStarPowers' },
         { id: 'toggle-deleteUnit',       key: 'deleteUnit' },
         { id: 'toggle-canGrantAdmin',    key: 'canGrantAdmin' },
-        { id: 'toggle-canRevokeAdmin',   key: 'canRevokeAdmin' }
+        { id: 'toggle-canRevokeAdmin',   key: 'canRevokeAdmin' },
+        { id: 'toggle-cancelAdmin',      key: 'cancelAdmin' }
     ];
     boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
 
@@ -220,7 +221,8 @@ function toggleAdminHack(hackKey) {
         'allStarPowers': 'toggle-allStarPowers',
         'deleteUnit': 'toggle-deleteUnit',
         'canGrantAdmin': 'toggle-canGrantAdmin',
-        'canRevokeAdmin': 'toggle-canRevokeAdmin'
+        'canRevokeAdmin': 'toggle-canRevokeAdmin',
+        'cancelAdmin': 'toggle-cancelAdmin'
     };
 
     updateAdminToggleUI(hackKey, map[hackKey]);
