@@ -451,7 +451,12 @@ function startMultiplayerBattle(roomId, isHost, opponentName) {
     console.log(`⚔️ Multiplayer: Starting battle! Room=${roomId}, Host=${isHost}`);
     window.currentBattleRoom = roomId;
     window.isHost = isHost;
-    
+    // Stamp the match start time so handleNetworkGameOver can reject bogus
+    // 'safe_destroyed' messages that fire in the first few seconds when
+    // the peers are still handshaking and a stale/out-of-sync client sends
+    // a premature game-over.
+    window._matchStartedAt = performance.now();
+
     // Transition to battle screen
     if (typeof startGame === 'function') {
         startGame();

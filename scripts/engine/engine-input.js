@@ -1,9 +1,33 @@
 // engine-input.js - Event Listeners and Input Handling
 
 function handleNetworkGameOver(data) {
-    console.log('[GAME-OVER-DIAG v9.36] handleNetworkGameOver called with data=' + JSON.stringify(data));
-    console.trace('[GAME-OVER-DIAG v9.36] stack at GAME_OVER reception');
+    console.log('[GAME-OVER-DIAG v9.39] handleNetworkGameOver called with data=' + JSON.stringify(data));
     if (currentState === GAME_STATE.GAMEOVER) return;
+
+    // SANITY GUARD: reject bogus 'safe_destroyed' GAME_OVER messages that fire
+    // the instant a P2P match starts (observed with a mid-version opponent
+    // whose client detected a 'safe death' that didn't actually happen).
+    // Conditions to drop:
+    //   • we're <5 seconds into the match (battle just started)
+    //   • BOTH of our own safes are still alive with HP > 0
+    //   • reason is 'safe_destroyed' (forfeit messages stay legal because those
+    //     are user-initiated via the quit button)
+    try {
+        const reason = data && data.reason;
+        const bothAlive = playerSafe && enemySafe && !playerSafe.isDead && !enemySafe.isDead &&
+            (playerSafe.hp > 0) && (enemySafe.hp > 0);
+        const justStarted = typeof window._matchStartedAt === 'number' && (performance.now() - window._matchStartedAt) < 5000;
+        if (reason === 'safe_destroyed' && bothAlive && justStarted) {
+            console.warn('[GAME-OVER-DIAG v9.39] ignoring bogus GAME_OVER — match just started and both safes alive. ' +
+                'playerSafe=' + playerSafe.hp + '/' + playerSafe.maxHp +
+                ' enemySafe=' + enemySafe.hp + '/' + enemySafe.maxHp);
+            if (typeof showTransientToast === 'function') {
+                showTransientToast('⚠️ התעלמנו מגיים-אובר שווא מהיריב (הכספות עדיין בחיים)');
+            }
+            return;
+        }
+    } catch (e) { /* don't block a real game-over on a guard error */ }
+
     currentState = GAME_STATE.GAMEOVER;
     // Back-compat: older payloads sent a bare `winner` username. New payloads send
     // `{winnerIsYou, reason}` from the sender's perspective. Also accept a plain
