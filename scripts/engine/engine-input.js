@@ -52,6 +52,9 @@ function handleRemoteSpawn(data) {
     // what the opponent's admin panel had enabled.
     const cancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
     const buffs = cancelling ? null : (data.buffs || null);
+    console.log('[CANCEL-ADMIN v9.35] handleRemoteSpawn: cancelAdmin=' + cancelling +
+        ' unitType=' + data.unitType + ' incomingBuffs=' + JSON.stringify(data.buffs || {}) +
+        ' appliedBuffs=' + JSON.stringify(buffs || {}));
     spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
 }
 
@@ -105,6 +108,9 @@ function handleAdminConfig(data) {
         data.isAdmin || h.infiniteElixir || h.godMode || h.doubleDamage || h.superSpeed ||
         h.speedMultiplier > 1 || h.dmgMultiplier > 1 || h.hpMultiplier > 1 || h.safeHpMultiplier > 1
     );
+    console.log('[CANCEL-ADMIN v9.35] handleAdminConfig: iAmCancelling=' + iAmCancelling +
+        ' opponentIsAdmin=' + !!data.isAdmin + ' opponentHasAnyHack=' + opponentHasAnyHack +
+        ' incomingHacks=' + JSON.stringify(h));
 
     if (iAmCancelling && opponentHasAnyHack) {
         opponentAdminHacks = {
