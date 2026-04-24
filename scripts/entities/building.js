@@ -24,7 +24,11 @@ class Building extends Entity {
         }
 
         if (team === 'player') {
-            const scale = getLevelScale(type);
+            // Mirror the Unit-class rule: skip level scaling in P2P so both
+            // devices show the same HP/damage for the same building type,
+            // regardless of each player's locally-stored upgrade level.
+            const inP2PForScale = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
+            const scale = inP2PForScale ? 1 : getLevelScale(type);
             this.maxHp *= scale;
             this.hp = this.maxHp;
             this.attackDamage *= scale;

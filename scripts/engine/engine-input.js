@@ -64,7 +64,11 @@ function handleRemoteSafeFire(data) {
         if (d < bestDist) { bestDist = d; target = e; }
     });
     if (!target) {
-        target = { x: data.targetX, y: data.targetY, isDead: false };
+        // Phantom target: the sender's unit drifted out of our 80px tolerance
+        // or already died. Fire a "dud" projectile towards the coords so
+        // something visibly happens; a no-op takeDamage keeps Projectile.hit()
+        // from throwing when it arrives.
+        target = { x: data.targetX, y: data.targetY, isDead: false, takeDamage: () => {} };
     }
     const dmg = (typeof data.damage === 'number' && isFinite(data.damage)) ? data.damage : CONFIG.SAFE_DAMAGE;
     projectiles.push(new Projectile(enemySafe.x, enemySafe.y, target, dmg, 'enemy', false));

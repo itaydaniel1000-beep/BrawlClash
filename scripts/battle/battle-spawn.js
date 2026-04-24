@@ -87,16 +87,14 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         }
     }
 
-    // Remote-spawn level scaling: Unit/Building/Aura constructors apply
-    // `getLevelScale(type)` only for their own-team ('player') spawns, so a
-    // remote ('enemy') copy would show up at base stats — the unit looks
-    // weaker on the opponent's screen than on the sender's. If the sender
-    // shipped their level over the wire, apply the same multiplier here.
-    if (isRemote && remoteLevel > 1 && card && card.type) {
-        const scale = 1 + (remoteLevel - 1) * 0.05;
-        if (entity.maxHp) { entity.maxHp *= scale; entity.hp = entity.maxHp; }
-        if (entity.attackDamage !== undefined) entity.attackDamage *= scale;
-    }
+    // Remote-spawn level scaling was previously applied here so the opponent's
+    // render of a levelled-up unit matched the sender's. We REMOVED that in
+    // favour of a simpler rule: in P2P matches, ignore level scaling entirely
+    // on both sides (see unit-core.js / building.js / aura.js). This is fairer
+    // — both players play with the same base stats regardless of who happens
+    // to have upgraded which brawler further — and it's the only way to
+    // guarantee the two screens agree on HP and damage without shipping every
+    // player's full level table across the wire.
 
     if (isFrozen) entity.isFrozen = true;
     AudioController.play('spawn');

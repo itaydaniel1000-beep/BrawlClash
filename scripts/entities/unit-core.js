@@ -30,7 +30,15 @@ class Unit extends Entity {
         }
 
         if (team === 'player') {
-            const scale = typeof getLevelScale === 'function' ? getLevelScale(type) : 1;
+            // Level scaling is DISABLED in P2P matches: each player's local
+            // progression would otherwise give them a different HP/damage
+            // number for the same unit on each device (bruce at level-1 has
+            // 1200 HP on the phone, at level-12 he has 1860 HP on the PC).
+            // That also made damage vs the opponent's safe look asymmetric
+            // between the two screens. In P2P we flatten everyone to base
+            // stats for fairness and sync. Vs-bot still uses level scaling.
+            const inP2PForScale = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
+            const scale = (!inP2PForScale && typeof getLevelScale === 'function') ? getLevelScale(type) : 1;
             this.maxHp *= scale;
             this.hp = this.maxHp;
             this.attackDamage *= scale;
