@@ -6,7 +6,7 @@ Unit.prototype.update = function(dt, now) {
     let atkSpeedMult = 1;
     let damageMult = 1;
 
-    let dmgBoost = (typeof playerStarPowers !== 'undefined' && playerStarPowers['8bit'] === 'sp2' && this.team === 'player') ? 0.3 : 0.1;
+    let dmgBoost = (this.team === 'player' && typeof hasStarPower === 'function' && hasStarPower('8bit', 'sp2')) ? 0.3 : 0.1;
 
     auras.forEach(a => {
         if (a.isDead || a.isFrozen) return;
@@ -21,7 +21,7 @@ Unit.prototype.update = function(dt, now) {
             } else {
                 if (a.type === 'spike') {
                     let canSlow = true;
-                    if (this.team === 'player' && playerStarPowers['max'] === 'sp2') {
+                    if (this.team === 'player' && hasStarPower('max', 'sp2')) {
                         let inMaxAura = auras.some(ma => ma.team === this.team && ma.type === 'max' && !ma.isDead && !ma.isFrozen && Math.hypot(this.x - ma.x, this.y - ma.y) <= ma.radius);
                         if (inMaxAura) canSlow = false;
                     }
@@ -35,14 +35,14 @@ Unit.prototype.update = function(dt, now) {
                         this.x += (dx / dist) * pullStrength * (dt / 1000);
                         this.y += (dy / dist) * pullStrength * (dt / 1000);
                     }
-                } else if (a.type === 'emz' && a.team === 'player' && playerStarPowers['emz'] === 'sp1') {
+                } else if (a.type === 'emz' && a.team === 'player' && hasStarPower('emz', 'sp1')) {
                     damageMult *= 1.2; 
                 }
             }
         }
     });
 
-    if (this.type === 'leon' && this.team === 'player' && playerStarPowers['leon'] === 'sp2' && this.isInvisible) {
+    if (this.type === 'leon' && this.team === 'player' && hasStarPower('leon', 'sp2') && this.isInvisible) {
         speedMult *= 1.25;
     }
 
@@ -83,7 +83,7 @@ Unit.prototype.update = function(dt, now) {
                     this.dashEndTime = 0;
                 }
 
-                if (this.type === 'bruce' && this.team === 'player' && playerStarPowers['bruce'] === 'sp2') {
+                if (this.type === 'bruce' && this.team === 'player' && hasStarPower('bruce', 'sp2')) {
                     this.target.isFrozen = true;
                     setTimeout(() => { if (this.target) this.target.isFrozen = false; }, 1000);
                 }
@@ -94,7 +94,7 @@ Unit.prototype.update = function(dt, now) {
             let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
             let dashMult = (now < (this.dashEndTime || 0)) ? 5 : 1; 
 
-            if (this.type === 'bull' && this.team === 'player' && playerStarPowers['bull'] === 'sp2' && dashMult > 1) {
+            if (this.type === 'bull' && this.team === 'player' && hasStarPower('bull', 'sp2') && dashMult > 1) {
                 this.shieldHp = 500;
             }
 

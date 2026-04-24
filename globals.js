@@ -141,6 +141,18 @@ function getLevelScale(id) {
     return 1 + (level - 1) * 0.05;
 }
 
+// `hasStarPower(type, sp)` centralises every `playerStarPowers[type] === spN`
+// check so the admin `allStarPowers` toggle can force every player-team brawler
+// to behave as if BOTH star powers (SP1 AND SP2) are active simultaneously.
+// Call sites should still guard on `team === 'player'` when that distinction
+// matters; this helper only answers "does my local player count as having
+// star power X for brawler Y right now?".
+function hasStarPower(type, sp) {
+    if (typeof adminHacks !== 'undefined' && adminHacks.allStarPowers) return true;
+    return (typeof playerStarPowers !== 'undefined' && playerStarPowers[type] === sp);
+}
+window.hasStarPower = hasStarPower;
+
 // --- Entities State ---
 let units = [];
 let projectiles = [];

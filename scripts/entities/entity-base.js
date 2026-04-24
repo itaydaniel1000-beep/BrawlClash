@@ -31,11 +31,11 @@ class Entity {
         const inP2PForDmg = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
         if (this.team === 'enemy' && adminHacks.doubleDamage && !inP2PForDmg) finalAmount *= 2;
 
-        if (this.type === 'bruce' && this.team === 'player' && playerStarPowers['bruce'] === 'sp1') {
+        if (this.type === 'bruce' && this.team === 'player' && hasStarPower('bruce', 'sp1')) {
             finalAmount *= 0.7; 
         }
 
-        if (this.type === 'bull' && this.team === 'player' && playerStarPowers['bull'] === 'sp1') {
+        if (this.type === 'bull' && this.team === 'player' && hasStarPower('bull', 'sp1')) {
             if (this.hp > this.maxHp * 0.7) finalAmount *= 0.7; 
         }
 
@@ -65,7 +65,7 @@ class Entity {
 
             for(let i=0; i<10; i++) particles.push(new Particle(this.x, this.y, this.color || '#fff'));
 
-            if (this.type === 'penny' && this.team === 'player' && playerStarPowers['penny'] === 'sp2') {
+            if (this.type === 'penny' && this.team === 'player' && hasStarPower('penny', 'sp2')) {
                 for (let i = 0; i < 4; i++) {
                     let fakeTarget = { x: this.x + (Math.random() - 0.5) * 200, y: this.y + (Math.random() - 0.5) * 200, radius: 20 };
                     projectiles.push(new Projectile(this.x, this.y, fakeTarget, 200, this.team, false));

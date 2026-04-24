@@ -25,10 +25,10 @@ class Unit extends Entity {
         } else if (type === 'leon') {
             this.maxHp = 900; this.hp = 900; this.attackDamage = 200; this.speed = 50 * 1.3; this.color = '#00cec9';
             this.isInvisible = true; 
-            this.hasAmbush = (team === 'player' && playerStarPowers['leon'] === 'sp1');
+            this.hasAmbush = (team === 'player' && hasStarPower('leon', 'sp1'));
         } else if (type === 'porter') {
             this.maxHp = 100; this.hp = 100; this.attackDamage = 50; this.speed = 70; this.color = '#54a0ff';
-            if (team === 'player' && playerStarPowers['mr-p'] === 'sp2') {
+            if (team === 'player' && hasStarPower('mr-p', 'sp2')) {
                 this.shieldHp = 500; 
             }
         }

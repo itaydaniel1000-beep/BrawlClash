@@ -18,7 +18,7 @@ class Aura extends Entity {
             this.maxHp = 700; this.hp = this.maxHp;
         } else if (type === '8bit') {
             this.radius = 110; 
-            if (team === 'player' && playerStarPowers['8bit'] === 'sp1') {
+            if (team === 'player' && hasStarPower('8bit', 'sp1')) {
                 this.radius *= 1.5;
             }
             this.color = 'rgba(232, 67, 147, 0.3)';
@@ -57,7 +57,7 @@ class Aura extends Entity {
                         a.hp = Math.min(a.maxHp, a.hp + 15);
                     }
                 });
-            } else if (this.type === 'emz' && this.team === 'player' && playerStarPowers['emz'] === 'sp2') {
+            } else if (this.type === 'emz' && this.team === 'player' && hasStarPower('emz', 'sp2')) {
                 let count = enemies.filter(e => Math.hypot(e.x - this.x, e.y - this.y) <= this.radius).length;
                 this.hp = Math.min(this.maxHp, this.hp + count * 30);
             } else if (this.type === 'fire') {
@@ -69,7 +69,7 @@ class Aura extends Entity {
         }
 
         let lifetime = 999999;
-        if (this.type === 'spike') lifetime = (this.team === 'player' && playerStarPowers['spike'] === 'sp2') ? 15000 : 10000;
+        if (this.type === 'spike') lifetime = (this.team === 'player' && hasStarPower('spike', 'sp2')) ? 15000 : 10000;
         if (this.type === 'tara') lifetime = 3000;
         if (this.type === 'fire') lifetime = 3000;
 

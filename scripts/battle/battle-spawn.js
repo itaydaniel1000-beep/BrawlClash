@@ -77,7 +77,7 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         if (radMult > 1) entity.radius *= radMult;
         auras.push(entity);
 
-        if (typeStr === 'pam' && team === 'player' && playerStarPowers['pam'] === 'sp1') {
+        if (typeStr === 'pam' && team === 'player' && hasStarPower('pam', 'sp1')) {
             let allies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team === team && !e.isDead);
             allies.forEach(a => {
                 if (Math.hypot(a.x - x, a.y - y) <= entity.radius) {

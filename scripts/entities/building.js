@@ -40,7 +40,7 @@ class Building extends Entity {
             }
         });
 
-        if (this.type === 'scrappy' && this.team === 'player' && playerStarPowers['scrappy'] === 'sp2') {
+        if (this.type === 'scrappy' && this.team === 'player' && hasStarPower('scrappy', 'sp2')) {
             if (now - this.lastHealTime > 1000) {
                 this.hp = Math.min(this.maxHp, this.hp + 50);
                 this.lastHealTime = now;
@@ -49,7 +49,7 @@ class Building extends Entity {
 
         if (this.type === 'mr-p') {
             let spawnInterval = 5000; 
-            if (this.team === 'player' && playerStarPowers['mr-p'] === 'sp1') {
+            if (this.team === 'player' && hasStarPower('mr-p', 'sp1')) {
                 spawnInterval = 3000; 
             }
 

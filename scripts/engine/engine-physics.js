@@ -27,7 +27,7 @@ function update(dt, now) {
         if (adminHacks.elixirRateMultiplier && adminHacks.elixirRateMultiplier > 1) {
             elixirGenRate *= adminHacks.elixirRateMultiplier;
         }
-        if (playerStarPowers['max'] === 'sp1' && units.some(u => u.team === 'player' && u.type === 'max')) {
+        if (hasStarPower('max', 'sp1') && units.some(u => u.team === 'player' && u.type === 'max')) {
             elixirGenRate *= 1.1;
         }
         playerElixir = Math.min(playerMaxElixir, playerElixir + (elixirGenRate * dt / 1000));

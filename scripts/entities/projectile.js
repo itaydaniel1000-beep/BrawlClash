@@ -34,11 +34,11 @@ class Projectile extends Entity {
     hit() {
         if (this.isDead) return;
 
-        if (this.sourceType === 'penny' && this.team === 'player' && playerStarPowers['penny'] === 'sp1') {
+        if (this.sourceType === 'penny' && this.team === 'player' && hasStarPower('penny', 'sp1')) {
             auras.push(new Aura(this.targetX, this.targetY, this.team, 'fire'));
         }
 
-        if (this.sourceType === 'scrappy' && this.team === 'player' && playerStarPowers['scrappy'] === 'sp1' && !this.hasBounced) {
+        if (this.sourceType === 'scrappy' && this.team === 'player' && hasStarPower('scrappy', 'sp1') && !this.hasBounced) {
             let enemies = units.concat(buildings).filter(e => e.team !== this.team && !e.isDead && e !== this.target);
             let nextTarget = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
             if (nextTarget) {
