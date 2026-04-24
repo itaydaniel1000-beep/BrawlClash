@@ -46,10 +46,10 @@ function handleRemoteSpawn(data) {
     // `isFrozen` and `level` ride along so a freeze-placement (❄️ card) stays
     // frozen on the opponent's screen and the unit gets the same
     // getLevelScale() boost the sender's copy already had.
-    // "Cancel admin" guard: if WE turned on cancelAdmin for this match, strip
-    // any admin-buff payload the opponent's client happened to ship along.
-    // Normally they should already be suspended via SUSPEND_ADMIN, but this
-    // covers the race where SYNC_SPAWN arrives first.
+    // "Cancel admin" guard: if WE turned cancelAdmin on, drop every admin
+    // buff piggy-backed onto this spawn (doubleDamage, hpMult, dmgMult, etc.).
+    // Opponent-team units on our screen will use base stats regardless of
+    // what the opponent's admin panel had enabled.
     const cancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
     const buffs = cancelling ? null : (data.buffs || null);
     spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
@@ -92,22 +92,28 @@ function handleAdminConfig(data) {
     if (!data || !data.hacks) return;
     const h = data.hacks;
 
-    // "Cancel admin" path: if WE turned cancelAdmin on AND the opponent says
-    // they're admin, neutralise them. Tell their client to suspend its own
-    // adminHacks for the rest of this match, AND locally treat them as a
-    // non-admin so none of the opponent-buff paths fire.
+    // "Cancel admin" — if WE turned cancelAdmin on, we refuse to acknowledge
+    // ANY of the opponent's admin powers on our side, whether they're the
+    // super-admin or a granted admin. Just store an all-zero
+    // opponentAdminHacks so no buff path fires for opponent-team entities on
+    // our screen. We do NOT send anything back to their client — their view
+    // will still show their own buffs locally, but our view won't be
+    // affected, and most importantly they can't drop our safe's HP via
+    // safeHpMultiplier sync. Simple and robust.
     const iAmCancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
-    if (iAmCancelling && data.isAdmin) {
-        if (window.NetworkManager && typeof window.NetworkManager.sendSuspendAdmin === 'function') {
-            try { window.NetworkManager.sendSuspendAdmin(); } catch (e) {}
-        }
+    const opponentHasAnyHack = !!(
+        data.isAdmin || h.infiniteElixir || h.godMode || h.doubleDamage || h.superSpeed ||
+        h.speedMultiplier > 1 || h.dmgMultiplier > 1 || h.hpMultiplier > 1 || h.safeHpMultiplier > 1
+    );
+
+    if (iAmCancelling && opponentHasAnyHack) {
         opponentAdminHacks = {
             isAdmin: false, infiniteElixir: false, godMode: false,
             doubleDamage: false, superSpeed: false,
             speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0
         };
         if (typeof showTransientToast === 'function') {
-            showTransientToast('🛡️ ביטול אדמין פעיל — כוחות האדמין של היריב הושבתו');
+            showTransientToast('🛡️ ביטול אדמין פעיל — הכוחות של היריב לא יחולו אצלך');
         }
         return;
     }
@@ -155,40 +161,17 @@ function handleAdminConfig(data) {
 }
 window.handleAdminConfig = handleAdminConfig;
 
-// The opponent has "ביטול אדמין" on and just asked us to back off our own
-// admin hacks for the rest of this match. Snapshot the current adminHacks
-// object, zero out every field, and keep a restore handle so GAME_OVER /
-// quit can bring them back. Idempotent — a second SUSPEND_ADMIN during the
-// same match is a no-op (the backup is already captured).
-function handleSuspendAdmin() {
-    if (typeof adminHacks === 'undefined') return;
-    if (window._suspendedAdminBackup) return; // already suspended
-    try { window._suspendedAdminBackup = JSON.parse(JSON.stringify(adminHacks)); }
-    catch (e) { window._suspendedAdminBackup = Object.assign({}, adminHacks); }
-
-    Object.keys(adminHacks).forEach(k => {
-        const v = adminHacks[k];
-        if (typeof v === 'boolean') adminHacks[k] = false;
-        else if (typeof v === 'number') adminHacks[k] = 0;
-        else if (typeof v === 'string') adminHacks[k] = '';
-    });
-    if (typeof showTransientToast === 'function') {
-        showTransientToast('🛡️ היריב הפעיל ביטול-אדמין — כוחות האדמין שלך מושבתים עד סוף הקרב');
-    }
-}
+// Legacy stubs — the earlier version of ביטול אדמין also asked the opponent's
+// client to wipe its own adminHacks via a SUSPEND_ADMIN message. That flow
+// was too aggressive (every boolean / number / string got zeroed which broke
+// some per-match state) and caused a "game ends on unit placement" regression,
+// so the feature now only strips opponent effects on OUR side. These stubs
+// stay so older clients sending SUSPEND_ADMIN don't hit a missing-handler
+// path, and so battle-end restore calls are harmless no-ops.
+function handleSuspendAdmin() { /* intentionally a no-op now */ }
 window.handleSuspendAdmin = handleSuspendAdmin;
 
-// Battle ended (GAME_OVER, forfeit, disconnect) — restore adminHacks to
-// whatever the backup captured. Safe to call unconditionally; a no-op
-// when there's no backup to restore.
-function restoreSuspendedAdmin() {
-    if (!window._suspendedAdminBackup) return;
-    try { Object.assign(adminHacks, window._suspendedAdminBackup); } catch (e) {}
-    window._suspendedAdminBackup = null;
-    if (typeof showTransientToast === 'function') {
-        showTransientToast('🛡️ המשחק הסתיים — כוחות האדמין שלך חזרו');
-    }
-}
+function restoreSuspendedAdmin() { /* intentionally a no-op now */ }
 window.restoreSuspendedAdmin = restoreSuspendedAdmin;
 
 function handleShiftRelease(e) {

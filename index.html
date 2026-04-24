@@ -51,7 +51,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v9.33
+        v9.34
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -635,7 +635,7 @@
                 <div class="hack-row"><div class="hack-label">🗑️ מחיקת דמות</div><div id="toggle-deleteUnit" class="toggle-switch-btn" onclick="toggleAdminHack('deleteUnit')">כבוי</div></div>
                 <div class="hack-description">במהלך הקרב יופיע כפתור 🗑️ מעל בר האליקסיר מימין. לחיצה עליו מפעילה מצב מחיקה — כל דמות אויב שתלחץ עליה במפה תימחק מיד, והמצב נשאר דלוק עד שתלחץ שוב על הכפתור לכיבוי.</div>
                 <div class="hack-row"><div class="hack-label">🛡️ ביטול אדמין</div><div id="toggle-cancelAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('cancelAdmin')">כבוי</div></div>
-                <div class="hack-description">בקרבות P2P, אם היריב מפעיל את האדמין פאנל — כל הכוחות שלו מושבתים אוטומטית עד סוף הקרב. הכוחות שלו חוזרים מיד כשהמשחק נגמר. שימושי כדי לנטרל אדמין ששימוש לרעה.</div>
+                <div class="hack-description">בקרבות P2P, כל הכוחות של היריב לא יחולו אצלך: הדמויות שלו יגיעו עם סטטיסטיקות בסיס (לא doubleDamage, לא HP×N), גוד-מוד לא מגן עליו אצלך, והכספת שלו לא תקבל בוסט HP. (היריב ממשיך לראות את הכוחות אצלו — זה משפיע רק על המסך שלך).</div>
 
                 <div class="admin-section-title">🗝️ מנהל-משנה</div>
                 <div class="hack-row"><div class="hack-label">✨ יכול להעניק אדמין</div><div id="toggle-canGrantAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('canGrantAdmin')">כבוי</div></div>
@@ -747,7 +747,7 @@
     <script src="scripts/engine/engine-core.js?v=7.1"></script>
     <script src="scripts/engine/engine-physics.js?v=9.32"></script>
     <script src="scripts/engine/engine-renderer.js?v=4.9"></script>
-    <script src="scripts/engine/engine-input.js?v=9.32"></script>
+    <script src="scripts/engine/engine-input.js?v=9.34"></script>
 </body>
 
 </html>
