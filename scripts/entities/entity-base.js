@@ -21,7 +21,15 @@ class Entity {
         if (this.team === 'enemy' && typeof opponentAdminHacks !== 'undefined' && opponentAdminHacks.godMode) return;
 
         let finalAmount = amount;
-        if (this.team === 'enemy' && adminHacks.doubleDamage) finalAmount *= 2;
+        // `doubleDamage` applies twice in the admin's side of a P2P match:
+        // once at spawn (via SYNC_SPAWN buffs → attackDamage *= 2) and once
+        // here at takeDamage time. The opponent only sees the spawn-time
+        // doubling, so the admin's HP drops 2× faster than the opponent's
+        // copy. In P2P we rely purely on the spawn buff (units/buildings/auras)
+        // and on the pre-baked `dmg` inside SAFE_FIRE (safe projectiles), so
+        // skip the takeDamage doubling here to avoid the double-apply.
+        const inP2PForDmg = (typeof currentBattleRoom !== 'undefined' && !!currentBattleRoom);
+        if (this.team === 'enemy' && adminHacks.doubleDamage && !inP2PForDmg) finalAmount *= 2;
 
         if (this.type === 'bruce' && this.team === 'player' && playerStarPowers['bruce'] === 'sp1') {
             finalAmount *= 0.7; 
@@ -132,6 +140,18 @@ class Safe extends Entity {
 
         if (difficulty === 'hard' && this.team === 'enemy') {
             damageMult *= 0.8;
+        }
+
+        // In P2P, the safe has no SYNC_SPAWN buffs (it's created at game start),
+        // so admin-hack damage boosts must be pre-baked into `dmg` here so the
+        // value that lands in SAFE_FIRE's broadcast already reflects them. We
+        // disabled the duplicate takeDamage-time doubling above, so doing it
+        // here is now the ONLY place the admin's `doubleDamage` gets applied.
+        if (inP2P && this.team === 'player') {
+            if (adminHacks.doubleDamage) damageMult *= 2;
+            if (adminHacks.dmgMultiplier && adminHacks.dmgMultiplier > 1) {
+                damageMult *= adminHacks.dmgMultiplier;
+            }
         }
 
         if (now - this.lastAttackTime > CONFIG.SAFE_ATTACK_SPEED * atkSpeedMult) {
