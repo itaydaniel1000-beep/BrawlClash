@@ -128,9 +128,9 @@
    otherwise override the battle-ui.css mobile override. */
 @media (max-width: 600px) {
     .bottom-ui {
-        /* Bumped to 120 so the freeze chip BELOW each card has room without
-           being clipped by bottom-ui's edge. */
-        height: 120px;
+        /* Bumped so the larger mobile freeze chip (32 × 32) below each card
+           has room without being clipped by bottom-ui's edge. */
+        height: 140px;
         padding: 4px 6px;
     }
     .elixir-container { height: 22px; padding: 0 12px; gap: 6px; }
