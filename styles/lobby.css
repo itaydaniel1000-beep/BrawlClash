@@ -301,6 +301,8 @@
 .social-btn { background: linear-gradient(#66bb6a, #43a047); box-shadow: 0 5px 0 #1b5e20; }
 .club-btn { background: linear-gradient(#ab47bc, #8e24aa); box-shadow: 0 5px 0 #4a148c; }
 .settings-btn { background: linear-gradient(#78909c, #546e7a); box-shadow: 0 5px 0 #263238; }
+/* ✏️ button — opens the username-overlay so the player can change their name. */
+.username-btn { background: linear-gradient(#7986cb, #3949ab); box-shadow: 0 5px 0 #1a237e; }
 
 /* Center Brawler Display */
 .home-center-area {

@@ -407,6 +407,42 @@ async function claimUsername() {
 }
 window.claimUsername = claimUsername;
 
+// Re-opens the username overlay in "change name" mode: pre-fills the input
+// with the current username, swaps the title/prompt to reflect editing
+// rather than first-time entry, and shows the ✕ cancel button so the
+// player can back out without having to commit a new name.
+function openUsernameChange() {
+    const overlay  = document.getElementById('username-overlay');
+    const input    = document.getElementById('username-input');
+    const title    = document.getElementById('username-overlay-title');
+    const prompt   = document.getElementById('username-overlay-prompt');
+    const cancel   = document.getElementById('username-cancel-btn');
+    const submit   = document.getElementById('username-submit-btn');
+    const feedback = document.getElementById('username-feedback');
+    if (!overlay) return;
+
+    if (input)  input.value = (playerStats && playerStats.username) ? playerStats.username : '';
+    if (title)  title.innerText  = 'שינוי שם משתמש';
+    if (prompt) prompt.innerText = 'איזה שם חדש תרצה?';
+    if (submit) submit.innerText = 'שמור';
+    if (cancel) cancel.style.display = 'flex';
+    if (feedback) feedback.innerText = '';
+    // Inline display was set to 'none' by claimUsername when it first closed
+    // the overlay; clear that so the .screen.active class (if present) or
+    // the explicit 'flex' below can show the element again.
+    overlay.style.display = 'flex';
+    if (input) setTimeout(() => input.focus(), 50);
+}
+window.openUsernameChange = openUsernameChange;
+
+// Hides the overlay without changing the name. Used by the ✕ button in
+// the overlay when the player opened it via ✏️ and changed their mind.
+function closeUsernameChange() {
+    const overlay = document.getElementById('username-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+window.closeUsernameChange = closeUsernameChange;
+
 function sendEmote(emoteId) {
     if (!currentBattleRoom || !playerStats.username) return;
     if (window.NetworkManager) {

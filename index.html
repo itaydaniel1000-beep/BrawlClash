@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="styles/global.css?v=5.3">
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=3.3">
-    <link rel="stylesheet" href="styles/lobby.css?v=6.1">
+    <link rel="stylesheet" href="styles/lobby.css?v=9.28">
     <link rel="stylesheet" href="styles/battle-ui.css?v=9.27">
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=9.27">
@@ -51,7 +51,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v9.27
+        v9.28
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -133,6 +133,13 @@
                 <!-- Right Sidebar (now on the right visually) -->
                 <div id="right-sidebar" class="home-sidebar right">
                     <div class="side-btn-group">
+                        <!-- Username change button: sits ABOVE the social
+                             button and re-opens the username overlay with
+                             the current name pre-filled so the player can
+                             pick a new one. -->
+                        <button class="side-btn username-btn" onclick="openUsernameChange()" title="שינוי שם משתמש">
+                            <span class="btn-icon">✏️</span>
+                        </button>
                         <button class="side-btn social-btn" onclick="openPlayersTab()">
                             <span class="btn-icon">👥</span>
                         </button>
@@ -500,9 +507,17 @@
 
         <!-- NEW: Username Overlay -->
         <div id="username-overlay" class="screen overlay" style="background: linear-gradient(135deg, #2980b9, #2c3e50); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
-            <div class="menu-box" style="max-width: 400px; width: 90%; text-align: center; border: 5px solid #f1c40f;">
-                <h1 style="color: #f1c40f; font-size: 2.5rem; margin-bottom: 20px; text-shadow: 0 4px #000;">ברוך הבא!</h1>
-                <p style="color: white; font-size: 1.2rem; margin-bottom: 25px;">איך קוראים לך ב-BrawlClash?</p>
+            <div class="menu-box" style="max-width: 400px; width: 90%; text-align: center; border: 5px solid #f1c40f; position: relative;">
+                <!-- Cancel button: only shown when the player already has a
+                     name (i.e. they opened this overlay via the ✏️ button to
+                     CHANGE their name). On first-time entry (no name yet),
+                     `openUsernameChange`/`setUsernameOverlayMode` keeps this
+                     hidden so the user can't skip naming themselves. -->
+                <button id="username-cancel-btn" onclick="closeUsernameChange()"
+                    style="display: none; position: absolute; top: 10px; left: 10px; width: 36px; height: 36px; background: rgba(0,0,0,0.5); color: #fff; border: 2px solid #fff; border-radius: 50%; font-size: 1.3rem; cursor: pointer; z-index: 2;"
+                    title="ביטול">✕</button>
+                <h1 id="username-overlay-title" style="color: #f1c40f; font-size: 2.5rem; margin-bottom: 20px; text-shadow: 0 4px #000;">ברוך הבא!</h1>
+                <p id="username-overlay-prompt" style="color: white; font-size: 1.2rem; margin-bottom: 25px;">איך קוראים לך ב-BrawlClash?</p>
                 <input type="text" id="username-input" placeholder="הכנס שם משתמש..." maxlength="12" style="width: 100%; padding: 15px; border-radius: 12px; border: 3px solid #34495e; font-size: 1.2rem; font-family: 'Assistant', sans-serif; text-align: center; margin-bottom: 12px; color: #000;">
                 <!-- Feedback area for the username-lock check: shows "בודק..."
                      while the PeerJS-based uniqueness probe runs and
@@ -708,7 +723,7 @@
     <script src="scripts/network/net-base.js?v=4.0"></script>
     <script src="scripts/network/net-social.js?v=9.24"></script>
     <script src="scripts/network/net-sync.js?v=9.24"></script>
-    <script src="network-logic.js?v=7.7"></script>
+    <script src="network-logic.js?v=9.28"></script>
 
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=9.24"></script>
