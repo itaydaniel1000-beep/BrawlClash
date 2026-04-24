@@ -4,6 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Prevent browsers from caching the HTML itself. The JS/CSS files have
+         ?v=X.Y cache-busters, but that mechanism only works when the BROWSER
+         actually re-fetches index.html and sees the new version strings. On a
+         long-lived tab or aggressive mobile cache, the HTML can be served from
+         cache indefinitely and every ?v= bump becomes invisible. These headers
+         force the browser to revalidate the HTML every time. -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>BrawlClash</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
