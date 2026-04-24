@@ -108,6 +108,10 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     if (team === 'enemy' && !isRemote && !currentBattleRoom &&
         card && card.type && typeof getLevelScale === 'function') {
         const botScale = getLevelScale(typeStr);
+        // Diagnostic log so the user can open F12 → Console and confirm the
+        // fresh code is loaded. If you DON'T see this line when the bot
+        // spawns, the browser is still serving a cached battle-spawn.js.
+        console.log('[BOT-SCALE v9.21] ' + typeStr + ' base maxHp=' + entity.maxHp + ' scale=' + botScale);
         if (botScale > 1) {
             if (entity.maxHp) { entity.maxHp *= botScale; entity.hp = entity.maxHp; }
             if (entity.attackDamage !== undefined) entity.attackDamage *= botScale;

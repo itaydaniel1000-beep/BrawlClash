@@ -41,6 +41,19 @@
 </head>
 
 <body>
+    <!-- Build marker — a tiny, high-z-index, fixed-position badge in the
+         top-left showing the current build version. Lets the user instantly
+         verify that a hard-refresh actually pulled the new code: if they see
+         "v9.21" the fix is loaded; if they see nothing (or an older number)
+         the browser is still serving a cached HTML. Safe to remove later. -->
+    <div id="build-version-badge"
+         style="position:fixed; top:4px; left:4px; background:#2ecc71; color:#fff;
+                font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
+                border-radius:4px; z-index:99999; pointer-events:none;
+                box-shadow:0 2px 4px rgba(0,0,0,0.3);">
+        v9.21
+    </div>
+
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
          the super-admin (and delegates) can open ⚙️ / ✨ / 🚫 from both the
          lobby (stacks below PLAY) and mid-battle. Visibility driven by
@@ -710,7 +723,7 @@
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
-    <script src="scripts/battle/battle-spawn.js?v=9.20"></script>
+    <script src="scripts/battle/battle-spawn.js?v=9.21"></script>
     <script src="scripts/battle/battle-input.js?v=7.6"></script>
     <script src="scripts/battle/battle-deck.js?v=9.20"></script>
 
