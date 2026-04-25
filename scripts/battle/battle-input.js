@@ -80,10 +80,18 @@ function _placeAtInternal(x, y, shiftHeld) {
         if (!canAffordFreeze) return { placed: false };
         if (!validSide || !insideBorder) return { placed: false };
 
+        const freezeToContinue = selectedFreezeCardId;
         spawnEntity(x, y, 'player', selectedFreezeCardId, true);
-        selectedFreezeCardId = null;
-        document.querySelectorAll('.card').forEach(c => c.style.boxShadow = 'none');
-        return { placed: true };
+        if (shiftHeld) {
+            // Mirror the regular-card path: while shift is held (or we're in
+            // a long-press) keep the freeze card selected so successive clicks
+            // / auto-repeat ticks keep placing freeze units.
+            selectedFreezeCardId = freezeToContinue;
+        } else {
+            selectedFreezeCardId = null;
+            document.querySelectorAll('.card').forEach(c => c.style.boxShadow = 'none');
+        }
+        return { placed: true, cardId: freezeToContinue, isFreeze: true };
     }
 
     if (!selectedCardId) return { placed: false };
@@ -116,7 +124,7 @@ function _placeAt(clientX, clientY, shiftHeld) {
     return _placeAtInternal(pt.x, pt.y, shiftHeld);
 }
 
-function _scheduleAutoRepeat(cardId, delay) {
+function _scheduleAutoRepeat(cardId, delay, isFreeze) {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = setTimeout(() => {
         // If release fired while we were waiting, the timer's already cleared.
@@ -128,7 +136,13 @@ function _scheduleAutoRepeat(cardId, delay) {
         // player is out of elixir — so placements resume automatically as
         // soon as the elixir bar refills.
         isLongPressing = true;
-        _selectCard(cardId);
+        if (isFreeze) {
+            // Re-arm the freeze placement; clear any non-freeze selection.
+            selectedFreezeCardId = cardId;
+            selectedCardId = null;
+        } else {
+            _selectCard(cardId);
+        }
 
         const pos = lastPointerPos;
         if (pos) {
@@ -139,7 +153,7 @@ function _scheduleAutoRepeat(cardId, delay) {
 
         // Keep scheduling as long as the pointer is held. We only stop inside
         // handleCanvasRelease (or if the card disappears from CARDS).
-        _scheduleAutoRepeat(cardId, AUTO_REPEAT_MS);
+        _scheduleAutoRepeat(cardId, AUTO_REPEAT_MS, isFreeze);
     }, delay);
 }
 
@@ -147,7 +161,11 @@ function handleCanvasPress(e) {
     if (!canvas) return;
     e.preventDefault();
 
-    const cardBeforePlace = selectedCardId;
+    // Capture which card was held BEFORE placement (the place call may clear
+    // it). Either a normal card or a freeze card — auto-repeat needs to know
+    // which kind it is so it can re-arm the right slot on every tick.
+    const cardBeforePlace = selectedCardId || selectedFreezeCardId;
+    const wasFreeze = !!selectedFreezeCardId;
     const res = _placeAt(e.clientX, e.clientY, !!e.shiftKey);
 
     // Start the long-press timer. If it fires while the pointer is still
@@ -157,7 +175,7 @@ function handleCanvasPress(e) {
     autoPlaceTimer = null;
     isLongPressing = false;
     if (res && cardBeforePlace && !e.shiftKey) {
-        _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS);
+        _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS, wasFreeze);
     }
 }
 
@@ -165,11 +183,15 @@ function handleCanvasRelease() {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = null;
     if (isLongPressing) {
-        // Long-press ended — the card was held during the press and should
-        // now be released (deselected), mirroring keyboard Shift being lifted.
+        // Long-press ended — the card (regular or freeze) was held during
+        // the press and should now be released, mirroring keyboard Shift
+        // being lifted. Clear BOTH selection slots so a freeze long-press
+        // also deselects cleanly.
         isLongPressing = false;
         selectedCardId = null;
+        selectedFreezeCardId = null;
         document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.card').forEach(c => c.style.boxShadow = 'none');
     }
 }
 
