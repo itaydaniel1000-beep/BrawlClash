@@ -62,7 +62,15 @@ class Unit extends Entity {
     }
 
     takeDamage(amount) {
-        if (this.isInvisible || this.isFrozen) return; 
+        if (this.isInvisible || this.isFrozen) return;
+        // Amber is invulnerable to damage. She disappears ONLY when she
+        // finishes her path (handled in unit-logic.js by setting
+        // `this.isDead = true` after the last waypoint) OR via the admin
+        // 🗑️ delete-unit power (which writes `isDead` directly, bypassing
+        // takeDamage). Enemy attacks just bounce off her — she's a
+        // pacifist fire-walker, not a tank. The HP bar stays at 700/700
+        // for her whole run.
+        if (this.isPacifist) return;
         super.takeDamage(amount);
     }
 

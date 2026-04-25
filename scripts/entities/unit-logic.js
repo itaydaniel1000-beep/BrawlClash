@@ -80,7 +80,9 @@ Unit.prototype.update = function(dt, now) {
             }
         } else {
             // No waypoints — chase nearest enemy (any non-frozen, non-invisible
-            // enemy entity, including the safe).
+            // enemy entity, including the safe). She walks indefinitely;
+            // the only ways for her to disappear are: finishing a chosen
+            // path (handled above) or the admin 🗑️ delete power.
             const enemies = units.concat(buildings, auras)
                 .concat([playerSafe, enemySafe].filter(s => s))
                 .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen);
@@ -88,11 +90,8 @@ Unit.prototype.update = function(dt, now) {
                 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
                 : null;
         }
-        // Lifetime cap (no-path / path-with-distant-waypoints fallback).
-        if (now - this._spawnTime > this._maxLifetime) {
-            this.isDead = true;
-            return;
-        }
+        // (No lifetime cap — Amber lives until she completes her chosen
+        //  path, gets admin-deleted, or the match ends.)
     } else {
         this.target = this.team === 'player' ? enemySafe : playerSafe;
     }
