@@ -2,11 +2,15 @@
    Z-index is intentionally above everything (admin panel sits at 20000;
    we go above to also cover it during the lobby tour). */
 
+/* The overlay is a click-through container — only the tooltip itself
+   captures clicks. Without this the spotlight ring is purely cosmetic
+   because the overlay catches every click before it can reach the
+   underlying highlighted button. */
 #tutorial-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 25000;
-    pointer-events: auto;
+    pointer-events: none;
     display: none;
 }
 #tutorial-overlay.active { display: block; }
@@ -42,9 +46,12 @@
 }
 #tutorial-spotlight.active { display: block; }
 
-/* The tooltip / dialog that holds the explanation text + next button. */
+/* The tooltip / dialog that holds the explanation text + next button.
+   pointer-events: auto so the הבנתי button is clickable even though the
+   parent #tutorial-overlay is set to pointer-events: none. */
 #tutorial-tooltip {
     position: absolute;
+    pointer-events: auto;
     background: linear-gradient(145deg, #2c3e50, #1a252f);
     color: #fff;
     border: 3px solid #f1c40f;
