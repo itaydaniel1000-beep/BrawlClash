@@ -256,33 +256,78 @@
     // playerDeck is a script-scope `let` in globals.js — it does NOT attach
     // to window, so we have to MUTATE the array in place (length = 0 +
     // push) rather than reassigning it via window.playerDeck.
+    //
+    // We ALSO persist the snapshot to localStorage so that if the user
+    // closes / refreshes the tab mid-tutorial (which leaves localStorage
+    // with the 12-brawler deck + infiniteElixir hack), we can still roll
+    // back on the next page load.
+    const SNAPSHOT_KEY = 'brawlclash_tutorial_snapshot';
+
     function snapshotGameState() {
         try {
-            _state.savedDeck = (typeof playerDeck !== 'undefined') ? playerDeck.slice() : null;
-            _state.savedDifficulty = (typeof difficulty !== 'undefined') ? difficulty : null;
-            _state.savedAdminHacks = (typeof adminHacks !== 'undefined')
-                ? JSON.parse(JSON.stringify(adminHacks))
-                : null;
+            const snap = {
+                deck:           (typeof playerDeck !== 'undefined') ? playerDeck.slice() : null,
+                difficulty:     (typeof difficulty !== 'undefined') ? difficulty : null,
+                adminHacks:     (typeof adminHacks !== 'undefined')
+                                  ? JSON.parse(JSON.stringify(adminHacks)) : null,
+                opponentHacks:  (typeof opponentAdminHacks !== 'undefined')
+                                  ? JSON.parse(JSON.stringify(opponentAdminHacks)) : null
+            };
+            _state.savedDeck = snap.deck;
+            _state.savedDifficulty = snap.difficulty;
+            _state.savedAdminHacks = snap.adminHacks;
+            _state.savedOpponentHacks = snap.opponentHacks;
+            try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap)); } catch (e) {}
         } catch (e) {}
     }
-    function restoreGameState() {
+
+    function _readPersistedSnapshot() {
         try {
-            if (_state.savedDeck && typeof playerDeck !== 'undefined') {
+            const raw = localStorage.getItem(SNAPSHOT_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    }
+
+    function restoreGameState() {
+        // Pull from in-memory state first; fall back to the localStorage
+        // snapshot for cases where the tutorial was interrupted (refresh,
+        // closed tab) and the in-memory state is gone.
+        let snap = null;
+        if (_state.savedDeck || _state.savedAdminHacks) {
+            snap = {
+                deck:          _state.savedDeck,
+                difficulty:    _state.savedDifficulty,
+                adminHacks:    _state.savedAdminHacks,
+                opponentHacks: _state.savedOpponentHacks
+            };
+        } else {
+            snap = _readPersistedSnapshot();
+        }
+        if (!snap) return;
+        try {
+            if (snap.deck && typeof playerDeck !== 'undefined') {
                 playerDeck.length = 0;
-                _state.savedDeck.forEach(b => playerDeck.push(b));
+                snap.deck.forEach(b => playerDeck.push(b));
                 try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
             }
-            if (_state.savedDifficulty !== null && typeof difficulty !== 'undefined') {
-                difficulty = _state.savedDifficulty;
+            if (snap.difficulty !== null && snap.difficulty !== undefined && typeof difficulty !== 'undefined') {
+                difficulty = snap.difficulty;
             }
-            if (_state.savedAdminHacks && typeof adminHacks !== 'undefined') {
-                Object.assign(adminHacks, _state.savedAdminHacks);
+            if (snap.adminHacks && typeof adminHacks !== 'undefined') {
+                Object.assign(adminHacks, snap.adminHacks);
                 if (typeof saveAdminHacks === 'function') saveAdminHacks();
             }
-            if (_state.savedOpponentHacks && typeof opponentAdminHacks !== 'undefined') {
-                Object.assign(opponentAdminHacks, _state.savedOpponentHacks);
+            if (snap.opponentHacks && typeof opponentAdminHacks !== 'undefined') {
+                Object.assign(opponentAdminHacks, snap.opponentHacks);
             }
         } catch (e) {}
+        // Clear the snapshot — it's been applied. Drop in-memory too so a
+        // subsequent restoreGameState call doesn't double-roll-back.
+        _state.savedDeck = null;
+        _state.savedDifficulty = null;
+        _state.savedAdminHacks = null;
+        _state.savedOpponentHacks = null;
+        try { localStorage.removeItem(SNAPSHOT_KEY); } catch (e) {}
     }
 
     function setUpTutorialMatch() {
@@ -668,6 +713,11 @@
     }
 
     function completeTutorial() {
+        // Belt-and-suspenders: even if step4b_quitBtn already restored the
+        // game state when the user exited the practice match, run it again
+        // here so a snapshot leftover (from e.g. a tutorial that was
+        // resumed) can't outlive the tutorial.
+        restoreGameState();
         markComplete();
         dismissOverlay();
         showReplayHint();
@@ -726,6 +776,16 @@
     // next to the 📖 guide button so anyone who already finished can re-run
     // the walkthrough at will.
     document.addEventListener('DOMContentLoaded', () => {
+        // If a previous tutorial run was interrupted (refresh / closed tab)
+        // mid-match, the player's localStorage still has the 12-brawler
+        // deck + infiniteElixir hack baked in. Roll it back the moment
+        // the page loads so the user doesn't accidentally inherit the
+        // tutorial state into a real match.
+        try {
+            if (localStorage.getItem(SNAPSHOT_KEY)) {
+                restoreGameState();
+            }
+        } catch (e) {}
         setTimeout(() => {
             if (isComplete()) showReplayHint();
         }, 2500);
