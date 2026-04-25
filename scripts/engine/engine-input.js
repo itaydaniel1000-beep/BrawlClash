@@ -308,6 +308,35 @@ function handleSuspendAdmin() {
         }
     } catch (e) { /* don't block suspend on a safe-reset error */ }
 
+    // Roll back the elixir-bar bonuses that initGame baked in at match start
+    // (startingElixir override and maxElixir override). Without this, an admin
+    // who started with e.g. 20 elixir keeps that elevated bar even after their
+    // hacks are suspended, which lets them spam high-cost cards immediately.
+    try {
+        const baseStart = 5;
+        const baseMax   = (typeof CONFIG !== 'undefined' && CONFIG.MAX_ELIXIR) ? CONFIG.MAX_ELIXIR : 10;
+        // Roll back the maxElixir override first so the clamp below uses the
+        // correct ceiling.
+        if (backup.maxElixir && backup.maxElixir > baseMax) {
+            if (typeof playerMaxElixir !== 'undefined') playerMaxElixir = baseMax;
+        }
+        // If the admin had a startingElixir bonus, bring the current bar down
+        // to the baseline starting amount. We don't try to subtract "what they
+        // already spent" — the cleanest semantic is "ביטול אדמין resets your
+        // bar to the standard starting value", matching what initGame would
+        // have done without the override.
+        if (backup.startingElixir && backup.startingElixir > baseStart) {
+            if (typeof playerElixir !== 'undefined') playerElixir = baseStart;
+        }
+        // Final clamp so playerElixir never exceeds the (possibly-just-reset)
+        // max, regardless of which override was active.
+        if (typeof playerElixir !== 'undefined' && typeof playerMaxElixir !== 'undefined' &&
+            playerElixir > playerMaxElixir) {
+            playerElixir = playerMaxElixir;
+        }
+        if (typeof updateUI === 'function') updateUI();
+    } catch (e) { /* ignore — UI repaint will catch up next frame */ }
+
     // Remove the doubleSafe extra-safe so the admin doesn't keep two safes.
     try {
         if (backup.doubleSafe && typeof buildings !== 'undefined') {
