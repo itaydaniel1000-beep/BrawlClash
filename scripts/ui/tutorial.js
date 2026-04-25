@@ -563,24 +563,25 @@
     }
 
     function step7_settingsBtn() {
-        // Force the sidebar CLOSED before we ask the user to open it.
-        // The sidebar starts visible by default — without this, the user's
-        // first click on ☰ would CLOSE the already-open sidebar, the
-        // polling check ("not hidden") would never fire, and they'd have
-        // to click twice (once to close, once to open) before the tutorial
-        // advanced.
-        const sidebar = document.getElementById('right-sidebar');
-        if (sidebar) sidebar.classList.add('hidden');
+        // Take note of the sidebar's CURRENT state — we'll wait for ANY
+        // flip (open→closed or closed→open). Whichever direction the user
+        // toggles, ONE click on ☰ advances. This avoids the previous
+        // "force the sidebar closed first" hack which made the menu blink
+        // shut whenever the user came in from the powers screen with it
+        // already open.
+        const sidebar0 = document.getElementById('right-sidebar');
+        const wasHidden = !!(sidebar0 && sidebar0.classList.contains('hidden'));
 
         showStep({
             title: 'תפריט ההגדרות ☰',
-            text: 'הכפתור עם 3 הקווים פותח את הגדרות המשחק (קצב, אודיו, מסך וכו\'). לחץ עליו עכשיו.',
+            text: 'הכפתור עם 3 הקווים פותח/סוגר את התפריט הצדדי. לחץ עליו עכשיו.',
             target: '#home-settings-btn',
             allowClick: '#home-settings-btn'
         });
         const tickHandle = setInterval(() => {
             const sb = document.getElementById('right-sidebar');
-            if (sb && !sb.classList.contains('hidden')) {
+            const isHiddenNow = !!(sb && sb.classList.contains('hidden'));
+            if (isHiddenNow !== wasHidden) {
                 clearInterval(tickHandle);
                 setTimeout(step7b_settingsClose, 400);
             }
@@ -588,16 +589,23 @@
     }
 
     function step7b_settingsClose() {
+        // Same pattern — note current sidebar state and wait for the flip.
+        // Works whether the user just opened it (now visible, must close)
+        // or just closed it (now hidden, must reopen). Either way, the
+        // "click again" instruction is honoured by a single click.
+        const sidebar0 = document.getElementById('right-sidebar');
+        const wasHidden = !!(sidebar0 && sidebar0.classList.contains('hidden'));
+
         showStep({
             title: 'סגירת ההגדרות',
-            text: 'לחץ שוב על אותו כפתור כדי לסגור את ההגדרות.',
+            text: 'לחץ שוב על אותו כפתור כדי להחזיר את התפריט למצבו הקודם.',
             target: '#home-settings-btn',
-            button: false,
             allowClick: '#home-settings-btn'
         });
         const tickHandle = setInterval(() => {
-            const sidebar = document.getElementById('right-sidebar');
-            if (sidebar && sidebar.classList.contains('hidden')) {
+            const sb = document.getElementById('right-sidebar');
+            const isHiddenNow = !!(sb && sb.classList.contains('hidden'));
+            if (isHiddenNow !== wasHidden) {
                 clearInterval(tickHandle);
                 setTimeout(step8_friendsBtn, 400);
             }
