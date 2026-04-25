@@ -100,6 +100,26 @@ function draw(ctx) {
         if (typeof isSelectingAmberPath !== 'undefined' && isSelectingAmberPath &&
             typeof _amberPendingPath !== 'undefined' && _amberPendingPath.length > 0) {
             ctx.save();
+
+            // Reachable-area indicator: a translucent circle around the LAST
+            // placed waypoint with radius = 5 squares (250 px). Anywhere
+            // outside this circle the next click will be rejected, so the
+            // ring is the valid placement zone for the next step. Hidden
+            // once the path is full (6 waypoints already placed).
+            if (_amberPendingPath.length < 6) {
+                const last = _amberPendingPath[_amberPendingPath.length - 1];
+                const REACH = 250;
+                ctx.beginPath();
+                ctx.arc(last.x, last.y, REACH, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(231, 126, 34, 0.10)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(231, 126, 34, 0.85)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
             // Dotted line connecting waypoints in order.
             if (_amberPendingPath.length >= 2) {
                 ctx.strokeStyle = 'rgba(231, 126, 34, 0.85)';
