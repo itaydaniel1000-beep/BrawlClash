@@ -52,7 +52,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v9.72
+        v9.73
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -426,6 +426,13 @@
         <div id="guide-screen" class="screen overlay" style="background: linear-gradient(135deg, #16213e, #0f3460);">
             <div class="menu-box guide-box" style="max-width: 560px; width: 94%; max-height: 90vh; overflow-y: auto; text-align: right;">
                 <h2 style="color: #f1c40f; display: flex; align-items: center; justify-content: center; gap: 10px;">📖 מדריך השחקן</h2>
+
+                <!-- Re-run the interactive walkthrough (the same one new users
+                     get after picking a username). Closes the guide screen
+                     first so the tutorial spotlight has the lobby to land on. -->
+                <button type="button" id="guide-replay-tutorial-btn" onclick="closeScreen('guide-screen'); setTimeout(function(){ if (typeof window.startTutorial === 'function') window.startTutorial(true); }, 200);" style="display: block; width: 100%; margin: 6px 0 14px; padding: 12px 16px; border-radius: 12px; border: 2px solid #fff; background: linear-gradient(to bottom, #2ecc71, #27ae60); color: #fff; font-family: 'Assistant', sans-serif; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 0 #1e8449; transition: transform 0.08s ease, box-shadow 0.08s ease;">
+                    🎓 הפעל מחדש את ההדרכה האינטראקטיבית
+                </button>
 
                 <div id="guide-tabs" style="display: flex; gap: 8px; justify-content: center; margin: 12px 0 18px; flex-wrap: wrap;">
                     <button type="button" class="guide-tab-btn" data-guide-tab="mobile" style="flex: 1; min-width: 120px; padding: 10px 14px; border-radius: 10px; border: 2px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #fff; font-family: 'Assistant', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer;">📱 טלפון</button>
