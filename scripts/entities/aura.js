@@ -56,10 +56,19 @@ class Aura extends Entity {
     update(dt, now) {
         if (this.isDead || this.isFrozen) return;
 
-        // Fire-trail tiles are PERMANENT — once Amber lays one down it stays
-        // on the field for the rest of the match (per user's request). No
-        // natural-lifetime expiry, no post-death extinguish. The damage
-        // tick below keeps ticking forever.
+        // Fire-trail lifetime rule (per user's spec):
+        //   • While Amber is ALIVE → the tile never expires on its own.
+        //   • The moment Amber dies → start a 5-second countdown; when it
+        //     hits 0 the tile vanishes. Per-Amber: each Amber's trails
+        //     extinguish 5s after THAT Amber's own death (the back-ref
+        //     comes from unit-logic.js when each tile spawns).
+        if (this.type === 'fire-trail' && this._owner && this._owner.isDead) {
+            if (!this._ownerDiedAt) this._ownerDiedAt = now;
+            if (now - this._ownerDiedAt > 5000) {
+                this.isDead = true;
+                return;
+            }
+        }
 
         if (now - this.lastTickTime > 1000) {
             let enemies = units.concat(buildings, auras).filter(e => e.team !== this.team && !e.isFrozen);
@@ -104,9 +113,16 @@ class Aura extends Entity {
         // before the standard aura draw block so none of that runs.
         if (this.type === 'fire-trail') {
             const now = performance.now();
-            // Permanent trail — no fade-out, just a steady warm glow with
-            // a small per-tile flicker so the field doesn't look static.
-            const alpha = 0.55;
+            // Two regimes:
+            //   • owner alive → steady 0.55 alpha (no fade — the tile is
+            //     persistent until 5s after Amber dies).
+            //   • owner dead  → fade across the 5s grace window so the
+            //     batch dims together and winks out at deathTime + 5s.
+            let alpha = 0.55;
+            if (this._owner && this._owner.isDead && this._ownerDiedAt) {
+                const f = Math.min(1, (now - this._ownerDiedAt) / 5000);
+                alpha = 0.55 * (1 - f);
+            }
             const flicker = 0.8 + 0.2 * Math.sin(now / 90 + (this.x + this.y));
             const r = this.radius * flicker;
             ctx.save();
