@@ -29,8 +29,29 @@ class Unit extends Entity {
         } else if (type === 'porter') {
             this.maxHp = 100; this.hp = 100; this.attackDamage = 50; this.speed = 70; this.color = '#54a0ff';
             if (team === 'player' && hasStarPower('mr-p', 'sp2')) {
-                this.shieldHp = 500; 
+                this.shieldHp = 500;
             }
+        } else if (type === 'amber') {
+            // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
+            // unit-logic.js to skip the attack code-path entirely (otherwise
+            // she'd stop next to enemies and "attack" them with 0 dmg
+            // forever — instead we want her to keep walking through them
+            // and let the trail do the work).
+            this.maxHp = 700; this.hp = 700;
+            this.attackDamage = 0; this.speed = 50; this.color = '#e67e22';
+            this.isPacifist = true;
+            // Path/waypoint state. `waypoints` is the chosen path (or empty
+            // for free-roam-to-nearest-enemy). `_currentWp` indexes the next
+            // destination to walk to. Both are mutated by battle-input.js
+            // when the player adds clicks in path-selection mode.
+            this.waypoints = [];
+            this._currentWp = 0;
+            this._spawnTime = performance.now();
+            this._lastTrailTime = 0;
+            // Free-roam lifetime cap. In path mode she dies the moment she
+            // reaches the last waypoint (regardless of this clock); in
+            // no-path mode this is what eventually ends the run.
+            this._maxLifetime = 8000;
         }
 
         // Level scaling removed per user request — every unit uses its base

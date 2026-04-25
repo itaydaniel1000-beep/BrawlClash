@@ -128,6 +128,12 @@ let isSelectingBullDash = false;
 // Admin "delete next click" mode — toggled by the admin-delete button, consumed
 // by the next canvas click that lands on an enemy unit.
 var isSelectingDeleteTarget = false;
+// Amber "draw path" mode — toggled by the 🎯 path button while the Amber card
+// is held. While true, every canvas click APPENDS to `_amberPendingPath`
+// instead of placing a unit. After 6 waypoints OR a second click on 🎯, the
+// path is committed: Amber spawns at waypoints[0] and walks through the rest.
+var isSelectingAmberPath = false;
+var _amberPendingPath = [];
 let selectedFreezeCardId = null;
 let selectedCardId = null;
 let playerTrophies = parseInt(localStorage.getItem(_userKey('trophies'))) || 0;

@@ -147,6 +147,30 @@ function updateUI() {
         }
     }
 
+    // Amber 🎯 path-mode button — visible while the Amber card is held.
+    // Turns red while the player is laying down waypoints so it's obvious
+    // the next click on the map adds a path point (not places a unit).
+    const amberBtn = document.getElementById('amber-path-btn');
+    if (amberBtn) {
+        const showAmber = (selectedCardId === 'amber') &&
+                          (currentState === GAME_STATE.PLAYING);
+        if (showAmber) {
+            amberBtn.style.display = 'block';
+            amberBtn.style.backgroundColor = isSelectingAmberPath ? '#c0392b' : '#e67e22';
+            // Live waypoint counter on the button so the player knows how
+            // many they've placed without counting dots on the canvas.
+            const n = (typeof _amberPendingPath !== 'undefined') ? _amberPendingPath.length : 0;
+            amberBtn.innerText = isSelectingAmberPath ? ('🎯 ' + n + '/6') : '🎯';
+        } else {
+            amberBtn.style.display = 'none';
+            // Bail out of path mode if the user un-selects the card mid-flight.
+            if (isSelectingAmberPath) {
+                isSelectingAmberPath = false;
+                _amberPendingPath = [];
+            }
+        }
+    }
+
     document.querySelectorAll('.card').forEach(d => {
         let cardKey = d.id.replace('card-', '');
         if (CARDS[cardKey]) {

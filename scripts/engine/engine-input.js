@@ -92,7 +92,12 @@ function handleRemoteSpawn(data) {
     const cancelling = _userMayCancelAdmin() &&
         !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
     const buffs = cancelling ? null : (data.buffs || null);
-    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
+    // Amber waypoints (already flipped on the sender side) get passed through
+    // so the opponent's Amber walks the SAME path on their screen. Older
+    // peers running pre-v9.74 builds won't include `data.waypoints` —
+    // `null`/`undefined` is fine, the receiver just falls back to free-roam.
+    const waypoints = (data.waypoints && data.waypoints.length > 0) ? data.waypoints : null;
+    spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1, waypoints);
 }
 
 // The opponent's admin used the 🗑️ delete-unit power to remove one of OUR

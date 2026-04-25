@@ -20,7 +20,7 @@
     // user so each tab's own user gets their own tutorial-done marker.
     const _key = (s) => (typeof window._userKey === 'function') ? window._userKey(s) : ('brawlclash_' + s);
     const ALL_BRAWLERS = ['bruce', 'leon', 'bull', 'penny', 'scrappy', 'pam',
-                          'max', '8bit', 'emz', 'tara', 'spike', 'mr-p'];
+                          'max', '8bit', 'emz', 'tara', 'spike', 'mr-p', 'amber'];
 
     // Per-brawler explanation text shown when the player picks the card.
     const BRAWLER_TIPS = {
@@ -35,7 +35,8 @@
         emz:      'אמז — אורת רעל. אויבים שעוברים דרכה מואטים. שימושי לבלום הסתערות.',
         tara:     'טארה — אורת משיכה. שואבת אויבים אליה. שימושי כדי לרכז אותם בטווח של דמויות אחרות.',
         spike:    'ספייק — אורת קוצים. מאט אויבים בטווח. שילוב נהדר עם אבוטות דמיוניות.',
-        'mr-p':   'מיסטר-פי — מבנה שמייצר פורטרים (חיילים קטנים) באופן אוטומטי.'
+        'mr-p':   'מיסטר-פי — מבנה שמייצר פורטרים (חיילים קטנים) באופן אוטומטי.',
+        amber:    'אמבר — דמות אש פציפיסטית. היא לא תוקפת בעצמה אבל משאירה מאחוריה שביל אש שמוריד 25 חיים לשנייה לכל אויב שעובר בו. בזמן שאמבר מוחזקת לחץ על 🎯 כדי לבחור עד 6 נקודות מסלול שלאורכן היא תלך, או הניח אותה רגיל והיא תרוץ ליריב הקרוב ביותר.'
     };
 
     // ---- State ----

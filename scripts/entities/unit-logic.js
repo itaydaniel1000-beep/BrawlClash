@@ -59,8 +59,61 @@ Unit.prototype.update = function(dt, now) {
                 this.dashTarget = null;
             }
         }
+    } else if (this.type === 'amber') {
+        // Path-mode: chase the next waypoint. When close enough advance the
+        // pointer; once exhausted she dies (her job was to lay the trail
+        // along the chosen path, then she's spent).
+        if (this.waypoints && this.waypoints.length > 0 && this._currentWp < this.waypoints.length) {
+            const wp = this.waypoints[this._currentWp];
+            // Lightweight target shim — needs `.x/.y/.isDead/.radius/.takeDamage`
+            // so the move-toward-target code below treats it like an entity
+            // without us having to special-case the math.
+            this.target = { x: wp.x, y: wp.y, isDead: false, radius: 0, takeDamage: () => {} };
+            const dist = Math.hypot(wp.x - this.x, wp.y - this.y);
+            if (dist <= 20) {
+                this._currentWp++;
+                if (this._currentWp >= this.waypoints.length) {
+                    // Last waypoint reached — Amber's role is complete.
+                    this.isDead = true;
+                    return;
+                }
+            }
+        } else {
+            // No waypoints — chase nearest enemy (any non-frozen, non-invisible
+            // enemy entity, including the safe).
+            const enemies = units.concat(buildings, auras)
+                .concat([playerSafe, enemySafe].filter(s => s))
+                .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen);
+            this.target = enemies.length > 0
+                ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
+                : null;
+        }
+        // Lifetime cap (no-path / path-with-distant-waypoints fallback).
+        if (now - this._spawnTime > this._maxLifetime) {
+            this.isDead = true;
+            return;
+        }
     } else {
         this.target = this.team === 'player' ? enemySafe : playerSafe;
+    }
+
+    // Amber is a pacifist — she NEVER stops to attack, just walks. She also
+    // emits a fire-trail aura behind her every ~250ms; the fire deals
+    // 25 dmg/sec to anyone standing in it (see aura.js 'fire-trail' subtype).
+    if (this.isPacifist) {
+        if (!this._lastTrailTime || (now - this._lastTrailTime) > 250) {
+            try {
+                const trail = new Aura(this.x, this.y, this.team, 'fire-trail');
+                if (typeof auras !== 'undefined') auras.push(trail);
+            } catch (e) {}
+            this._lastTrailTime = now;
+        }
+        if (this.target && !this.target.isDead) {
+            const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+            this.x += Math.cos(angle) * this.speed * speedMult * (dt / 1000);
+            this.y += Math.sin(angle) * this.speed * speedMult * (dt / 1000);
+        }
+        return;
     }
 
     if (this.target && !this.target.isDead) {

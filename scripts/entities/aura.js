@@ -37,7 +37,15 @@ class Aura extends Entity {
             this.maxHp = 1500; this.hp = this.maxHp;
         } else if (type === 'fire') {
             this.radius = 50;
-            this.color = 'rgba(232, 65, 24, 0.4)'; 
+            this.color = 'rgba(232, 65, 24, 0.4)';
+            this.maxHp = 99999; this.hp = this.maxHp;
+        } else if (type === 'fire-trail') {
+            // Spawned by Amber as she walks. Smaller / shorter-lived than the
+            // generic 'fire' aura and ticks 25 dmg/sec instead of 20. Treated
+            // as invulnerable (huge maxHp) so enemies can't shoot it down —
+            // the lifetime check in update() is what removes it.
+            this.radius = 28;
+            this.color = 'rgba(231, 76, 60, 0.45)';
             this.maxHp = 99999; this.hp = this.maxHp;
         }
 
@@ -64,6 +72,10 @@ class Aura extends Entity {
                 enemies.forEach(e => {
                     if (Math.hypot(e.x - this.x, e.y - this.y) <= this.radius) e.takeDamage(20);
                 });
+            } else if (this.type === 'fire-trail') {
+                enemies.forEach(e => {
+                    if (Math.hypot(e.x - this.x, e.y - this.y) <= this.radius) e.takeDamage(25);
+                });
             }
             this.lastTickTime = now;
         }
@@ -72,6 +84,7 @@ class Aura extends Entity {
         if (this.type === 'spike') lifetime = (this.team === 'player' && hasStarPower('spike', 'sp2')) ? 15000 : 10000;
         if (this.type === 'tara') lifetime = 3000;
         if (this.type === 'fire') lifetime = 3000;
+        if (this.type === 'fire-trail') lifetime = 2500;
 
         if (now - this.spawnTime > lifetime) {
             this.isDead = true;
@@ -79,6 +92,34 @@ class Aura extends Entity {
     }
 
     draw(ctx) {
+        // Fire trail — render as a flickering flame blob (no border, no HP
+        // bar, no icon). Each tick we randomise the radius slightly and
+        // cross-fade between two warm-orange tones so the trail visibly
+        // shimmers instead of looking like static circles. Returns early
+        // before the standard aura draw block so none of that runs.
+        if (this.type === 'fire-trail') {
+            const now = performance.now();
+            const age = now - this.spawnTime;
+            const lifeFrac = Math.min(1, age / 2500);
+            const alpha = 0.55 * (1 - lifeFrac); // fade out over its lifetime
+            const flicker = 0.8 + 0.2 * Math.sin(now / 90 + (this.x + this.y));
+            const r = this.radius * flicker;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter'; // additive blend → glow
+            // Outer warm halo
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(231, 76, 60, ${alpha.toFixed(3)})`;
+            ctx.fill();
+            // Inner bright core
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(241, 196, 15, ${(alpha * 0.9).toFixed(3)})`;
+            ctx.fill();
+            ctx.restore();
+            return;
+        }
+
         ctx.save();
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);

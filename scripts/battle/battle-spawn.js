@@ -1,9 +1,13 @@
 // battle-spawn.js - Entity Spawning and Initial Interaction
 
-function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, remoteBuffs = null, remoteLevel = 0) {
+function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, remoteBuffs = null, remoteLevel = 0, waypoints = null) {
     if (team === 'player' && currentBattleRoom && !isRemote) {
         if (window.NetworkManager) {
-            window.NetworkManager.syncSpawn(currentBattleRoom, x, y, typeStr, isFrozen);
+            // Amber is special — her chosen waypoints have to ride the wire so
+            // the opponent sees her walk the SAME path on their screen
+            // (flipped to their coordinate space). Without this the opponent
+            // sees a different sim and the trail lands in the wrong cells.
+            window.NetworkManager.syncSpawn(currentBattleRoom, x, y, typeStr, isFrozen, waypoints);
         }
     }
 
@@ -59,6 +63,13 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         if (radMult > 1)   { entity.radius *= radMult; }
         if (team === 'player' && adminHacks.infiniteRange)       entity.attackRange = 9999;
         if (team === 'player' && adminHacks.permanentInvisible)  { entity.isInvisible = true; entity._permInvis = true; }
+        // Amber-specific: assign her path right here so unit-logic.js sees
+        // it on the very first update tick (no race between spawn and the
+        // commitAmberPath() post-write).
+        if (typeStr === 'amber' && waypoints && waypoints.length > 0) {
+            entity.waypoints = waypoints.map(p => ({ x: p.x, y: p.y }));
+            entity._currentWp = 0;
+        }
         units.push(entity);
     } else if (card.type === 'building') {
         entity = new Building(x, y, team, typeStr);

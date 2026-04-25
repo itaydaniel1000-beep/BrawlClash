@@ -27,7 +27,14 @@ const CARDS = {
     'emz': { name: 'אמז', cost: 7, type: 'aura', color: '#9c88ff', icon: '🧴' },
     'spike': { name: 'ספייק', cost: 5, type: 'aura', color: '#2ecc71', icon: '🌵' },
     'tara': { name: 'טראה', cost: 7, type: 'aura', color: '#636e72', icon: '👁️' },
-    'mr-p': { name: 'מיסטר פי', cost: 4, type: 'building', color: '#54a0ff', icon: '🐧' }
+    'mr-p': { name: 'מיסטר פי', cost: 4, type: 'building', color: '#54a0ff', icon: '🐧' },
+    // Amber — pacifist fire-walker. Costs 6, HP 700, attackDamage 0. Walks
+    // like Bruce (target chase) and leaves a fire trail (25 dmg/sec) behind
+    // her. The player can optionally steer her along up to 6 waypoints with
+    // the 🎯 path button while the card is held; without a path she walks
+    // to the nearest enemy. After traversing her chosen path she dies; in
+    // free-roam mode she dies after ~8 seconds.
+    'amber': { name: 'אמבר', cost: 6, type: 'unit', color: '#e67e22', icon: '🔥' }
 };
 
 const STAR_POWERS = {

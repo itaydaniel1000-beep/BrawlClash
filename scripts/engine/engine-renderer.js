@@ -94,5 +94,44 @@ function draw(ctx) {
         if ((typeof selectedCardId !== 'undefined' && selectedCardId) || (typeof selectedFreezeCardId !== 'undefined' && selectedFreezeCardId)) {
             if (typeof drawGhost === 'function') drawGhost(ctx);
         }
+        // Amber path-mode preview — dotted line + numbered orange circles
+        // showing the waypoints the player has placed so far. Lets them see
+        // the chosen route before committing on the 6th click / 🎯 tap.
+        if (typeof isSelectingAmberPath !== 'undefined' && isSelectingAmberPath &&
+            typeof _amberPendingPath !== 'undefined' && _amberPendingPath.length > 0) {
+            ctx.save();
+            // Dotted line connecting waypoints in order.
+            if (_amberPendingPath.length >= 2) {
+                ctx.strokeStyle = 'rgba(231, 126, 34, 0.85)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 6]);
+                ctx.beginPath();
+                ctx.moveTo(_amberPendingPath[0].x, _amberPendingPath[0].y);
+                for (let i = 1; i < _amberPendingPath.length; i++) {
+                    ctx.lineTo(_amberPendingPath[i].x, _amberPendingPath[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            // Numbered circles at each waypoint. The first one (spawn point)
+            // is drawn slightly larger and labelled "1" to make it visually
+            // obvious where Amber will appear.
+            _amberPendingPath.forEach((p, idx) => {
+                const r = (idx === 0) ? 14 : 11;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = (idx === 0) ? '#e67e22' : '#f39c12';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(idx + 1), p.x, p.y);
+            });
+            ctx.restore();
+        }
     }
 }

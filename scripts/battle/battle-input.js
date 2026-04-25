@@ -77,6 +77,20 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: false };
     }
 
+    // Amber path mode — every click adds a waypoint instead of placing a unit.
+    // After 6 waypoints we auto-commit (spawn Amber at waypoints[0] and walk
+    // through the rest). The 🎯 button can also be tapped a second time to
+    // commit early with however many waypoints exist.
+    if (typeof isSelectingAmberPath !== 'undefined' && isSelectingAmberPath) {
+        if (_amberPendingPath.length < 6) {
+            _amberPendingPath.push({ x, y });
+        }
+        if (_amberPendingPath.length >= 6) {
+            commitAmberPath();
+        }
+        return { placed: false };
+    }
+
     // Each side places only on its own half of the field (or inside an EMZ
     // aura their team owns). For the local human the player side is the
     // BOTTOM half (y > height/2).
@@ -135,6 +149,72 @@ function _placeAt(clientX, clientY, shiftHeld) {
     lastPointerPos = pt;
     return _placeAtInternal(pt.x, pt.y, shiftHeld);
 }
+
+// === Amber path-mode controls =============================================
+// Wired to the 🎯 button (#amber-path-btn) and to the auto-commit path that
+// fires when the user has placed all 6 waypoints.
+function toggleAmberPathMode() {
+    if (selectedCardId !== 'amber') {
+        // Belt-and-suspenders: the button is hidden when Amber isn't held,
+        // but in case it gets clicked while in some weird state, just no-op.
+        isSelectingAmberPath = false;
+        _amberPendingPath = [];
+        return;
+    }
+    if (isSelectingAmberPath) {
+        // Second tap on 🎯 → commit whatever we've got.
+        commitAmberPath();
+    } else {
+        // First tap → enter path mode.
+        isSelectingAmberPath = true;
+        _amberPendingPath = [];
+    }
+}
+window.toggleAmberPathMode = toggleAmberPathMode;
+
+// Spawn Amber at waypoints[0] and assign waypoints[1..N-1] as her walking
+// path. Costs the standard Amber elixir cost. If 0 waypoints have been
+// placed, just exit path mode silently.
+function commitAmberPath() {
+    if (!_amberPendingPath || _amberPendingPath.length === 0) {
+        isSelectingAmberPath = false;
+        return;
+    }
+    const card = CARDS['amber'];
+    if (!card) { isSelectingAmberPath = false; _amberPendingPath = []; return; }
+    const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
+    if (!canAfford) {
+        // Not enough elixir — drop the pending path and exit path mode so
+        // the player can try again once the bar fills.
+        isSelectingAmberPath = false;
+        _amberPendingPath = [];
+        if (typeof showTransientToast === 'function') showTransientToast('🧪 אין מספיק אליקסיר לאמבר');
+        return;
+    }
+    // Validate the spawn point — Amber spawns at waypoints[0], which must
+    // sit in the player's half of the field (or inside a player-team EMZ
+    // aura) just like any other player-team unit. Subsequent waypoints can
+    // be anywhere; she walks across the full board.
+    const sp = _amberPendingPath[0];
+    const inOwnHalf = sp.y > (CONFIG.CANVAS_HEIGHT / 2);
+    const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(sp.x - a.x, sp.y - a.y) <= a.radius);
+    if (!inOwnHalf && !insideOwnEmz) {
+        isSelectingAmberPath = false;
+        _amberPendingPath = [];
+        if (typeof showTransientToast === 'function') showTransientToast('⚠️ נקודת ההצבה חייבת להיות בחצי שלך');
+        return;
+    }
+    const path = _amberPendingPath.slice(1).map(p => ({ x: p.x, y: p.y }));
+    // Pass the path through spawnEntity → it gets baked onto Amber inside
+    // battle-spawn.js AND piggy-backs on SYNC_SPAWN so the opponent's
+    // client renders the same walk in P2P matches.
+    spawnEntity(sp.x, sp.y, 'player', 'amber', false, false, null, 0, path);
+    _amberPendingPath = [];
+    isSelectingAmberPath = false;
+    selectedCardId = null;
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+}
+window.commitAmberPath = commitAmberPath;
 
 function _scheduleAutoRepeat(cardId, delay, isFreeze) {
     clearTimeout(autoPlaceTimer);

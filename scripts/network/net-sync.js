@@ -19,7 +19,7 @@ function _collectSpawnBuffs() {
     };
 }
 
-NetworkManager.syncSpawn = function(roomId, x, y, unitType, isFrozen) {
+NetworkManager.syncSpawn = function(roomId, x, y, unitType, isFrozen, waypoints) {
     const buffs = _collectSpawnBuffs();
     // Send our card's current level too. `Unit`/`Building`/`Aura` apply
     // `getLevelScale(type)` only for team==='player' spawns, so a remote
@@ -27,6 +27,16 @@ NetworkManager.syncSpawn = function(roomId, x, y, unitType, isFrozen) {
     // weaker than it is on the sender's screen. Shipping the level lets
     // the receiver scale it to match.
     const level = (typeof playerStats !== 'undefined' && playerStats.levels && playerStats.levels[unitType]) || 1;
+    // Amber's path needs to ride the wire so the opponent renders the same
+    // walk. Each waypoint flips into the receiver's coordinate space the
+    // same way the spawn x/y does above.
+    let flippedWaypoints = null;
+    if (waypoints && waypoints.length > 0) {
+        flippedWaypoints = waypoints.map(p => ({
+            x: CONFIG.CANVAS_WIDTH  - p.x,
+            y: CONFIG.CANVAS_HEIGHT - p.y
+        }));
+    }
     Object.values(this.connections).forEach(conn => {
         if (conn.open) {
             conn.send({
@@ -36,7 +46,8 @@ NetworkManager.syncSpawn = function(roomId, x, y, unitType, isFrozen) {
                 unitType: unitType,
                 buffs: buffs,
                 isFrozen: !!isFrozen,
-                level: level
+                level: level,
+                waypoints: flippedWaypoints
             });
         }
     });
