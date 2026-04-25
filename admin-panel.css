@@ -28,6 +28,55 @@
     pointer-events: auto;
 }
 
+/* When the opponent's "ביטול אדמין" suspends our hacks for a match the
+   panel is locked: we gray out every gameplay row, kill its pointer-events,
+   and pin a banner at the top. The handlers (toggleAdminHack /
+   setAdminNumber / resetAdminPanel / setAdminCurrency) ALSO refuse to
+   mutate, so even if a click sneaks through it's a no-op + a toast.
+   Meta toggles (cancelAdmin / canGrantAdmin / canRevokeAdmin) stay live
+   so the player can still prepare the next match. */
+.admin-suspended-banner {
+    background: linear-gradient(90deg, #b71c1c, #ef5350);
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    padding: 10px 12px;
+    margin: 0 0 12px 0;
+    border-radius: 8px;
+    border: 2px solid #ffcdd2;
+    line-height: 1.35;
+    font-size: 0.95rem;
+    box-shadow: 0 0 14px rgba(239, 83, 80, 0.6);
+}
+.admin-suspended .hack-row,
+.admin-suspended .editor-row,
+.admin-suspended .admin-reset-btn {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(70%);
+}
+/* The three meta toggles stay interactive so the player can still flip
+   cancelAdmin / canGrantAdmin / canRevokeAdmin during a suspended match. */
+.admin-suspended #toggle-cancelAdmin,
+.admin-suspended #toggle-canGrantAdmin,
+.admin-suspended #toggle-canRevokeAdmin {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    filter: none !important;
+}
+.admin-suspended #toggle-cancelAdmin,
+.admin-suspended #toggle-canGrantAdmin,
+.admin-suspended #toggle-canRevokeAdmin {
+    /* Walk back up to the row to keep it interactive too. */
+}
+.admin-suspended .hack-row:has(#toggle-cancelAdmin),
+.admin-suspended .hack-row:has(#toggle-canGrantAdmin),
+.admin-suspended .hack-row:has(#toggle-canRevokeAdmin) {
+    opacity: 1;
+    pointer-events: auto;
+    filter: none;
+}
+
 /* While ANY admin overlay is open on desktop, slide the #app board to the
    LEFT just enough to clear the now-narrower panel. Keeps #app fully
    on-screen even on 1024-wide laptops (a bigger shift used to cut the

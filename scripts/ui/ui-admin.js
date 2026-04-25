@@ -26,6 +26,12 @@ function openAdminMenu() {
     // covers the full screen the way it always did.
     _refreshAdminOpenClass();
 
+    // Reflect cancelAdmin-suspend state on the panel: gray every gameplay
+    // toggle/input out and pin a top-of-panel banner explaining why nothing
+    // can be flipped right now. The class is toggled live every time the
+    // panel opens so the lock follows match start / end.
+    _refreshAdminSuspendedUI(overlay);
+
     const boolToggles = [
         { id: 'toggle-infinite-elixir',  key: 'infiniteElixir' },
         { id: 'toggle-god-mode',         key: 'godMode' },
@@ -152,6 +158,12 @@ window.closeAdminMenu = closeAdminMenu;
 // reset for the super-admin. Refreshes the open panel's UI so every toggle
 // and number input reflects the defaults immediately.
 function resetAdminPanel() {
+    if (_isAdminSuspended()) {
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לאפס את התפריט במהלך הקרב');
+        }
+        return;
+    }
     const defaults = {
         infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
         speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0,
@@ -200,7 +212,49 @@ function updateAdminToggleUI(hackKey, elementId) {
     }
 }
 
+// Fields the admin is allowed to flip even while suspended. These don't
+// affect the current match — they're meta toggles for grants and the
+// next match's cancelAdmin behaviour.
+const _ADMIN_META_TOGGLES = new Set(['cancelAdmin', 'canGrantAdmin', 'canRevokeAdmin']);
+
+// True iff the opponent currently has cancelAdmin on against us. The
+// admin panel UI refuses to mutate gameplay fields while this is the case.
+function _isAdminSuspended() {
+    return !!(typeof window !== 'undefined' && window._suspendedAdminBackup);
+}
+
+// Drop a body-level class + a banner inside the admin-panel container so
+// CSS can gray out every gameplay toggle and the user immediately sees
+// why nothing reacts to clicks.
+function _refreshAdminSuspendedUI(overlay) {
+    const suspended = _isAdminSuspended();
+    document.body.classList.toggle('admin-suspended', suspended);
+
+    const target = overlay && overlay.querySelector('.admin-panel-container');
+    if (!target) return;
+
+    // Banner: insert/remove a single notice at the top of the container.
+    let banner = target.querySelector('.admin-suspended-banner');
+    if (suspended) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.className = 'admin-suspended-banner';
+            banner.innerText = '🛡️ ביטול אדמין פעיל — היריב השבית את הכוחות שלך לכל הקרב. הכוחות יחזרו אוטומטית בסיום.';
+            target.insertBefore(banner, target.firstChild);
+        }
+    } else if (banner) {
+        banner.remove();
+    }
+}
+window._refreshAdminSuspendedUI = _refreshAdminSuspendedUI;
+
 function toggleAdminHack(hackKey) {
+    if (_isAdminSuspended() && !_ADMIN_META_TOGGLES.has(hackKey)) {
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לשנות הגדרות אדמין במהלך הקרב');
+        }
+        return;
+    }
     adminHacks[hackKey] = !adminHacks[hackKey];
     if (typeof saveAdminHacks === 'function') saveAdminHacks();
 
@@ -267,6 +321,12 @@ window._resetDeleteUnitButtonStyle = _resetDeleteUnitButtonStyle;
 
 // Numeric / string admin setter — bound to <input oninput> in the admin panel.
 function setAdminNumber(key, raw) {
+    if (_isAdminSuspended()) {
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לשנות הגדרות אדמין במהלך הקרב');
+        }
+        return;
+    }
     let v = raw;
     if (typeof v === 'string' && key !== 'botOnlyCardId') {
         v = parseFloat(v);
@@ -278,6 +338,12 @@ function setAdminNumber(key, raw) {
 window.setAdminNumber = setAdminNumber;
 
 function setAdminCurrency(type) {
+    if (_isAdminSuspended()) {
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לערוך מטבעות במהלך הקרב');
+        }
+        return;
+    }
     const inputId = type === 'coins' ? 'admin-gold-input' : 'admin-gems-input';
     const input = document.getElementById(inputId);
     if (!input) return;

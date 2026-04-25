@@ -287,6 +287,12 @@ function handleSuspendAdmin() {
     if (typeof showTransientToast === 'function') {
         showTransientToast('🛡️ היריב הפעיל ביטול-אדמין — כוחות האדמין שלך מושבתים עד סוף הקרב');
     }
+
+    // If the admin panel is already open right now, repaint it as locked.
+    try {
+        const overlay = document.getElementById('admin-panel-overlay');
+        if (overlay && typeof _refreshAdminSuspendedUI === 'function') _refreshAdminSuspendedUI(overlay);
+    } catch (e) {}
 }
 window.handleSuspendAdmin = handleSuspendAdmin;
 
@@ -300,6 +306,11 @@ function restoreSuspendedAdmin() {
     if (typeof showTransientToast === 'function') {
         showTransientToast('🛡️ המשחק הסתיים — כוחות האדמין שלך חזרו');
     }
+    // Repaint the admin panel as unlocked if it's open.
+    try {
+        const overlay = document.getElementById('admin-panel-overlay');
+        if (overlay && typeof _refreshAdminSuspendedUI === 'function') _refreshAdminSuspendedUI(overlay);
+    } catch (e) {}
 }
 window.restoreSuspendedAdmin = restoreSuspendedAdmin;
 
