@@ -249,9 +249,12 @@
     }
 
     // ---- Game-state plumbing ----
+    // playerDeck is a script-scope `let` in globals.js — it does NOT attach
+    // to window, so we have to MUTATE the array in place (length = 0 +
+    // push) rather than reassigning it via window.playerDeck.
     function snapshotGameState() {
         try {
-            _state.savedDeck = (window.playerDeck) ? [...playerDeck] : null;
+            _state.savedDeck = (typeof playerDeck !== 'undefined') ? playerDeck.slice() : null;
             _state.savedDifficulty = (typeof difficulty !== 'undefined') ? difficulty : null;
             _state.savedAdminHacks = (typeof adminHacks !== 'undefined')
                 ? JSON.parse(JSON.stringify(adminHacks))
@@ -260,9 +263,10 @@
     }
     function restoreGameState() {
         try {
-            if (_state.savedDeck) {
-                window.playerDeck = _state.savedDeck;
-                if (typeof savePlayerDeck === 'function') savePlayerDeck();
+            if (_state.savedDeck && typeof playerDeck !== 'undefined') {
+                playerDeck.length = 0;
+                _state.savedDeck.forEach(b => playerDeck.push(b));
+                try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
             }
             if (_state.savedDifficulty !== null && typeof difficulty !== 'undefined') {
                 difficulty = _state.savedDifficulty;
@@ -279,10 +283,14 @@
 
     function setUpTutorialMatch() {
         // 12 brawlers in the deck (game uses up to 8 normally; we cram all 12
-        // so each one is reachable in the deck).
-        if (typeof window.playerDeck !== 'undefined') {
-            window.playerDeck = ALL_BRAWLERS.slice();
-            if (typeof savePlayerDeck === 'function') savePlayerDeck();
+        // so each one is reachable in the deck). Mutate the array in place —
+        // playerDeck is a script-scope `let`, so reassigning via
+        // `window.playerDeck = …` would not touch the binding the rest of
+        // the game reads from.
+        if (typeof playerDeck !== 'undefined') {
+            playerDeck.length = 0;
+            ALL_BRAWLERS.forEach(b => playerDeck.push(b));
+            try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
         }
         // Disable the bot for the tutorial — the user shouldn't be pressured.
         if (typeof adminHacks !== 'undefined') {
