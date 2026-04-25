@@ -73,6 +73,7 @@
                 <div id="tutorial-title"></div>
                 <div id="tutorial-text"></div>
                 <div class="tutorial-actions">
+                    <button class="tutorial-btn secondary" id="tutorial-skip-btn" style="display:none;">דלג ⏭️</button>
                     <button class="tutorial-btn" id="tutorial-next-btn">המשך</button>
                 </div>
             </div>
@@ -165,6 +166,21 @@
         btn.onclick = (e) => { e.stopPropagation(); onClick && onClick(); };
     }
 
+    // Toggle the SKIP button. Pass `null` to hide it (the default for every
+    // step except the welcome screen). Pass `{ label, onClick }` to show it.
+    function setSkipButton(opts) {
+        const btn = document.getElementById('tutorial-skip-btn');
+        if (!btn) return;
+        if (!opts) {
+            btn.style.display = 'none';
+            btn.onclick = null;
+            return;
+        }
+        btn.style.display = 'inline-block';
+        btn.innerText = opts.label || 'דלג ⏭️';
+        btn.onclick = (e) => { e.stopPropagation(); opts.onClick && opts.onClick(); };
+    }
+
     // Hide ONLY the explanation bubble (title/text/הבנתי button) when the
     // user clicks "הבנתי" on an action-required step. The spotlight ring
     // around the highlighted element AND the darkened backdrop both STAY
@@ -231,6 +247,10 @@
         const buttonLabel = opts.button || 'הבנתי';
         const buttonAction = opts.onNext || hideExplanation;
         setButton(buttonLabel, buttonAction);
+
+        // SKIP button — hidden by default, opt-in per step via opts.skip.
+        // Pass `{ label, onClick }` to show it.
+        setSkipButton(opts.skip || null);
 
         // Force layout for tooltip positioning.
         setTimeout(() => positionTooltip(targetEl), 0);
@@ -392,10 +412,27 @@
         showStep({
             title: 'ברוך הבא ל-BrawlClash! 🎮',
             text: 'המטרה במשחק: <b>להרוס את הכספת האדומה של היריב</b> שנמצאת בחלק העליון של המפה, לפני שהיריב מצליח להרוס את <b>הכספת הכחולה שלך</b> שבתחתית. ' +
-                  'הניח דמויות מהקלפים כדי לתקוף ולהגן. כל קלף עולה אליקסיר 🧪.',
+                  'הניח דמויות מהקלפים כדי לתקוף ולהגן. כל קלף עולה אליקסיר 🧪. ' +
+                  '<br><br><span style="opacity:0.8; font-size:0.85em;">אפשר לדלג עכשיו ולחזור להדרכה בכל רגע מהכפתור 📖 שבתפריט.</span>',
             button: 'בוא נתחיל!',
-            onNext: step2_clickPlay
+            onNext: step2_clickPlay,
+            skip: {
+                label: 'דלג ⏭️',
+                onClick: skipTutorial
+            }
         });
+    }
+
+    // SKIP from the welcome step. Step 1 is BEFORE snapshotGameState /
+    // setUpTutorialMatch, so there's nothing to roll back — but we still
+    // call restoreGameState() defensively in case a previous interrupted
+    // run left a snapshot in localStorage. Then mark complete + show the
+    // replay chip so the user can re-trigger the walkthrough later.
+    function skipTutorial() {
+        restoreGameState();
+        markComplete();
+        dismissOverlay();
+        showReplayHint();
     }
 
     function step2_clickPlay() {
@@ -806,7 +843,7 @@
         // the page loads so the user doesn't accidentally inherit the
         // tutorial state into a real match.
         try {
-            if (localStorage.getItem(SNAPSHOT_KEY)) {
+            if (localStorage.getItem(_SNAPSHOT_KEY())) {
                 restoreGameState();
             }
         } catch (e) {}
