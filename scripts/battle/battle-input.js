@@ -67,6 +67,14 @@ function _placeAtInternal(x, y, shiftHeld) {
         let clickedBull = units.find(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed && Math.hypot(u.x - x, u.y - y) <= u.radius * 2);
         if (clickedBull) {
             clickedBull.triggerDash(performance.now());
+            // P2P: tell the opponent to dash the same bull on their side
+            // (it's `team='enemy'` over there, otherwise it just walks).
+            try {
+                if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
+                    window.NetworkManager && typeof window.NetworkManager.broadcastBullDash === 'function') {
+                    window.NetworkManager.broadcastBullDash(clickedBull.x, clickedBull.y);
+                }
+            } catch (e) { /* ignore — local dash already fired */ }
             const moreBullsAvailable = units.some(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed);
             if (!moreBullsAvailable) {
                 isSelectingBullDash = false;

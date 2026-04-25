@@ -90,6 +90,8 @@ NetworkManager.handleConnection = function(conn) {
             if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
         } else if (data.type === 'DELETE_UNIT') {
             if (typeof handleRemoteDeleteUnit === 'function') handleRemoteDeleteUnit(data);
+        } else if (data.type === 'BULL_DASH') {
+            if (typeof handleRemoteBullDash === 'function') handleRemoteBullDash(data);
         }
     });
 };

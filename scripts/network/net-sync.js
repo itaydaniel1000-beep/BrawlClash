@@ -145,6 +145,26 @@ NetworkManager.broadcastDeleteUnit = function(x, y, entityType, radius) {
     });
 };
 
+// We just triggered Bull's dash on a local bull at (x, y). The opponent's
+// client has the same bull on their screen as `team='enemy'` — without a
+// sync message it would never enter dash mode. Ship the flipped position
+// so the receiver can find the matching bull within a small tolerance and
+// call its `triggerDash()` too. The dashEndTime / hasDashed state then
+// stays in lock-step on both sides.
+NetworkManager.broadcastBullDash = function(x, y) {
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try {
+                conn.send({
+                    type: 'BULL_DASH',
+                    x: CONFIG.CANVAS_WIDTH  - x,
+                    y: CONFIG.CANVAS_HEIGHT - y
+                });
+            } catch (e) { /* ignore */ }
+        }
+    });
+};
+
 // Tell the opponent to un-freeze the units WE just unfroze — same batch rule,
 // just on the other team's perspective.
 NetworkManager.broadcastReleaseFreeze = function() {
@@ -301,6 +321,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
             } else if (data.type === 'DELETE_UNIT') {
                 if (typeof handleRemoteDeleteUnit === 'function') handleRemoteDeleteUnit(data);
+            } else if (data.type === 'BULL_DASH') {
+                if (typeof handleRemoteBullDash === 'function') handleRemoteBullDash(data);
             }
         });
     });

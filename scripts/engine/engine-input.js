@@ -149,6 +149,31 @@ function handleRemoteDeleteUnit(data) {
 }
 window.handleRemoteDeleteUnit = handleRemoteDeleteUnit;
 
+// The opponent just triggered their Bull's dash. Find the matching bull on
+// our side (theirs is on our screen as team='enemy') and call its
+// triggerDash so the dash animation + 5× speed mult fire on both screens.
+// Coords arrive flipped — sender already inverted them via broadcastBullDash.
+function handleRemoteBullDash(data) {
+    if (!data) return;
+    const tx = +data.x, ty = +data.y;
+    if (!isFinite(tx) || !isFinite(ty)) return;
+    try {
+        if (typeof units === 'undefined') return;
+        // Find the closest non-dashed enemy-team Bull. Tolerance: 80px (the
+        // two clients drift between updates). Pick the nearest match.
+        let best = null, bestDist = 80;
+        units.forEach(u => {
+            if (!u || u.isDead || u.type !== 'bull' || u.team !== 'enemy' || u.hasDashed) return;
+            const d = Math.hypot((u.x || 0) - tx, (u.y || 0) - ty);
+            if (d < bestDist) { bestDist = d; best = u; }
+        });
+        if (best && typeof best.triggerDash === 'function') {
+            best.triggerDash(performance.now());
+        }
+    } catch (e) { /* ignore — local sim still runs */ }
+}
+window.handleRemoteBullDash = handleRemoteBullDash;
+
 // The opponent's safe just fired — mirror the shot on our screen so BOTH
 // clients agree on which of our units is being targeted. Without this every
 // client runs its own safe-targeting logic and picks a different victim when
