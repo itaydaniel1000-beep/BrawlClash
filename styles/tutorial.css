@@ -1,0 +1,141 @@
+/* Tutorial Overlay — first-time user walkthrough.
+   Z-index is intentionally above everything (admin panel sits at 20000;
+   we go above to also cover it during the lobby tour). */
+
+#tutorial-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 25000;
+    pointer-events: auto;
+    display: none;
+}
+#tutorial-overlay.active { display: block; }
+
+/* Dark backdrop with a transparent "hole" cut around the spotlighted
+   element via box-shadow on the spotlight (which is the inverse). */
+#tutorial-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    pointer-events: auto;
+}
+
+/* The spotlight is a transparent box positioned over the target element.
+   The huge box-shadow simulates a cutout in the darkened backdrop —
+   wherever the spotlight is, the area outside it is dimmed. The element
+   itself stays visible and CLICKABLE because the spotlight is
+   pointer-events:none and overlaps it. */
+#tutorial-spotlight {
+    position: absolute;
+    pointer-events: none;
+    border-radius: 14px;
+    box-shadow:
+        0 0 0 4px #f1c40f,
+        0 0 24px 6px rgba(241, 196, 15, 0.6),
+        0 0 0 9999px rgba(0, 0, 0, 0.72);
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+    display: none;
+}
+#tutorial-spotlight.active { display: block; }
+
+/* The tooltip / dialog that holds the explanation text + next button. */
+#tutorial-tooltip {
+    position: absolute;
+    background: linear-gradient(145deg, #2c3e50, #1a252f);
+    color: #fff;
+    border: 3px solid #f1c40f;
+    border-radius: 16px;
+    padding: 18px 20px;
+    max-width: 360px;
+    width: 80vw;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+    direction: rtl;
+    text-align: right;
+    font-family: 'Assistant', sans-serif;
+    line-height: 1.5;
+    z-index: 25001;
+}
+
+#tutorial-title {
+    font-family: 'Fredoka One', cursive;
+    color: #f1c40f;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+#tutorial-text {
+    font-size: 1rem;
+    margin-bottom: 14px;
+    color: #ecf0f1;
+}
+
+.tutorial-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.tutorial-btn {
+    background: linear-gradient(to bottom, #f1c40f, #e1b12c);
+    color: #2c3e50;
+    border: 2px solid #fff;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #c69502;
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.tutorial-btn:hover { filter: brightness(1.05); }
+.tutorial-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #c69502; }
+
+.tutorial-btn.secondary {
+    background: linear-gradient(to bottom, #95a5a6, #7f8c8d);
+    color: #fff;
+    box-shadow: 0 4px 0 #5d6d7e;
+}
+
+/* When tutorial is locking the UI, every click outside the spotlight is
+   swallowed. Visually we add a small wiggle to draw attention to the
+   highlighted element. */
+@keyframes tutorialPulse {
+    0%   { transform: scale(1.0); }
+    50%  { transform: scale(1.04); }
+    100% { transform: scale(1.0); }
+}
+.tutorial-pulse {
+    animation: tutorialPulse 1.2s ease-in-out infinite;
+    transform-origin: center;
+}
+
+/* Replay tutorial chip — sits on the lobby once the walkthrough finishes,
+   pointing at the 📖 guide button so the user knows where to retrigger. */
+#tutorial-replay-hint {
+    position: fixed;
+    z-index: 19000;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    font-family: 'Assistant', sans-serif;
+    font-weight: bold;
+    pointer-events: auto;
+    cursor: pointer;
+    direction: rtl;
+}
+#tutorial-replay-hint::after {
+    content: '←';
+    margin-right: 6px;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+@media (max-width: 600px) {
+    #tutorial-tooltip { max-width: 92vw; padding: 14px 16px; font-size: 0.95rem; }
+    #tutorial-title { font-size: 1.2rem; }
+    .tutorial-btn { padding: 8px 14px; font-size: 0.95rem; }
+}
