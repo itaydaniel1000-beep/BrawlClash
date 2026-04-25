@@ -183,11 +183,15 @@
         const handler = (ev) => {
             // Always allow our own tooltip / overlay clicks.
             if (ev.target.closest('#tutorial-tooltip')) return;
-            // If we have a whitelisted selector, check whether the click is
-            // inside the matching element OR our tooltip.
+            // Whitelist: a comma-separated selector list. querySelectorAll
+            // returns EVERY matching element so passing
+            // '#pause-btn, #quit-btn' actually allows BOTH (querySelector
+            // alone would only return the first).
             if (allowedSelector) {
-                const el = document.querySelector(allowedSelector);
-                if (el && (el === ev.target || el.contains(ev.target))) return;
+                const els = document.querySelectorAll(allowedSelector);
+                for (const el of els) {
+                    if (el === ev.target || el.contains(ev.target)) return;
+                }
             }
             // Block everything else.
             ev.preventDefault();
@@ -431,12 +435,33 @@
         document.querySelectorAll('.card').forEach(c => {
             c.style.pointerEvents = ''; c.style.opacity = '';
         });
+        // Step 4a — highlight the ⏸️ pause button.
         showStep({
             title: 'איך לצאת מהמשחק',
-            text: 'מצוין! עכשיו לחץ על <b>⏸️ עצור</b> בפינה הימנית-עליונה ואז על <b>"יציאה"</b> כדי לחזור ללובי.',
+            text: 'מצוין! עכשיו לחץ על <b>⏸️ עצור</b> בפינה הימנית-עליונה כדי לפתוח את תפריט ההשהיה.',
             target: '#pause-btn',
-            button: false,
-            allowClick: '#pause-btn, #quit-btn, #resume-btn'
+            allowClick: '#pause-btn'
+        });
+        const waitForPauseMenu = setInterval(() => {
+            const pm = document.getElementById('pause-menu');
+            if (pm && pm.classList.contains('active')) {
+                clearInterval(waitForPauseMenu);
+                setTimeout(step4b_quitBtn, 350);
+            }
+        }, 200);
+    }
+
+    function step4b_quitBtn() {
+        // Step 4b — pause menu is open. Move the spotlight to the red
+        // "תפריט ראשי" button (id #quit-btn) and explain. The user used to
+        // get stuck here because the click-guard only whitelisted
+        // #pause-btn (querySelector returns only the first match), so the
+        // "תפריט ראשי" click was blocked silently.
+        showStep({
+            title: 'יציאה ללובי',
+            text: 'תפריט ההשהיה פתוח. לחץ על <b>"תפריט ראשי"</b> (הכפתור האדום) כדי לחזור ללובי.',
+            target: '#quit-btn',
+            allowClick: '#quit-btn'
         });
         // Wait until we're back on the lobby screen.
         const tickHandle = setInterval(() => {
