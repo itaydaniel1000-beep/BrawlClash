@@ -187,20 +187,28 @@ function handleAdminConfig(data) {
 }
 window.handleAdminConfig = handleAdminConfig;
 
-// Admin fields that DIRECTLY affect gameplay — these are the ones that get
-// wiped during a cancelAdmin suspend. UI/meta fields (cancelAdmin itself,
-// canGrantAdmin, canRevokeAdmin, deleteUnit, bot-only flags) are preserved
-// so the panel still looks sensible to the suspended admin, and the bot-only
-// flags wouldn't apply in a P2P battle anyway.
+// Admin fields that get wiped during a cancelAdmin suspend. We include the
+// bot/enemy panel fields too even though the bot doesn't run during a P2P
+// match — leaving them set looks weird in the locked panel, and the user
+// expects the entire admin section to be uniformly suspended.
+// UI/meta fields (cancelAdmin / canGrantAdmin / canRevokeAdmin) are NOT
+// suspended; the player can still flip those for the next match.
 const _GAMEPLAY_ADMIN_FIELDS = [
+    // Units
     'infiniteElixir', 'godMode', 'doubleDamage', 'superSpeed',
     'speedMultiplier', 'dmgMultiplier', 'hpMultiplier',
     'attackSpeedMultiplier', 'radiusMultiplier',
     'infiniteRange', 'permanentInvisible',
+    // Elixir
     'startingElixir', 'maxElixir', 'elixirRateMultiplier',
     'freeCards', 'fullRefund',
+    // Safe
     'safeHpMultiplier', 'safeShoots', 'safeHeals', 'safeRegen', 'doubleSafe',
-    'timeScale', 'autoIncome', 'allStarPowers'
+    // Bot / enemy panel section — included so suspend covers the whole UI
+    'disableBot', 'botSlowdownFactor', 'enemyNerfFactor', 'botOnlyCardId',
+    // Game-wide
+    'timeScale', 'autoIncome', 'allStarPowers',
+    'deleteUnit'
 ];
 
 // The opponent has cancelAdmin on — back up our gameplay adminHacks, zero
@@ -216,17 +224,17 @@ function handleSuspendAdmin() {
 
     const backup = {};
     _GAMEPLAY_ADMIN_FIELDS.forEach(k => { backup[k] = adminHacks[k]; });
-    // Also back up + clear the deleteUnit toggle so the admin can't keep
-    // using the 🗑️ delete-enemy-unit button while suspended.
-    backup.deleteUnit = adminHacks.deleteUnit;
     window._suspendedAdminBackup = backup;
 
+    // Wipe every gameplay field. String fields (botOnlyCardId) reset to ''.
     _GAMEPLAY_ADMIN_FIELDS.forEach(k => {
         const v = adminHacks[k];
         if (typeof v === 'boolean') adminHacks[k] = false;
         else if (typeof v === 'number') adminHacks[k] = 0;
+        else if (typeof v === 'string') adminHacks[k] = '';
     });
-    adminHacks.deleteUnit = false;
+    // Also disarm the in-flight delete-unit selection mode so the floating
+    // 🗑️ button can't keep deleting enemies even though deleteUnit is now off.
     if (typeof window.isSelectingDeleteTarget !== 'undefined') {
         window.isSelectingDeleteTarget = false;
     }
