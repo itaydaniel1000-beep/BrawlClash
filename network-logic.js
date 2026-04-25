@@ -404,6 +404,18 @@ async function claimUsername() {
     // Don't call it here too — starting two PeerJS instances means one overrides
     // the other and the surviving peer never fires 'open'.
     goToLobby();
+
+    // First-time-user tutorial: kick it off only AFTER the player picked a
+    // name and pressed 'התחל לשחק'. The tutorial module itself guards on the
+    // localStorage 'brawlclash_tutorial_done' marker, so this is a no-op for
+    // returning users who already finished the walkthrough.
+    setTimeout(() => {
+        if (typeof window.startTutorial === 'function' &&
+            typeof window.isTutorialComplete === 'function' &&
+            !window.isTutorialComplete()) {
+            window.startTutorial(false);
+        }
+    }, 800);
 }
 window.claimUsername = claimUsername;
 

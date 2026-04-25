@@ -642,17 +642,18 @@
     window.startTutorial = startTutorial;
     window.isTutorialComplete = isComplete;
 
-    // Kick off after page load if first-time user (has username, no marker).
+    // We DO NOT auto-start the tutorial on DOMContentLoaded any more — the
+    // user wanted it to fire only after the new player picks a name and
+    // presses 'התחל לשחק' on the username overlay. claimUsername() in
+    // network-logic.js calls window.startTutorial(false) once the name is
+    // accepted; it's a no-op for returning users who already completed it.
+    //
+    // After page load we just stamp the persistent 'replay tutorial' chip
+    // next to the 📖 guide button so anyone who already finished can re-run
+    // the walkthrough at will.
     document.addEventListener('DOMContentLoaded', () => {
-        // Give the rest of the engine ~2.5 s to settle (peerJS, stats UI,
-        // possible username prompt) before we lay our overlay over it.
         setTimeout(() => {
-            if (typeof playerStats !== 'undefined' && playerStats &&
-                playerStats.username && !isComplete()) {
-                startTutorial(false);
-            } else if (isComplete()) {
-                showReplayHint();
-            }
+            if (isComplete()) showReplayHint();
         }, 2500);
     });
 })();
