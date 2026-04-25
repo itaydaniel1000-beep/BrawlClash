@@ -49,8 +49,11 @@ try {
 
 // --- Player Stats & Levels ---
 let playerStats = {
-    coins: parseInt(localStorage.getItem('brawlclash_coins')) || 1000,
-    gems: parseInt(localStorage.getItem('brawlclash_gems')) || 100,
+    // Defaults are 0 — brand-new users (no localStorage) start with nothing
+    // and earn coins/gems through normal play. Existing users keep whatever
+    // their saved values are.
+    coins: parseInt(localStorage.getItem('brawlclash_coins')) || 0,
+    gems: parseInt(localStorage.getItem('brawlclash_gems')) || 0,
     levels: {},
     claimedTiers: JSON.parse(localStorage.getItem('brawlclash_claimed')) || [],
     username: localStorage.getItem('brawlclash_username') || null

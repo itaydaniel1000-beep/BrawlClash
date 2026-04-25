@@ -421,8 +421,24 @@ async function claimUsername() {
     if (feedback) feedback.innerText = '';
     if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
 
+    // Detect "truly new user" — no saved username at all for this browser.
+    // (Renaming via the ✏️ button doesn't count: that's an existing player.)
+    const wasFirstTimeUser = !localStorage.getItem('brawlclash_username');
+
     playerStats.username = name;
     localStorage.setItem('brawlclash_username', name);
+
+    // First-time signup: reset coins / gems / trophies to 0 so a new
+    // player starts from scratch even if some stale localStorage values
+    // were sitting around. Doesn't run on subsequent name changes.
+    if (wasFirstTimeUser) {
+        try {
+            playerStats.coins = 0;
+            playerStats.gems = 0;
+            if (typeof playerTrophies !== 'undefined') playerTrophies = 0;
+            if (typeof saveStats === 'function') saveStats();
+        } catch (e) {}
+    }
     const overlay = document.getElementById('username-overlay');
     if (overlay) overlay.style.display = 'none';
 
