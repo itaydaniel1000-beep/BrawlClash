@@ -160,6 +160,129 @@ function tryClaimUsernameLock(name) {
 window.tryClaimUsernameLock = tryClaimUsernameLock;
 
 // ---------------------------------------------------------------------------
+// Persistent username registry (super-admin = source of truth)
+// ---------------------------------------------------------------------------
+//
+// The PeerJS lock above only protects names while the holder's tab is open —
+// the broker drops the lock ~30 s after the holder disconnects, and another
+// device can then steal the same name. To make claims STICK across offline
+// periods, the super-admin's lock-peer doubles as a permanent registry:
+//
+//   • Every device generates a stable `deviceId` UUID once and reuses it.
+//   • On every successful claim, the client sends REGISTER_USERNAME to the
+//     super-admin's lock-peer with { username, deviceId }.
+//   • The super-admin records `name -> deviceId` in localStorage. Subsequent
+//     REGISTER from a DIFFERENT deviceId is rejected with reason='taken'.
+//   • On rename, the client first sends RELEASE_USERNAME for the old name.
+//
+// When the super-admin is OFFLINE we fall back to the PeerJS broker lock
+// (best-effort, ephemeral) so legitimate users can still create accounts.
+// Once the super-admin is back online they enforce uniqueness for any new
+// claims that happen while they're up.
+// ---------------------------------------------------------------------------
+
+function getDeviceId() {
+    let id = null;
+    try { id = localStorage.getItem('brawlclash_device_id'); } catch (e) {}
+    if (!id) {
+        id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+        try { localStorage.setItem('brawlclash_device_id', id); } catch (e) {}
+    }
+    return id;
+}
+window.getDeviceId = getDeviceId;
+
+function _loadUsernameRegistry() {
+    try { return JSON.parse(localStorage.getItem('brawlclash_username_registry') || '{}'); }
+    catch (e) { return {}; }
+}
+function _saveUsernameRegistry(reg) {
+    try { localStorage.setItem('brawlclash_username_registry', JSON.stringify(reg)); }
+    catch (e) {}
+}
+
+// Talk to the super-admin's lock-peer to register/verify the name. Returns
+// a Promise<{ ok, reason?, mode }>. Fails-OPEN on every error path EXCEPT
+// an explicit { ok: false, reason: 'taken' } from the super-admin — without
+// fail-open, a momentarily-offline super-admin would block all signups.
+function verifyUsernameWithAdmin(name) {
+    return new Promise((resolve) => {
+        if (!name) { resolve({ ok: true, mode: 'no-name' }); return; }
+        if (!_usernameLockPeer) { resolve({ ok: true, mode: 'no-peer' }); return; }
+
+        // Super-admin claiming their own name → write directly to local registry.
+        if (playerStats.username === ADMIN_USERNAME ||
+            (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME)) {
+            const reg = _loadUsernameRegistry();
+            const lower = name.toLowerCase();
+            const dev = getDeviceId();
+            if (!reg[lower] || reg[lower] === dev) {
+                reg[lower] = dev;
+                _saveUsernameRegistry(reg);
+                resolve({ ok: true, mode: 'self' });
+            } else {
+                resolve({ ok: false, reason: 'taken', mode: 'self' });
+            }
+            return;
+        }
+
+        const adminLockId = _peerIdForName(ADMIN_USERNAME);
+        let conn;
+        try { conn = _usernameLockPeer.connect(adminLockId, { reliable: true }); }
+        catch (e) { resolve({ ok: true, mode: 'no-conn' }); return; }
+        if (!conn) { resolve({ ok: true, mode: 'no-conn' }); return; }
+
+        let settled = false;
+        const settle = (v) => { if (!settled) { settled = true; resolve(v); try { conn.close(); } catch (e) {} } };
+
+        const giveUp = setTimeout(() => settle({ ok: true, mode: 'timeout' }), 5000);
+        conn.on('open', () => {
+            try { conn.send({ type: 'REGISTER_USERNAME', username: name, deviceId: getDeviceId() }); }
+            catch (e) { clearTimeout(giveUp); settle({ ok: true, mode: 'send-error' }); }
+        });
+        conn.on('data', (data) => {
+            clearTimeout(giveUp);
+            if (data && data.type === 'REGISTER_RESPONSE') {
+                settle({ ok: !!data.ok, reason: data.reason || null, mode: 'admin' });
+            } else {
+                settle({ ok: true, mode: 'unknown-response' });
+            }
+        });
+        conn.on('error', () => { clearTimeout(giveUp); settle({ ok: true, mode: 'conn-error' }); });
+    });
+}
+window.verifyUsernameWithAdmin = verifyUsernameWithAdmin;
+
+// Best-effort release of an old name (called before a rename). Fire-and-forget.
+function releaseUsernameWithAdmin(oldName) {
+    if (!oldName || !_usernameLockPeer) return;
+    if (playerStats.username === ADMIN_USERNAME) {
+        const reg = _loadUsernameRegistry();
+        const lower = oldName.toLowerCase();
+        if (reg[lower] === getDeviceId()) {
+            delete reg[lower];
+            _saveUsernameRegistry(reg);
+        }
+        return;
+    }
+    const adminLockId = _peerIdForName(ADMIN_USERNAME);
+    let conn;
+    try { conn = _usernameLockPeer.connect(adminLockId, { reliable: true }); }
+    catch (e) { return; }
+    if (!conn) return;
+    const giveUp = setTimeout(() => { try { conn.close(); } catch (e) {} }, 3000);
+    conn.on('open', () => {
+        try { conn.send({ type: 'RELEASE_USERNAME', username: oldName, deviceId: getDeviceId() }); }
+        catch (e) {}
+        setTimeout(() => { try { conn.close(); } catch (e) {} clearTimeout(giveUp); }, 500);
+    });
+    conn.on('error', () => { clearTimeout(giveUp); });
+}
+window.releaseUsernameWithAdmin = releaseUsernameWithAdmin;
+
+// ---------------------------------------------------------------------------
 // Admin grant over PeerJS — every user's lock-peer doubles as a "grant oracle".
 // When a target client opens their lock, they ask the super-admin's lock-peer
 // "do you have a grant for my username?". The super-admin responds with the
@@ -187,6 +310,37 @@ function _setupLockPeerMessageHandlers(peer) {
                 const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
                 const flags = grants[data.username] || null;
                 try { conn.send({ type: 'GRANT_RESPONSE', flags }); } catch (e) {}
+                return;
+            }
+            // Super-admin acts as the persistent username registry. Non-admin
+            // peers respond ok=true so a stray REGISTER landing on the wrong
+            // peer doesn't accidentally block a legitimate signup.
+            if (data.type === 'REGISTER_USERNAME' && typeof data.username === 'string' && typeof data.deviceId === 'string') {
+                if (playerStats.username !== ADMIN_USERNAME) {
+                    try { conn.send({ type: 'REGISTER_RESPONSE', ok: true, mode: 'non-admin-peer' }); } catch (e) {}
+                    return;
+                }
+                const reg = _loadUsernameRegistry();
+                const lower = data.username.toLowerCase();
+                if (!reg[lower] || reg[lower] === data.deviceId) {
+                    reg[lower] = data.deviceId;
+                    _saveUsernameRegistry(reg);
+                    try { conn.send({ type: 'REGISTER_RESPONSE', ok: true, mode: 'registered' }); } catch (e) {}
+                } else {
+                    try { conn.send({ type: 'REGISTER_RESPONSE', ok: false, reason: 'taken', mode: 'registered' }); } catch (e) {}
+                }
+                return;
+            }
+            if (data.type === 'RELEASE_USERNAME' && typeof data.username === 'string' && typeof data.deviceId === 'string') {
+                if (playerStats.username !== ADMIN_USERNAME) return;
+                const reg = _loadUsernameRegistry();
+                const lower = data.username.toLowerCase();
+                // Only the device that owns the registration can release it.
+                if (reg[lower] === data.deviceId) {
+                    delete reg[lower];
+                    _saveUsernameRegistry(reg);
+                }
+                return;
             }
         });
     });
@@ -382,28 +536,44 @@ window.addEventListener('beforeunload', () => {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (!playerStats || !playerStats.username) return;
+        const ejectToUsernameScreen = (reason) => {
+            console.warn('🔒 username-lock: ' + reason + ' — forcing re-claim');
+            playerStats.username = null;
+            try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
+            const overlay = document.getElementById('username-overlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.classList.add('active');
+            }
+            const feedback = document.getElementById('username-feedback');
+            if (feedback) {
+                feedback.style.color = '#ff7675';
+                feedback.innerText = '❌ השם שלך נלקח ע״י מכשיר אחר. בחר שם חדש.';
+            }
+        };
         tryClaimUsernameLock(playerStats.username)
             .then(() => {
                 // Lock re-acquired — ask for any pending admin grant for this name.
                 setTimeout(queryAdminForGrant, 500);
+                // ALSO verify against the super-admin's persistent registry
+                // (the broker lock was free because the previous holder is
+                // offline, but the registry remembers them). Do this after a
+                // small delay so the lock-peer is fully open before we connect.
+                if (typeof verifyUsernameWithAdmin === 'function') {
+                    setTimeout(() => {
+                        verifyUsernameWithAdmin(playerStats.username).then(v => {
+                            if (!v.ok && v.reason === 'taken') {
+                                ejectToUsernameScreen('registry says name belongs to another device');
+                            }
+                        });
+                    }, 800);
+                }
             })
             .catch((err) => {
                 // Only force a re-claim for actual "name taken" rejection.
                 // Broker timeouts / generic errors shouldn't eject the user.
                 if (err && err.message === 'name-taken') {
-                    console.warn('🔒 username-lock: name is now held by another device — forcing re-claim');
-                    playerStats.username = null;
-                    try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
-                    const overlay = document.getElementById('username-overlay');
-                    if (overlay) {
-                        overlay.style.display = 'flex';
-                        overlay.classList.add('active');
-                    }
-                    const feedback = document.getElementById('username-feedback');
-                    if (feedback) {
-                        feedback.style.color = '#ff7675';
-                        feedback.innerText = '❌ השם שלך נלקח ע״י מכשיר אחר. בחר שם חדש.';
-                    }
+                    ejectToUsernameScreen('name is now held by another device');
                 }
             });
     }, 1500);
@@ -419,13 +589,27 @@ async function claimUsername() {
     if (feedback) { feedback.style.color = '#ffeaa7'; feedback.innerText = '⌛ בודק זמינות של השם…'; }
     if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.7'; }
 
+    // Snapshot the OLD name before we overwrite it — we need to ask the
+    // super-admin's registry to release it so other devices can pick it up.
+    const oldName = (playerStats && playerStats.username) || null;
+
     try {
         await tryClaimUsernameLock(name);
+
+        // Persistent uniqueness check via the super-admin's username registry.
+        // PeerJS lock above is ephemeral (lost when the holder closes their
+        // tab); the registry survives offline periods.
+        if (typeof verifyUsernameWithAdmin === 'function') {
+            const verify = await verifyUsernameWithAdmin(name);
+            if (!verify.ok && verify.reason === 'taken') {
+                throw new Error('name-taken');
+            }
+        }
     } catch (e) {
         if (feedback) {
             feedback.style.color = '#ff7675';
             if (e && e.message === 'name-taken') {
-                feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. בחר שם אחר.';
+                feedback.innerText = '❌ השם כבר בשימוש. בחר שם אחר.';
             } else if (e && e.message === 'broker-timeout') {
                 feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
             } else {
@@ -434,6 +618,13 @@ async function claimUsername() {
         }
         if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
         return;
+    }
+
+    // Rename success path: free the old name in the registry so OTHER devices
+    // can take it. (Same-device re-claim of the same name was already a no-op
+    // — the registry maps name -> deviceId.)
+    if (oldName && oldName !== name && typeof releaseUsernameWithAdmin === 'function') {
+        try { releaseUsernameWithAdmin(oldName); } catch (e) {}
     }
 
     if (feedback) feedback.innerText = '';
