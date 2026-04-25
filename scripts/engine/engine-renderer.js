@@ -101,12 +101,13 @@ function draw(ctx) {
             typeof _amberPendingPath !== 'undefined' && _amberPendingPath.length > 0) {
             ctx.save();
 
-            // Reachable-area indicator: a translucent circle around the LAST
-            // placed waypoint with radius = 5 squares (250 px). Anywhere
-            // outside this circle the next click will be rejected, so the
-            // ring is the valid placement zone for the next step. Hidden
-            // once the path is full (6 waypoints already placed).
-            if (_amberPendingPath.length < 6) {
+            // Reachable-area indicator — ONLY for Amber's path (her steps
+            // are capped at 5 squares each, so the ring shows the valid
+            // next-click zone). Other walking units have no per-step cap,
+            // so no indicator. Also hidden once Amber's 6-waypoint cap
+            // is reached.
+            const isAmberPath = (typeof _pendingPathCardId !== 'undefined' && _pendingPathCardId === 'amber');
+            if (isAmberPath && _amberPendingPath.length < 6) {
                 const last = _amberPendingPath[_amberPendingPath.length - 1];
                 const REACH = 250;
                 ctx.beginPath();
@@ -154,16 +155,15 @@ function draw(ctx) {
             ctx.restore();
         }
 
-        // Live remaining-path preview for every player-team Amber that's
-        // already been placed and is mid-walk. Each waypoint she hasn't
-        // reached yet stays drawn (line + numbered circle) until she
-        // arrives at it; once she advances `_currentWp` past an index
-        // that index drops out of the list and the rendering shrinks.
-        // Enemy-team Ambers are NOT drawn — those waypoints are the
-        // opponent's tactical info and shouldn't be exposed to us.
+        // Live remaining-path preview for every player-team WALKING UNIT
+        // that's already been placed and is mid-walk along a chosen
+        // route. Each waypoint the unit hasn't reached yet stays drawn
+        // (line + numbered circle) until it arrives. Enemy-team paths
+        // are NOT drawn — those waypoints are the opponent's tactical
+        // info and shouldn't be exposed to us.
         if (typeof units !== 'undefined') {
             for (const u of units) {
-                if (!u || u.isDead || u.type !== 'amber' || u.team !== 'player') continue;
+                if (!u || u.isDead || u.team !== 'player') continue;
                 if (!u.waypoints || u.waypoints.length === 0) continue;
                 const idxFrom = (typeof u._currentWp === 'number') ? u._currentWp : 0;
                 if (idxFrom >= u.waypoints.length) continue;

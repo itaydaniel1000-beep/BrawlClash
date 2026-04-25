@@ -128,12 +128,21 @@ let isSelectingBullDash = false;
 // Admin "delete next click" mode — toggled by the admin-delete button, consumed
 // by the next canvas click that lands on an enemy unit.
 var isSelectingDeleteTarget = false;
-// Amber "draw path" mode — toggled by the 🎯 path button while the Amber card
-// is held. While true, every canvas click APPENDS to `_amberPendingPath`
-// instead of placing a unit. After 6 waypoints OR a second click on 🎯, the
-// path is committed: Amber spawns at waypoints[0] and walks through the rest.
+// Path-selection mode — toggled by the 🎯 button while ANY walking unit
+// card is held (bruce / leon / bull / amber — buildings + auras can't move
+// so the button doesn't show). While true, every canvas click APPENDS to
+// `_amberPendingPath` instead of placing a unit. A second click on 🎯
+// commits whatever waypoints exist; the unit spawns at waypoints[0] and
+// walks through the rest. Amber additionally caps at 6 waypoints / 5
+// squares per step (her balance constraints) — every other walking unit
+// is uncapped per user request.
+//
+// Names kept as `isSelectingAmberPath` / `_amberPendingPath` for backwards
+// compat with the existing renderer / tutorial — `_pendingPathCardId`
+// records which card the path is actually for.
 var isSelectingAmberPath = false;
 var _amberPendingPath = [];
+var _pendingPathCardId = null;
 
 // Used by every enemy target-selection filter (Bull / Porter chase, building
 // turrets, the Safe, projectile re-targeting, splash) to skip Amber and her

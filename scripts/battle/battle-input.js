@@ -90,29 +90,32 @@ function _placeAtInternal(x, y, shiftHeld) {
     // through the rest). The 🎯 button can also be tapped a second time to
     // commit early with however many waypoints exist.
     if (typeof isSelectingAmberPath !== 'undefined' && isSelectingAmberPath) {
-        if (_amberPendingPath.length < 6) {
-            // Per-step distance cap: each segment can cover at most 5 "squares"
-            // (one square = 50 px, matching Amber's per-second speed). The
-            // click is REJECTED outright if it's further than 5 squares
-            // from the previous waypoint — no clamping, no quiet shortening.
-            // The very first click (spawn point) has no previous waypoint
-            // to measure from, so it always lands as-is.
-            const SQUARE_PX = 50;
-            const MAX_STEP_PX = SQUARE_PX * 5; // 250
-            if (_amberPendingPath.length > 0) {
-                const prev = _amberPendingPath[_amberPendingPath.length - 1];
-                const d = Math.hypot(x - prev.x, y - prev.y);
-                if (d > MAX_STEP_PX) {
-                    if (typeof showTransientToast === 'function') {
-                        showTransientToast('🎯 הצעד רחוק מדי — מקסימום 5 משבצות מהנקודה הקודמת');
+        // Caps only apply to AMBER (her balance leash). Every other walking
+        // unit (bruce / leon / bull) gets unlimited waypoints with no
+        // per-step distance cap, per user request.
+        const isAmber = (_pendingPathCardId === 'amber');
+        if (isAmber) {
+            if (_amberPendingPath.length < 6) {
+                const SQUARE_PX = 50;
+                const MAX_STEP_PX = SQUARE_PX * 5; // 250
+                if (_amberPendingPath.length > 0) {
+                    const prev = _amberPendingPath[_amberPendingPath.length - 1];
+                    const d = Math.hypot(x - prev.x, y - prev.y);
+                    if (d > MAX_STEP_PX) {
+                        if (typeof showTransientToast === 'function') {
+                            showTransientToast('🎯 הצעד רחוק מדי — מקסימום 5 משבצות מהנקודה הקודמת');
+                        }
+                        return { placed: false };
                     }
-                    return { placed: false };
                 }
+                _amberPendingPath.push({ x, y });
             }
+            if (_amberPendingPath.length >= 6) {
+                commitAmberPath();
+            }
+        } else {
+            // Non-Amber walking units: unlimited waypoints, no distance cap.
             _amberPendingPath.push({ x, y });
-        }
-        if (_amberPendingPath.length >= 6) {
-            commitAmberPath();
         }
         return { placed: false };
     }
@@ -176,67 +179,77 @@ function _placeAt(clientX, clientY, shiftHeld) {
     return _placeAtInternal(pt.x, pt.y, shiftHeld);
 }
 
-// === Amber path-mode controls =============================================
-// Wired to the 🎯 button (#amber-path-btn) and to the auto-commit path that
-// fires when the user has placed all 6 waypoints.
+// === Path-mode controls (generic over any walking unit) ===================
+// Wired to the 🎯 button (#amber-path-btn) and the auto-commit fired when
+// Amber's 6th waypoint lands. Works for every CARDS entry whose `type ===
+// 'unit'` (bruce / leon / bull / amber — porter is summon-only and isn't
+// a placeable card). Buildings and auras don't show the button at all.
+function _isWalkingCard(cardId) {
+    const c = cardId && CARDS[cardId];
+    return !!(c && c.type === 'unit');
+}
+
 function toggleAmberPathMode() {
-    if (selectedCardId !== 'amber') {
-        // Belt-and-suspenders: the button is hidden when Amber isn't held,
-        // but in case it gets clicked while in some weird state, just no-op.
+    if (!_isWalkingCard(selectedCardId)) {
+        // Button shouldn't have been clickable; reset just in case.
         isSelectingAmberPath = false;
         _amberPendingPath = [];
+        _pendingPathCardId = null;
         return;
     }
     if (isSelectingAmberPath) {
         // Second tap on 🎯 → commit whatever we've got.
         commitAmberPath();
     } else {
-        // First tap → enter path mode.
+        // First tap → enter path mode and lock the card identity so the
+        // commit later spawns the right unit even if the player accidentally
+        // bumps another card mid-draw.
         isSelectingAmberPath = true;
         _amberPendingPath = [];
+        _pendingPathCardId = selectedCardId;
     }
 }
 window.toggleAmberPathMode = toggleAmberPathMode;
 
-// Spawn Amber at waypoints[0] and assign waypoints[1..N-1] as her walking
-// path. Costs the standard Amber elixir cost. If 0 waypoints have been
+// Spawn the chosen unit at waypoints[0] and assign waypoints[1..N-1] as its
+// walking path. Costs the card's elixir cost. If 0 waypoints have been
 // placed, just exit path mode silently.
 function commitAmberPath() {
-    if (!_amberPendingPath || _amberPendingPath.length === 0) {
+    const cardId = _pendingPathCardId || selectedCardId || 'amber';
+    const cleanup = () => {
+        _amberPendingPath = [];
         isSelectingAmberPath = false;
+        _pendingPathCardId = null;
+    };
+    if (!_amberPendingPath || _amberPendingPath.length === 0) {
+        cleanup();
         return;
     }
-    const card = CARDS['amber'];
-    if (!card) { isSelectingAmberPath = false; _amberPendingPath = []; return; }
+    const card = CARDS[cardId];
+    if (!card) { cleanup(); return; }
     const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
     if (!canAfford) {
-        // Not enough elixir — drop the pending path and exit path mode so
-        // the player can try again once the bar fills.
-        isSelectingAmberPath = false;
-        _amberPendingPath = [];
-        if (typeof showTransientToast === 'function') showTransientToast('🧪 אין מספיק אליקסיר לאמבר');
+        cleanup();
+        if (typeof showTransientToast === 'function') showTransientToast('🧪 אין מספיק אליקסיר');
         return;
     }
-    // Validate the spawn point — Amber spawns at waypoints[0], which must
-    // sit in the player's half of the field (or inside a player-team EMZ
-    // aura) just like any other player-team unit. Subsequent waypoints can
-    // be anywhere; she walks across the full board.
+    // Validate the spawn point — must sit in the player's half (or inside
+    // a player-team EMZ aura) like any other player-team unit. Subsequent
+    // waypoints can be anywhere; the unit walks across the full board.
     const sp = _amberPendingPath[0];
     const inOwnHalf = sp.y > (CONFIG.CANVAS_HEIGHT / 2);
     const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(sp.x - a.x, sp.y - a.y) <= a.radius);
     if (!inOwnHalf && !insideOwnEmz) {
-        isSelectingAmberPath = false;
-        _amberPendingPath = [];
+        cleanup();
         if (typeof showTransientToast === 'function') showTransientToast('⚠️ נקודת ההצבה חייבת להיות בחצי שלך');
         return;
     }
     const path = _amberPendingPath.slice(1).map(p => ({ x: p.x, y: p.y }));
-    // Pass the path through spawnEntity → it gets baked onto Amber inside
-    // battle-spawn.js AND piggy-backs on SYNC_SPAWN so the opponent's
-    // client renders the same walk in P2P matches.
-    spawnEntity(sp.x, sp.y, 'player', 'amber', false, false, null, 0, path);
-    _amberPendingPath = [];
-    isSelectingAmberPath = false;
+    // Pass the path through spawnEntity → it gets baked onto the unit
+    // inside battle-spawn.js AND piggy-backs on SYNC_SPAWN so the
+    // opponent's client renders the same walk in P2P matches.
+    spawnEntity(sp.x, sp.y, 'player', cardId, false, false, null, 0, path);
+    cleanup();
     selectedCardId = null;
     document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
 }

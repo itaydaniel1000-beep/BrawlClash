@@ -14,6 +14,13 @@ class Unit extends Entity {
         this.icon = CARDS[type] ? CARDS[type].icon : '🐧';
         this.hasDashed = false;
 
+        // Path-following state — any walking unit can carry a player-chosen
+        // route. Empty array = no path = default per-type AI takes over.
+        // Populated by battle-spawn.js when spawnEntity is called with a
+        // `waypoints` argument (from commitAmberPath / SYNC_SPAWN).
+        this.waypoints = [];
+        this._currentWp = 0;
+
         if (type === 'bruce') {
             // Bumped base from 1200 → 1860 (and attackDamage 150 → 232) so
             // every device shows the same HP for Bruce regardless of local
@@ -41,12 +48,7 @@ class Unit extends Entity {
             this.maxHp = 700; this.hp = 700;
             this.attackDamage = 0; this.speed = 75; this.color = '#e67e22';
             this.isPacifist = true;
-            // Path/waypoint state. `waypoints` is the chosen path (or empty
-            // for free-roam-to-nearest-enemy). `_currentWp` indexes the next
-            // destination to walk to. Both are mutated by battle-input.js
-            // when the player adds clicks in path-selection mode.
-            this.waypoints = [];
-            this._currentWp = 0;
+            // (waypoints / _currentWp inherited from the base init above.)
             this._spawnTime = performance.now();
             this._lastTrailTime = 0;
             // Free-roam lifetime cap. In path mode she dies the moment she

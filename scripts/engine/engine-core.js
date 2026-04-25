@@ -147,26 +147,35 @@ function updateUI() {
         }
     }
 
-    // Amber 🎯 path-mode button — visible while the Amber card is held.
+    // 🎯 path-mode button — visible while ANY walking-unit card is held
+    // (bruce / leon / bull / amber). Buildings and auras don't show it.
     // Turns red while the player is laying down waypoints so it's obvious
     // the next click on the map adds a path point (not places a unit).
     const amberBtn = document.getElementById('amber-path-btn');
     if (amberBtn) {
-        const showAmber = (selectedCardId === 'amber') &&
-                          (currentState === GAME_STATE.PLAYING);
-        if (showAmber) {
+        const heldCard = selectedCardId && CARDS[selectedCardId];
+        const isWalking = !!(heldCard && heldCard.type === 'unit');
+        const showBtn = isWalking && (currentState === GAME_STATE.PLAYING);
+        if (showBtn) {
             amberBtn.style.display = 'block';
             amberBtn.style.backgroundColor = isSelectingAmberPath ? '#c0392b' : '#e67e22';
-            // Live waypoint counter on the button so the player knows how
-            // many they've placed without counting dots on the canvas.
             const n = (typeof _amberPendingPath !== 'undefined') ? _amberPendingPath.length : 0;
-            amberBtn.innerText = isSelectingAmberPath ? ('🎯 ' + n + '/6') : '🎯';
+            // Amber has the 6-waypoint cap → "N/6". Other walking units are
+            // uncapped → just show "N".
+            const isAmberMode = (typeof _pendingPathCardId !== 'undefined' && _pendingPathCardId === 'amber') ||
+                                (selectedCardId === 'amber');
+            if (isSelectingAmberPath) {
+                amberBtn.innerText = isAmberMode ? ('🎯 ' + n + '/6') : ('🎯 ' + n);
+            } else {
+                amberBtn.innerText = '🎯';
+            }
         } else {
             amberBtn.style.display = 'none';
             // Bail out of path mode if the user un-selects the card mid-flight.
             if (isSelectingAmberPath) {
                 isSelectingAmberPath = false;
                 _amberPendingPath = [];
+                _pendingPathCardId = null;
             }
         }
     }

@@ -63,10 +63,11 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         if (radMult > 1)   { entity.radius *= radMult; }
         if (team === 'player' && adminHacks.infiniteRange)       entity.attackRange = 9999;
         if (team === 'player' && adminHacks.permanentInvisible)  { entity.isInvisible = true; entity._permInvis = true; }
-        // Amber-specific: assign her path right here so unit-logic.js sees
-        // it on the very first update tick (no race between spawn and the
-        // commitAmberPath() post-write).
-        if (typeStr === 'amber' && waypoints && waypoints.length > 0) {
+        // Player-drawn path: assign waypoints right here so unit-logic.js
+        // sees them on the very first update tick. Works for ANY walking
+        // unit type (bruce / leon / bull / amber) — the type was kept as
+        // a special-case originally but is now generic.
+        if (waypoints && waypoints.length > 0) {
             entity.waypoints = waypoints.map(p => ({ x: p.x, y: p.y }));
             entity._currentWp = 0;
         }

@@ -46,6 +46,56 @@ Unit.prototype.update = function(dt, now) {
         speedMult *= 1.25;
     }
 
+    // === Player-drawn path follow (any walking unit) =====================
+    // If the unit was spawned with a waypoints[] (commitAmberPath or
+    // SYNC_SPAWN), it walks the chosen route in order before falling back
+    // to its per-type AI. Amber additionally dies on path-end (her trail
+    // is the whole point); every other unit just resumes its default
+    // targeting once the path is exhausted.
+    let onPath = false;
+    if (this.waypoints && this.waypoints.length > 0 && this._currentWp < this.waypoints.length) {
+        const wp = this.waypoints[this._currentWp];
+        const dist = Math.hypot(wp.x - this.x, wp.y - this.y);
+        if (dist <= 20) {
+            this._currentWp++;
+            if (this._currentWp >= this.waypoints.length) {
+                if (this.type === 'amber') {
+                    this.isDead = true;
+                    return;
+                }
+                // Non-Amber: clear so the per-type AI below picks up.
+                this.waypoints = [];
+                this._currentWp = 0;
+            }
+        }
+        if (this._currentWp < this.waypoints.length) {
+            const next = this.waypoints[this._currentWp];
+            this.target = { x: next.x, y: next.y, isDead: false, radius: 0, takeDamage: () => {} };
+            onPath = true;
+        }
+    }
+
+    if (onPath) {
+        // Move toward the next waypoint at base speed (no attack mid-path,
+        // even for melee types — the player explicitly steered them here).
+        const angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+        const dashMult = (now < (this.dashEndTime || 0)) ? 5 : 1;
+        this.x += Math.cos(angle) * this.speed * speedMult * dashMult * (dt / 1000);
+        this.y += Math.sin(angle) * this.speed * speedMult * dashMult * (dt / 1000);
+        // Pacifist (Amber): drop a fire-trail aura behind us as we walk.
+        if (this.isPacifist) {
+            if (!this._lastTrailTime || (now - this._lastTrailTime) > 250) {
+                try {
+                    const trail = new Aura(this.x, this.y, this.team, 'fire-trail');
+                    trail._owner = this;
+                    if (typeof auras !== 'undefined') auras.push(trail);
+                } catch (e) {}
+                this._lastTrailTime = now;
+            }
+        }
+        return;
+    }
+
     if (this.type === 'bull' || this.type === 'porter') {
         let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
@@ -60,44 +110,21 @@ Unit.prototype.update = function(dt, now) {
             }
         }
     } else if (this.type === 'amber') {
-        // Path-mode: chase the next waypoint. When close enough advance the
-        // pointer; once exhausted she dies (her job was to lay the trail
-        // along the chosen path, then she's spent).
-        if (this.waypoints && this.waypoints.length > 0 && this._currentWp < this.waypoints.length) {
-            const wp = this.waypoints[this._currentWp];
-            // Lightweight target shim — needs `.x/.y/.isDead/.radius/.takeDamage`
-            // so the move-toward-target code below treats it like an entity
-            // without us having to special-case the math.
-            this.target = { x: wp.x, y: wp.y, isDead: false, radius: 0, takeDamage: () => {} };
-            const dist = Math.hypot(wp.x - this.x, wp.y - this.y);
-            if (dist <= 20) {
-                this._currentWp++;
-                if (this._currentWp >= this.waypoints.length) {
-                    // Last waypoint reached — Amber's role is complete.
-                    this.isDead = true;
-                    return;
-                }
-            }
-        } else {
-            // No waypoints — chase nearest enemy (any non-frozen, non-invisible
-            // enemy entity, including the safe). When she reaches the enemy
-            // she vanishes — her job in free-roam mode is to lay down a
-            // single trail line from spawn → nearest enemy and then exit.
-            const enemies = units.concat(buildings, auras)
-                .concat([playerSafe, enemySafe].filter(s => s))
-                .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
-            this.target = enemies.length > 0
-                ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
-                : null;
-            if (this.target && !this.target.isDead) {
-                const dContact = Math.hypot(this.target.x - this.x, this.target.y - this.y);
-                if (dContact <= (this.target.radius || 15) + this.radius) {
-                    // Reached the nearest enemy — vanish (the trail she
-                    // already laid keeps burning under aura.js's normal
-                    // post-death-window rules).
-                    this.isDead = true;
-                    return;
-                }
+        // No waypoints (free-roam): chase nearest enemy. When she reaches
+        // the enemy she vanishes — her job in free-roam mode is to lay
+        // down a single trail line from spawn → nearest enemy and then
+        // exit. Path-mode is handled by the top-level path branch above.
+        const enemies = units.concat(buildings, auras)
+            .concat([playerSafe, enemySafe].filter(s => s))
+            .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
+        this.target = enemies.length > 0
+            ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
+            : null;
+        if (this.target && !this.target.isDead) {
+            const dContact = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+            if (dContact <= (this.target.radius || 15) + this.radius) {
+                this.isDead = true;
+                return;
             }
         }
     } else {
