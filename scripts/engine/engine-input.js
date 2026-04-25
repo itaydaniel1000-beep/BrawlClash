@@ -204,7 +204,11 @@ const _GAMEPLAY_ADMIN_FIELDS = [
 ];
 
 // The opponent has cancelAdmin on — back up our gameplay adminHacks, zero
-// them out, and undo the retroactive safe HP boost that initGame applied.
+// them out, undo the retroactive safe HP boost that initGame applied, AND
+// roll back every spawn-time buff that's currently baked into existing
+// player-team entities (doubleDamage, hpMult, dmgMult, speed/atkSpd/radius
+// multipliers, superSpeed, infiniteRange, permanentInvisible). Also remove
+// the doubleSafe extra-safe and force-disarm the deleteUnit toggle.
 // Idempotent (second call during the same match is a no-op).
 function handleSuspendAdmin() {
     if (typeof adminHacks === 'undefined') return;
@@ -212,6 +216,9 @@ function handleSuspendAdmin() {
 
     const backup = {};
     _GAMEPLAY_ADMIN_FIELDS.forEach(k => { backup[k] = adminHacks[k]; });
+    // Also back up + clear the deleteUnit toggle so the admin can't keep
+    // using the 🗑️ delete-enemy-unit button while suspended.
+    backup.deleteUnit = adminHacks.deleteUnit;
     window._suspendedAdminBackup = backup;
 
     _GAMEPLAY_ADMIN_FIELDS.forEach(k => {
@@ -219,9 +226,45 @@ function handleSuspendAdmin() {
         if (typeof v === 'boolean') adminHacks[k] = false;
         else if (typeof v === 'number') adminHacks[k] = 0;
     });
+    adminHacks.deleteUnit = false;
+    if (typeof window.isSelectingDeleteTarget !== 'undefined') {
+        window.isSelectingDeleteTarget = false;
+    }
 
-    // Undo the already-applied safeHpMultiplier boost on our own safe so the
-    // admin's safe also returns to base 5000 HP for the duration of the match.
+    // Compute total spawn-time multipliers that were baked into player-team
+    // entities at their creation. We undo these per-entity below.
+    const speedFactor    = (backup.superSpeed ? 2 : 1) * (backup.speedMultiplier > 1 ? backup.speedMultiplier : 1);
+    const atkSpdFactor   = speedFactor * (backup.attackSpeedMultiplier > 1 ? backup.attackSpeedMultiplier : 1);
+    const dmgFactorUnits = (backup.doubleDamage ? 2 : 1)   * (backup.dmgMultiplier > 1 ? backup.dmgMultiplier : 1);
+    const dmgFactorAuras = (backup.doubleDamage ? 1.5 : 1) * (backup.dmgMultiplier > 1 ? backup.dmgMultiplier : 1); // auras use 1.5×, not 2×
+    const hpFactor       = backup.hpMultiplier > 1 ? backup.hpMultiplier : 1;
+    const radiusFactor   = backup.radiusMultiplier > 1 ? backup.radiusMultiplier : 1;
+
+    try {
+        // Roll back unit spawn buffs on every live player-team entity.
+        const reset = (e, dmgFactor) => {
+            if (!e || e.isDead) return;
+            if (typeof e.attackDamage === 'number' && dmgFactor > 1) e.attackDamage /= dmgFactor;
+            if (typeof e.speed === 'number' && speedFactor > 1) e.speed /= speedFactor;
+            if (typeof e.attackSpeed === 'number' && atkSpdFactor > 1) e.attackSpeed *= atkSpdFactor;
+            if (typeof e.maxHp === 'number' && hpFactor > 1) {
+                const ratio = e.maxHp > 0 ? (e.hp / e.maxHp) : 1;
+                e.maxHp /= hpFactor;
+                e.hp = Math.max(0, Math.min(e.maxHp, e.maxHp * ratio));
+            }
+            if (typeof e.radius === 'number' && radiusFactor > 1) e.radius /= radiusFactor;
+            if (backup.infiniteRange && e.attackRange === 9999) e.attackRange = 55; // best-guess base
+            if (backup.permanentInvisible && e._permInvis) {
+                e.isInvisible = false;
+                e._permInvis = false;
+            }
+        };
+        if (typeof units     !== 'undefined') units    .filter(u => u && u.team === 'player').forEach(u => reset(u, dmgFactorUnits));
+        if (typeof buildings !== 'undefined') buildings.filter(b => b && b.team === 'player').forEach(b => reset(b, dmgFactorUnits));
+        if (typeof auras     !== 'undefined') auras    .filter(a => a && a.team === 'player').forEach(a => reset(a, dmgFactorAuras));
+    } catch (e) { /* keep going even on a per-entity reset error */ }
+
+    // Roll back the safeHpMultiplier boost on our own safe.
     try {
         if (typeof playerSafe !== 'undefined' && playerSafe &&
             backup.safeHpMultiplier && backup.safeHpMultiplier > 1) {
@@ -231,6 +274,15 @@ function handleSuspendAdmin() {
             playerSafe.hp = Math.min(baseMax, Math.max(0, baseMax * ratio));
         }
     } catch (e) { /* don't block suspend on a safe-reset error */ }
+
+    // Remove the doubleSafe extra-safe so the admin doesn't keep two safes.
+    try {
+        if (backup.doubleSafe && typeof buildings !== 'undefined') {
+            for (let i = buildings.length - 1; i >= 0; i--) {
+                if (buildings[i] && buildings[i].isDecoy) buildings.splice(i, 1);
+            }
+        }
+    } catch (e) { /* ignore */ }
 
     if (typeof showTransientToast === 'function') {
         showTransientToast('🛡️ היריב הפעיל ביטול-אדמין — כוחות האדמין שלך מושבתים עד סוף הקרב');
