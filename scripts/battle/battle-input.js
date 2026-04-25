@@ -83,7 +83,30 @@ function _placeAtInternal(x, y, shiftHeld) {
     // commit early with however many waypoints exist.
     if (typeof isSelectingAmberPath !== 'undefined' && isSelectingAmberPath) {
         if (_amberPendingPath.length < 6) {
-            _amberPendingPath.push({ x, y });
+            // Per-step distance cap: each segment can cover at most 5 "squares"
+            // (one square = 50px, matching Amber's per-second speed). If the
+            // user clicks further than 250px from the previous waypoint we
+            // clamp the new point to that direction at exactly 250px out, so
+            // the path naturally builds in 5-square hops without rejecting
+            // the click outright. The very first click (spawn point) has no
+            // previous waypoint to measure from, so it lands as-is.
+            const SQUARE_PX = 50;
+            const MAX_STEP_PX = SQUARE_PX * 5; // 250
+            let nx = x, ny = y;
+            if (_amberPendingPath.length > 0) {
+                const prev = _amberPendingPath[_amberPendingPath.length - 1];
+                const dx = x - prev.x, dy = y - prev.y;
+                const d = Math.hypot(dx, dy);
+                if (d > MAX_STEP_PX) {
+                    const k = MAX_STEP_PX / d;
+                    nx = prev.x + dx * k;
+                    ny = prev.y + dy * k;
+                    if (typeof showTransientToast === 'function') {
+                        showTransientToast('🎯 כל צעד עד 5 משבצות — צמצמתי לך לאורך הזה');
+                    }
+                }
+            }
+            _amberPendingPath.push({ x: nx, y: ny });
         }
         if (_amberPendingPath.length >= 6) {
             commitAmberPath();
