@@ -371,7 +371,7 @@ window.setAdminCurrency = setAdminCurrency;
 function maxAllLevels() {
     Object.keys(CARDS).forEach(id => {
         playerStats.levels[id] = MAX_LEVEL;
-        localStorage.setItem(`brawlclash_level_${id}`, MAX_LEVEL);
+        localStorage.setItem(_userKey('level_' + id), MAX_LEVEL);
     });
     saveStats();
     updateStatsUI();

@@ -16,7 +16,9 @@
 // Replay: window.startTutorial(true) wipes the marker and re-runs.
 
 (function () {
-    const STORAGE_KEY = 'brawlclash_tutorial_done';
+    // Per-user keys — `_userKey` lives on window and namespaces by the active
+    // user so each tab's own user gets their own tutorial-done marker.
+    const _key = (s) => (typeof window._userKey === 'function') ? window._userKey(s) : ('brawlclash_' + s);
     const ALL_BRAWLERS = ['bruce', 'leon', 'bull', 'penny', 'scrappy', 'pam',
                           'max', '8bit', 'emz', 'tara', 'spike', 'mr-p'];
 
@@ -49,13 +51,13 @@
 
     // ---- Persistence helpers ----
     function isComplete() {
-        try { return localStorage.getItem(STORAGE_KEY) === '1'; } catch (e) { return false; }
+        try { return localStorage.getItem(_key('tutorial_done')) === '1'; } catch (e) { return false; }
     }
     function markComplete() {
-        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+        try { localStorage.setItem(_key('tutorial_done'), '1'); } catch (e) {}
     }
     function clearMarker() {
-        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        try { localStorage.removeItem(_key('tutorial_done')); } catch (e) {}
     }
 
     // ---- Overlay infrastructure ----
@@ -261,7 +263,9 @@
     // closes / refreshes the tab mid-tutorial (which leaves localStorage
     // with the 12-brawler deck + infiniteElixir hack), we can still roll
     // back on the next page load.
-    const SNAPSHOT_KEY = 'brawlclash_tutorial_snapshot';
+    // Per-user — each user's tutorial snapshot lives under their own namespace
+    // so the rollback keys never bleed between two simultaneously-active users.
+    const _SNAPSHOT_KEY = () => _key('tutorial_snapshot');
 
     function snapshotGameState() {
         try {
@@ -277,13 +281,13 @@
             _state.savedDifficulty = snap.difficulty;
             _state.savedAdminHacks = snap.adminHacks;
             _state.savedOpponentHacks = snap.opponentHacks;
-            try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap)); } catch (e) {}
+            try { localStorage.setItem(_SNAPSHOT_KEY(), JSON.stringify(snap)); } catch (e) {}
         } catch (e) {}
     }
 
     function _readPersistedSnapshot() {
         try {
-            const raw = localStorage.getItem(SNAPSHOT_KEY);
+            const raw = localStorage.getItem(_SNAPSHOT_KEY());
             return raw ? JSON.parse(raw) : null;
         } catch (e) { return null; }
     }
@@ -308,7 +312,7 @@
                 if (snap.deck && typeof playerDeck !== 'undefined') {
                     playerDeck.length = 0;
                     snap.deck.forEach(b => playerDeck.push(b));
-                    try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
+                    try { localStorage.setItem(_key('deck'), JSON.stringify(playerDeck)); } catch (e) {}
                 }
                 if (snap.difficulty !== null && snap.difficulty !== undefined && typeof difficulty !== 'undefined') {
                     difficulty = snap.difficulty;
@@ -347,7 +351,7 @@
         _state.savedDifficulty = null;
         _state.savedAdminHacks = null;
         _state.savedOpponentHacks = null;
-        try { localStorage.removeItem(SNAPSHOT_KEY); } catch (e) {}
+        try { localStorage.removeItem(_SNAPSHOT_KEY()); } catch (e) {}
     }
 
     function setUpTutorialMatch() {

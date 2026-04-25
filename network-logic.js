@@ -290,13 +290,35 @@ window.releaseUsernameWithAdmin = releaseUsernameWithAdmin;
 // lack of a shared backend while the super-admin is online.
 // ---------------------------------------------------------------------------
 
-const _appliedGrantIds = (() => {
-    try { return new Set(JSON.parse(localStorage.getItem('brawlclash_admin_applied') || '[]')); }
-    catch (e) { return new Set(); }
-})();
+// Per-user — each user tracks their own "I already applied this grantId" set
+// so coins/gems/trophy one-shots don't re-stack on user switch in the same
+// browser. The Set is loaded lazily through `_appliedGrantsForActiveUser()`
+// (rather than once at script-eval time) because the active username can
+// flip mid-session via claimUsername.
+function _appliedGrantsKey() {
+    return (typeof _userKey === 'function') ? _userKey('admin_applied') : 'brawlclash_admin_applied';
+}
+let _appliedGrantIdsCache = null;
+let _appliedGrantIdsCacheKey = null;
+function _appliedGrantIdsForActiveUser() {
+    const k = _appliedGrantsKey();
+    if (_appliedGrantIdsCacheKey !== k || !_appliedGrantIdsCache) {
+        try { _appliedGrantIdsCache = new Set(JSON.parse(localStorage.getItem(k) || '[]')); }
+        catch (e) { _appliedGrantIdsCache = new Set(); }
+        _appliedGrantIdsCacheKey = k;
+    }
+    return _appliedGrantIdsCache;
+}
+// Backwards-compat shim: existing call sites read `_appliedGrantIds.has(id)`.
+// Wrap the lazy lookup so they keep working without a code change.
+const _appliedGrantIds = {
+    has(id) { return _appliedGrantIdsForActiveUser().has(id); },
+    add(id) { _appliedGrantIdsForActiveUser().add(id); }
+};
 function _markGrantApplied(id) {
-    _appliedGrantIds.add(id);
-    try { localStorage.setItem('brawlclash_admin_applied', JSON.stringify([..._appliedGrantIds])); }
+    const set = _appliedGrantIdsForActiveUser();
+    set.add(id);
+    try { localStorage.setItem(_appliedGrantsKey(), JSON.stringify([...set])); }
     catch (e) {}
 }
 
@@ -539,7 +561,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const ejectToUsernameScreen = (reason) => {
             console.warn('🔒 username-lock: ' + reason + ' — forcing re-claim');
             playerStats.username = null;
-            try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
+            // Clear from BOTH per-tab session AND localStorage fallback so a
+            // fresh tab can't silently re-pick the now-invalid name.
+            if (typeof _clearActiveUsername === 'function') _clearActiveUsername();
+            else { try { localStorage.removeItem('brawlclash_username'); } catch (e) {} }
             const overlay = document.getElementById('username-overlay');
             if (overlay) {
                 overlay.style.display = 'flex';
@@ -632,10 +657,16 @@ async function claimUsername() {
 
     // Detect "truly new user" — no saved username at all for this browser.
     // (Renaming via the ✏️ button doesn't count: that's an existing player.)
-    const wasFirstTimeUser = !localStorage.getItem('brawlclash_username');
+    const wasFirstTimeUser = !localStorage.getItem('brawlclash_username') &&
+                             !(function () { try { return sessionStorage.getItem('brawlclash_username'); } catch (e) { return null; } })();
 
-    playerStats.username = name;
-    localStorage.setItem('brawlclash_username', name);
+    // Flip the per-tab + per-browser active username, then migrate any legacy
+    // un-namespaced keys into THIS user's namespace and reload state.
+    if (typeof _setActiveUsername === 'function') _setActiveUsername(name);
+    else { try { localStorage.setItem('brawlclash_username', name); } catch (e) {} }
+    if (typeof _migrateLegacyKeysToUser === 'function') _migrateLegacyKeysToUser(name);
+    if (typeof reloadActiveUserState === 'function') reloadActiveUserState();
+    playerStats.username = name; // belt-and-suspenders — reloadActiveUserState already sets this
 
     // First-time signup: reset coins / gems / trophies to 0 so a new
     // player starts from scratch even if some stale localStorage values

@@ -133,7 +133,7 @@ function update(dt, now) {
                 playerTrophies += 8;
                 winStatus = "win";
             }
-            localStorage.setItem('brawlclash_trophies', playerTrophies);
+            localStorage.setItem(_userKey('trophies'), playerTrophies);
 
             if (currentBattleRoom && window.NetworkManager) {
                 const iWon = (winStatus === "win");

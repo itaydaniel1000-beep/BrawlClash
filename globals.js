@@ -17,6 +17,110 @@ try {
     }
 } catch (e) { /* storage disabled — nothing we can do */ }
 
+// === Per-tab session + per-user namespacing ================================
+// Two browser tabs in the same window can hold DIFFERENT users at the same
+// time. The active username is stored per-tab in sessionStorage (which
+// survives F5 inside the tab but doesn't bleed across tabs); a copy in
+// localStorage acts as the "last-seen" fallback for fresh tabs that have
+// no sessionStorage of their own. Per-user data (coins, gems, levels,
+// deck, sp, claimed, trophies, admin_hacks, tutorial state) lives under
+// `brawlclash_user_<username>_<suffix>` so two users don't clobber each
+// other's progress in shared localStorage. A one-time migration copies
+// the legacy global keys into the per-user namespace on first load.
+function _activeUsername() {
+    try {
+        const s = sessionStorage.getItem('brawlclash_username');
+        if (s) return s;
+    } catch (e) {}
+    try { return localStorage.getItem('brawlclash_username') || null; }
+    catch (e) { return null; }
+}
+function _setActiveUsername(name) {
+    try {
+        if (name) {
+            sessionStorage.setItem('brawlclash_username', name);
+            localStorage.setItem('brawlclash_username', name);
+        } else {
+            sessionStorage.removeItem('brawlclash_username');
+            localStorage.removeItem('brawlclash_username');
+        }
+    } catch (e) {}
+}
+function _clearActiveUsername() {
+    try { sessionStorage.removeItem('brawlclash_username'); } catch (e) {}
+    try { localStorage.removeItem('brawlclash_username'); } catch (e) {}
+}
+// Returns the per-user-namespaced storage key. When no user is active yet
+// (first paint before signup), falls back to the legacy global key so the
+// old defaults / migrations still work.
+function _userKey(suffix) {
+    const u = _activeUsername();
+    if (!u) return 'brawlclash_' + suffix;
+    return 'brawlclash_user_' + u + '_' + suffix;
+}
+// One-shot copy of legacy global keys into this user's namespace.
+//
+// Idempotent in two layers:
+//   • Per-user `_migrated` flag — each user is migrated at most once.
+//   • Global `legacy_consumed` flag — the legacy global keys are inherited
+//     by AT MOST ONE user (the first one to log in after the upgrade).
+//     Subsequent new users in the same browser start fresh instead of
+//     inheriting the previous single-user save.
+//
+// We don't delete the legacy keys — leaving them lets a user roll back to an
+// older build without losing their progress.
+function _migrateLegacyKeysToUser(name) {
+    if (!name) return;
+    const userFlagKey = 'brawlclash_user_' + name + '_migrated';
+    try { if (localStorage.getItem(userFlagKey)) return; } catch (e) { return; }
+
+    let legacyConsumed = false;
+    try { legacyConsumed = !!localStorage.getItem('brawlclash_legacy_consumed'); } catch (e) {}
+
+    if (!legacyConsumed) {
+        const userSuffixes = [
+            'coins', 'gems', 'trophies', 'deck', 'favorite', 'sp', 'claimed',
+            'admin_hacks', 'admin_applied',
+            'tutorial_done', 'tutorial_snapshot'
+        ];
+        userSuffixes.forEach(k => {
+            const oldKey = 'brawlclash_' + k;
+            const newKey = 'brawlclash_user_' + name + '_' + k;
+            try {
+                const v = localStorage.getItem(oldKey);
+                if (v !== null && localStorage.getItem(newKey) === null) {
+                    localStorage.setItem(newKey, v);
+                }
+            } catch (e) {}
+        });
+        if (typeof CARDS === 'object' && CARDS) {
+            Object.keys(CARDS).forEach(id => {
+                const oldKey = 'brawlclash_level_' + id;
+                const newKey = 'brawlclash_user_' + name + '_level_' + id;
+                try {
+                    const v = localStorage.getItem(oldKey);
+                    if (v !== null && localStorage.getItem(newKey) === null) {
+                        localStorage.setItem(newKey, v);
+                    }
+                } catch (e) {}
+            });
+        }
+        try { localStorage.setItem('brawlclash_legacy_consumed', '1'); } catch (e) {}
+    }
+    try { localStorage.setItem(userFlagKey, '1'); } catch (e) {}
+}
+window._activeUsername       = _activeUsername;
+window._setActiveUsername    = _setActiveUsername;
+window._clearActiveUsername  = _clearActiveUsername;
+window._userKey              = _userKey;
+window._migrateLegacyKeysToUser = _migrateLegacyKeysToUser;
+
+// Run migration ONCE for whoever is the active user at script-eval time, so
+// the playerStats / playerTrophies / playerDeck / etc. reads below hit the
+// per-user namespace. New users (no active username yet) skip the migration
+// — they'll trigger it from claimUsername after picking a name.
+_migrateLegacyKeysToUser(_activeUsername());
+
 let currentState = GAME_STATE.MENU;
 let lastTime = 0;
 let difficulty = 'hard';
@@ -26,24 +130,24 @@ let isSelectingBullDash = false;
 var isSelectingDeleteTarget = false;
 let selectedFreezeCardId = null;
 let selectedCardId = null;
-let playerTrophies = parseInt(localStorage.getItem('brawlclash_trophies')) || 0;
+let playerTrophies = parseInt(localStorage.getItem(_userKey('trophies'))) || 0;
 let spEntrySource = 'battle'; // 'lobby' or 'battle'
 let mouseX = 0, mouseY = 0;
 
 let playerDeck = [];
 try {
-    const savedDeck = localStorage.getItem('brawlclash_deck');
+    const savedDeck = localStorage.getItem(_userKey('deck'));
     if (savedDeck) playerDeck = JSON.parse(savedDeck);
     else playerDeck = Object.keys(CARDS).slice(0, 8); 
 } catch(e) { 
     playerDeck = Object.keys(CARDS).slice(0, 8);
 }
 let tempDeck = [];
-let favoriteBrawler = localStorage.getItem('brawlclash_favorite') || null;
+let favoriteBrawler = localStorage.getItem(_userKey('favorite')) || null;
 let isStarringMode = false;
 let playerStarPowers = {};
 try {
-    const savedSP = localStorage.getItem('brawlclash_sp');
+    const savedSP = localStorage.getItem(_userKey('sp'));
     if (savedSP) playerStarPowers = JSON.parse(savedSP);
 } catch(e) { playerStarPowers = {}; }
 
@@ -52,11 +156,11 @@ let playerStats = {
     // Defaults are 0 — brand-new users (no localStorage) start with nothing
     // and earn coins/gems through normal play. Existing users keep whatever
     // their saved values are.
-    coins: parseInt(localStorage.getItem('brawlclash_coins')) || 0,
-    gems: parseInt(localStorage.getItem('brawlclash_gems')) || 0,
+    coins: parseInt(localStorage.getItem(_userKey('coins'))) || 0,
+    gems: parseInt(localStorage.getItem(_userKey('gems'))) || 0,
     levels: {},
-    claimedTiers: JSON.parse(localStorage.getItem('brawlclash_claimed')) || [],
-    username: localStorage.getItem('brawlclash_username') || null
+    claimedTiers: JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [],
+    username: _activeUsername()
 };
 
 // Admin Hacks (Developer Menu)
@@ -95,7 +199,7 @@ var adminHacks = (function loadAdminHacks() {
         cancelAdmin: false
     };
     try {
-        const raw = localStorage.getItem('brawlclash_admin_hacks');
+        const raw = localStorage.getItem(_userKey('admin_hacks'));
         if (!raw) return defaults;
         const parsed = JSON.parse(raw);
         return Object.assign({}, defaults, parsed || {});
@@ -103,7 +207,7 @@ var adminHacks = (function loadAdminHacks() {
 })();
 
 function saveAdminHacks() {
-    try { localStorage.setItem('brawlclash_admin_hacks', JSON.stringify(adminHacks)); }
+    try { localStorage.setItem(_userKey('admin_hacks'), JSON.stringify(adminHacks)); }
     catch (e) { /* storage full / disabled */ }
 }
 
@@ -120,24 +224,99 @@ var opponentAdminHacks = {
 
 // Initialize levels & clamp to max
 Object.keys(CARDS).forEach(id => {
-    let lvl = parseInt(localStorage.getItem(`brawlclash_level_${id}`)) || 1;
+    let lvl = parseInt(localStorage.getItem(_userKey('level_' + id))) || 1;
     if (lvl > MAX_LEVEL) {
         lvl = MAX_LEVEL;
-        localStorage.setItem(`brawlclash_level_${id}`, MAX_LEVEL);
+        localStorage.setItem(_userKey('level_' + id), MAX_LEVEL);
     }
     playerStats.levels[id] = lvl;
 });
 
 function saveStats() {
-    localStorage.setItem('brawlclash_coins', playerStats.coins);
-    localStorage.setItem('brawlclash_gems', playerStats.gems);
-    localStorage.setItem('brawlclash_claimed', JSON.stringify(playerStats.claimedTiers));
-    localStorage.setItem('brawlclash_trophies', playerTrophies);
-    if (playerStats.username) localStorage.setItem('brawlclash_username', playerStats.username);
+    localStorage.setItem(_userKey('coins'), playerStats.coins);
+    localStorage.setItem(_userKey('gems'), playerStats.gems);
+    localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
+    localStorage.setItem(_userKey('trophies'), playerTrophies);
+    // Username stays in BOTH sessionStorage (per-tab active) and localStorage
+    // (last-seen fallback for fresh tabs). Use the dedicated setter so both
+    // stay in sync.
+    if (playerStats.username) _setActiveUsername(playerStats.username);
     Object.keys(playerStats.levels).forEach(id => {
-        localStorage.setItem(`brawlclash_level_${id}`, playerStats.levels[id]);
+        localStorage.setItem(_userKey('level_' + id), playerStats.levels[id]);
     });
 }
+
+// Re-read every per-user piece of state from localStorage using the
+// currently-active username's namespace, mutating the existing globals
+// IN PLACE so other modules (which closed over `playerStats`, `playerDeck`,
+// `adminHacks`, etc. as `let` bindings) see the new values without needing
+// to reassign their imports. Called from claimUsername after the active
+// username flips so the lobby instantly reflects the new user's stats.
+function reloadActiveUserState() {
+    try { _migrateLegacyKeysToUser(_activeUsername()); } catch (e) {}
+
+    // Per-user scalars
+    playerTrophies = parseInt(localStorage.getItem(_userKey('trophies'))) || 0;
+    favoriteBrawler = localStorage.getItem(_userKey('favorite')) || null;
+
+    // Deck (in-place so existing references stay live)
+    try {
+        const savedDeck = localStorage.getItem(_userKey('deck'));
+        playerDeck.length = 0;
+        if (savedDeck) {
+            const parsed = JSON.parse(savedDeck);
+            if (Array.isArray(parsed)) parsed.forEach(c => playerDeck.push(c));
+        } else {
+            Object.keys(CARDS).slice(0, 8).forEach(c => playerDeck.push(c));
+        }
+    } catch (e) {
+        playerDeck.length = 0;
+        Object.keys(CARDS).slice(0, 8).forEach(c => playerDeck.push(c));
+    }
+
+    // Star powers
+    try {
+        playerStarPowers = JSON.parse(localStorage.getItem(_userKey('sp')) || 'null') || {};
+    } catch (e) { playerStarPowers = {}; }
+
+    // playerStats (rebuild but keep object identity)
+    playerStats.coins        = parseInt(localStorage.getItem(_userKey('coins'))) || 0;
+    playerStats.gems         = parseInt(localStorage.getItem(_userKey('gems')))  || 0;
+    playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
+    playerStats.username     = _activeUsername();
+    playerStats.levels       = {};
+    Object.keys(CARDS).forEach(id => {
+        let lvl = parseInt(localStorage.getItem(_userKey('level_' + id))) || 1;
+        if (lvl > MAX_LEVEL) lvl = MAX_LEVEL;
+        playerStats.levels[id] = lvl;
+    });
+
+    // adminHacks (per-user too — different users have different perks)
+    try {
+        const raw = localStorage.getItem(_userKey('admin_hacks'));
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            // Reset every field on the existing object then merge in the saved
+            // values so consumers that captured `adminHacks` keep working.
+            Object.keys(adminHacks).forEach(k => {
+                const v = adminHacks[k];
+                if (typeof v === 'boolean')      adminHacks[k] = false;
+                else if (typeof v === 'number')  adminHacks[k] = 0;
+                else if (typeof v === 'string')  adminHacks[k] = '';
+            });
+            Object.assign(adminHacks, parsed || {});
+        } else {
+            // No saved hacks for this user → wipe to defaults.
+            Object.keys(adminHacks).forEach(k => {
+                const v = adminHacks[k];
+                if (typeof v === 'boolean')      adminHacks[k] = false;
+                else if (typeof v === 'number')  adminHacks[k] = 0;
+                else if (typeof v === 'string')  adminHacks[k] = '';
+            });
+        }
+    } catch (e) {}
+}
+window.reloadActiveUserState = reloadActiveUserState;
 
 function getLevelScale(id) {
     const level = playerStats.levels[id] || 1;
