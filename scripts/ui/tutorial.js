@@ -19,8 +19,13 @@
     // Per-user keys — `_userKey` lives on window and namespaces by the active
     // user so each tab's own user gets their own tutorial-done marker.
     const _key = (s) => (typeof window._userKey === 'function') ? window._userKey(s) : ('brawlclash_' + s);
-    const ALL_BRAWLERS = ['bruce', 'leon', 'bull', 'penny', 'scrappy', 'pam',
-                          'max', '8bit', 'emz', 'tara', 'spike', 'mr-p', 'amber'];
+    // Order matters — the tutorial walks ALL_BRAWLERS in sequence. Amber
+    // sits right after Bull (per user request) so the player meets her
+    // while still in the "frontline melee" mental section before moving
+    // on to the long-range buildings and auras.
+    const ALL_BRAWLERS = ['bruce', 'leon', 'bull', 'amber',
+                          'penny', 'scrappy', 'pam', 'max', '8bit',
+                          'emz', 'tara', 'spike', 'mr-p'];
 
     // Per-brawler explanation text shown when the player picks the card.
     const BRAWLER_TIPS = {
@@ -505,20 +510,41 @@
 
     function onBrawlerPicked(brawler, idx) {
         const tip = BRAWLER_TIPS[brawler] || 'דמות חדשה.';
-        // Spotlight the canvas now — they're going to place the unit on the map.
-        showStep({
-            title: 'מידע על הדמות',
-            text: tip + '<br><br>הניח את הדמות בחצי הכחול שלך כדי להמשיך.',
-            target: '#game-canvas',
-            button: false,
-            allowClick: '#game-canvas'
-        });
+
+        // Amber gets a special two-step explanation — first the regular
+        // brawler tip, then a follow-up step that points at the 🎯 path
+        // button so the player knows the steps mechanic exists. The user
+        // can then EITHER click on the canvas to place her normally OR
+        // tap 🎯 to draw a path. Both paths end up creating an Amber
+        // unit in `units[]`, so the placement watcher catches both.
+        if (brawler === 'amber') {
+            showStep({
+                title: 'אמבר 🔥',
+                text: tip + '<br><br>הקלף נבחר! עכשיו בקרוב יופיע <b>כפתור 🎯</b> בפינה הימנית-תחתונה של המפה — לחיצה עליו פותחת מצב <b>בחירת מסלול</b>: כל לחיצה על המפה מוסיפה נקודת ציון (עד 6 נקודות, כל אחת עד 5 משבצות מהקודמת). אחרי הלחיצה האחרונה (או לחיצה שנייה על 🎯) אמבר נוצרת בנקודה הראשונה והולכת לאורך המסלול.<br><br>אפשר גם פשוט לסמן אותה ולהניח אותה כרגיל בחצי הכחול שלך — אז היא תרוץ לאויב הקרוב ביותר.',
+                target: '#amber-path-btn',
+                button: 'הבנתי, בוא ננסה',
+                allowClick: '#game-canvas, #amber-path-btn'
+            });
+        } else {
+            // Spotlight the canvas now — they're going to place the unit on the map.
+            showStep({
+                title: 'מידע על הדמות',
+                text: tip + '<br><br>הניח את הדמות בחצי הכחול שלך כדי להמשיך.',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
+            });
+        }
 
         // Watch for placement: a new player-team unit/building/aura with
         // matching type appears in the right array. units/buildings/auras
         // are declared with `let` in globals.js so they DON'T attach to
         // `window` — we have to reference them by bare name and let the
         // script-scope binding resolve at call time.
+        //
+        // For Amber, this catches BOTH placement modes: a direct
+        // place-on-canvas click and a 🎯-path commit (commitAmberPath()
+        // also pushes her into `units`).
         const tickHandle = setInterval(() => {
             try {
                 const allArrays = []
