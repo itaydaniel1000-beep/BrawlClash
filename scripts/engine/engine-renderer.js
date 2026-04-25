@@ -133,5 +133,55 @@ function draw(ctx) {
             });
             ctx.restore();
         }
+
+        // Live remaining-path preview for every player-team Amber that's
+        // already been placed and is mid-walk. Each waypoint she hasn't
+        // reached yet stays drawn (line + numbered circle) until she
+        // arrives at it; once she advances `_currentWp` past an index
+        // that index drops out of the list and the rendering shrinks.
+        // Enemy-team Ambers are NOT drawn — those waypoints are the
+        // opponent's tactical info and shouldn't be exposed to us.
+        if (typeof units !== 'undefined') {
+            for (const u of units) {
+                if (!u || u.isDead || u.type !== 'amber' || u.team !== 'player') continue;
+                if (!u.waypoints || u.waypoints.length === 0) continue;
+                const idxFrom = (typeof u._currentWp === 'number') ? u._currentWp : 0;
+                if (idxFrom >= u.waypoints.length) continue;
+
+                const remaining = u.waypoints.slice(idxFrom);
+                ctx.save();
+                // Dotted line: start at Amber's CURRENT position, then through
+                // every still-pending waypoint in order, so the visual reflects
+                // exactly where she'll travel from this frame onwards.
+                ctx.strokeStyle = 'rgba(231, 126, 34, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([10, 6]);
+                ctx.beginPath();
+                ctx.moveTo(u.x, u.y);
+                for (const wp of remaining) ctx.lineTo(wp.x, wp.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Numbered circles, numbered by the ORIGINAL index in the
+                // chosen path (so the player still recognises "this is
+                // step 4 of my plan" even after step 3 is gone).
+                remaining.forEach((wp, k) => {
+                    const originalIdx = idxFrom + k; // 0-based
+                    ctx.beginPath();
+                    ctx.arc(wp.x, wp.y, 11, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f39c12';
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 13px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(String(originalIdx + 1), wp.x, wp.y);
+                });
+                ctx.restore();
+            }
+        }
     }
 }
