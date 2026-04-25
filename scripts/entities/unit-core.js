@@ -36,9 +36,10 @@ class Unit extends Entity {
             // unit-logic.js to skip the attack code-path entirely (otherwise
             // she'd stop next to enemies and "attack" them with 0 dmg
             // forever — instead we want her to keep walking through them
-            // and let the trail do the work).
+            // and let the trail do the work). Speed 75 = 1.5× the Bruce
+            // baseline of 50, per user spec.
             this.maxHp = 700; this.hp = 700;
-            this.attackDamage = 0; this.speed = 50; this.color = '#e67e22';
+            this.attackDamage = 0; this.speed = 75; this.color = '#e67e22';
             this.isPacifist = true;
             // Path/waypoint state. `waypoints` is the chosen path (or empty
             // for free-roam-to-nearest-enemy). `_currentWp` indexes the next
