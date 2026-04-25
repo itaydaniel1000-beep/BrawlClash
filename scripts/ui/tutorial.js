@@ -378,23 +378,26 @@
         });
 
         // Watch for placement: a new player-team unit/building/aura with
-        // matching type appears in the right array.
+        // matching type appears in the right array. units/buildings/auras
+        // are declared with `let` in globals.js so they DON'T attach to
+        // `window` — we have to reference them by bare name and let the
+        // script-scope binding resolve at call time.
         const tickHandle = setInterval(() => {
-            const allArrays = []
-                .concat(window.units || [])
-                .concat(window.buildings || [])
-                .concat(window.auras || []);
-            const placed = allArrays.some(e => e && e.team === 'player' && e.type === brawler);
-            if (placed) {
-                clearInterval(tickHandle);
-                // Re-enable all cards before the next step.
-                document.querySelectorAll('.card').forEach(c => {
-                    c.style.pointerEvents = '';
-                    c.style.opacity = '';
-                });
-                // Brief "great!" then advance.
-                setTimeout(() => teachBrawler(idx + 1), 600);
-            }
+            try {
+                const allArrays = []
+                    .concat(typeof units     !== 'undefined' ? units     : [])
+                    .concat(typeof buildings !== 'undefined' ? buildings : [])
+                    .concat(typeof auras     !== 'undefined' ? auras     : []);
+                const placed = allArrays.some(e => e && e.team === 'player' && e.type === brawler);
+                if (placed) {
+                    clearInterval(tickHandle);
+                    document.querySelectorAll('.card').forEach(c => {
+                        c.style.pointerEvents = '';
+                        c.style.opacity = '';
+                    });
+                    setTimeout(() => teachBrawler(idx + 1), 600);
+                }
+            } catch (e) { /* keep polling */ }
         }, 200);
     }
 
