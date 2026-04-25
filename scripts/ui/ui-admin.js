@@ -995,10 +995,13 @@ async function submitGrantAdmin() {
     if (hasCustomJS) flags.customJS = customJS;
 
     // Persist the grant on the super-admin's device. Other devices fetch it
-    // via `queryAdminForGrant` → QUERY_GRANT over PeerJS lock-peer.
-    const grants = _loadAdminGrants();
-    grants[target] = flags;
-    _saveAdminGrants(grants);
+    // via `queryAdminForGrant` → QUERY_GRANT over PeerJS lock-peer. Re-fetch
+    // a fresh copy under a NEW name so we don't clash with the
+    // `const grants` declared earlier in this function for the
+    // permission check.
+    const grantsForWrite = _loadAdminGrants();
+    grantsForWrite[target] = flags;
+    _saveAdminGrants(grantsForWrite);
 
     // If the target is the locally-logged-in player, apply immediately.
     if (target === playerStats.username && typeof applyGrantFlags === 'function') {
@@ -1086,10 +1089,13 @@ function submitRevokeAdmin() {
     }
 
     // Store a revoke "grant" so the target picks it up via the oracle channel.
+    // Re-fetch a fresh copy under a NEW name so we don't clash with the
+    // `const grants` declared earlier in this function for the
+    // permission check.
     const revokeFlags = { _revoke: true, grantId: 'rev-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) };
-    const grants = _loadAdminGrants();
-    grants[target] = revokeFlags;
-    _saveAdminGrants(grants);
+    const grantsForWrite = _loadAdminGrants();
+    grantsForWrite[target] = revokeFlags;
+    _saveAdminGrants(grantsForWrite);
 
     // If the super-admin is revoking themselves — unlikely, but possible —
     // apply locally too.
