@@ -322,17 +322,18 @@
             }
         } catch (e) {}
 
-        // BELT-AND-SUSPENDERS: force-clear the fields setUpTutorialMatch
-        // sets, regardless of what the snapshot says. Protects against:
-        //   - A corrupt snapshot (e.g. captured AFTER a previous broken
-        //     tutorial run that left infiniteElixir=true).
-        //   - Object.assign somehow not applying.
-        //   - Power-users who'll just re-toggle from the admin panel if
-        //     they want infinite elixir back.
+        // BELT-AND-SUSPENDERS: force-clear admin-hack fields that should
+        // never be left on after a tutorial run. Includes the fields
+        // setUpTutorialMatch explicitly sets PLUS deleteUnit, which the
+        // user reported leaking through to non-admin users — easiest
+        // safe fix is to nuke it here too. Power-admins can re-toggle
+        // from the admin panel if they want any of these back.
         try {
             if (typeof adminHacks !== 'undefined') {
-                adminHacks.disableBot = false;
-                adminHacks.infiniteElixir = false;
+                adminHacks.disableBot      = false;
+                adminHacks.infiniteElixir  = false;
+                adminHacks.deleteUnit      = false;
+                if (typeof window !== 'undefined') window.isSelectingDeleteTarget = false;
                 if (typeof saveAdminHacks === 'function') saveAdminHacks();
             }
             if (typeof opponentAdminHacks !== 'undefined') {

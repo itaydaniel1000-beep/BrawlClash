@@ -9,9 +9,24 @@ function update(dt, now) {
 
     // Keep the 🗑️ delete-enemy-unit button in sync with the admin flag +
     // current game state so it only shows up during an active battle.
+    // Also requires the local user to actually be admin / have the
+    // matching grant — otherwise a stale `adminHacks.deleteUnit = true`
+    // value (left over from a previous owner of this browser session
+    // or a tutorial that didn't fully clean up) wouldn't surface the
+    // button to a non-admin player.
     const delBtn = document.getElementById('admin-delete-btn');
     if (delBtn) {
-        const show = !!adminHacks.deleteUnit && currentState === GAME_STATE.PLAYING;
+        let _isAdminUser = false;
+        try {
+            const isSuper = (typeof playerStats !== 'undefined' && playerStats &&
+                             typeof ADMIN_USERNAME !== 'undefined' &&
+                             playerStats.username === ADMIN_USERNAME);
+            const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+            const granted = !!(playerStats && playerStats.username && grants && grants[playerStats.username]);
+            _isAdminUser  = isSuper || granted;
+        } catch (e) { _isAdminUser = false; }
+
+        const show = _isAdminUser && !!adminHacks.deleteUnit && currentState === GAME_STATE.PLAYING;
         delBtn.style.display = show ? 'block' : 'none';
         if (!show && isSelectingDeleteTarget) {
             isSelectingDeleteTarget = false;
