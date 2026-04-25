@@ -5,8 +5,16 @@ function openAdminMenu() {
     const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
     const myGrant = (playerStats.username && grants[playerStats.username]) || null;
 
-    // Super-admin always allowed; anyone else needs a stored grant.
-    if (!isSuper && !myGrant) {
+    // Super-admin always allowed; anyone else needs a MEANINGFUL grant
+    // (at least one truthy flag besides the bookkeeping `grantId`, and not
+    // an explicit revoke). An empty / revoked grant should not surface
+    // the panel.
+    const _grantIsMeaningful = (g) => {
+        if (!g || g._revoke) return false;
+        for (const k in g) { if (k !== 'grantId' && g[k]) return true; }
+        return false;
+    };
+    if (!isSuper && !_grantIsMeaningful(myGrant)) {
         console.warn("🚫 Unauthorized Admin Access Attempt");
         return;
     }

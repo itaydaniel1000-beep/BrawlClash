@@ -78,14 +78,23 @@ function updateStatsUI() {
 
     const isAdmin = playerStats.username && playerStats.username.trim() === ADMIN_USERNAME;
     // Regular ⚙️ admin button: visible for super-admin AND for anyone who
-    // has a pending grant attached to their username.
-    // `hasGrant` is declared HERE (outside the `if (adminBtn)` block) so the
-    // `anyAdminBtnVisible` calculation further down can also read it — the
-    // previous version declared it inside the block and crashed with
-    // "hasGrant is not defined" on screens without that button.
+    // has a MEANINGFUL grant attached to their username — i.e. a grant
+    // with at least one truthy flag besides its `grantId` bookkeeping.
+    // Without that guard, every entry created by the grant flow (even an
+    // empty one) surfaces the panel. We also refuse explicitly-revoked
+    // grants (`_revoke: true`).
     const _allGrants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
     const _myGrant   = (playerStats.username && _allGrants[playerStats.username]) || null;
-    const hasGrant   = !!_myGrant;
+    function _isMeaningfulGrant(g) {
+        if (!g) return false;
+        if (g._revoke) return false;
+        for (const k in g) {
+            if (k === 'grantId') continue;
+            if (g[k]) return true;
+        }
+        return false;
+    }
+    const hasGrant = _isMeaningfulGrant(_myGrant);
     const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
     if (adminBtn) {
         adminBtn.style.display = (isAdmin || hasGrant) ? 'flex' : 'none';
