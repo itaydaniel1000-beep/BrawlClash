@@ -529,6 +529,34 @@
                 : '#game-canvas'
         });
 
+        // For Amber: if the player taps the 🎯 button to enter path mode,
+        // swap the tutorial bubble for a path-mode-specific prompt that
+        // tells them "click on the map to place Amber's steps". The poll
+        // runs alongside the placement watcher below — it stops itself
+        // once Amber spawns (the placement watcher then advances).
+        if (brawler === 'amber') {
+            let _pathPromptShown = false;
+            const pathPoll = setInterval(() => {
+                try {
+                    const arrs = (typeof units !== 'undefined') ? units : [];
+                    const placed = arrs.some(e => e && e.team === 'player' && e.type === 'amber');
+                    if (placed) { clearInterval(pathPoll); return; }
+                    if (!_pathPromptShown && typeof isSelectingAmberPath !== 'undefined' && isSelectingAmberPath) {
+                        _pathPromptShown = true;
+                        showStep({
+                            title: 'בחר את הצעדים של אמבר 🎯',
+                            text: 'נכנסת למצב בחירת מסלול! לחץ על המפה כדי להוסיף נקודות לצעדים של אמבר. ' +
+                                  '<b>עד 6 נקודות</b>, כל אחת <b>עד 5 משבצות</b> מהקודמת (העיגול הכתום מראה לך את הטווח). ' +
+                                  'אחרי הנקודה האחרונה (או לחיצה שנייה על 🎯) אמבר תופיע בנקודה הראשונה ותלך לאורך המסלול.',
+                            target: '#game-canvas',
+                            button: false,
+                            allowClick: '#game-canvas, #amber-path-btn'
+                        });
+                    }
+                } catch (e) { /* keep polling */ }
+            }, 150);
+        }
+
         // Watch for placement: a new player-team unit/building/aura with
         // matching type appears in the right array. units/buildings/auras
         // are declared with `let` in globals.js so they DON'T attach to
