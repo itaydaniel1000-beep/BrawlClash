@@ -80,18 +80,26 @@ Unit.prototype.update = function(dt, now) {
             }
         } else {
             // No waypoints — chase nearest enemy (any non-frozen, non-invisible
-            // enemy entity, including the safe). She walks indefinitely;
-            // the only ways for her to disappear are: finishing a chosen
-            // path (handled above) or the admin 🗑️ delete power.
+            // enemy entity, including the safe). When she reaches the enemy
+            // she vanishes — her job in free-roam mode is to lay down a
+            // single trail line from spawn → nearest enemy and then exit.
             const enemies = units.concat(buildings, auras)
                 .concat([playerSafe, enemySafe].filter(s => s))
                 .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen);
             this.target = enemies.length > 0
                 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
                 : null;
+            if (this.target && !this.target.isDead) {
+                const dContact = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+                if (dContact <= (this.target.radius || 15) + this.radius) {
+                    // Reached the nearest enemy — vanish (the trail she
+                    // already laid keeps burning under aura.js's normal
+                    // post-death-window rules).
+                    this.isDead = true;
+                    return;
+                }
+            }
         }
-        // (No lifetime cap — Amber lives until she completes her chosen
-        //  path, gets admin-deleted, or the match ends.)
     } else {
         this.target = this.team === 'player' ? enemySafe : playerSafe;
     }
