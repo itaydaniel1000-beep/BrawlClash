@@ -1,25 +1,43 @@
 // network-logic.js - PeerJS and NetworkManager Communication
 
 // Wipe admin-hack pollution that may have leaked from a previous super-admin
-// session in this same browser. Safe to call any time: it ONLY wipes when
-// the current user is non-admin AND has no meaningful personal grant.
+// session in this same browser. Safe to call any time.
+//
+// Behavior:
+//   - super-admin → keeps everything.
+//   - granted user → keeps ONLY the fields explicitly listed in their grant
+//     (so a cancelAdmin-only grant doesn't inherit a stale `disableBot`,
+//     `safeHpMultiplier`, `infiniteElixir`, etc. from a previous super-admin
+//     session sharing this browser's localStorage).
+//   - everyone else → wipes every field.
+//
+// Without the per-field gating, a granted user inherits the entire
+// `adminHacks` object the previous super-admin left behind — and gameplay
+// consumers like `aiUpdate` (which short-circuits the bot if
+// `adminHacks.disableBot`) silently respect those leaked toggles.
 function _wipeStaleAdminHacksIfNotAdmin() {
     try {
         if (!playerStats || !playerStats.username) return;
         const name = playerStats.username;
         const isSuper = (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME);
+        if (isSuper) return; // super-admin keeps everything
+        if (typeof adminHacks === 'undefined') return;
+
         const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
         const g       = grants[name] || null;
-        const hasMeaningfulGrant = g && !g._revoke && Object.keys(g).some(k => k !== 'grantId' && g[k]);
-        if (isSuper || hasMeaningfulGrant) return;
-        if (typeof adminHacks === 'undefined') return;
+        const granted = (g && !g._revoke) ? g : {};
+
+        let mutated = false;
         Object.keys(adminHacks).forEach(k => {
+            // Keep fields the grant explicitly turned on. `granted[k]` is
+            // truthy iff the super-admin granted that exact capability.
+            if (granted[k]) return;
             const v = adminHacks[k];
-            if (typeof v === 'boolean') adminHacks[k] = false;
-            else if (typeof v === 'number') adminHacks[k] = 0;
-            else if (typeof v === 'string') adminHacks[k] = '';
+            if (typeof v === 'boolean')      { if (v !== false) { adminHacks[k] = false; mutated = true; } }
+            else if (typeof v === 'number')  { if (v !== 0)     { adminHacks[k] = 0;     mutated = true; } }
+            else if (typeof v === 'string')  { if (v !== '')    { adminHacks[k] = '';    mutated = true; } }
         });
-        if (typeof saveAdminHacks === 'function') saveAdminHacks();
+        if (mutated && typeof saveAdminHacks === 'function') saveAdminHacks();
     } catch (e) {}
 }
 window._wipeStaleAdminHacksIfNotAdmin = _wipeStaleAdminHacksIfNotAdmin;
@@ -442,27 +460,16 @@ async function claimUsername() {
     const overlay = document.getElementById('username-overlay');
     if (overlay) overlay.style.display = 'none';
 
-    // Strip admin hacks if this user isn't actually admin / hasn't been
-    // granted anything meaningful. adminHacks lives in shared localStorage
-    // (`brawlclash_admin_hacks`), so a previous super-admin session in
+    // Strip admin hacks that don't match this user's actual entitlement.
+    // `_wipeStaleAdminHacksIfNotAdmin` does the per-field gating: super-admin
+    // keeps everything, a granted user keeps ONLY the fields their grant
+    // includes, and everyone else gets a full wipe. adminHacks lives in
+    // shared localStorage so without this a previous super-admin session in
     // the SAME browser would otherwise leak `safeHpMultiplier`,
-    // `infiniteElixir`, `godMode`, the 🗑️ delete button etc. into every
-    // future non-admin account.
-    try {
-        const isSuper = (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME);
-        const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
-        const g       = grants[name] || null;
-        const hasMeaningfulGrant = g && !g._revoke && Object.keys(g).some(k => k !== 'grantId' && g[k]);
-        if (!isSuper && !hasMeaningfulGrant && typeof adminHacks !== 'undefined') {
-            Object.keys(adminHacks).forEach(k => {
-                const v = adminHacks[k];
-                if (typeof v === 'boolean') adminHacks[k] = false;
-                else if (typeof v === 'number') adminHacks[k] = 0;
-                else if (typeof v === 'string') adminHacks[k] = '';
-            });
-            if (typeof saveAdminHacks === 'function') saveAdminHacks();
-        }
-    } catch (e) {}
+    // `infiniteElixir`, `godMode`, the 🗑️ delete button, `disableBot` etc.
+    if (typeof _wipeStaleAdminHacksIfNotAdmin === 'function') {
+        try { _wipeStaleAdminHacksIfNotAdmin(); } catch (e) {}
+    }
 
     updateStatsUI();
 

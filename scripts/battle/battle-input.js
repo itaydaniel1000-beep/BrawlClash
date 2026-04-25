@@ -46,6 +46,18 @@ function _placeAtInternal(x, y, shiftHeld) {
             victim.isDead = true;
             victim.hp = 0;
             if (typeof showTransientToast === 'function') showTransientToast('🗑️ הדמות נמחקה');
+            // P2P: the enemy we just killed is the OPPONENT's player-team unit
+            // on their screen. Without this broadcast the unit only dies in
+            // our local sim and they keep fighting with what looks (to them)
+            // like a still-alive unit.
+            try {
+                if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
+                    window.NetworkManager && typeof window.NetworkManager.broadcastDeleteUnit === 'function') {
+                    window.NetworkManager.broadcastDeleteUnit(
+                        victim.x, victim.y, victim.type || null, victim.radius || 20
+                    );
+                }
+            } catch (e) { /* ignore — local kill already happened */ }
         }
         // Mode stays armed — user clicks the 🗑️ button again to disarm.
         return { placed: false };

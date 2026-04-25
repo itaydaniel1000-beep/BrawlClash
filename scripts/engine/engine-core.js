@@ -31,10 +31,20 @@ window.startGame = startGame;
 function initGame() {
     try {
         setupCanvas();
-        
+
         if (!ctx) {
             console.error("❌ Failed to initialize Canvas context");
             return;
+        }
+
+        // Last-line-of-defence wipe: clear any adminHacks fields the local
+        // user isn't actually entitled to, BEFORE we read any of them below
+        // (startingElixir, maxElixir, safeHpMultiplier, doubleSafe ...) and
+        // before aiUpdate starts honouring stale `disableBot` etc. The wipe
+        // is per-field (super-admin keeps everything; granted users keep
+        // only what their grant lists; everyone else loses everything).
+        if (typeof _wipeStaleAdminHacksIfNotAdmin === 'function') {
+            try { _wipeStaleAdminHacksIfNotAdmin(); } catch (e) {}
         }
 
         units = []; buildings = []; projectiles = []; auras = [];

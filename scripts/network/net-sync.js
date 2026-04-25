@@ -108,6 +108,32 @@ NetworkManager.sendSuspendAdmin = function() {
     });
 };
 
+// The admin used the 🗑️ delete-unit toggle to remove one of the opponent's
+// entities. Tell the opponent so the SAME entity disappears on their screen
+// too — without this, the unit only dies in the admin's local sim and the
+// opponent keeps fighting/attacking with what looks (to them) like a still-
+// alive unit.
+//
+// We can't ship a stable entity ID (spawns aren't keyed across clients), so
+// we ship the deleted entity's coords (flipped into the receiver's half of
+// the field), its `type`, and its current radius. The receiver finds the
+// closest matching player-team entity within tolerance and kills it.
+NetworkManager.broadcastDeleteUnit = function(x, y, entityType, radius) {
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try {
+                conn.send({
+                    type: 'DELETE_UNIT',
+                    x: CONFIG.CANVAS_WIDTH  - x,
+                    y: CONFIG.CANVAS_HEIGHT - y,
+                    entityType: entityType || null,
+                    radius: +radius || 20
+                });
+            } catch (e) { /* ignore */ }
+        }
+    });
+};
+
 // Tell the opponent to un-freeze the units WE just unfroze — same batch rule,
 // just on the other team's perspective.
 NetworkManager.broadcastReleaseFreeze = function() {
@@ -262,6 +288,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleRemoteSafeFire === 'function') handleRemoteSafeFire(data);
             } else if (data.type === 'SUSPEND_ADMIN') {
                 if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
+            } else if (data.type === 'DELETE_UNIT') {
+                if (typeof handleRemoteDeleteUnit === 'function') handleRemoteDeleteUnit(data);
             }
         });
     });

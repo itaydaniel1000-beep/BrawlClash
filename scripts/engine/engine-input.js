@@ -95,6 +95,55 @@ function handleRemoteSpawn(data) {
     spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
 }
 
+// The opponent's admin used the 🗑️ delete-unit power to remove one of OUR
+// units. Find the closest matching player-team entity and kill it on our
+// screen too — without this, the unit only dies in the admin's local sim
+// and we keep playing with what looks (to us) like a still-alive unit.
+//
+// Coords arrive flipped into our half (the sender already inverted them).
+// We match on team + type (when given) and a wider tolerance (50 px + the
+// shipped radius) so small drift between the two sims doesn't miss.
+function handleRemoteDeleteUnit(data) {
+    if (!data) return;
+    const tx = +data.x, ty = +data.y;
+    if (!isFinite(tx) || !isFinite(ty)) return;
+    const wantType = data.entityType || null;
+    const tol = (+data.radius || 20) + 50;
+    try {
+        const pools = [];
+        if (typeof units     !== 'undefined') pools.push(units);
+        if (typeof buildings !== 'undefined') pools.push(buildings);
+        if (typeof auras     !== 'undefined') pools.push(auras);
+
+        let best = null, bestDist = tol;
+        pools.forEach(arr => {
+            arr.forEach(e => {
+                if (!e || e.isDead || e.team !== 'player') return;
+                if (wantType && e.type && e.type !== wantType) return;
+                const d = Math.hypot((e.x || 0) - tx, (e.y || 0) - ty);
+                if (d < bestDist) { bestDist = d; best = e; }
+            });
+        });
+        // Fallback: ignore type filter if nothing matched (the receiver may
+        // be running a slightly different naming for the same entity).
+        if (!best && wantType) {
+            bestDist = tol;
+            pools.forEach(arr => {
+                arr.forEach(e => {
+                    if (!e || e.isDead || e.team !== 'player') return;
+                    const d = Math.hypot((e.x || 0) - tx, (e.y || 0) - ty);
+                    if (d < bestDist) { bestDist = d; best = e; }
+                });
+            });
+        }
+        if (best) {
+            best.isDead = true;
+            best.hp = 0;
+        }
+    } catch (e) { /* ignore */ }
+}
+window.handleRemoteDeleteUnit = handleRemoteDeleteUnit;
+
 // The opponent's safe just fired — mirror the shot on our screen so BOTH
 // clients agree on which of our units is being targeted. Without this every
 // client runs its own safe-targeting logic and picks a different victim when

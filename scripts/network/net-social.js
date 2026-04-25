@@ -88,6 +88,8 @@ NetworkManager.handleConnection = function(conn) {
             if (typeof handleRemoteSafeFire === 'function') handleRemoteSafeFire(data);
         } else if (data.type === 'SUSPEND_ADMIN') {
             if (typeof handleSuspendAdmin === 'function') handleSuspendAdmin();
+        } else if (data.type === 'DELETE_UNIT') {
+            if (typeof handleRemoteDeleteUnit === 'function') handleRemoteDeleteUnit(data);
         }
     });
 };
