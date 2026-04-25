@@ -60,9 +60,12 @@ function buildDeck() {
         cardEl.className = 'card';
         cardEl.id = `card-${cardId}`;
         cardEl.style.borderColor = card.color;
+        const iconHtml = (typeof getCardIconHTML === 'function')
+            ? getCardIconHTML(cardId, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
+            : card.icon;
         cardEl.innerHTML = `
             <div class="card-cost">${card.cost}</div>
-            <div class="card-icon">${card.icon}</div>
+            <div class="card-icon">${iconHtml}</div>
             <div class="card-name">${card.name}</div>
         `;
 

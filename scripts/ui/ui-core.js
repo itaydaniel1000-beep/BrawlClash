@@ -217,10 +217,13 @@ function renderGuideCharacters() {
         const spHtml = sp.length
             ? sp.map(s => `<div style="font-size: 0.78rem; color: #ffeaa7; margin-top: 2px;">⭐ <b>${s.name}</b> — ${s.desc}</div>`).join('')
             : '';
+        const guideIcon = (typeof getCardIconHTML === 'function')
+            ? getCardIconHTML(id, 'width: 26px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
+            : c.icon;
         return `
             <div style="background: rgba(255,255,255,0.06); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; border-right: 3px solid ${c.color};">
                 <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
-                    <span style="font-size: 1.4rem;">${c.icon}</span>
+                    <span style="font-size: 1.4rem;">${guideIcon}</span>
                     <b style="color: #fff; font-size: 1rem;">${c.name}</b>
                     <span style="color: #f1c40f; font-size: 0.8rem;">🧪 ${c.cost}</span>
                     <span style="color: #95a5a6; font-size: 0.8rem;">${meta.role}</span>

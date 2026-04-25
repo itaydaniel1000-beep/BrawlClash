@@ -266,6 +266,57 @@ const _AMBER_FROZEN_SUBS = {
     C:'b', c:'b'
 };
 
+// Cached PNG data URL of the same pixel-art torch, baked at first request
+// to a small offscreen canvas. Used by every DOM-based card UI (deck card,
+// brawler list, upgrade modal, guide entry, star-power card) so the icon
+// matches what the player sees on the field instead of falling back to
+// the 🔥 emoji.
+let _amberIconDataUrlCache = null;
+function _getAmberIconDataUrl() {
+    if (_amberIconDataUrlCache) return _amberIconDataUrlCache;
+    try {
+        const PIX = 4; // bigger render → crisp when CSS scales it down
+        const COLS = 14;
+        const ROWS = _AMBER_TORCH_GRID.length;
+        const off = document.createElement('canvas');
+        off.width  = COLS * PIX;
+        off.height = ROWS * PIX;
+        const ictx = off.getContext('2d');
+        for (let r = 0; r < ROWS; r++) {
+            const line = _AMBER_TORCH_GRID[r];
+            for (let c = 0; c < COLS; c++) {
+                const ch = line[c];
+                if (ch === '.' || ch === ' ') continue;
+                const color = _AMBER_TORCH_PALETTE[ch];
+                if (!color) continue;
+                ictx.fillStyle = color;
+                ictx.fillRect(c * PIX, r * PIX, PIX, PIX);
+            }
+        }
+        _amberIconDataUrlCache = off.toDataURL('image/png');
+    } catch (e) { _amberIconDataUrlCache = null; }
+    return _amberIconDataUrlCache;
+}
+window._getAmberIconDataUrl = _getAmberIconDataUrl;
+
+// HTML snippet to drop into a card-icon container. For amber: an <img> of
+// the pre-rendered torch sprite scaled to fit the slot. For everything
+// else: the original emoji unchanged. `imgStyle` lets the caller tune the
+// size — defaults match the existing emoji size for inline use.
+function getCardIconHTML(cardId, imgStyle) {
+    if (cardId === 'amber') {
+        const url = _getAmberIconDataUrl();
+        if (url) {
+            const style = imgStyle ||
+                'width: 28px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;';
+            return '<img src="' + url + '" alt="amber" style="' + style + '">';
+        }
+    }
+    const c = CARDS[cardId];
+    return c ? c.icon : '';
+}
+window.getCardIconHTML = getCardIconHTML;
+
 function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
     ctx.save();
     if (isInvisible) ctx.globalAlpha = 0.5;

@@ -360,19 +360,33 @@ function drawGhost(ctx) {
     const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(mouseX - a.x, mouseY - a.y) <= a.radius);
     let valid = insideBorder && (bottomHalf || insideOwnEmz);
 
-    ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
-    ctx.fillStyle = valid ? card.color : 'rgba(231, 76, 60, 0.5)';
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    // For amber, draw the torch sprite (matching the on-field unit) inside
+    // a faintly-tinted placement halo. Every other card keeps the
+    // emoji-on-coloured-circle ghost.
+    if (cardKey === 'amber' && typeof _drawAmberTorch === 'function') {
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
+        ctx.fillStyle = valid ? 'rgba(231, 126, 34, 0.25)' : 'rgba(231, 76, 60, 0.4)';
+        ctx.fill();
+        ctx.strokeStyle = valid ? 'rgba(231, 126, 34, 0.95)' : '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        _drawAmberTorch(ctx, mouseX, mouseY, 'player', false, false);
+    } else {
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
+        ctx.fillStyle = valid ? card.color : 'rgba(231, 76, 60, 0.5)';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-    ctx.fillStyle = '#fff';
-    ctx.font = '20px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(card.icon, mouseX, mouseY);
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(card.icon, mouseX, mouseY);
+    }
 
     if (selectedFreezeCardId) {
         ctx.strokeStyle = '#74b9ff';

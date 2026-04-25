@@ -27,9 +27,12 @@ function renderCharCards() {
         if (playerDeck.includes(id)) cardEl.classList.add('selected');
         const level = playerStats.levels[id] || 1;
         
+        const iconHtml = (typeof getCardIconHTML === 'function')
+            ? getCardIconHTML(id, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
+            : card.icon;
         cardEl.innerHTML = `
             <div class="card-cost">${card.cost}</div>
-            <div class="card-icon">${card.icon}</div>
+            <div class="card-icon">${iconHtml}</div>
             <div class="card-name" style="display: flex; flex-direction: column; z-index: 10;">
                 <span>${card.name}</span>
                 <span style="color: #f1c40f; font-size: 0.6rem;">רמה ${level}</span>
@@ -87,7 +90,14 @@ function openUpgradeModal(id) {
     if (id === 'tara') { baseHp = 1500; baseDmg = 0; }
 
     document.getElementById('upgrade-modal-name').innerText = `שדרוג: ${card.name} (${card.cost} 🧪)`;
-    document.getElementById('upgrade-modal-icon').innerText = card.icon;
+    // Use innerHTML so amber's pixel-art torch <img> renders. Falls back
+    // to the bare emoji for every other card.
+    const upgIcon = document.getElementById('upgrade-modal-icon');
+    if (upgIcon) {
+        upgIcon.innerHTML = (typeof getCardIconHTML === 'function')
+            ? getCardIconHTML(id, 'width: 48px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
+            : card.icon;
+    }
     document.getElementById('stat-level').innerText = `רמה: ${level} ➔ ${level + 1}`;
     document.getElementById('stat-hp').innerText = `חיים: ${Math.floor(baseHp * scale)} ➔ ${Math.floor(baseHp * nextScale)}`;
     document.getElementById('stat-damage').innerText = baseDmg > 0 ? `נזק: ${Math.floor(baseDmg * scale)} ➔ ${Math.floor(baseDmg * nextScale)}` : "";

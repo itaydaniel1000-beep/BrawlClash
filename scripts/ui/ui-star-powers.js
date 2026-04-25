@@ -13,8 +13,11 @@ function renderSPSelection() {
 
         const cardItem = document.createElement('div');
         cardItem.className = 'sp-card-item';
+        const spIcon = (typeof getCardIconHTML === 'function')
+            ? getCardIconHTML(key, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
+            : card.icon;
         cardItem.innerHTML = `
-            <div class="sp-card-icon">${card.icon}</div>
+            <div class="sp-card-icon">${spIcon}</div>
             <div class="sp-card-name">${card.name}</div>
             <div class="sp-options" id="options-${key}"></div>
         `;
