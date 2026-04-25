@@ -358,7 +358,11 @@
     // we want them to pick, then waits for them to actually pick + place it.
     function teachBrawler(idx) {
         if (idx >= ALL_BRAWLERS.length) {
-            return step4_quit;
+            // Done with all 12 — advance to the quit-the-match step. This
+            // used to read `return step4_quit;` (returning the function
+            // reference instead of calling it), which froze the tutorial
+            // after the last brawler explanation.
+            return step4_quit();
         }
         const brawler = ALL_BRAWLERS[idx];
         _state.currentBrawler = brawler;
