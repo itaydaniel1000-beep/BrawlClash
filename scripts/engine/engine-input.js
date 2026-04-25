@@ -67,12 +67,30 @@ function handleNetworkGameOver(data) {
     setTimeout(() => { currentBattleRoom = null; }, 3000);
 }
 
+// True only when the LOCAL user is genuinely entitled to use `cancelAdmin`
+// (super-admin OR a grant that explicitly includes cancelAdmin). We can't
+// trust `adminHacks.cancelAdmin` on its own because adminHacks lives in
+// shared localStorage — a leaked `true` from a previous super-admin session
+// would otherwise let any random account neutralise an opponent's powers.
+function _userMayCancelAdmin() {
+    try {
+        const isSuper = (typeof playerStats !== 'undefined' && playerStats &&
+                         typeof ADMIN_USERNAME !== 'undefined' &&
+                         playerStats.username === ADMIN_USERNAME);
+        if (isSuper) return true;
+        const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+        const myGrant = (typeof playerStats !== 'undefined' && playerStats && playerStats.username && grants[playerStats.username]) || null;
+        return !!(myGrant && !myGrant._revoke && myGrant.cancelAdmin);
+    } catch (e) { return false; }
+}
+
 function handleRemoteSpawn(data) {
     // Verified in a two-tab in-browser simulation: stripping the buffs
     // when cancelAdmin is on does NOT cause the match to end on placement.
     // The regression the user reported must live elsewhere (stale cache,
     // mid-version opponent, etc.). Re-enabling the feature.
-    const cancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
+    const cancelling = _userMayCancelAdmin() &&
+        !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
     const buffs = cancelling ? null : (data.buffs || null);
     spawnEntity(data.x, data.y, 'enemy', data.unitType, !!data.isFrozen, true, buffs, data.level || 1);
 }
@@ -119,7 +137,14 @@ function handleAdminConfig(data) {
     // buffs also disappear on THEIR screen. Without this, the admin would
     // still see their own buffed units/safe. The opponent restores their
     // adminHacks automatically when the battle ends.
-    const iAmCancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
+    //
+    // We refuse to act on `adminHacks.cancelAdmin` unless the local user
+    // is genuinely entitled to it (super-admin OR a stored grant that
+    // explicitly includes cancelAdmin). Without this gate, a leaked
+    // cancelAdmin=true in shared localStorage would let any random
+    // account neutralise an opponent's admin powers.
+    const iAmCancelling = _userMayCancelAdmin() &&
+        !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
     const opponentHasAnyHack = !!(
         data.isAdmin || h.infiniteElixir || h.godMode || h.doubleDamage || h.superSpeed ||
         h.speedMultiplier > 1 || h.dmgMultiplier > 1 || h.hpMultiplier > 1 || h.safeHpMultiplier > 1
