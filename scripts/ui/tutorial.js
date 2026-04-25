@@ -303,24 +303,43 @@
         } else {
             snap = _readPersistedSnapshot();
         }
-        if (!snap) return;
         try {
-            if (snap.deck && typeof playerDeck !== 'undefined') {
-                playerDeck.length = 0;
-                snap.deck.forEach(b => playerDeck.push(b));
-                try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
-            }
-            if (snap.difficulty !== null && snap.difficulty !== undefined && typeof difficulty !== 'undefined') {
-                difficulty = snap.difficulty;
-            }
-            if (snap.adminHacks && typeof adminHacks !== 'undefined') {
-                Object.assign(adminHacks, snap.adminHacks);
-                if (typeof saveAdminHacks === 'function') saveAdminHacks();
-            }
-            if (snap.opponentHacks && typeof opponentAdminHacks !== 'undefined') {
-                Object.assign(opponentAdminHacks, snap.opponentHacks);
+            if (snap) {
+                if (snap.deck && typeof playerDeck !== 'undefined') {
+                    playerDeck.length = 0;
+                    snap.deck.forEach(b => playerDeck.push(b));
+                    try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
+                }
+                if (snap.difficulty !== null && snap.difficulty !== undefined && typeof difficulty !== 'undefined') {
+                    difficulty = snap.difficulty;
+                }
+                if (snap.adminHacks && typeof adminHacks !== 'undefined') {
+                    Object.assign(adminHacks, snap.adminHacks);
+                }
+                if (snap.opponentHacks && typeof opponentAdminHacks !== 'undefined') {
+                    Object.assign(opponentAdminHacks, snap.opponentHacks);
+                }
             }
         } catch (e) {}
+
+        // BELT-AND-SUSPENDERS: force-clear the fields setUpTutorialMatch
+        // sets, regardless of what the snapshot says. Protects against:
+        //   - A corrupt snapshot (e.g. captured AFTER a previous broken
+        //     tutorial run that left infiniteElixir=true).
+        //   - Object.assign somehow not applying.
+        //   - Power-users who'll just re-toggle from the admin panel if
+        //     they want infinite elixir back.
+        try {
+            if (typeof adminHacks !== 'undefined') {
+                adminHacks.disableBot = false;
+                adminHacks.infiniteElixir = false;
+                if (typeof saveAdminHacks === 'function') saveAdminHacks();
+            }
+            if (typeof opponentAdminHacks !== 'undefined') {
+                opponentAdminHacks.godMode = false;
+            }
+        } catch (e) {}
+
         // Clear the snapshot — it's been applied. Drop in-memory too so a
         // subsequent restoreGameState call doesn't double-roll-back.
         _state.savedDeck = null;
