@@ -56,20 +56,10 @@ class Aura extends Entity {
     update(dt, now) {
         if (this.isDead || this.isFrozen) return;
 
-        // Fire-trail post-death window. The trail keeps burning for exactly
-        // 5 seconds AFTER its owner (Amber) dies, then all of her trails
-        // vanish at once. While in this window we still let the damage tick
-        // run below, but we skip the natural 2.5s lifetime check at the
-        // bottom so a freshly-spawned trail doesn't expire mid-window.
-        let _inOwnerDeathWindow = false;
-        if (this.type === 'fire-trail' && this._owner && this._owner.isDead) {
-            if (!this._ownerDiedAt) this._ownerDiedAt = now;
-            if (now - this._ownerDiedAt > 5000) {
-                this.isDead = true;
-                return;
-            }
-            _inOwnerDeathWindow = true;
-        }
+        // Fire-trail tiles are PERMANENT — once Amber lays one down it stays
+        // on the field for the rest of the match (per user's request). No
+        // natural-lifetime expiry, no post-death extinguish. The damage
+        // tick below keeps ticking forever.
 
         if (now - this.lastTickTime > 1000) {
             let enemies = units.concat(buildings, auras).filter(e => e.team !== this.team && !e.isFrozen);
@@ -99,12 +89,9 @@ class Aura extends Entity {
         if (this.type === 'spike') lifetime = (this.team === 'player' && hasStarPower('spike', 'sp2')) ? 15000 : 10000;
         if (this.type === 'tara') lifetime = 3000;
         if (this.type === 'fire') lifetime = 3000;
-        if (this.type === 'fire-trail') lifetime = 2500;
+        // 'fire-trail' deliberately omitted — it never expires.
 
-        // While the trail is in the 5s post-death grace window, the natural
-        // lifetime check is suspended — otherwise a trail born close to
-        // Amber's death would die early instead of waiting out the window.
-        if (!_inOwnerDeathWindow && now - this.spawnTime > lifetime) {
+        if (now - this.spawnTime > lifetime) {
             this.isDead = true;
         }
     }
@@ -117,18 +104,9 @@ class Aura extends Entity {
         // before the standard aura draw block so none of that runs.
         if (this.type === 'fire-trail') {
             const now = performance.now();
-            const age = now - this.spawnTime;
-            // Two fade regimes: while owner is alive use the natural 2.5s
-            // birth-to-fade curve; once owner dies, switch to a 5s curve
-            // anchored at the owner's death time so every trail in the
-            // batch fades together and they all wink out at deathTime+5s.
-            let lifeFrac;
-            if (this._owner && this._owner.isDead && this._ownerDiedAt) {
-                lifeFrac = Math.min(1, (now - this._ownerDiedAt) / 5000);
-            } else {
-                lifeFrac = Math.min(1, age / 2500);
-            }
-            const alpha = 0.55 * (1 - lifeFrac); // fade out over its lifetime
+            // Permanent trail — no fade-out, just a steady warm glow with
+            // a small per-tile flicker so the field doesn't look static.
+            const alpha = 0.55;
             const flicker = 0.8 + 0.2 * Math.sin(now / 90 + (this.x + this.y));
             const r = this.radius * flicker;
             ctx.save();
