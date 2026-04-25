@@ -11,13 +11,17 @@
 }
 #tutorial-overlay.active { display: block; }
 
-/* Dark backdrop with a transparent "hole" cut around the spotlighted
-   element via box-shadow on the spotlight (which is the inverse). */
+/* Dark backdrop used only on pure-modal steps (no spotlight target).
+   pointer-events: none on purpose — when an action-required step has
+   the spotlight active, the spotlight's huge box-shadow does the
+   dimming itself, and we want clicks on the highlighted button to
+   actually reach the button (the document-level click-guard in tutorial.js
+   is what limits the user to the allowed element). */
 #tutorial-backdrop {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 /* The spotlight is a transparent box positioned over the target element.

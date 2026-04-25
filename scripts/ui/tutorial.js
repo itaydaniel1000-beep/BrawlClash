@@ -87,17 +87,26 @@
         if (ov) ov.classList.remove('active');
     }
 
-    // Position the spotlight cutout over a target element.
+    // Position the spotlight cutout over a target element. Toggles the
+    // separate backdrop too so we don't double-dim — when the spotlight is
+    // active its own huge box-shadow handles the darken-outside effect, so
+    // the backdrop hides. On modal-only steps (no target), backdrop shows
+    // for the dim and spotlight hides.
     function spotlight(selector) {
         const sp = document.getElementById('tutorial-spotlight');
+        const bd = document.getElementById('tutorial-backdrop');
         if (!sp) return null;
         if (!selector) {
             sp.classList.remove('active');
+            sp.style.display = 'none';
+            if (bd) bd.style.display = '';
             return null;
         }
         const el = document.querySelector(selector);
         if (!el) {
             sp.classList.remove('active');
+            sp.style.display = 'none';
+            if (bd) bd.style.display = '';
             return null;
         }
         const rect = el.getBoundingClientRect();
@@ -108,7 +117,9 @@
         sp.style.top    = (rect.top    - pad) + 'px';
         sp.style.width  = (rect.width  + pad * 2) + 'px';
         sp.style.height = (rect.height + pad * 2) + 'px';
+        sp.style.display = '';
         sp.classList.add('active');
+        if (bd) bd.style.display = 'none';
         return el;
     }
 
@@ -152,25 +163,18 @@
         btn.onclick = (e) => { e.stopPropagation(); onClick && onClick(); };
     }
 
-    // Hide the tooltip + spotlight without ending the step. Used by the
-    // default "הבנתי" handler on action-required steps — the user dismisses
-    // the explanation, but the click-guard stays so they can only interact
-    // with the highlighted element.
+    // Hide ONLY the explanation bubble (title/text/הבנתי button) when the
+    // user clicks "הבנתי" on an action-required step. The spotlight ring
+    // around the highlighted element AND the darkened backdrop both STAY
+    // visible so the user can clearly see which button they're allowed to
+    // click. The click-guard also stays active in the background.
     function hideExplanation() {
         const tip = document.getElementById('tutorial-tooltip');
-        const sp  = document.getElementById('tutorial-spotlight');
-        const bd  = document.getElementById('tutorial-backdrop');
         if (tip) tip.style.display = 'none';
-        if (sp)  sp.style.display  = 'none';
-        if (bd)  bd.style.display  = 'none';
     }
     function showExplanation() {
         const tip = document.getElementById('tutorial-tooltip');
-        const sp  = document.getElementById('tutorial-spotlight');
-        const bd  = document.getElementById('tutorial-backdrop');
         if (tip) tip.style.display = '';
-        if (sp)  sp.style.display  = '';
-        if (bd)  bd.style.display  = '';
     }
 
     // ---- Click guard: swallow every click that isn't on the spotlight ----
