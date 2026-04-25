@@ -203,113 +203,113 @@ Unit.prototype.update = function(dt, now) {
     }
 };
 
-// Procedural torch sprite for Amber. Replaces the standard "circle + icon"
-// unit draw with a brown wooden handle topped with a 3-layer animated
-// flame. No white background — just the torch on transparent canvas. The
-// team is conveyed by a small colored glow at the base of the handle so
-// the player can still tell which side a torch belongs to.
+// Pixel-art torch sprite for Amber. Each character in the grid below is a
+// single rendered pixel — sampled colour-by-colour from the reference
+// image the user shared. No curves, no gradients, no white background:
+// just discrete coloured cells on transparent canvas.
+//
+// Color legend (PALETTE keys):
+//   R = red flame outer            (#E74C3C)
+//   r = red flame edge / shadow    (#C0392B)
+//   O = orange flame mid layer     (#F39C12)
+//   Y = yellow flame core          (#F1C40F)
+//   D = brown handle main          (#5C2E1F)
+//   d = handle shadow (right side) (#3E1E12)
+//   L = light brown highlight      (#8B4F39)
+//   C = collar / cup main          (#4A2418)
+//   c = collar darkest accent      (#2D1408)
+//   '.' or ' ' = transparent
+//
+// Frozen: the warm palette swaps to cool blues (B/b/F/f) so the visual
+// still reads "torch is out / paused" without breaking the silhouette.
+const _AMBER_TORCH_PALETTE = {
+    R: '#E74C3C', r: '#C0392B',
+    O: '#F39C12', Y: '#F1C40F',
+    D: '#5C2E1F', d: '#3E1E12',
+    L: '#8B4F39',
+    C: '#4A2418', c: '#2D1408',
+    B: '#5E7A8C', b: '#3D5466',
+    F: '#9DD3FF', f: '#74B9FF'
+};
+
+// 14 columns × 24 rows. Rows 0–11 = flame, 12–13 = collar, 14–23 = handle.
+const _AMBER_TORCH_GRID = [
+    '......RR......',
+    '.....RRRR.....',
+    '....RRrrRR....',
+    '...RRrYYrRR..R',
+    '..RRRYOOYRRR.R',
+    '.RRRYOOOOYRRRR',
+    'RRRRYOOOOOYRR.',
+    'RRRRYOOOOOYR..',
+    '.RRRYOOOOOYR..',
+    '..RRYYOOOYYR..',
+    '..RRRYYYYRR...',
+    '...RRRRRRR....',
+    '....CCCCCC....',
+    '...cCCCCCCc...',
+    '...LDDDDDDD...',
+    '...LDDDDDDd...',
+    '...LDDDDDDd...',
+    '....LDDDDDd...',
+    '....LDDDDDd...',
+    '....LDDDDDd...',
+    '....LDDDDDd...',
+    '.....LDDDDd...',
+    '.....LDDDDd...',
+    '.....LDDDDd...'
+];
+
+const _AMBER_FROZEN_SUBS = {
+    R:'F', r:'f', O:'F', Y:'F',
+    D:'B', d:'b', L:'b',
+    C:'b', c:'b'
+};
+
 function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
-    const now = performance.now();
     ctx.save();
     if (isInvisible) ctx.globalAlpha = 0.5;
 
-    // Team-color base glow — replaces the unit circle's role of "this is
-    // mine vs theirs" without putting a colored ring around the whole sprite.
+    // Per-tile flicker so multiple torches don't pulse in lockstep. Flame
+    // rows (0–11) shimmer ±1.5 px vertically; handle stays put.
+    const now = performance.now();
+    const flick = Math.floor(Math.sin(now / 130 + cx + cy) * 1.5);
+
+    const PIX = 2;          // each grid cell = 2 canvas pixels
+    const cols = 14;
+    const rows = _AMBER_TORCH_GRID.length;
+    // Centre the handle on (cx, cy). Handle area = rows 12–23, midpoint 17.5.
+    const anchorRow = 17.5;
+
+    // Team-color base glow under the torch (drawn FIRST so torch sits on top).
     const ringColor = team === 'player'
         ? 'rgba(0, 168, 255, 0.55)'
         : 'rgba(232, 65, 24, 0.55)';
+    const baseY = cy + (rows - anchorRow) * PIX - PIX;
     ctx.beginPath();
-    ctx.ellipse(cx, cy + 18, 9, 3.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, baseY, 10, 3.5, 0, 0, Math.PI * 2);
     ctx.fillStyle = ringColor;
     ctx.fill();
 
-    // === Handle (brown trapezoid, wider at top) ===
-    const handleTopY    = cy - 4;
-    const handleBottomY = cy + 18;
-    const topHalfW      = 6;
-    const botHalfW      = 3;
-
-    // Body of the handle.
-    ctx.beginPath();
-    ctx.moveTo(cx - topHalfW, handleTopY);
-    ctx.lineTo(cx + topHalfW, handleTopY);
-    ctx.lineTo(cx + botHalfW, handleBottomY);
-    ctx.lineTo(cx - botHalfW, handleBottomY);
-    ctx.closePath();
-    ctx.fillStyle = isFrozen ? '#4a6577' : '#5a3a2a';
-    ctx.fill();
-
-    // Lighter highlight stripe on the left side for a 3D feel.
-    ctx.beginPath();
-    ctx.moveTo(cx - topHalfW, handleTopY);
-    ctx.lineTo(cx - topHalfW + 2, handleTopY);
-    ctx.lineTo(cx - botHalfW + 1, handleBottomY);
-    ctx.lineTo(cx - botHalfW, handleBottomY);
-    ctx.closePath();
-    ctx.fillStyle = isFrozen ? '#5e7a8c' : '#7a5040';
-    ctx.fill();
-
-    // Darker collar where the flame emerges.
-    ctx.fillStyle = isFrozen ? '#384e5e' : '#3d2418';
-    ctx.fillRect(cx - 7, handleTopY - 2, 14, 3.5);
-
-    if (isFrozen) {
-        // When frozen, swap the flame for a frosty cap so the visual still
-        // reads "the torch is out / paused".
-        ctx.beginPath();
-        ctx.arc(cx, handleTopY - 6, 7, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(116, 185, 255, 0.9)';
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-    } else {
-        // === Flame: 3 layers (outer red → mid orange → inner yellow) ===
-        const flicker = Math.sin(now / 110 + cx + cy) * 0.18;
-        const flameBaseY = handleTopY - 1;
-        const flameTipY  = handleTopY - 24 + flicker * 5;
-
-        // Outer red flame — wider, with a pointy top and curvy sides.
-        ctx.beginPath();
-        ctx.moveTo(cx - 10, flameBaseY);
-        ctx.bezierCurveTo(cx - 13, flameBaseY - 8, cx - 7, flameBaseY - 17, cx - 3, flameTipY + 7);
-        ctx.bezierCurveTo(cx - 1, flameTipY,    cx + 1, flameTipY,    cx + 3, flameTipY + 7);
-        ctx.bezierCurveTo(cx + 7, flameBaseY - 17, cx + 13, flameBaseY - 8, cx + 10, flameBaseY);
-        ctx.closePath();
-        ctx.fillStyle = '#e74c3c';
-        ctx.fill();
-
-        // Side wisps — two small curling tongues, asymmetric like the ref.
-        ctx.beginPath();
-        ctx.moveTo(cx - 9, flameBaseY - 4);
-        ctx.bezierCurveTo(cx - 17, flameBaseY - 14, cx - 14, flameBaseY - 21, cx - 9, flameBaseY - 16);
-        ctx.bezierCurveTo(cx - 8, flameBaseY - 12, cx - 8, flameBaseY - 8, cx - 9, flameBaseY - 4);
-        ctx.closePath();
-        ctx.fillStyle = '#e74c3c';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(cx + 8, flameBaseY - 6);
-        ctx.bezierCurveTo(cx + 18, flameBaseY - 13, cx + 16, flameBaseY - 22, cx + 11, flameBaseY - 18);
-        ctx.bezierCurveTo(cx + 9, flameBaseY - 14, cx + 8, flameBaseY - 10, cx + 8, flameBaseY - 6);
-        ctx.closePath();
-        ctx.fillStyle = '#e74c3c';
-        ctx.fill();
-
-        // Mid orange flame — sits in front of the red one.
-        ctx.beginPath();
-        ctx.moveTo(cx - 7, flameBaseY);
-        ctx.bezierCurveTo(cx - 9, flameBaseY - 7, cx - 4, flameBaseY - 13, cx - 2, flameTipY + 11);
-        ctx.bezierCurveTo(cx - 1, flameTipY + 5, cx + 1, flameTipY + 5, cx + 2, flameTipY + 11);
-        ctx.bezierCurveTo(cx + 4, flameBaseY - 13, cx + 9, flameBaseY - 7, cx + 7, flameBaseY);
-        ctx.closePath();
-        ctx.fillStyle = '#f39c12';
-        ctx.fill();
-
-        // Inner yellow core — small bright vertical ellipse.
-        ctx.beginPath();
-        ctx.ellipse(cx, flameBaseY - 9 + flicker * 2, 2.5, 6, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#f1c40f';
-        ctx.fill();
+    // Render the pixel grid.
+    for (let r = 0; r < rows; r++) {
+        const line = _AMBER_TORCH_GRID[r];
+        for (let c = 0; c < cols; c++) {
+            let ch = line[c];
+            if (ch === '.' || ch === ' ') continue;
+            if (isFrozen && _AMBER_FROZEN_SUBS[ch]) ch = _AMBER_FROZEN_SUBS[ch];
+            const color = _AMBER_TORCH_PALETTE[ch];
+            if (!color) continue;
+            // Flame rows shimmer; handle / collar stay still.
+            const yOff = (r < 12 && !isFrozen) ? flick : 0;
+            ctx.fillStyle = color;
+            ctx.fillRect(
+                Math.round(cx + (c - cols / 2) * PIX),
+                Math.round(cy + (r - anchorRow) * PIX + yOff),
+                PIX,
+                PIX
+            );
+        }
     }
 
     ctx.restore();
