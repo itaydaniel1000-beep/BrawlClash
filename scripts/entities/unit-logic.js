@@ -104,6 +104,10 @@ Unit.prototype.update = function(dt, now) {
         if (!this._lastTrailTime || (now - this._lastTrailTime) > 250) {
             try {
                 const trail = new Aura(this.x, this.y, this.team, 'fire-trail');
+                // Back-reference so the trail can self-extinguish when its
+                // owner dies — without this, fires lingered for up to ~2.5s
+                // after Amber vanished. See aura.js update() for the kill.
+                trail._owner = this;
                 if (typeof auras !== 'undefined') auras.push(trail);
             } catch (e) {}
             this._lastTrailTime = now;

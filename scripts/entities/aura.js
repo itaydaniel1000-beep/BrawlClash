@@ -56,6 +56,14 @@ class Aura extends Entity {
     update(dt, now) {
         if (this.isDead || this.isFrozen) return;
 
+        // Fire-trail tiles die the moment their owner (Amber) dies — the
+        // user reported the trail outliving her by ~5s, which felt wrong.
+        // The back-reference is set in unit-logic.js when each tile spawns.
+        if (this.type === 'fire-trail' && this._owner && this._owner.isDead) {
+            this.isDead = true;
+            return;
+        }
+
         if (now - this.lastTickTime > 1000) {
             let enemies = units.concat(buildings, auras).filter(e => e.team !== this.team && !e.isFrozen);
             if (this.type === 'pam') {
