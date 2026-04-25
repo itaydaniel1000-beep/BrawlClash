@@ -50,7 +50,19 @@ function update(dt, now) {
         enemyElixir += (CONFIG.ELIXIR_GEN_RATE * aiGenMult * dt / 1000);
     }
 
-    let oldEnemyCount = units.concat(buildings, auras).filter(e => e.team === 'enemy' && e.type !== 'porter').length;
+    // Kill-tally exclusion list. Amber + her fire-trail tiles ALL expire at
+    // once 5s after she dies, so a single frame can drop the enemy count by
+    // 6-7 entries — which used to give the local player a huge max-elixir
+    // boost they didn't earn (and the Amber-owner saw "the enemy got an
+    // elixir charge for free" on their screen). Porter is also already
+    // excluded since the bot summons swarms of them.
+    const _isCountedEnemy = (e) =>
+        e && e.team === 'enemy' &&
+        e.type !== 'porter' &&
+        e.type !== 'amber' &&
+        e.type !== 'fire-trail';
+
+    let oldEnemyCount = units.concat(buildings, auras).filter(_isCountedEnemy).length;
 
     [...auras, ...buildings, ...units, ...projectiles, ...floatingTexts, ...particles, playerSafe, enemySafe].forEach(e => {
         if (!e) return;
@@ -107,7 +119,7 @@ function update(dt, now) {
     
     if (screenShakeTime > 0) screenShakeTime--;
 
-    let newEnemyCount = units.filter(e => e.team === 'enemy' && e.type !== 'porter').length + buildings.filter(e => e.team === 'enemy').length + auras.filter(e => e.team === 'enemy').length;
+    let newEnemyCount = units.concat(buildings, auras).filter(_isCountedEnemy).length;
     let deathsThisFrame = oldEnemyCount - newEnemyCount;
     if (deathsThisFrame > 0) {
         playerKills += deathsThisFrame;
