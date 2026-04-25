@@ -284,50 +284,124 @@ const _AMBER_FROZEN_SUBS = {
     C:'b', c:'b'
 };
 
-// Cached PNG data URL of the same pixel-art torch, baked at first request
-// to a small offscreen canvas. Used by every DOM-based card UI (deck card,
-// brawler list, upgrade modal, guide entry, star-power card) so the icon
-// matches what the player sees on the field instead of falling back to
-// the 🔥 emoji.
-let _amberIconDataUrlCache = null;
-function _getAmberIconDataUrl() {
-    if (_amberIconDataUrlCache) return _amberIconDataUrlCache;
+// === Bruce — angry red bear face ==========================================
+//
+// Color legend:
+//   R = bright red bear body       r = darker red shadow on edges
+//   H = red highlight (top of head)
+//   N = black nose                 E = black eye
+//   W = white fang
+//   '.' = transparent
+//
+// Frozen variants:
+//   I = ice blue main              i = darker ice blue
+const _BRUCE_PALETTE = {
+    R: '#BF1F26', r: '#8E1418', H: '#DD3036',
+    N: '#1A1A1A', E: '#1A1A1A',
+    W: '#F5F5F5',
+    I: '#9DD3FF', i: '#74B9FF'
+};
+
+// 16 columns × 14 rows. Round face with two ears, eyes, nose, and two fangs
+// hanging at the bottom. Mirrored / centered on column 7.5.
+const _BRUCE_GRID = [
+    '..RR........RR..',  //  0  ear tops
+    '.RRRR......RRRR.',  //  1  ear bodies
+    '.RRRR......RRRR.',  //  2
+    'RRRRRRRRRRRRRRRR',  //  3  top of face (full width)
+    'RHHRRRRRRRRRRHHR',  //  4  highlights (top corners)
+    'rRRREE....EERRRr',  //  5  small black eyes (cols 4-5, 10-11)
+    'rRRRRRRRRRRRRRRr',  //  6
+    'rRRRRRNNNNRRRRRr',  //  7  nose top (4 wide)
+    'rRRRRNNNNNNRRRRr',  //  8  nose middle (6 wide)
+    'rRRRRNNNNNNRRRRr',  //  9
+    'rrRRRRNNNNRRRRrr',  // 10  nose narrows
+    '.rRRRWW..WWRRRr.',  // 11  fangs visible
+    '..rrWW....WWrr..',  // 12  fang tips
+    '.....W....W.....'   // 13  fang very tips
+];
+
+const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
+
+// === Sprite registry — drives every custom-art surface ====================
+//
+// Each entry maps a CARDS type string to:
+//   grid       : array of strings, one per row (every row same length = cols)
+//   palette    : { char → hex color }
+//   frozenSubs : { char → char } applied when the entity is frozen
+//   cols       : grid width (could derive but cheaper as a number)
+//   anchorRow  : which grid row sits at the unit's (cx, cy) centre
+//   flickerRows: rows < this index shimmer ±1.5 px vertically (set to 0 for
+//                static sprites)
+//   teamGlow   : { x, y, rx, ry } — translucent ellipse under the sprite to
+//                colour-code which side it belongs to. y is added to the
+//                bottom edge of the sprite.
+const _CUSTOM_SPRITES = {
+    amber: {
+        grid:        _AMBER_TORCH_GRID,
+        palette:     _AMBER_TORCH_PALETTE,
+        frozenSubs:  _AMBER_FROZEN_SUBS,
+        cols:        16,
+        anchorRow:   22.5,
+        flickerRows: 15,
+        teamGlow:    { x: 0, y: -2, rx: 10, ry: 3.5 }
+    },
+    bruce: {
+        grid:        _BRUCE_GRID,
+        palette:     _BRUCE_PALETTE,
+        frozenSubs:  _BRUCE_FROZEN_SUBS,
+        cols:        16,
+        anchorRow:   6.5,
+        flickerRows: 0,
+        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+    }
+};
+
+// Cached PNG data URLs per type. Built on first request to a small
+// offscreen canvas at PIX=4 so DOM <img> renders stay crisp when CSS
+// scales them down to the icon slots.
+const _customIconCache = {};
+function _getCustomSpriteDataUrl(type) {
+    if (_customIconCache[type] !== undefined) return _customIconCache[type];
+    const def = _CUSTOM_SPRITES[type];
+    if (!def) { _customIconCache[type] = null; return null; }
     try {
-        const PIX = 4; // bigger render → crisp when CSS scales it down
-        const COLS = 16;
-        const ROWS = _AMBER_TORCH_GRID.length;
+        const PIX = 4;
+        const COLS = def.cols;
+        const ROWS = def.grid.length;
         const off = document.createElement('canvas');
         off.width  = COLS * PIX;
         off.height = ROWS * PIX;
         const ictx = off.getContext('2d');
         for (let r = 0; r < ROWS; r++) {
-            const line = _AMBER_TORCH_GRID[r];
+            const line = def.grid[r];
             for (let c = 0; c < COLS; c++) {
                 const ch = line && line[c];
                 if (!ch || ch === '.' || ch === ' ') continue;
-                const color = _AMBER_TORCH_PALETTE[ch];
+                const color = def.palette[ch];
                 if (!color) continue;
                 ictx.fillStyle = color;
                 ictx.fillRect(c * PIX, r * PIX, PIX, PIX);
             }
         }
-        _amberIconDataUrlCache = off.toDataURL('image/png');
-    } catch (e) { _amberIconDataUrlCache = null; }
-    return _amberIconDataUrlCache;
+        _customIconCache[type] = off.toDataURL('image/png');
+    } catch (e) { _customIconCache[type] = null; }
+    return _customIconCache[type];
 }
-window._getAmberIconDataUrl = _getAmberIconDataUrl;
+window._getCustomSpriteDataUrl = _getCustomSpriteDataUrl;
+// Backwards-compat alias for the old amber-only helper.
+window._getAmberIconDataUrl = function() { return _getCustomSpriteDataUrl('amber'); };
 
-// HTML snippet to drop into a card-icon container. For amber: an <img> of
-// the pre-rendered torch sprite scaled to fit the slot. For everything
-// else: the original emoji unchanged. `imgStyle` lets the caller tune the
-// size — defaults match the existing emoji size for inline use.
+// HTML snippet to drop into any card-icon container. For cards in
+// `_CUSTOM_SPRITES`, returns an <img> with the pre-rendered pixel art
+// scaled by the optional inline `imgStyle`. Otherwise, the original emoji.
 function getCardIconHTML(cardId, imgStyle) {
-    if (cardId === 'amber') {
-        const url = _getAmberIconDataUrl();
+    if (_CUSTOM_SPRITES[cardId]) {
+        const url = _getCustomSpriteDataUrl(cardId);
         if (url) {
             const style = imgStyle ||
                 'width: 28px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;';
-            return '<img src="' + url + '" alt="amber" style="' + style + '">';
+            return '<img src="' + url + '" alt="' + cardId + '" style="' + style + '">';
         }
     }
     const c = CARDS[cardId];
@@ -335,42 +409,49 @@ function getCardIconHTML(cardId, imgStyle) {
 }
 window.getCardIconHTML = getCardIconHTML;
 
-function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
+// Render a registered sprite onto a canvas at (cx, cy). Returns true if it
+// was rendered, false if the type isn't registered (so callers can fall
+// through to the standard "circle + emoji" draw path).
+function _drawCustomSprite(ctx, type, cx, cy, team, isFrozen, isInvisible) {
+    const def = _CUSTOM_SPRITES[type];
+    if (!def) return false;
+
     ctx.save();
     if (isInvisible) ctx.globalAlpha = 0.5;
 
-    // Per-tile flicker so multiple torches don't pulse in lockstep. Flame
-    // rows (0–11) shimmer ±1.5 px vertically; handle stays put.
     const now = performance.now();
-    const flick = Math.floor(Math.sin(now / 130 + cx + cy) * 1.5);
+    const flick = (def.flickerRows > 0)
+        ? Math.floor(Math.sin(now / 130 + cx + cy) * 1.5)
+        : 0;
 
-    const PIX = 2;          // each grid cell = 2 canvas pixels
-    const cols = 16;
-    const rows = _AMBER_TORCH_GRID.length;
-    // Centre the handle on (cx, cy). Handle area = rows 18–27, midpoint 22.5.
-    const anchorRow = 22.5;
+    const PIX = 2;
+    const cols = def.cols;
+    const rows = def.grid.length;
+    const anchorRow = def.anchorRow;
 
-    // Team-color base glow under the torch (drawn FIRST so torch sits on top).
-    const ringColor = team === 'player'
-        ? 'rgba(0, 168, 255, 0.55)'
-        : 'rgba(232, 65, 24, 0.55)';
-    const baseY = cy + (rows - anchorRow) * PIX - PIX;
-    ctx.beginPath();
-    ctx.ellipse(cx, baseY, 10, 3.5, 0, 0, Math.PI * 2);
-    ctx.fillStyle = ringColor;
-    ctx.fill();
+    // Team-color glow under the sprite (drawn FIRST so the sprite sits on top).
+    if (def.teamGlow) {
+        const ringColor = team === 'player'
+            ? 'rgba(0, 168, 255, 0.55)'
+            : 'rgba(232, 65, 24, 0.55)';
+        const tg = def.teamGlow;
+        const baseY = cy + (rows - anchorRow) * PIX + (tg.y || 0);
+        ctx.beginPath();
+        ctx.ellipse(cx + (tg.x || 0), baseY, tg.rx, tg.ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = ringColor;
+        ctx.fill();
+    }
 
     // Render the pixel grid.
     for (let r = 0; r < rows; r++) {
-        const line = _AMBER_TORCH_GRID[r];
+        const line = def.grid[r];
         for (let c = 0; c < cols; c++) {
             let ch = line[c];
             if (ch === '.' || ch === ' ') continue;
-            if (isFrozen && _AMBER_FROZEN_SUBS[ch]) ch = _AMBER_FROZEN_SUBS[ch];
-            const color = _AMBER_TORCH_PALETTE[ch];
+            if (isFrozen && def.frozenSubs && def.frozenSubs[ch]) ch = def.frozenSubs[ch];
+            const color = def.palette[ch];
             if (!color) continue;
-            // Flame rows shimmer; handle / collar stay still.
-            const yOff = (r < 15 && !isFrozen) ? flick : 0;
+            const yOff = (r < def.flickerRows && !isFrozen) ? flick : 0;
             ctx.fillStyle = color;
             ctx.fillRect(
                 Math.round(cx + (c - cols / 2) * PIX),
@@ -380,19 +461,30 @@ function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
             );
         }
     }
-
     ctx.restore();
+    return true;
+}
+window._drawCustomSprite = _drawCustomSprite;
+// Backwards-compat alias for the amber-only helper used by drawGhost.
+window._drawAmberTorch = function(ctx, cx, cy, team, isFrozen, isInvisible) {
+    return _drawCustomSprite(ctx, 'amber', cx, cy, team, isFrozen, isInvisible);
+};
+
+// Bare-name alias so existing call sites (drawGhost, Unit.prototype.draw)
+// that still reference `_drawAmberTorch` keep working without code change.
+function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
+    return _drawCustomSprite(ctx, 'amber', cx, cy, team, isFrozen, isInvisible);
 }
 
 Unit.prototype.draw = function(ctx) {
     if (this.isInvisible && this.team !== 'player' && this.type !== 'bull') return;
 
-    // Amber gets a custom torch sprite (no circle, no emoji, no white bg).
-    // Keep the per-team identification via a small colored base glow inside
-    // _drawAmberTorch. HP bar is still drawn below for consistency, even
-    // though Amber is invulnerable — the bar stays at 700/700 her whole run.
-    if (this.type === 'amber') {
-        _drawAmberTorch(ctx, this.x, this.y, this.team, this.isFrozen, this.isInvisible);
+    // Custom pixel-art sprite for any registered type (currently amber +
+    // bruce). Replaces the standard "circle + emoji" rendering with a
+    // bespoke design. HP bar still draws below for consistency. Returns
+    // early so the legacy circle path doesn't run on top.
+    if (typeof _CUSTOM_SPRITES !== 'undefined' && _CUSTOM_SPRITES[this.type]) {
+        _drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, this.isInvisible);
         if (!this.isInvisible) this.drawHpBar(ctx);
         return;
     }
