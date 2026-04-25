@@ -39,7 +39,7 @@ class Projectile extends Entity {
         }
 
         if (this.sourceType === 'scrappy' && this.team === 'player' && hasStarPower('scrappy', 'sp1') && !this.hasBounced) {
-            let enemies = units.concat(buildings).filter(e => e.team !== this.team && !e.isDead && e !== this.target);
+            let enemies = units.concat(buildings).filter(e => e.team !== this.team && !e.isDead && e !== this.target && !isAmberOrTrail(e));
             let nextTarget = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
             if (nextTarget) {
                 this.target = nextTarget;
@@ -51,7 +51,7 @@ class Projectile extends Entity {
         }
 
         if (this.isSplash) {
-            let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isDead);
+            let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isDead && !isAmberOrTrail(e));
             enemies.forEach(e => {
                 if (Math.hypot(e.x - this.targetX, e.y - this.targetY) <= 80) e.takeDamage(this.damage);
             });

@@ -134,6 +134,16 @@ var isSelectingDeleteTarget = false;
 // path is committed: Amber spawns at waypoints[0] and walks through the rest.
 var isSelectingAmberPath = false;
 var _amberPendingPath = [];
+
+// Used by every enemy target-selection filter (Bull / Porter chase, building
+// turrets, the Safe, projectile re-targeting, splash) to skip Amber and her
+// fire-trail tiles. Amber is invulnerable AND her trail is invisible to the
+// enemy side, so making them untargetable matches the player's expectation
+// that nothing the opponent owns should be wasted attacking them.
+function isAmberOrTrail(e) {
+    return !!(e && (e.type === 'amber' || e.type === 'fire-trail'));
+}
+window.isAmberOrTrail = isAmberOrTrail;
 let selectedFreezeCardId = null;
 let selectedCardId = null;
 let playerTrophies = parseInt(localStorage.getItem(_userKey('trophies'))) || 0;

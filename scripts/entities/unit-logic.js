@@ -47,7 +47,7 @@ Unit.prototype.update = function(dt, now) {
     }
 
     if (this.type === 'bull' || this.type === 'porter') {
-        let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen);
+        let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
 
         // Bull's dash: lock onto the first target when dash starts, end dash when that target dies.
@@ -85,7 +85,7 @@ Unit.prototype.update = function(dt, now) {
             // single trail line from spawn → nearest enemy and then exit.
             const enemies = units.concat(buildings, auras)
                 .concat([playerSafe, enemySafe].filter(s => s))
-                .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen);
+                .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
             this.target = enemies.length > 0
                 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
                 : null;

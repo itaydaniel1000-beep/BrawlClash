@@ -63,7 +63,7 @@ class Building extends Entity {
         }
 
         if (now - this.lastAttackTime > this.attackSpeed * atkSpeedMult && this.attackRange > 0) {
-            let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isFrozen);
+            let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isFrozen && !isAmberOrTrail(e));
             let inRange = enemies.filter(e => Math.hypot(e.x - this.x, e.y - this.y) <= this.attackRange);
             if (inRange.length > 0) {
                 inRange.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));

@@ -159,7 +159,7 @@ class Safe extends Entity {
             // Admin: safeShoots — the player's safe also targets enemies on the
             // enemy half (not just ones that crossed into its own half).
             if (!target && this.team === 'player' && adminHacks.safeShoots) {
-                const foes = units.concat(buildings, auras).filter(u => u.team === 'enemy' && !u.isInvisible && !u.isFrozen && !u.isDead);
+                const foes = units.concat(buildings, auras).filter(u => u.team === 'enemy' && !u.isInvisible && !u.isFrozen && !u.isDead && !isAmberOrTrail(u));
                 if (foes.length) {
                     foes.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
                     target = foes[0];
@@ -196,7 +196,7 @@ class Safe extends Entity {
         }
     }
     findTargetInHalf() {
-        let enemies = units.concat(buildings, auras).filter(u => u.team !== this.team && !u.isInvisible && !u.isFrozen);
+        let enemies = units.concat(buildings, auras).filter(u => u.team !== this.team && !u.isInvisible && !u.isFrozen && !isAmberOrTrail(u));
         let validEnemies = enemies.filter(e => {
             let inHalf = this.team === 'player' ? e.y > CONFIG.CANVAS_HEIGHT / 2 : e.y < CONFIG.CANVAS_HEIGHT / 2;
             return inHalf && Math.hypot(e.x - this.x, e.y - this.y) <= CONFIG.SAFE_RANGE;
