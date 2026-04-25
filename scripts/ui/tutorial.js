@@ -563,16 +563,24 @@
     }
 
     function step7_settingsBtn() {
+        // Force the sidebar CLOSED before we ask the user to open it.
+        // The sidebar starts visible by default — without this, the user's
+        // first click on ☰ would CLOSE the already-open sidebar, the
+        // polling check ("not hidden") would never fire, and they'd have
+        // to click twice (once to close, once to open) before the tutorial
+        // advanced.
+        const sidebar = document.getElementById('right-sidebar');
+        if (sidebar) sidebar.classList.add('hidden');
+
         showStep({
             title: 'תפריט ההגדרות ☰',
             text: 'הכפתור עם 3 הקווים פותח את הגדרות המשחק (קצב, אודיו, מסך וכו\'). לחץ עליו עכשיו.',
             target: '#home-settings-btn',
-            button: false,
             allowClick: '#home-settings-btn'
         });
         const tickHandle = setInterval(() => {
-            const sidebar = document.getElementById('right-sidebar');
-            if (sidebar && !sidebar.classList.contains('hidden')) {
+            const sb = document.getElementById('right-sidebar');
+            if (sb && !sb.classList.contains('hidden')) {
                 clearInterval(tickHandle);
                 setTimeout(step7b_settingsClose, 400);
             }
