@@ -1,5 +1,35 @@
 // network-logic.js - PeerJS and NetworkManager Communication
 
+// Wipe admin-hack pollution that may have leaked from a previous super-admin
+// session in this same browser. Safe to call any time: it ONLY wipes when
+// the current user is non-admin AND has no meaningful personal grant.
+function _wipeStaleAdminHacksIfNotAdmin() {
+    try {
+        if (!playerStats || !playerStats.username) return;
+        const name = playerStats.username;
+        const isSuper = (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME);
+        const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+        const g       = grants[name] || null;
+        const hasMeaningfulGrant = g && !g._revoke && Object.keys(g).some(k => k !== 'grantId' && g[k]);
+        if (isSuper || hasMeaningfulGrant) return;
+        if (typeof adminHacks === 'undefined') return;
+        Object.keys(adminHacks).forEach(k => {
+            const v = adminHacks[k];
+            if (typeof v === 'boolean') adminHacks[k] = false;
+            else if (typeof v === 'number') adminHacks[k] = 0;
+            else if (typeof v === 'string') adminHacks[k] = '';
+        });
+        if (typeof saveAdminHacks === 'function') saveAdminHacks();
+    } catch (e) {}
+}
+window._wipeStaleAdminHacksIfNotAdmin = _wipeStaleAdminHacksIfNotAdmin;
+
+// Run once at page load for users who already have a username (and so
+// won't go through the claim flow).
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(_wipeStaleAdminHacksIfNotAdmin, 500);
+});
+
 function initNetworkListeners() {
     if (!window.NetworkManager) return;
     if (!window.playerStats || !window.playerStats.username) return;
@@ -395,6 +425,29 @@ async function claimUsername() {
     localStorage.setItem('brawlclash_username', name);
     const overlay = document.getElementById('username-overlay');
     if (overlay) overlay.style.display = 'none';
+
+    // Strip admin hacks if this user isn't actually admin / hasn't been
+    // granted anything meaningful. adminHacks lives in shared localStorage
+    // (`brawlclash_admin_hacks`), so a previous super-admin session in
+    // the SAME browser would otherwise leak `safeHpMultiplier`,
+    // `infiniteElixir`, `godMode`, the 🗑️ delete button etc. into every
+    // future non-admin account.
+    try {
+        const isSuper = (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME);
+        const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+        const g       = grants[name] || null;
+        const hasMeaningfulGrant = g && !g._revoke && Object.keys(g).some(k => k !== 'grantId' && g[k]);
+        if (!isSuper && !hasMeaningfulGrant && typeof adminHacks !== 'undefined') {
+            Object.keys(adminHacks).forEach(k => {
+                const v = adminHacks[k];
+                if (typeof v === 'boolean') adminHacks[k] = false;
+                else if (typeof v === 'number') adminHacks[k] = 0;
+                else if (typeof v === 'string') adminHacks[k] = '';
+            });
+            if (typeof saveAdminHacks === 'function') saveAdminHacks();
+        }
+    } catch (e) {}
+
     updateStatsUI();
 
     // Ask the super-admin's lock-peer if this name has a pending grant.
