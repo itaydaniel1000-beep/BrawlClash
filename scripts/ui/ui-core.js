@@ -83,7 +83,9 @@ function updateStatsUI() {
     // `anyAdminBtnVisible` calculation further down can also read it — the
     // previous version declared it inside the block and crashed with
     // "hasGrant is not defined" on screens without that button.
-    const hasGrant = !!(playerStats.username && typeof _loadAdminGrants === 'function' && _loadAdminGrants()[playerStats.username]);
+    const _allGrants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+    const _myGrant   = (playerStats.username && _allGrants[playerStats.username]) || null;
+    const hasGrant   = !!_myGrant;
     const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
     if (adminBtn) {
         adminBtn.style.display = (isAdmin || hasGrant) ? 'flex' : 'none';
@@ -91,13 +93,17 @@ function updateStatsUI() {
             console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}, granted=${hasGrant}`, "color: #e74c3c; font-weight: bold;");
         }
     }
-    // ✨ / 🚫 — the super-admin always sees both. A granted user sees
-    // whichever capability they were given (`canGrantAdmin` / `canRevokeAdmin`).
+    // ✨ / 🚫 — the super-admin always sees both. Other users only see
+    // these if their PERSONAL grant explicitly includes that capability.
+    // We DO NOT consult adminHacks.canGrantAdmin / adminHacks.canRevokeAdmin
+    // any more — those flags live in shared localStorage and would leak
+    // the buttons to every account that opened the game in the same
+    // browser session.
     const grantBtn = document.getElementById('grant-admin-btn');
-    const showGrant = isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canGrantAdmin);
+    const showGrant = isAdmin || !!(_myGrant && _myGrant.canGrantAdmin);
     if (grantBtn) grantBtn.style.display = showGrant ? 'flex' : 'none';
     const revokeBtn = document.getElementById('revoke-admin-btn');
-    const showRevoke = isAdmin || (typeof adminHacks !== 'undefined' && adminHacks.canRevokeAdmin);
+    const showRevoke = isAdmin || !!(_myGrant && _myGrant.canRevokeAdmin);
     if (revokeBtn) revokeBtn.style.display = showRevoke ? 'flex' : 'none';
 
     // The fixed-position wrapper for all three admin buttons — shown if ANY

@@ -902,9 +902,14 @@ function _describeFlags(f) {
 }
 
 async function submitGrantAdmin() {
-    // Super-admin OR a granted user with `canGrantAdmin` may use this.
+    // Super-admin OR a user whose stored personal grant explicitly
+    // includes canGrantAdmin. We DO NOT consult adminHacks.canGrantAdmin
+    // — that's a shared-localStorage flag that leaks the capability to
+    // every account that ever logged in on this browser.
     const isSuper = playerStats.username === ADMIN_USERNAME;
-    const hasDelegate = typeof adminHacks !== 'undefined' && adminHacks.canGrantAdmin;
+    const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+    const myGrant = (playerStats.username && grants[playerStats.username]) || null;
+    const hasDelegate = !!(myGrant && myGrant.canGrantAdmin);
     if (!isSuper && !hasDelegate) {
         console.warn('🚫 grant-admin: caller lacks permission');
         return;
@@ -1053,9 +1058,13 @@ function closeRevokeAdminModal() {
 window.closeRevokeAdminModal = closeRevokeAdminModal;
 
 function submitRevokeAdmin() {
-    // Super-admin OR a granted user with `canRevokeAdmin`.
+    // Super-admin OR a user whose stored personal grant explicitly
+    // includes canRevokeAdmin. We DO NOT consult adminHacks.canRevokeAdmin
+    // for the same reason as submitGrantAdmin.
     const isSuper = playerStats.username === ADMIN_USERNAME;
-    const hasDelegate = typeof adminHacks !== 'undefined' && adminHacks.canRevokeAdmin;
+    const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+    const myGrant = (playerStats.username && grants[playerStats.username]) || null;
+    const hasDelegate = !!(myGrant && myGrant.canRevokeAdmin);
     if (!isSuper && !hasDelegate) {
         console.warn('🚫 revoke-admin: caller lacks permission');
         return;
