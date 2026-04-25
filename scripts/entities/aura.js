@@ -112,6 +112,15 @@ class Aura extends Entity {
         // shimmers instead of looking like static circles. Returns early
         // before the standard aura draw block so none of that runs.
         if (this.type === 'fire-trail') {
+            // Only the team that owns the trail can SEE it. Enemy-team
+            // trails are still simulated on this client (so my units take
+            // damage when they walk through the opponent's Amber's fire),
+            // but they don't draw — letting the trail act as a hidden
+            // trap the opponent can't anticipate. On each screen the
+            // local player is always 'player' and the opponent / bot is
+            // 'enemy', so the rule is symmetric.
+            if (this.team !== 'player') return;
+
             const now = performance.now();
             // Two regimes:
             //   • owner alive → steady 0.55 alpha (no fade — the tile is
