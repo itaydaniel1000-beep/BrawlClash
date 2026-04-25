@@ -223,45 +223,63 @@ Unit.prototype.update = function(dt, now) {
 // Frozen: the warm palette swaps to cool blues (B/b/F/f) so the visual
 // still reads "torch is out / paused" without breaking the silhouette.
 const _AMBER_TORCH_PALETTE = {
-    R: '#E74C3C', r: '#C0392B',
-    O: '#F39C12', Y: '#F1C40F',
-    D: '#5C2E1F', d: '#3E1E12',
-    L: '#8B4F39',
-    C: '#4A2418', c: '#2D1408',
+    // Flame: warmer / more orange-leaning red than v9.99 to match the
+    // reference, with a brighter yellow accent in the inner core.
+    R: '#E84128', r: '#C0392B',
+    O: '#F08020', Y: '#FFB02E',
+    M: '#FFD24A',
+    D: '#6B362A', d: '#46211A',
+    L: '#8E5240',
+    C: '#5A2A1E', c: '#2E1208',
+    // Frozen variants
     B: '#5E7A8C', b: '#3D5466',
-    F: '#9DD3FF', f: '#74B9FF'
+    F: '#9DD3FF', f: '#74B9FF', N: '#C7E5FF'
 };
 
-// 14 columns × 24 rows. Rows 0–11 = flame, 12–13 = collar, 14–23 = handle.
+// 16 columns × 28 rows. Rows 0–14 = flame (with two distinct curling
+// side-wisps), 15–17 = collar, 18–27 = tapered handle.
+//
+// Color legend:
+//   R = red flame outer            r = red flame edge / shadow
+//   O = orange mid layer           Y = yellow inner flame
+//   M = bright yellow accent       (very small bright spot)
+//   D = brown handle main          d = handle right-side shadow
+//   L = light brown highlight      C = collar / cup main
+//   c = collar darkest accent
+//   '.' = transparent
 const _AMBER_TORCH_GRID = [
-    '......RR......',
-    '.....RRRR.....',
-    '....RRrrRR....',
-    '...RRrYYrRR..R',
-    '..RRRYOOYRRR.R',
-    '.RRRYOOOOYRRRR',
-    'RRRRYOOOOOYRR.',
-    'RRRRYOOOOOYR..',
-    '.RRRYOOOOOYR..',
-    '..RRYYOOOYYR..',
-    '..RRRYYYYRR...',
-    '...RRRRRRR....',
-    '....CCCCCC....',
-    '...cCCCCCCc...',
-    '...LDDDDDDD...',
-    '...LDDDDDDd...',
-    '...LDDDDDDd...',
-    '....LDDDDDd...',
-    '....LDDDDDd...',
-    '....LDDDDDd...',
-    '....LDDDDDd...',
-    '.....LDDDDd...',
-    '.....LDDDDd...',
-    '.....LDDDDd...'
+    '........RR......',  //  0  flame tip
+    '.......RRRR.....',  //  1
+    '......RRrrRR....',  //  2
+    '....r.RRYYRR..r.',  //  3  both wisps start (cols 4, 14)
+    '...rR.RYOOYR.rR.',  //  4  wisps continue outward
+    '..rRR.RYOOYRrRR.',  //  5  wisps thickening, inner widening
+    '.rRR.RYOOOMYRR..',  //  6  left wisp tail + bright accent
+    '.RR.RRYOOOOYRR..',  //  7  flame body widens, left wisp ends
+    'RRR.RRYOOOOYRR..',  //  8
+    'RRRRYOOOOOOOYRRR',  //  9  max width — full bulb
+    '.RRRYOOOOOOOYRR.',  // 10
+    '..RRYYOOOOOYYRR.',  // 11
+    '...RRYYYOOOYYRR.',  // 12
+    '....RRYYYYYRR...',  // 13  flame narrows toward base
+    '.....RRRRRRR....',  // 14  flame base
+    '....CCCCCCCC....',  // 15  collar top (slightly wider)
+    '...cCCccccCCc...',  // 16  collar middle (shading band)
+    '....CCCCCCCC....',  // 17  collar bottom
+    '....LDDDDDDD....',  // 18  handle top (8 wide)
+    '....LDDDDDDD....',  // 19
+    '....LDDDDDDd....',  // 20
+    '....LDDDDDDd....',  // 21
+    '.....LDDDDDd....',  // 22  taper to 7 wide
+    '.....LDDDDDd....',  // 23
+    '......LDDDDd....',  // 24  taper to 6 wide
+    '......LDDDDd....',  // 25
+    '.......LDDDd....',  // 26  taper to 5 wide
+    '........DDd.....'   // 27  pointed bottom
 ];
 
 const _AMBER_FROZEN_SUBS = {
-    R:'F', r:'f', O:'F', Y:'F',
+    R:'F', r:'f', O:'F', Y:'F', M:'N',
     D:'B', d:'b', L:'b',
     C:'b', c:'b'
 };
@@ -276,7 +294,7 @@ function _getAmberIconDataUrl() {
     if (_amberIconDataUrlCache) return _amberIconDataUrlCache;
     try {
         const PIX = 4; // bigger render → crisp when CSS scales it down
-        const COLS = 14;
+        const COLS = 16;
         const ROWS = _AMBER_TORCH_GRID.length;
         const off = document.createElement('canvas');
         off.width  = COLS * PIX;
@@ -285,8 +303,8 @@ function _getAmberIconDataUrl() {
         for (let r = 0; r < ROWS; r++) {
             const line = _AMBER_TORCH_GRID[r];
             for (let c = 0; c < COLS; c++) {
-                const ch = line[c];
-                if (ch === '.' || ch === ' ') continue;
+                const ch = line && line[c];
+                if (!ch || ch === '.' || ch === ' ') continue;
                 const color = _AMBER_TORCH_PALETTE[ch];
                 if (!color) continue;
                 ictx.fillStyle = color;
@@ -327,10 +345,10 @@ function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
     const flick = Math.floor(Math.sin(now / 130 + cx + cy) * 1.5);
 
     const PIX = 2;          // each grid cell = 2 canvas pixels
-    const cols = 14;
+    const cols = 16;
     const rows = _AMBER_TORCH_GRID.length;
-    // Centre the handle on (cx, cy). Handle area = rows 12–23, midpoint 17.5.
-    const anchorRow = 17.5;
+    // Centre the handle on (cx, cy). Handle area = rows 18–27, midpoint 22.5.
+    const anchorRow = 22.5;
 
     // Team-color base glow under the torch (drawn FIRST so torch sits on top).
     const ringColor = team === 'player'
@@ -352,7 +370,7 @@ function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
             const color = _AMBER_TORCH_PALETTE[ch];
             if (!color) continue;
             // Flame rows shimmer; handle / collar stay still.
-            const yOff = (r < 12 && !isFrozen) ? flick : 0;
+            const yOff = (r < 15 && !isFrozen) ? flick : 0;
             ctx.fillStyle = color;
             ctx.fillRect(
                 Math.round(cx + (c - cols / 2) * PIX),
