@@ -511,23 +511,34 @@
     function onBrawlerPicked(brawler, idx) {
         const tip = BRAWLER_TIPS[brawler] || 'דמות חדשה.';
 
-        // Amber's tip text mentions the 🎯 path-selection mechanic (see
-        // BRAWLER_TIPS in this file), but the action the tutorial waits
-        // for is the same as for every other brawler: place her on the
-        // map. We DON'T spotlight the 🎯 button — it was confusing and
-        // it forces a single flow. The player can read about path mode
-        // and try it later; the only thing this step blocks on is a
-        // successful placement (which works for both direct clicks AND
-        // path-mode commits since both push an amber unit into `units[]`).
-        showStep({
-            title: brawler === 'amber' ? 'אמבר 🔥' : 'מידע על הדמות',
-            text: tip + '<br><br>הניח את הדמות בחצי הכחול שלך כדי להמשיך.',
-            target: '#game-canvas',
-            button: false,
-            allowClick: brawler === 'amber'
-                ? '#game-canvas, #amber-path-btn'  // path-mode is optional but unblocked
-                : '#game-canvas'
-        });
+        // Amber gets a dedicated intro step that points at the 🎯 path
+        // button so the player notices the steps mechanic exists. Once
+        // they actually tap 🎯 the bubble swaps to a "click the map to
+        // place steps" prompt (see the path-mode poll below). They can
+        // still place her directly without using path mode at all —
+        // the placement watcher catches both flows.
+        if (brawler === 'amber') {
+            showStep({
+                title: 'אמבר 🔥',
+                text: tip + '<br><br>הקלף נבחר! עכשיו יופיע <b>כפתור 🎯</b> בפינה הימנית-תחתונה של המפה. ' +
+                      'לחיצה עליו פותחת מצב <b>בחירת מסלול</b>: כל לחיצה על המפה מוסיפה נקודת ציון ' +
+                      '(עד 6 נקודות, כל אחת עד 5 משבצות מהקודמת). אחרי הלחיצה האחרונה (או לחיצה שנייה ' +
+                      'על 🎯) אמבר נוצרת בנקודה הראשונה והולכת לאורך המסלול.<br><br>' +
+                      'אפשר גם פשוט לסמן את הקלף ולהניח אותה כרגיל בחצי הכחול — אז היא תרוץ לאויב הקרוב.',
+                target: '#amber-path-btn',
+                button: 'הבנתי, בוא ננסה',
+                allowClick: '#game-canvas, #amber-path-btn'
+            });
+        } else {
+            // Spotlight the canvas now — they're going to place the unit on the map.
+            showStep({
+                title: 'מידע על הדמות',
+                text: tip + '<br><br>הניח את הדמות בחצי הכחול שלך כדי להמשיך.',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
+            });
+        }
 
         // For Amber: if the player taps the 🎯 button to enter path mode,
         // swap the tutorial bubble for a path-mode-specific prompt that
