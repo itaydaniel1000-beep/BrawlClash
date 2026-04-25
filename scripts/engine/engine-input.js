@@ -114,8 +114,11 @@ function handleAdminConfig(data) {
     if (!data || !data.hacks) return;
     const h = data.hacks;
 
-    // cancelAdmin local-only strip — verified in a two-tab simulation that
-    // this does NOT cause the reported game-over regression.
+    // cancelAdmin TWO-WAY: strip opponent effects on OUR screen AND tell the
+    // opponent's client to suspend its own adminHacks for the match so their
+    // buffs also disappear on THEIR screen. Without this, the admin would
+    // still see their own buffed units/safe. The opponent restores their
+    // adminHacks automatically when the battle ends.
     const iAmCancelling = !!(typeof adminHacks !== 'undefined' && adminHacks.cancelAdmin);
     const opponentHasAnyHack = !!(
         data.isAdmin || h.infiniteElixir || h.godMode || h.doubleDamage || h.superSpeed ||
@@ -127,8 +130,16 @@ function handleAdminConfig(data) {
             doubleDamage: false, superSpeed: false,
             speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0
         };
+        // Tell the opponent to stand down for this match. Their client will
+        // zero the gameplay-affecting adminHacks fields and restore them on
+        // battle end. The bogus-GAME_OVER guard below protects us against
+        // any weirdness that a mid-version opponent's suspend flow might
+        // trigger on their side.
+        if (window.NetworkManager && typeof window.NetworkManager.sendSuspendAdmin === 'function') {
+            try { window.NetworkManager.sendSuspendAdmin(); } catch (e) { /* ignore */ }
+        }
         if (typeof showTransientToast === 'function') {
-            showTransientToast('🛡️ ביטול אדמין פעיל — הכוחות של היריב לא יחולו אצלך');
+            showTransientToast('🛡️ ביטול אדמין פעיל — הכוחות של היריב הושבתו על שני המסכים');
         }
         return;
     }
@@ -176,17 +187,68 @@ function handleAdminConfig(data) {
 }
 window.handleAdminConfig = handleAdminConfig;
 
-// Legacy stubs — the earlier version of ביטול אדמין also asked the opponent's
-// client to wipe its own adminHacks via a SUSPEND_ADMIN message. That flow
-// was too aggressive (every boolean / number / string got zeroed which broke
-// some per-match state) and caused a "game ends on unit placement" regression,
-// so the feature now only strips opponent effects on OUR side. These stubs
-// stay so older clients sending SUSPEND_ADMIN don't hit a missing-handler
-// path, and so battle-end restore calls are harmless no-ops.
-function handleSuspendAdmin() { /* intentionally a no-op now */ }
+// Admin fields that DIRECTLY affect gameplay — these are the ones that get
+// wiped during a cancelAdmin suspend. UI/meta fields (cancelAdmin itself,
+// canGrantAdmin, canRevokeAdmin, deleteUnit, bot-only flags) are preserved
+// so the panel still looks sensible to the suspended admin, and the bot-only
+// flags wouldn't apply in a P2P battle anyway.
+const _GAMEPLAY_ADMIN_FIELDS = [
+    'infiniteElixir', 'godMode', 'doubleDamage', 'superSpeed',
+    'speedMultiplier', 'dmgMultiplier', 'hpMultiplier',
+    'attackSpeedMultiplier', 'radiusMultiplier',
+    'infiniteRange', 'permanentInvisible',
+    'startingElixir', 'maxElixir', 'elixirRateMultiplier',
+    'freeCards', 'fullRefund',
+    'safeHpMultiplier', 'safeShoots', 'safeHeals', 'safeRegen', 'doubleSafe',
+    'timeScale', 'autoIncome', 'allStarPowers'
+];
+
+// The opponent has cancelAdmin on — back up our gameplay adminHacks, zero
+// them out, and undo the retroactive safe HP boost that initGame applied.
+// Idempotent (second call during the same match is a no-op).
+function handleSuspendAdmin() {
+    if (typeof adminHacks === 'undefined') return;
+    if (window._suspendedAdminBackup) return; // already suspended
+
+    const backup = {};
+    _GAMEPLAY_ADMIN_FIELDS.forEach(k => { backup[k] = adminHacks[k]; });
+    window._suspendedAdminBackup = backup;
+
+    _GAMEPLAY_ADMIN_FIELDS.forEach(k => {
+        const v = adminHacks[k];
+        if (typeof v === 'boolean') adminHacks[k] = false;
+        else if (typeof v === 'number') adminHacks[k] = 0;
+    });
+
+    // Undo the already-applied safeHpMultiplier boost on our own safe so the
+    // admin's safe also returns to base 5000 HP for the duration of the match.
+    try {
+        if (typeof playerSafe !== 'undefined' && playerSafe &&
+            backup.safeHpMultiplier && backup.safeHpMultiplier > 1) {
+            const ratio = playerSafe.maxHp > 0 ? (playerSafe.hp / playerSafe.maxHp) : 1;
+            const baseMax = (typeof CONFIG !== 'undefined' && CONFIG.SAFE_MAX_HP) ? CONFIG.SAFE_MAX_HP : 5000;
+            playerSafe.maxHp = baseMax;
+            playerSafe.hp = Math.min(baseMax, Math.max(0, baseMax * ratio));
+        }
+    } catch (e) { /* don't block suspend on a safe-reset error */ }
+
+    if (typeof showTransientToast === 'function') {
+        showTransientToast('🛡️ היריב הפעיל ביטול-אדמין — כוחות האדמין שלך מושבתים עד סוף הקרב');
+    }
+}
 window.handleSuspendAdmin = handleSuspendAdmin;
 
-function restoreSuspendedAdmin() { /* intentionally a no-op now */ }
+// Battle ended — restore the backed-up gameplay adminHacks. Safe HP isn't
+// rolled forward (the fresh match will re-apply it at its own initGame).
+function restoreSuspendedAdmin() {
+    if (!window._suspendedAdminBackup) return;
+    const backup = window._suspendedAdminBackup;
+    try { Object.assign(adminHacks, backup); } catch (e) {}
+    window._suspendedAdminBackup = null;
+    if (typeof showTransientToast === 'function') {
+        showTransientToast('🛡️ המשחק הסתיים — כוחות האדמין שלך חזרו');
+    }
+}
 window.restoreSuspendedAdmin = restoreSuspendedAdmin;
 
 function handleShiftRelease(e) {
