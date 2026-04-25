@@ -271,6 +271,9 @@
                 Object.assign(adminHacks, _state.savedAdminHacks);
                 if (typeof saveAdminHacks === 'function') saveAdminHacks();
             }
+            if (_state.savedOpponentHacks && typeof opponentAdminHacks !== 'undefined') {
+                Object.assign(opponentAdminHacks, _state.savedOpponentHacks);
+            }
         } catch (e) {}
     }
 
@@ -286,6 +289,17 @@
             adminHacks.disableBot = true;
             adminHacks.infiniteElixir = true; // make every card free to pick
             if (typeof saveAdminHacks === 'function') saveAdminHacks();
+        }
+        // Make the bot's safe invincible for the duration of the tutorial.
+        // Entity.takeDamage already short-circuits when an enemy entity is
+        // hit while opponentAdminHacks.godMode is on — we just borrow that
+        // path here so the enemy safe (which can't otherwise be made
+        // invincible mid-match) stays alive forever during the lesson.
+        // restoreGameState() rolls this back when the tutorial finishes.
+        if (typeof opponentAdminHacks !== 'undefined') {
+            try { _state.savedOpponentHacks = JSON.parse(JSON.stringify(opponentAdminHacks)); }
+            catch (e) { _state.savedOpponentHacks = null; }
+            opponentAdminHacks.godMode = true;
         }
     }
 
