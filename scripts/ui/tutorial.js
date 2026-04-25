@@ -144,13 +144,33 @@
         if (tx) tx.innerHTML = html || '';
     }
 
-    function setButton(label, onClick, hidden) {
+    function setButton(label, onClick) {
         const btn = document.getElementById('tutorial-next-btn');
         if (!btn) return;
-        if (hidden) { btn.style.display = 'none'; return; }
         btn.style.display = 'inline-block';
-        btn.innerText = label || 'המשך';
+        btn.innerText = label || 'הבנתי';
         btn.onclick = (e) => { e.stopPropagation(); onClick && onClick(); };
+    }
+
+    // Hide the tooltip + spotlight without ending the step. Used by the
+    // default "הבנתי" handler on action-required steps — the user dismisses
+    // the explanation, but the click-guard stays so they can only interact
+    // with the highlighted element.
+    function hideExplanation() {
+        const tip = document.getElementById('tutorial-tooltip');
+        const sp  = document.getElementById('tutorial-spotlight');
+        const bd  = document.getElementById('tutorial-backdrop');
+        if (tip) tip.style.display = 'none';
+        if (sp)  sp.style.display  = 'none';
+        if (bd)  bd.style.display  = 'none';
+    }
+    function showExplanation() {
+        const tip = document.getElementById('tutorial-tooltip');
+        const sp  = document.getElementById('tutorial-spotlight');
+        const bd  = document.getElementById('tutorial-backdrop');
+        if (tip) tip.style.display = '';
+        if (sp)  sp.style.display  = '';
+        if (bd)  bd.style.display  = '';
     }
 
     // ---- Click guard: swallow every click that isn't on the spotlight ----
@@ -185,12 +205,23 @@
     }
 
     // ---- Step renderers ----
+    // Every step gets a "הבנתי" button. For pure modal steps (no `target`,
+    // OR explicit onNext) the button advances to the next step. For
+    // action-required steps the default action is to JUST hide the
+    // explanation (tooltip + spotlight + backdrop) while keeping the
+    // click-guard active in the background — the user dismisses the help
+    // bubble but can still only click the spotlighted element.
     function showStep(opts) {
         show();
+        showExplanation(); // ensure tooltip is visible if previous step hid it
         const targetEl = spotlight(opts.target);
         installClickGuard(opts.allowClick || opts.target);
         setText(opts.title, opts.text);
-        setButton(opts.button, opts.onNext, !opts.button);
+
+        const buttonLabel = opts.button || 'הבנתי';
+        const buttonAction = opts.onNext || hideExplanation;
+        setButton(buttonLabel, buttonAction);
+
         // Force layout for tooltip positioning.
         setTimeout(() => positionTooltip(targetEl), 0);
         // Re-position on resize / scroll for safety.
