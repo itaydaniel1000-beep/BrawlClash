@@ -393,30 +393,33 @@ const _MAX_PALETTE = {
     F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
 };
 
-// 20 cols × 21 rows — Gemini's content preserved, all rows padded to 20
-// chars on the right. Asymmetric on purpose (lightning is jagged).
+// 20 cols × 21 rows — Gemini's v3 content preserved, all rows padded to
+// 20 chars on the right. Asymmetric on purpose (lightning is jagged).
+// Differences from v11.3:
+//   • Row 1: bolt start shifted LEFT by 1 col (col 6 → col 5)
+//   • Row 14: second-zag start shifted LEFT by 1 col (col 5 → col 4)
 const _MAX_GRID = [
     '.......WWWWWW.......',  //  0
-    '......WYYYYYYW......',  //  1  top wide part
-    '.....WYYYYYYW.......',  //  2  (padded +2 right)
-    '......WYYYYYW.......',  //  3  (padded +2)
-    '.......WYYYYW.......',  //  4  (padded +1)
-    '......WYYYYW........',  //  5  first zag (padded +1)
-    '.....WYYYYW.........',  //  6  (padded +1)
-    '....WYYYYW..........',  //  7  (padded +1)
-    '...WYYYYYYYYW.......',  //  8  middle branch (padded +4)
-    '....WYYYYYYYW.......',  //  9  (padded +4)
+    '.....WYYYYYYW.......',  //  1  top wide part (NEW: shifted left)
+    '.....WYYYYYYW.......',  //  2
+    '......WYYYYYW.......',  //  3
+    '.......WYYYYW.......',  //  4
+    '......WYYYYW........',  //  5  first zag
+    '.....WYYYYW.........',  //  6
+    '....WYYYYW..........',  //  7
+    '...WYYYYYYYYW.......',  //  8  middle branch
+    '....WYYYYYYYW.......',  //  9
     '.......WYYYYYYW.....',  // 10  ← anchorRow
-    '......WYYYYYW.......',  // 11  (padded +1)
+    '......WYYYYYW.......',  // 11
     '.....WYYYYYW........',  // 12
     '....WYYYYYW.........',  // 13
-    '.....WYYYYYW........',  // 14  second zag (padded +3)
-    '......WYYYYW........',  // 15  (padded +3)
-    '.......WYYW.........',  // 16  (padded +3)
-    '........WYYW........',  // 17  (padded +3)
-    '.........WYYW.......',  // 18  (padded +3)
-    '..........WYW.......',  // 19  (padded +3)
-    '.............W......'   // 20  tip (padded +1)
+    '....WYYYYYW.........',  // 14  second zag (NEW: shifted left)
+    '......WYYYYW........',  // 15
+    '.......WYYW.........',  // 16
+    '........WYYW........',  // 17
+    '.........WYYW.......',  // 18
+    '..........WYW.......',  // 19
+    '.............W......'   // 20  tip
 ];
 
 const _MAX_FROZEN_SUBS = {
