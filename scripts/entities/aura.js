@@ -159,24 +159,33 @@ class Aura extends Entity {
         ctx.stroke();
 
         if (this.type !== 'fire' && CARDS[this.type]) {
-            ctx.font = '32px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+            // If this aura type has a custom pixel-art sprite registered
+            // (e.g. spike → cactus), draw THAT at the centre instead of
+            // the emoji icon. The translucent area-of-effect circle above
+            // still renders so the player sees the slow / heal / pull zone.
+            const reg = (typeof window !== 'undefined') ? window._CUSTOM_SPRITES : null;
+            if (reg && reg[this.type] && typeof window._drawCustomSprite === 'function') {
+                window._drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, false);
+            } else {
+                ctx.font = '32px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
 
-            const pulse = (Math.sin(performance.now() / 200) + 1) / 2; 
-            const glowSize = 10 + pulse * 20; 
+                const pulse = (Math.sin(performance.now() / 200) + 1) / 2;
+                const glowSize = 10 + pulse * 20;
 
-            ctx.shadowColor = '#ffffff';
-            ctx.shadowBlur = glowSize;
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = glowSize;
 
-            ctx.fillText(CARDS[this.type].icon, this.x, this.y);
-
-            if (pulse > 0.5) {
-                ctx.shadowBlur = glowSize * 1.5;
                 ctx.fillText(CARDS[this.type].icon, this.x, this.y);
-            }
 
-            ctx.shadowBlur = 0;
+                if (pulse > 0.5) {
+                    ctx.shadowBlur = glowSize * 1.5;
+                    ctx.fillText(CARDS[this.type].icon, this.x, this.y);
+                }
+
+                ctx.shadowBlur = 0;
+            }
         }
 
         this.drawHpBar(ctx, -20);

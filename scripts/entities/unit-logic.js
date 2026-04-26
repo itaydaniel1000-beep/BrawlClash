@@ -323,6 +323,56 @@ const _BRUCE_GRID = [
 
 const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
 
+// === Spike — cute cactus with pink flower on top ==========================
+//
+// Color legend:
+//   G = main cactus green          g = dark green shadow
+//   L = light green highlight      T = dark thorn (silhouette spikes)
+//   Y = yellow dot (cactus spots)
+//   P = pink flower outer petal    p = dark pink flower center
+//   S = sandy base                 s = sand shadow
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice-tinted green main      f = darker iced green
+//   N = light frosted highlight
+const _SPIKE_PALETTE = {
+    G: '#5DBE5C', g: '#3A8C40', L: '#8FE38E',
+    T: '#2A6831',
+    Y: '#F4D03F',
+    P: '#E91E63', p: '#AD1457',
+    S: '#E8C170', s: '#C49758',
+    F: '#7FCEDB', f: '#5C9DC0', N: '#B0DAE6'
+};
+
+// 16 columns × 18 rows. Round oval body with two arms, yellow spots,
+// thorn silhouette, pink flower on top, sandy base.
+const _SPIKE_GRID = [
+    '.....PPPPPP.....',  //  0  flower top petals
+    '....PPpppPP.....',  //  1  flower middle with darker center
+    '.....PPPPP......',  //  2  flower bottom narrows
+    '......GGG.......',  //  3  stem
+    '....GGGGGGGT....',  //  4  body widens + thorn on right
+    '...GGGYLLYGGGT..',  //  5  highlight + yellow dots
+    '..TGGGGGGGGGGT..',  //  6  arms beginning, thorns on edges
+    'TGGGGGYGGGYGGGT.',  //  7  arms extend with dots
+    'TGGGGGGGGGGGGGGT',  //  8  max width
+    'TGGGGGYGGGYGGGGT',  //  9
+    '.TGGGGGGGGGGGGT.',  // 10  arms retracting
+    '..TGGGGYGGYGGGT.',  // 11
+    '...TGGGGGGGGGT..',  // 12  body narrowing
+    '....GGGGGGGGT...',  // 13
+    '.....GGGGGGGT...',  // 14
+    '....sSSSSSSs....',  // 15  sand base
+    '...sSsSSSSsSs...',  // 16  sand with detail
+    '....sSSSSSSs....'   // 17  bottom of sand
+];
+
+const _SPIKE_FROZEN_SUBS = {
+    G: 'F', g: 'f', L: 'N', T: 'f'
+    // Y / P / p / S / s stay — they read as colour through the ice tint.
+};
+
 // === Sprite registry — drives every custom-art surface ====================
 //
 // Each entry maps a CARDS type string to:
@@ -354,8 +404,24 @@ const _CUSTOM_SPRITES = {
         anchorRow:   6.5,
         flickerRows: 0,
         teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+    },
+    spike: {
+        grid:        _SPIKE_GRID,
+        palette:     _SPIKE_PALETTE,
+        frozenSubs:  _SPIKE_FROZEN_SUBS,
+        cols:        16,
+        // Anchor on the cactus BODY centre (around row 9, where the arms
+        // are widest). The flower (rows 0–2) and sand base (rows 15–17)
+        // sit above/below the unit's nominal centre point. Auras don't
+        // need a team glow — the AOE circle already shows ownership.
+        anchorRow:   9.0,
+        flickerRows: 0,
+        teamGlow:    null
     }
 };
+// Expose so aura.js / building.js can reuse the registry without
+// duplicating the Aura sprites table.
+window._CUSTOM_SPRITES = _CUSTOM_SPRITES;
 
 // Cached PNG data URLs per type. Built on first request to a small
 // offscreen canvas at PIX=4 so DOM <img> renders stay crisp when CSS
