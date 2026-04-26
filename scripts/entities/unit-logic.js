@@ -323,6 +323,66 @@ const _BRUCE_GRID = [
 
 const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
 
+// === Golem — magma stone tank ============================================
+//
+// Sprite designed by Gemini (via the new sprite-prompt workflow), then
+// padded from Gemini's claimed 21-col output (which was actually 19) to
+// true 21-col grid by adding 1 dot to each side of every row + fixing
+// row 22 (was 18 chars, now 21 via symmetric padding).
+//
+// Color legend:
+//   D = basalt dark grey           d = deep shadow stone
+//   O = lava orange (cracks)       o = darker magma
+//   H = stone highlight (light)
+//   E = glowing yellow eyes
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice main                   f = darker ice
+//   N = light frosted highlight
+const _GOLEM_PALETTE = {
+    D: '#333333', d: '#1A1A1A',
+    O: '#FF4500', o: '#CC3300',
+    H: '#555555',
+    E: '#FFFF00',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+// 21 cols × 23 rows. Standing humanoid golem with lava cracks on chest,
+// glowing eyes, split legs, big shoulders.
+const _GOLEM_GRID = [
+    '........HHHHH........',  //  0  head top
+    '.......HDDDDDd.......',  //  1
+    '......HDDEdEDDd......',  //  2  glowing eyes
+    '......HDDOOOddd......',  //  3  jaw / lava mouth
+    '.....HHDDDDDddd......',  //  4  shoulders begin
+    '...HHHHHDDDDDddddd...',  //  5
+    '..HHHHHDDOOODDddddd..',  //  6  chest crack
+    '.HHHHHDDOOOOODDddddd.',  //  7
+    '.HHHHHDDOOOOODDddddd.',  //  8
+    '.HHHHHDDDDDDDDDddddd.',  //  9
+    '..HHHHDDDDDDDDDdddd..',  // 10  ← anchorRow (torso)
+    '...HHDDDDOOODDDddd...',  // 11  lower crack
+    '...HHDDDDDDDDDDddd...',  // 12
+    '...HHDDDDDDDDDDddd...',  // 13
+    '...HHDDDDDDDDDDddd...',  // 14
+    '...HHDDD....DDDDdd...',  // 15  split for legs
+    '...HDDD......DDDd....',  // 16
+    '...HDDD......DDDd....',  // 17
+    '...HDDD......DDDd....',  // 18
+    '..HHDDD......DDDDd...',  // 19
+    '..HDDDd......dDDDd...',  // 20
+    '.HDDDDd......dDDDDd..',  // 21
+    '.ddddd.........ddddd.'   // 22  feet
+];
+
+const _GOLEM_FROZEN_SUBS = {
+    D: 'F', d: 'f',
+    O: 'F', o: 'f',
+    H: 'N'
+    // E (yellow eyes) stays — reads through ice
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -407,6 +467,15 @@ const _CUSTOM_SPRITES = {
         frozenSubs:  _BRUCE_FROZEN_SUBS,
         cols:        16,
         anchorRow:   6.5,
+        flickerRows: 0,
+        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+    },
+    golem: {
+        grid:        _GOLEM_GRID,
+        palette:     _GOLEM_PALETTE,
+        frozenSubs:  _GOLEM_FROZEN_SUBS,
+        cols:        21,
+        anchorRow:   10,
         flickerRows: 0,
         teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
     },
