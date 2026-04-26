@@ -38,13 +38,6 @@ class Unit extends Entity {
             if (team === 'player' && hasStarPower('mr-p', 'sp2')) {
                 this.shieldHp = 500;
             }
-        } else if (type === 'golem') {
-            // Heavy magma golem — high HP tank, slow, big damage. Stats
-            // tuned for an 8-elixir frontline pick: tankier than Bruce
-            // (1860), slower (30 vs 50), hits harder (250 vs 232).
-            this.maxHp = 2200; this.hp = 2200;
-            this.attackDamage = 250; this.speed = 30; this.color = '#FF4500';
-            this.attackRange = 55; this.attackSpeed = 1500;
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
             // unit-logic.js to skip the attack code-path entirely (otherwise

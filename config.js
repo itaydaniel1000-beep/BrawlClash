@@ -35,10 +35,7 @@ const CARDS = {
     // optionally steer her along up to 6 waypoints (each ≤ 5 squares)
     // with the 🎯 path button while the card is held; without a path
     // she walks to the nearest enemy and vanishes on contact.
-    'amber': { name: 'אמבר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥' },
-    // Golem — heavy magma tank. High HP, slow, big damage. Sprite designed
-    // by Gemini and integrated via the new sprite-prompt workflow.
-    'golem': { name: 'גולם מגמה', cost: 8, type: 'unit', color: '#FF4500', icon: '🌋' }
+    'amber': { name: 'אמבר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥' }
 };
 
 const STAR_POWERS = {
