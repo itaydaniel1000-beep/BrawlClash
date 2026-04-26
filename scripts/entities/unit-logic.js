@@ -393,33 +393,33 @@ const _MAX_PALETTE = {
     F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
 };
 
-// 20 cols × 21 rows — Gemini's v3 content preserved, all rows padded to
-// 20 chars on the right. Asymmetric on purpose (lightning is jagged).
-// Differences from v11.3:
-//   • Row 1: bolt start shifted LEFT by 1 col (col 6 → col 5)
-//   • Row 14: second-zag start shifted LEFT by 1 col (col 5 → col 4)
+// 25 cols × 21 rows — Gemini v4. Bolt has new asymmetric "L"-shaped
+// top: rows 0-2 start at the upper-right (cols 12-17), then jumps left
+// to rows 3-7 (cols 4-12), middle branch at rows 8-9, then a second
+// zigzag down-right from rows 10-20. All rows padded right to 25 chars
+// (Gemini's actual lengths ranged 16-25).
 const _MAX_GRID = [
-    '.......WWWWWW.......',  //  0
-    '.....WYYYYYYW.......',  //  1  top wide part (NEW: shifted left)
-    '.....WYYYYYYW.......',  //  2
-    '......WYYYYYW.......',  //  3
-    '.......WYYYYW.......',  //  4
-    '......WYYYYW........',  //  5  first zag
-    '.....WYYYYW.........',  //  6
-    '....WYYYYW..........',  //  7
-    '...WYYYYYYYYW.......',  //  8  middle branch
-    '....WYYYYYYYW.......',  //  9
-    '.......WYYYYYYW.....',  // 10  ← anchorRow
-    '......WYYYYYW.......',  // 11
-    '.....WYYYYYW........',  // 12
-    '....WYYYYYW.........',  // 13
-    '....WYYYYYW.........',  // 14  second zag (NEW: shifted left)
-    '......WYYYYW........',  // 15
-    '.......WYYW.........',  // 16
-    '........WYYW........',  // 17
-    '.........WYYW.......',  // 18
-    '..........WYW.......',  // 19
-    '.............W......'   // 20  tip
+    '...............WWW.......',  //  0  top-right (rightmost spark)
+    '............WYYYW........',  //  1  top wide part
+    '..........WYYYYW.........',  //  2  bolt curves left
+    '......WYYYYYW............',  //  3
+    '.......WYYYYW............',  //  4
+    '......WYYYYW.............',  //  5  first zag
+    '.....WYYYYW..............',  //  6
+    '....WYYYYW...............',  //  7
+    '...WYYYYYYYYW............',  //  8  middle branch
+    '....WYYYYYYYW............',  //  9
+    '.......WYYYYYYW..........',  // 10  ← anchorRow
+    '......WYYYYYW............',  // 11
+    '.....WYYYYYW.............',  // 12
+    '....WYYYYYW..............',  // 13
+    '.....WYYYYYW.............',  // 14  second zag
+    '......WYYYYW.............',  // 15
+    '.......WYYW..............',  // 16
+    '........WYYW.............',  // 17
+    '.........WYYW............',  // 18
+    '..........WYW............',  // 19
+    '.............W...........'   // 20  tip
 ];
 
 const _MAX_FROZEN_SUBS = {
@@ -586,9 +586,10 @@ const _CUSTOM_SPRITES = {
         grid:        _MAX_GRID,
         palette:     _MAX_PALETTE,
         frozenSubs:  _MAX_FROZEN_SUBS,
-        cols:        20,    // Was 17 in Gemini's claim; actual rows are
-                            // 16-20 chars long so we pad to 20 to avoid
-                            // clipping or undefined-cell holes.
+        cols:        25,    // Gemini's v4 claim was 17 — actual rows ranged
+                            // 16-25 chars. Padded all to 25 (the true max)
+                            // so nothing gets clipped or holes from
+                            // undefined-cell reads.
         anchorRow:   10,
         flickerRows: 6,     // top 6 rows shimmer (lightning glow)
         teamGlow:    null   // aura — AOE circle already shows team
