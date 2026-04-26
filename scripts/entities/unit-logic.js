@@ -372,17 +372,16 @@ const _SCRAPPY_FROZEN_SUBS = {
     // W / E / n / P stay — they read through ice
 };
 
-// === Max — yellow lightning bolt ==========================================
+// === Max — yellow lightning bolt (v2 — thicker) ===========================
 //
-// Sprite designed by Gemini, integrated verbatim. 17 cols × 21 rows.
-// Asymmetric on purpose (lightning is naturally jagged), so no col-axis
-// mirroring expected. Replaces the ⚡ emoji that used to sit in the
-// centre of Max's aura circle.
+// Sprite redesigned by Gemini. Verification claim of "cols=17" was wrong
+// — actual row lengths ranged 16-20. Normalised to **cols=20** by right-
+// padding every short row with dots so nothing is clipped and the
+// thicker bolt the user wanted renders intact.
 //
 // Color legend:
-//   Y = main bolt yellow            y = orange-ish shadow (defined but
-//                                       unused in this draft — kept for
-//                                       future iterations)
+//   Y = main bolt yellow            y = orange-ish shadow (defined,
+//                                       unused in this draft)
 //   W = core white glow
 //   '.' or ' ' = transparent
 //
@@ -394,28 +393,30 @@ const _MAX_PALETTE = {
     F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
 };
 
+// 20 cols × 21 rows — Gemini's content preserved, all rows padded to 20
+// chars on the right. Asymmetric on purpose (lightning is jagged).
 const _MAX_GRID = [
-    '.......WWW.......',  //  0
-    '......WYYYW......',  //  1  top wide part
-    '.....WYYYYYW.....',  //  2
-    '......WYYYYW.....',  //  3
-    '.......WYYW......',  //  4
-    '......WYYW.......',  //  5  first zag
-    '.....WYYW........',  //  6
-    '....WYYW.........',  //  7
-    '...WYYYYYYYYYW...',  //  8  middle branch
-    '....WYYYYYYYYW...',  //  9
-    '.......WYYYW.....',  // 10  ← anchorRow
-    '......WYYYW......',  // 11
-    '.....WYYW........',  // 12
-    '....WYYW.........',  // 13
-    '.....WYYYYYW.....',  // 14  second zag
-    '......WYYYYW.....',  // 15
-    '.......WYYW......',  // 16
-    '........WYYW.....',  // 17
-    '.........WYYW....',  // 18
-    '..........WYW....',  // 19
-    '...........W.....'   // 20  tip
+    '.......WWWWWW.......',  //  0
+    '......WYYYYYYW......',  //  1  top wide part
+    '.....WYYYYYYW.......',  //  2  (padded +2 right)
+    '......WYYYYYW.......',  //  3  (padded +2)
+    '.......WYYYYW.......',  //  4  (padded +1)
+    '......WYYYYW........',  //  5  first zag (padded +1)
+    '.....WYYYYW.........',  //  6  (padded +1)
+    '....WYYYYW..........',  //  7  (padded +1)
+    '...WYYYYYYYYW.......',  //  8  middle branch (padded +4)
+    '....WYYYYYYYW.......',  //  9  (padded +4)
+    '.......WYYYYYYW.....',  // 10  ← anchorRow
+    '......WYYYYYW.......',  // 11  (padded +1)
+    '.....WYYYYYW........',  // 12
+    '....WYYYYYW.........',  // 13
+    '.....WYYYYYW........',  // 14  second zag (padded +3)
+    '......WYYYYW........',  // 15  (padded +3)
+    '.......WYYW.........',  // 16  (padded +3)
+    '........WYYW........',  // 17  (padded +3)
+    '.........WYYW.......',  // 18  (padded +3)
+    '..........WYW.......',  // 19  (padded +3)
+    '.............W......'   // 20  tip (padded +1)
 ];
 
 const _MAX_FROZEN_SUBS = {
@@ -523,11 +524,12 @@ const _CUSTOM_SPRITES = {
         grid:        _MAX_GRID,
         palette:     _MAX_PALETTE,
         frozenSubs:  _MAX_FROZEN_SUBS,
-        cols:        17,
-        // Values from Gemini's pasted registry entry.
+        cols:        20,    // Was 17 in Gemini's claim; actual rows are
+                            // 16-20 chars long so we pad to 20 to avoid
+                            // clipping or undefined-cell holes.
         anchorRow:   10,
-        flickerRows: 6,    // top 6 rows shimmer (lightning glow)
-        teamGlow:    null  // aura — AOE circle already shows team
+        flickerRows: 6,     // top 6 rows shimmer (lightning glow)
+        teamGlow:    null   // aura — AOE circle already shows team
     },
     spike: {
         grid:        _SPIKE_GRID,
