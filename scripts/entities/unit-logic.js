@@ -514,18 +514,32 @@ const _TARA_PALETTE = {
     F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
 };
 
+// Doubled height (per user "פי 2" request) — every original row is
+// duplicated so the on-canvas sprite appears exactly 2× as tall while
+// keeping the same width and silhouette. Total rows: 11 → 22.
 const _TARA_GRID = [
-    '......HHHHHH......',  //  0  brow / top of upper lid
-    '....HHSSSSSSHH....',  //  1  upper eyelid
-    '..HHSSSSSSSSSSHH..',  //  2
-    '.HSSWWWWWWWWWWSSs.',  //  3  sclera (white) starts
-    'HSSWWWWEEEEWWWWSSs',  //  4  pupil row
-    'HSSWWWWEEEEWWWWSSs',  //  5  ← anchorRow (pupil centre)
-    'HSSWWWWEEEEWWWWSSs',  //  6  pupil row
+    '......HHHHHH......',  //  0  brow (was orig 0)
+    '......HHHHHH......',  //  1
+    '....HHSSSSSSHH....',  //  2  upper eyelid (was orig 1)
+    '....HHSSSSSSHH....',  //  3
+    '..HHSSSSSSSSSSHH..',  //  4  (was orig 2)
+    '..HHSSSSSSSSSSHH..',  //  5
+    '.HSSWWWWWWWWWWSSs.',  //  6  sclera (was orig 3)
     '.HSSWWWWWWWWWWSSs.',  //  7
-    '..HHSSSSSSSSSSss..',  //  8  lower eyelid
-    '....HHssssssHH....',  //  9
-    '......ssssss......'   // 10  under-eye shadow (was `h`, fixed to `s`)
+    'HSSWWWWEEEEWWWWSSs',  //  8  pupil (was orig 4)
+    'HSSWWWWEEEEWWWWSSs',  //  9
+    'HSSWWWWEEEEWWWWSSs',  // 10  ← anchorRow (was orig 5, pupil centre)
+    'HSSWWWWEEEEWWWWSSs',  // 11
+    'HSSWWWWEEEEWWWWSSs',  // 12  (was orig 6)
+    'HSSWWWWEEEEWWWWSSs',  // 13
+    '.HSSWWWWWWWWWWSSs.',  // 14  (was orig 7)
+    '.HSSWWWWWWWWWWSSs.',  // 15
+    '..HHSSSSSSSSSSss..',  // 16  lower eyelid (was orig 8)
+    '..HHSSSSSSSSSSss..',  // 17
+    '....HHssssssHH....',  // 18  (was orig 9)
+    '....HHssssssHH....',  // 19
+    '......ssssss......',  // 20  under-eye shadow (was orig 10)
+    '......ssssss......'   // 21
 ];
 
 const _TARA_FROZEN_SUBS = {
@@ -657,7 +671,7 @@ const _CUSTOM_SPRITES = {
         palette:     _TARA_PALETTE,
         frozenSubs:  _TARA_FROZEN_SUBS,
         cols:        18,
-        anchorRow:   5,    // pupil centre row
+        anchorRow:   10,   // pupil centre row (doubled from 5)
         flickerRows: 0,    // static eye, no shimmer
         teamGlow:    null  // aura — AOE circle already shows team
     },
