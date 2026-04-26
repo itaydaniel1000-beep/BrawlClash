@@ -461,11 +461,11 @@ const _PENNY_GRID = [
     '.......Kk.......',  //  4  fuse winds down
     '......HHHHH.....',  //  5  metal nozzle band
     '.....HBBBBBb....',  //  6
-    '....HBBBBBBBb...',  //  7  sphere starts
-    '...HBBBBBBBBBb..',  //  8
-    '..HBBBBBBBBBBBb.',  //  9  max width
-    '..HBBBBBBBBBBBb.',  // 10  ← anchorRow
-    '..HBBBBBBBBBBBb.',  // 11
+    '....HBBBBBBb....',  //  7  sphere starts (slimmer v2 — 1 less B)
+    '...HBBBBBBBBb...',  //  8  (1 less B than v11.5)
+    '..HBBBBBBBBBBb..',  //  9  max width (1 less B)
+    '..HBBBBBBBBBBb..',  // 10  ← anchorRow
+    '..HBBBBBBBBBBb..',  // 11
     '...BBBBBBBBBBb..',  // 12
     '...bBBBBBBBBb...',  // 13
     '....bbBBBBbb....',  // 14
