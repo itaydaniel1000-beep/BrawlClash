@@ -348,26 +348,26 @@ const _SPIKE_PALETTE = {
 
 const _SPIKE_GRID = [
     '.........PPPPP.........',  //  0  flower outer
-    '........PPPpPPP........',  //  1  flower + dark pink center (col 11)
+    '........PPPpPPP........',  //  1  flower + dark pink center
     '..........GGg..........',  //  2  stem
-    '.........HGGGg.........',  //  3  stem + H highlight + g shadow
+    '.........HGGGg.........',  //  3  stem + H + g
     '.......GGGGGGGGg.......',  //  4  body 9
     '......GGGGGGGGGGg......',  //  5  body 11
     '.....HGGGGGGGGGGGg.....',  //  6  body 13 + H
     '....HGGGGGGGGGGGGGg....',  //  7  body 15 + H
     '...HHGGGGYGGGGGGGGGg...',  //  8  body 17 + HH + ⭐ dot 1 (col 9)
-    '..HHGGGGGGGGGGGGGGGGg..',  //  9  body 19 + HH
-    '.HGGGGGGGGGGGGGGGGGGGg.',  // 10  body 21 + H
-    'HGGGGGGGGGGGGGYGGGGGGGg',  // 11  max 23 + H + ⭐ dot 2 (col 14)
-    'GGGGGGGGGGGGGGGGGGGGGGg',  // 12  max 23
-    'GGGGGGGGGGGGGGGGGGGGGGg',  // 13  max 23
-    'GGGGGGGYGGGGGGGGGGGGGGg',  // 14  max 23 ← anchorRow + ⭐ dot 3 (col 7)
-    'GGGGGGGGGGGGGGGGGGGGGGg',  // 15  max 23
-    '.GGGGGGGGGGGGGGGGGGGGg.',  // 16  body 21
-    '.GGGGGGGGGGGGGGYGGGGGg.',  // 17  body 21 + ⭐ dot 4 (col 15)
-    '..GGGGGGGGGGGGGGGGGGg..',  // 18  body 19
-    '..GGGGGGGGGGGGGGGGGGg..',  // 19  body 19
-    '...GGGGGGGYGGGGGGGGg...',  // 20  body 17 + ⭐ dot 5 (col 10)
+    '..HHGGGGGGGGGGGGGGGGg..',  //  9  body 19 (max) + HH
+    '..HGGGGGGGGGGGGGGGGGg..',  // 10  body 19 + H
+    '..GGGGGGGGGGGGYGGGGGg..',  // 11  body 19 + ⭐ dot 2 (col 14)
+    '..GGGGGGGGGGGGGGGGGGg..',  // 12  body 19
+    '..GGGGGGGGGGGGGGGGGGg..',  // 13  body 19
+    '..GGGGGYGGGGGGGGGGGGg..',  // 14  body 19 ← anchorRow + ⭐ dot 3 (col 7)
+    '..GGGGGGGGGGGGGGGGGGg..',  // 15  body 19
+    '..GGGGGGGGGGGGGYGGGGg..',  // 16  body 19 + ⭐ dot 4 (col 15)
+    '..GGGGGGGGGGGGGGGGGGg..',  // 17  body 19
+    '..GGGGGGGGYGGGGGGGGGg..',  // 18  body 19 + ⭐ dot 5 (col 10)
+    '...GGGGGGGGGGGGGGGGg...',  // 19  body 17
+    '...GGGGGGGGGGGGGGGGg...',  // 20  body 17
     '....GGGGGGGGGGGGGGg....',  // 21  body 15
     '.....GGGGGGGGGGGGg.....',  // 22  body 13
     '......GGGGGGGGGGg......'   // 23  rounded base 11
