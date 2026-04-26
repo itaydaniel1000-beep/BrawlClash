@@ -596,6 +596,79 @@ const _PAM_FROZEN_SUBS = {
     // W (white shine) stays — reads through ice tint
 };
 
+// === Bull — angry smoking bull ============================================
+//
+// Sprite designed by Gemini. Bug-fixes applied before integration:
+//   • Rows 4-7 used `h` (lowercase) which wasn't defined in the
+//     palette — would have left holes in the horn outer edges.
+//     Changed to `H` (existing highlight char) so the horns render
+//     with proper outer-edge highlights.
+//   • Rows 15-23 were 22 chars long (Gemini claimed 23). Padded
+//     each with 1 dot on the right.
+//   • Row 24 was 21 chars; re-centred to symmetric 23.
+//   • Trailing empty row 25 trimmed.
+//
+// Color legend:
+//   B = main brown bull body        b = darker brown shadow
+//   H = brown highlight (lit edge)
+//   K = bone-white horn             k = horn shadow
+//   E = red glowing eyes
+//   G = mid-grey smoke              g = darker smoke
+//   S = white smoke core
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice main                    f = darker ice
+//   N = light frosted highlight
+const _BULL_PALETTE = {
+    B: '#5D4037', b: '#3E2723',
+    H: '#8D6E63',
+    K: '#D7CCC8', k: '#A1887F',
+    E: '#FF0000',
+    G: '#BDBDBD', g: '#757575',
+    S: '#EEEEEE',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+// 23 cols × 25 rows. Standing bull silhouette: floating smoke wisps at
+// top, curved horns, head with red eyes + smoking nostrils, broad
+// shoulders, body, split legs, and a base shadow.
+const _BULL_GRID = [
+    '.......g.G.S.g.........',  //  0  smoke wisps (flicker)
+    '..g.G.S.g.....g.G.S.g..',  //  1  smoke wisps
+    '..G.S.g.........g.S.G..',  //  2  smoke wisps
+    'KKKk...............kKKK',  //  3  horn tips
+    'HKKKk.............kKKKH',  //  4  horns (h→H fixed)
+    '.HKKKk...........kKKKH.',  //  5
+    '..HKKKkk.......kkKKKH..',  //  6
+    '...HKKKKkkkkkkkKKKKH...',  //  7
+    '....HHBBBBBBBBBBBb.....',  //  8  head top
+    '...HBBBBBBBBBBBBBBb....',  //  9
+    '..HBBBEBBBBBBBEBBBBb...',  // 10  red glowing eyes
+    '..HBBBBBBBBBBBBBBBBb...',  // 11
+    '..HBBBBBBBBBBBBBBBBb...',  // 12
+    '..HBBBBBBgGgBBBBBBBb...',  // 13  smoke from nostrils
+    '..HBBBBBBGSGBBBBBBBb...',  // 14  smoke from nostrils
+    'HHHHHBBBBBBBBBBBBbbbbb.',  // 15  shoulders ← anchorRow (+1 right)
+    'HBBBBBBBBBBBBBBBBBBBBb.',  // 16  body (+1 right)
+    'HBBBBBBBBBBBBBBBBBBBBb.',  // 17  (+1)
+    'HBBBBBBBBBBBBBBBBBBBBb.',  // 18  (+1)
+    'HBBBBBBBBBBBBBBBBBBBBb.',  // 19  (+1)
+    '.HBBBBBBBBBBBBBBBBBBb..',  // 20  body narrows (+1)
+    '..HBBBbb.....bbbBBBb...',  // 21  legs split (+1)
+    '..HBBBbb.....bbbBBBb...',  // 22  (+1)
+    '..HBBBbb.....bbbBBBb...',  // 23  (+1)
+    '...bbbbb.......bbbbb...'   // 24  feet (re-centred)
+];
+
+const _BULL_FROZEN_SUBS = {
+    B: 'F', b: 'f',
+    H: 'N',
+    K: 'N', k: 'f',
+    G: 'F', g: 'f', S: 'N'
+    // E (red eyes) stays — glow visible through frost
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -731,6 +804,15 @@ const _CUSTOM_SPRITES = {
         anchorRow:   8,    // visual centre of the heart
         flickerRows: 4,    // top 4 rows pulse (heart "beats" / shimmers)
         teamGlow:    null  // aura — AOE circle conveys team
+    },
+    bull: {
+        grid:        _BULL_GRID,
+        palette:     _BULL_PALETTE,
+        frozenSubs:  _BULL_FROZEN_SUBS,
+        cols:        23,
+        anchorRow:   15,   // shoulders row — ties body to unit hitbox
+        flickerRows: 3,    // top 3 rows of smoke wisps shimmer
+        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
     },
     spike: {
         grid:        _SPIKE_GRID,
