@@ -325,17 +325,18 @@ const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
 
 // === Scrappy — golden-retriever dog face ==================================
 //
-// Sprite designed by Gemini and bug-fixed before integration. Gemini's
-// original output had spaces inside rows 2-5 and 8-11 that broke the
-// silhouette on the right side; those were patched to symmetric outline
-// versions while keeping Gemini's H/B/W/E/n/P semantics.
+// Per user request: use Gemini's EXACT output verbatim, including the
+// truncated 10-row grid (rows 10-12 absent) and the in-row space gaps
+// on the right side of rows 2-5 / 8-9. The user is aware this leaves
+// visible holes in the silhouette and an unfinished bottom — that's the
+// design they explicitly asked for.
 //
-// Color legend:
+// Color legend (from Gemini's palette):
 //   B = main brown fur (golden retriever)   b = darker shadow brown
-//   H = light tan highlight                 W = white blaze (forehead/mouth)
+//   H = tan highlight                       W = white blaze
 //   E = black eye                           n = black nose
 //   P = pink tongue
-//   '.' = transparent
+//   '.' or ' ' = transparent
 //
 // Frozen variants:
 //   F = ice blue main                       f = darker iced blue
@@ -349,29 +350,26 @@ const _SCRAPPY_PALETTE = {
     F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
 };
 
-// 15 cols × 13 rows. Symmetric around col 7. Rows 2-5 and 8-11 were
-// re-symmetrised vs Gemini's original (the spaces inside those rows
-// would have left visible holes on the right side of the silhouette).
+// 15 cols × 10 rows — Gemini's verbatim output. Spaces inside the rows
+// render as transparent (the renderer treats ' ' the same as '.'),
+// which is what produces the visible gaps the user opted into.
 const _SCRAPPY_GRID = [
-    '.....HHBHH.....',  //  0  crown
-    '..bbHBBWBBHbb..',  //  1  ears (already symmetric in Gemini's draft)
-    '.bbHBBBWBBBHbb.',  //  2  upper face — fixed (was '.bbHBBBWBBB bB.')
-    '.bHBBBBWBBBBHb.',  //  3  fixed
-    '.bHBBEBWBEBBHb.',  //  4  eyes at cols 5 & 9 — fixed
-    '.bHBBBBWBBBBHb.',  //  5  fixed
-    '..HBBBBnBBBBb..',  //  6  nose (asymmetric shading — H left, b right; intentional)
-    '..HBBWWWWWBBb..',  //  7  mouth area
-    '...HWWWPWWWb...',  //  8  mouth narrows — fixed (was '...HWWWPWW b...')
-    '....HWPPPWb....',  //  9  tongue — fixed
-    '.....HWPWb.....',  // 10  fixed
-    '......HWb......',  // 11  fixed
-    '.......b.......'   // 12  bottom point
+    '.....HHBHH.....',  //  0  קודקוד
+    '..bbHBBWBBHbb..',  //  1  אוזניים צדדיות
+    '.bbHBBBWBBB bB.',  //  2
+    '.bHBBBBWBBBB b.',  //  3
+    '.bHBBEBWBEBB b.',  //  4  עיניים
+    '.bHBBBBWBBBB b.',  //  5
+    '..HBBBBnBBBBb..',  //  6  אף במרכז
+    '..HBBWWWWWBBb..',  //  7  אזור הפה
+    '...HWWWPWW b...',  //  8  לשון מבצבצת
+    '....HWPPP b....'   //  9
 ];
 
 const _SCRAPPY_FROZEN_SUBS = {
     B: 'F', b: 'f',
     H: 'N'
-    // W (white) / E (black) / n (black) / P (pink) stay — they read through ice
+    // W / E / n / P stay — they read through ice
 };
 
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
@@ -466,12 +464,10 @@ const _CUSTOM_SPRITES = {
         palette:     _SCRAPPY_PALETTE,
         frozenSubs:  _SCRAPPY_FROZEN_SUBS,
         cols:        15,
-        // Anchor at row 6 — middle of the dog face's eye/nose row,
-        // matches the visual centre of mass of the head.
+        // Values copied verbatim from Gemini's pasted registry entry.
         anchorRow:   6,
         flickerRows: 0,
-        // Building team-color goes UNDER the sprite (below the chin).
-        teamGlow:    { x: 0, y: 4, rx: 8, ry: 3 }
+        teamGlow:    { x: 0, y: 2, rx: 8, ry: 3 }
     },
     spike: {
         grid:        _SPIKE_GRID,
