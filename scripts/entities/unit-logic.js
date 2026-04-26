@@ -426,6 +426,59 @@ const _MAX_FROZEN_SUBS = {
     Y: 'F', y: 'f', W: 'N'
 };
 
+// === Penny — round bomb with lit fuse =====================================
+//
+// Sprite designed by Gemini (verified: all 16 rows × 16 chars). Original
+// content was left-aligned (max-width row at cols 0-12), so shifted +2
+// cols to the right to centre the bomb within the 16-col grid — keeps
+// the visual centre on the unit's position instead of offset to the left.
+//
+// Color legend:
+//   B = main dark grey iron        b = bomb shadow / outline
+//   H = iron highlight (lit side)
+//   K = brown fuse                 k = dark fuse (shadow)
+//   Y = spark yellow               y = spark orange
+//   W = spark white core
+//   '.' or ' ' = transparent
+//
+// Frozen variants (warm → cool):
+//   F = ice main                   f = darker ice
+//   N = light frosted highlight
+const _PENNY_PALETTE = {
+    B: '#333333', b: '#1A1A1A',
+    H: '#555555',
+    K: '#8B4513', k: '#5D2E0A',
+    Y: '#FFD700', y: '#FF8C00',
+    W: '#FFFFFF',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+const _PENNY_GRID = [
+    '...........Y.y..',  //  0  spark
+    '..........yWw...',  //  1
+    '.........K.y.Y..',  //  2  fuse top + sparks
+    '........Kk......',  //  3
+    '.......Kk.......',  //  4  fuse winds down
+    '......HHHHH.....',  //  5  metal nozzle band
+    '.....HBBBBBb....',  //  6
+    '....HBBBBBBBb...',  //  7  sphere starts
+    '...HBBBBBBBBBb..',  //  8
+    '..HBBBBBBBBBBBb.',  //  9  max width
+    '..HBBBBBBBBBBBb.',  // 10  ← anchorRow
+    '..HBBBBBBBBBBBb.',  // 11
+    '...BBBBBBBBBBb..',  // 12
+    '...bBBBBBBBBb...',  // 13
+    '....bbBBBBbb....',  // 14
+    '......bbbb......'   // 15  bottom shadow
+];
+
+const _PENNY_FROZEN_SUBS = {
+    B: 'F', b: 'f',
+    H: 'N',
+    K: 'f', k: 'f'
+    // Y / y / W stay — sparks visible through ice tint
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -533,6 +586,15 @@ const _CUSTOM_SPRITES = {
         anchorRow:   10,
         flickerRows: 6,     // top 6 rows shimmer (lightning glow)
         teamGlow:    null   // aura — AOE circle already shows team
+    },
+    penny: {
+        grid:        _PENNY_GRID,
+        palette:     _PENNY_PALETTE,
+        frozenSubs:  _PENNY_FROZEN_SUBS,
+        cols:        16,
+        anchorRow:   10,
+        flickerRows: 3,    // top 3 rows (sparks) shimmer
+        teamGlow:    { x: 0, y: 3, rx: 10, ry: 3 }
     },
     spike: {
         grid:        _SPIKE_GRID,
