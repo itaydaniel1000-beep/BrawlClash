@@ -372,6 +372,56 @@ const _SCRAPPY_FROZEN_SUBS = {
     // W / E / n / P stay — they read through ice
 };
 
+// === Max — yellow lightning bolt ==========================================
+//
+// Sprite designed by Gemini, integrated verbatim. 17 cols × 21 rows.
+// Asymmetric on purpose (lightning is naturally jagged), so no col-axis
+// mirroring expected. Replaces the ⚡ emoji that used to sit in the
+// centre of Max's aura circle.
+//
+// Color legend:
+//   Y = main bolt yellow            y = orange-ish shadow (defined but
+//                                       unused in this draft — kept for
+//                                       future iterations)
+//   W = core white glow
+//   '.' or ' ' = transparent
+//
+// Frozen variants (warm yellows → cool ice):
+//   F = ice blue main               f = darker iced blue
+//   N = light frosted highlight
+const _MAX_PALETTE = {
+    Y: '#FFD700', y: '#FFA500', W: '#FFFFFF',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+const _MAX_GRID = [
+    '.......WWW.......',  //  0
+    '......WYYYW......',  //  1  top wide part
+    '.....WYYYYYW.....',  //  2
+    '......WYYYYW.....',  //  3
+    '.......WYYW......',  //  4
+    '......WYYW.......',  //  5  first zag
+    '.....WYYW........',  //  6
+    '....WYYW.........',  //  7
+    '...WYYYYYYYYYW...',  //  8  middle branch
+    '....WYYYYYYYYW...',  //  9
+    '.......WYYYW.....',  // 10  ← anchorRow
+    '......WYYYW......',  // 11
+    '.....WYYW........',  // 12
+    '....WYYW.........',  // 13
+    '.....WYYYYYW.....',  // 14  second zag
+    '......WYYYYW.....',  // 15
+    '.......WYYW......',  // 16
+    '........WYYW.....',  // 17
+    '.........WYYW....',  // 18
+    '..........WYW....',  // 19
+    '...........W.....'   // 20  tip
+];
+
+const _MAX_FROZEN_SUBS = {
+    Y: 'F', y: 'f', W: 'N'
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -468,6 +518,16 @@ const _CUSTOM_SPRITES = {
         anchorRow:   6,
         flickerRows: 0,
         teamGlow:    { x: 0, y: 2, rx: 8, ry: 3 }
+    },
+    max: {
+        grid:        _MAX_GRID,
+        palette:     _MAX_PALETTE,
+        frozenSubs:  _MAX_FROZEN_SUBS,
+        cols:        17,
+        // Values from Gemini's pasted registry entry.
+        anchorRow:   10,
+        flickerRows: 6,    // top 6 rows shimmer (lightning glow)
+        teamGlow:    null  // aura — AOE circle already shows team
     },
     spike: {
         grid:        _SPIKE_GRID,
