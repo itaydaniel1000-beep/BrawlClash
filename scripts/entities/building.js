@@ -77,6 +77,18 @@ class Building extends Entity {
     }
 
     draw(ctx) {
+        // Custom pixel-art sprite (e.g. scrappy's dog face). Replaces the
+        // standard "circle + emoji" rendering when the building's type is
+        // registered in _CUSTOM_SPRITES. HP bar still draws below for
+        // consistency. Returns early so the legacy circle path doesn't
+        // run on top.
+        if (typeof _CUSTOM_SPRITES !== 'undefined' && _CUSTOM_SPRITES[this.type] &&
+            typeof _drawCustomSprite === 'function') {
+            _drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, false);
+            this.drawHpBar(ctx, -49);
+            return;
+        }
+
         ctx.save();
         ctx.beginPath();
         ctx.arc(this.x, this.y, 22, 0, Math.PI * 2);

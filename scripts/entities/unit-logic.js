@@ -323,6 +323,57 @@ const _BRUCE_GRID = [
 
 const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
 
+// === Scrappy — golden-retriever dog face ==================================
+//
+// Sprite designed by Gemini and bug-fixed before integration. Gemini's
+// original output had spaces inside rows 2-5 and 8-11 that broke the
+// silhouette on the right side; those were patched to symmetric outline
+// versions while keeping Gemini's H/B/W/E/n/P semantics.
+//
+// Color legend:
+//   B = main brown fur (golden retriever)   b = darker shadow brown
+//   H = light tan highlight                 W = white blaze (forehead/mouth)
+//   E = black eye                           n = black nose
+//   P = pink tongue
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice blue main                       f = darker iced blue
+//   N = light frosted highlight
+const _SCRAPPY_PALETTE = {
+    B: '#C69C6D', b: '#8C6239',
+    H: '#EBD6B3',
+    W: '#FFFFFF',
+    E: '#222222', n: '#111111',
+    P: '#FF9999',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+// 15 cols × 13 rows. Symmetric around col 7. Rows 2-5 and 8-11 were
+// re-symmetrised vs Gemini's original (the spaces inside those rows
+// would have left visible holes on the right side of the silhouette).
+const _SCRAPPY_GRID = [
+    '.....HHBHH.....',  //  0  crown
+    '..bbHBBWBBHbb..',  //  1  ears (already symmetric in Gemini's draft)
+    '.bbHBBBWBBBHbb.',  //  2  upper face — fixed (was '.bbHBBBWBBB bB.')
+    '.bHBBBBWBBBBHb.',  //  3  fixed
+    '.bHBBEBWBEBBHb.',  //  4  eyes at cols 5 & 9 — fixed
+    '.bHBBBBWBBBBHb.',  //  5  fixed
+    '..HBBBBnBBBBb..',  //  6  nose (asymmetric shading — H left, b right; intentional)
+    '..HBBWWWWWBBb..',  //  7  mouth area
+    '...HWWWPWWWb...',  //  8  mouth narrows — fixed (was '...HWWWPWW b...')
+    '....HWPPPWb....',  //  9  tongue — fixed
+    '.....HWPWb.....',  // 10  fixed
+    '......HWb......',  // 11  fixed
+    '.......b.......'   // 12  bottom point
+];
+
+const _SCRAPPY_FROZEN_SUBS = {
+    B: 'F', b: 'f',
+    H: 'N'
+    // W (white) / E (black) / n (black) / P (pink) stay — they read through ice
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -409,6 +460,18 @@ const _CUSTOM_SPRITES = {
         anchorRow:   6.5,
         flickerRows: 0,
         teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+    },
+    scrappy: {
+        grid:        _SCRAPPY_GRID,
+        palette:     _SCRAPPY_PALETTE,
+        frozenSubs:  _SCRAPPY_FROZEN_SUBS,
+        cols:        15,
+        // Anchor at row 6 — middle of the dog face's eye/nose row,
+        // matches the visual centre of mass of the head.
+        anchorRow:   6,
+        flickerRows: 0,
+        // Building team-color goes UNDER the sprite (below the chin).
+        teamGlow:    { x: 0, y: 4, rx: 8, ry: 3 }
     },
     spike: {
         grid:        _SPIKE_GRID,
