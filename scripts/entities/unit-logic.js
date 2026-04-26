@@ -485,6 +485,55 @@ const _PENNY_FROZEN_SUBS = {
     // Y / y / W stay — sparks visible through ice tint
 };
 
+// === Tara — single staring eye ============================================
+//
+// Sprite designed by Gemini (verified: 14 rows × 18 chars). Two
+// bug-fixes applied before integration:
+//   • Row 10 used `h` (lowercase) which wasn't defined in Gemini's
+//     palette — would have rendered as transparent. Changed to `s`
+//     (existing dark shadow char) so the under-eye shadow renders.
+//   • Rows 11-13 were entirely empty (just dots). Trimmed — they
+//     served no purpose, just inflated the sprite's height. Final
+//     grid is 11 rows.
+//
+// Color legend:
+//   S = main eyelid grey            s = eyelid shadow
+//   H = eyelid highlight (light)    W = eye white (sclera)
+//   E = pupil black                 e = pupil/iris shadow (defined,
+//                                       unused — kept for future tweaks)
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice main                    f = darker ice
+//   N = light frosted highlight
+const _TARA_PALETTE = {
+    S: '#4A4A4A', s: '#2A2A2A',
+    H: '#7A7A7A',
+    W: '#FFFFFF',
+    E: '#000000', e: '#333333',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+const _TARA_GRID = [
+    '......HHHHHH......',  //  0  brow / top of upper lid
+    '....HHSSSSSSHH....',  //  1  upper eyelid
+    '..HHSSSSSSSSSSHH..',  //  2
+    '.HSSWWWWWWWWWWSSs.',  //  3  sclera (white) starts
+    'HSSWWWWEEEEWWWWSSs',  //  4  pupil row
+    'HSSWWWWEEEEWWWWSSs',  //  5  ← anchorRow (pupil centre)
+    'HSSWWWWEEEEWWWWSSs',  //  6  pupil row
+    '.HSSWWWWWWWWWWSSs.',  //  7
+    '..HHSSSSSSSSSSss..',  //  8  lower eyelid
+    '....HHssssssHH....',  //  9
+    '......ssssss......'   // 10  under-eye shadow (was `h`, fixed to `s`)
+];
+
+const _TARA_FROZEN_SUBS = {
+    S: 'F', s: 'f',
+    H: 'N'
+    // W (sclera) / E (pupil) stay — they read through ice
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -602,6 +651,15 @@ const _CUSTOM_SPRITES = {
         anchorRow:   10,
         flickerRows: 2,    // top 2 rows (sparks + flame) shimmer
         teamGlow:    { x: 0, y: 3, rx: 10, ry: 3 }
+    },
+    tara: {
+        grid:        _TARA_GRID,
+        palette:     _TARA_PALETTE,
+        frozenSubs:  _TARA_FROZEN_SUBS,
+        cols:        18,
+        anchorRow:   5,    // pupil centre row
+        flickerRows: 0,    // static eye, no shimmer
+        teamGlow:    null  // aura — AOE circle already shows team
     },
     spike: {
         grid:        _SPIKE_GRID,
