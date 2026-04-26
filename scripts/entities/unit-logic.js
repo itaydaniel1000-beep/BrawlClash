@@ -323,54 +323,53 @@ const _BRUCE_GRID = [
 
 const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
 
-// === Spike — cute cactus with pink flower on top ==========================
+// === Spike — cute cactus with pink flower on top (redesign v2) ============
+//
+// 23 cols × 18 rows. Designed via the 9-step sprite protocol:
+// reference analysis → resolution → silhouette → shading → details →
+// colors → animation (none — static plant) → verification → implement.
 //
 // Color legend:
-//   G = main cactus green          g = dark green shadow
-//   L = light green highlight      T = dark thorn (silhouette spikes)
-//   Y = yellow dot (cactus spots)
+//   G = main cactus green          g = dark green shadow / right edge
+//   H = bright green highlight     (upper-left light source)
+//   Y = yellow dot (5 asymmetric)
 //   P = pink flower outer petal    p = dark pink flower center
-//   S = sandy base                 s = sand shadow
 //   '.' = transparent
 //
-// Frozen variants:
+// Frozen variants (greens swap to ice; yellow + pink stay — read through tint):
 //   F = ice-tinted green main      f = darker iced green
 //   N = light frosted highlight
 const _SPIKE_PALETTE = {
-    G: '#5DBE5C', g: '#3A8C40', L: '#8FE38E',
-    T: '#2A6831',
+    G: '#5BC55C', g: '#2A8438', H: '#87E085',
     Y: '#F4D03F',
     P: '#E91E63', p: '#AD1457',
-    S: '#E8C170', s: '#C49758',
     F: '#7FCEDB', f: '#5C9DC0', N: '#B0DAE6'
 };
 
-// 16 columns × 18 rows. Round oval body with two arms, yellow spots,
-// thorn silhouette, pink flower on top, sandy base.
 const _SPIKE_GRID = [
-    '.....PPPPPP.....',  //  0  flower top petals
-    '....PPpppPP.....',  //  1  flower middle with darker center
-    '.....PPPPP......',  //  2  flower bottom narrows
-    '......GGG.......',  //  3  stem
-    '....GGGGGGGT....',  //  4  body widens + thorn on right
-    '...GGGYLLYGGGT..',  //  5  highlight + yellow dots
-    '..TGGGGGGGGGGT..',  //  6  arms beginning, thorns on edges
-    'TGGGGGYGGGYGGGT.',  //  7  arms extend with dots
-    'TGGGGGGGGGGGGGGT',  //  8  max width
-    'TGGGGGYGGGYGGGGT',  //  9
-    '.TGGGGGGGGGGGGT.',  // 10  arms retracting
-    '..TGGGGYGGYGGGT.',  // 11
-    '...TGGGGGGGGGT..',  // 12  body narrowing
-    '....GGGGGGGGT...',  // 13
-    '.....GGGGGGGT...',  // 14
-    '....sSSSSSSs....',  // 15  sand base
-    '...sSsSSSSsSs...',  // 16  sand with detail
-    '....sSSSSSSs....'   // 17  bottom of sand
+    '.........PPPPP.........',  //  0  flower outer (P, 5 wide)
+    '........PPPpPPP........',  //  1  flower 7 wide + dark pink center (p at col 11)
+    '..........GGg..........',  //  2  stem (right edge shadow)
+    '.........HGGGg.........',  //  3  stem with H highlight + g shadow
+    '.......GGGGGGGGg.......',  //  4  body 9 wide (right shadow)
+    '.....HGGGGGGGGGGGg.....',  //  5  body 13 + H upper-left
+    '...HHGGGGYGGGGGGGGGg...',  //  6  body 17 + HH stripe + ⭐ dot 1 (col 9)
+    '..HHGGGGGGGGGGGGGGGGg..',  //  7  body 19 + HH stripe
+    '.HGGGGGGGGGGGGYGGGGGGg.',  //  8  body 21 + H + ⭐ dot 2 (col 14)
+    'HGGGGGGGGGGGGGGGGGGGGGg',  //  9  max 23 + H + g
+    'GGGGGGGYGGGGGGGGGGGGGGg',  // 10  ⭐ dot 3 (col 7) + g
+    'GGGGGGGGGGGGGGGGGGGGGGg',  // 11  ← anchorRow (centre of body)
+    '.GGGGGGGGGGGGGGGGGGGGg.',  // 12  body taper begins
+    '.GGGGGGGGGGGGGGYGGGGGg.',  // 13  ⭐ dot 4 (col 15)
+    '..GGGGGGGGGGGGGGGGGGg..',  // 14  body 19
+    '..GGGGGGGGYGGGGGGGGGg..',  // 15  ⭐ dot 5 (col 10)
+    '...GGGGGGGGGGGGGGGGg...',  // 16  body 17
+    '....GGGGGGGGGGGGGGg....'   // 17  rounded base (15)
 ];
 
 const _SPIKE_FROZEN_SUBS = {
-    G: 'F', g: 'f', L: 'N', T: 'f'
-    // Y / P / p / S / s stay — they read as colour through the ice tint.
+    G: 'F', g: 'f', H: 'N'
+    // P, p, Y stay — pink and yellow read through the ice tint
 };
 
 // === Sprite registry — drives every custom-art surface ====================
@@ -409,12 +408,13 @@ const _CUSTOM_SPRITES = {
         grid:        _SPIKE_GRID,
         palette:     _SPIKE_PALETTE,
         frozenSubs:  _SPIKE_FROZEN_SUBS,
-        cols:        16,
-        // Anchor on the cactus BODY centre (around row 9, where the arms
-        // are widest). The flower (rows 0–2) and sand base (rows 15–17)
-        // sit above/below the unit's nominal centre point. Auras don't
-        // need a team glow — the AOE circle already shows ownership.
-        anchorRow:   9.0,
+        cols:        23,
+        // Anchor on the cactus body's true vertical centre (row 11 is
+        // the middle of the 14-row body block, rows 4-17). The 2-row
+        // flower (rows 0-1) and 2-row stem (rows 2-3) sit above the
+        // unit's nominal centre. Auras don't need a team glow — the
+        // AOE circle already shows ownership.
+        anchorRow:   11,
         flickerRows: 0,
         teamGlow:    null
     }
