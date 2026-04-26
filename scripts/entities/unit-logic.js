@@ -453,23 +453,29 @@ const _PENNY_PALETTE = {
     F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
 };
 
+// v3 redesign: bomb body now dominates the sprite (~70% of grid area
+// instead of ~50% in v11.6). The card icon was showing the bomb as a
+// small dot in the lower half because the upper half was mostly empty
+// (sparks + fuse with lots of dead space). Compacted the spark/fuse
+// area to 4 rows and extended the bomb body to 11 rows, with the
+// max-width band hitting the full 16 cols.
 const _PENNY_GRID = [
-    '...........Y.y..',  //  0  spark
-    '..........yWw...',  //  1
-    '.........K.y.Y..',  //  2  fuse top + sparks
-    '........Kk......',  //  3
-    '.......Kk.......',  //  4  fuse winds down
-    '......HHHHH.....',  //  5  metal nozzle band
-    '.....HBBBBBb....',  //  6
-    '....HBBBBBBb....',  //  7  sphere starts (slimmer v2 — 1 less B)
-    '...HBBBBBBBBb...',  //  8  (1 less B than v11.5)
-    '..HBBBBBBBBBBb..',  //  9  max width (1 less B)
-    '..HBBBBBBBBBBb..',  // 10  ← anchorRow
-    '..HBBBBBBBBBBb..',  // 11
-    '...BBBBBBBBBBb..',  // 12
-    '...bBBBBBBBBb...',  // 13
-    '....bbBBBBbb....',  // 14
-    '......bbbb......'   // 15  bottom shadow
+    '........y.Y.....',  //  0  small spark cluster (top)
+    '.......YWy......',  //  1  flame
+    '........K.......',  //  2  fuse start
+    '.......K........',  //  3  fuse winds slightly
+    '....HHHHHHH.....',  //  4  metal nozzle band (wider — 7 px)
+    '...HBBBBBBBBb...',  //  5  bomb begins (10 wide)
+    '..HBBBBBBBBBBb..',  //  6  (12 wide)
+    '.HBBBBBBBBBBBBb.',  //  7  (14 wide)
+    'HBBBBBBBBBBBBBBb',  //  8  max width (16 — full grid)
+    'HBBBBBBBBBBBBBBb',  //  9  max
+    'HBBBBBBBBBBBBBBb',  // 10  ← anchorRow (visual centre of bomb body)
+    '.HBBBBBBBBBBBBb.',  // 11  (14)
+    '.bBBBBBBBBBBBBb.',  // 12  (14, b on left edge)
+    '..bBBBBBBBBBBb..',  // 13  (12)
+    '...bbBBBBBBbb...',  // 14  (10)
+    '....bbbbbbbb....'   // 15  bottom shadow (8)
 ];
 
 const _PENNY_FROZEN_SUBS = {
@@ -593,7 +599,7 @@ const _CUSTOM_SPRITES = {
         frozenSubs:  _PENNY_FROZEN_SUBS,
         cols:        16,
         anchorRow:   10,
-        flickerRows: 3,    // top 3 rows (sparks) shimmer
+        flickerRows: 2,    // top 2 rows (sparks + flame) shimmer
         teamGlow:    { x: 0, y: 3, rx: 10, ry: 3 }
     },
     spike: {
