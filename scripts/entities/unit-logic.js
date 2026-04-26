@@ -548,6 +548,54 @@ const _TARA_FROZEN_SUBS = {
     // W (sclera) / E (pupil) stay — they read through ice
 };
 
+// === Pam — green healing heart ============================================
+//
+// Sprite designed by Gemini (verified clean: all 15 rows × 17 chars).
+// Replaces the 💚 emoji that sat in the centre of Pam's healing aura.
+//
+// Color legend:
+//   G = main healing green          g = dark forest shadow / right edge
+//   H = pale mint highlight         W = pure white shine accent
+//   '.' = transparent
+//
+// Frozen variants (greens swap to ice):
+//   F = ice main                    f = darker ice
+//   N = light frosted highlight
+const _PAM_PALETTE = {
+    G: '#4ADE80', g: '#166534',
+    H: '#BBF7D0',
+    W: '#FFFFFF',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+// 17 cols × 15 rows. Heart silhouette with two lobes at top and a
+// pointed bottom. Light from upper-left (H highlights on left edge,
+// g shadows on right edge). Bright white WW shine accent at rows 3-4
+// suggests a glossy 3D feel.
+const _PAM_GRID = [
+    '..HHHHH...HHHHH..',  //  0  twin lobe tops
+    '.HGGGGGH.HGGGGGg.',  //  1  upper lobes widen
+    'HGGGGGGGHGGGGGGGg',  //  2  full lobe width
+    'HGGWWGGGGGGGGGGGg',  //  3  WW shine on left lobe
+    'HGGWWGGGGGGGGGGGg',  //  4
+    'HGGGGGGGGGGGGGGGg',  //  5  lobes merge
+    '.HGGGGGGGGGGGGGg.',  //  6  heart starts narrowing
+    '.HGGGGGGGGGGGGGg.',  //  7
+    '..HGGGGGGGGGGGg..',  //  8  ← anchorRow
+    '...HGGGGGGGGGg...',  //  9
+    '....HGGGGGGGg....',  // 10
+    '.....HGGGGGg.....',  // 11
+    '......HGGGg......',  // 12
+    '.......HGg.......',  // 13
+    '........g........'   // 14  pointed bottom
+];
+
+const _PAM_FROZEN_SUBS = {
+    G: 'F', g: 'f',
+    H: 'N'
+    // W (white shine) stays — reads through ice tint
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -674,6 +722,15 @@ const _CUSTOM_SPRITES = {
         anchorRow:   10,   // pupil centre row (doubled from 5)
         flickerRows: 0,    // static eye, no shimmer
         teamGlow:    null  // aura — AOE circle already shows team
+    },
+    pam: {
+        grid:        _PAM_GRID,
+        palette:     _PAM_PALETTE,
+        frozenSubs:  _PAM_FROZEN_SUBS,
+        cols:        17,
+        anchorRow:   8,    // visual centre of the heart
+        flickerRows: 4,    // top 4 rows pulse (heart "beats" / shimmers)
+        teamGlow:    null  // aura — AOE circle conveys team
     },
     spike: {
         grid:        _SPIKE_GRID,
