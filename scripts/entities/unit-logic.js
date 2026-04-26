@@ -347,24 +347,20 @@ const _SPIKE_PALETTE = {
 };
 
 const _SPIKE_GRID = [
-    '.........PPPPP.........',  //  0  flower outer (P, 5 wide)
-    '........PPPpPPP........',  //  1  flower 7 wide + dark pink center (p at col 11)
-    '..........GGg..........',  //  2  stem (right edge shadow)
+    '.........PPPPP.........',  //  0  flower outer
+    '........PPPpPPP........',  //  1  flower + dark pink center (col 11)
+    '..........GGg..........',  //  2  stem
     '.........HGGGg.........',  //  3  stem with H highlight + g shadow
-    '.......GGGGGGGGg.......',  //  4  body 9 wide (right shadow)
+    '.......GGGGGGGGg.......',  //  4  body 9
     '.....HGGGGGGGGGGGg.....',  //  5  body 13 + H upper-left
     '...HHGGGGYGGGGGGGGGg...',  //  6  body 17 + HH stripe + ⭐ dot 1 (col 9)
-    '..HHGGGGGGGGGGGGGGGGg..',  //  7  body 19 + HH stripe
+    '..HHGGGGGGGGGGGGGGGGg..',  //  7  body 19 + HH
     '.HGGGGGGGGGGGGYGGGGGGg.',  //  8  body 21 + H + ⭐ dot 2 (col 14)
-    'HGGGGGGGGGGGGGGGGGGGGGg',  //  9  max 23 + H + g
-    'GGGGGGGYGGGGGGGGGGGGGGg',  // 10  ⭐ dot 3 (col 7) + g
-    'GGGGGGGGGGGGGGGGGGGGGGg',  // 11  ← anchorRow (centre of body)
-    '.GGGGGGGGGGGGGGGGGGGGg.',  // 12  body taper begins
-    '.GGGGGGGGGGGGGGYGGGGGg.',  // 13  ⭐ dot 4 (col 15)
-    '..GGGGGGGGGGGGGGGGGGg..',  // 14  body 19
-    '..GGGGGGGGYGGGGGGGGGg..',  // 15  ⭐ dot 5 (col 10)
-    '...GGGGGGGGGGGGGGGGg...',  // 16  body 17
-    '....GGGGGGGGGGGGGGg....'   // 17  rounded base (15)
+    'HGGGGGGYGGGGGGGGGGGGGGg',  //  9  max 23 + H + ⭐ dot 3 (col 7)
+    '.GGGGGGGGGGGGGGYGGGGGg.',  // 10  body 21 + ⭐ dot 4 (col 15)
+    '..GGGGGGGGYGGGGGGGGGg..',  // 11  body 19 + ⭐ dot 5 (col 10)
+    '...GGGGGGGGGGGGGGGGg...',  // 12  body 17
+    '....GGGGGGGGGGGGGGg....'   // 13  rounded base (15)
 ];
 
 const _SPIKE_FROZEN_SUBS = {
@@ -409,12 +405,13 @@ const _CUSTOM_SPRITES = {
         palette:     _SPIKE_PALETTE,
         frozenSubs:  _SPIKE_FROZEN_SUBS,
         cols:        23,
-        // Anchor on the cactus body's true vertical centre (row 11 is
-        // the middle of the 14-row body block, rows 4-17). The 2-row
-        // flower (rows 0-1) and 2-row stem (rows 2-3) sit above the
-        // unit's nominal centre. Auras don't need a team glow — the
-        // AOE circle already shows ownership.
-        anchorRow:   11,
+        // Anchor on the cactus body's vertical centre (row 8.5 is mid-
+        // body for the 10-row body block, rows 4-13; using 8 puts it
+        // slightly above centre, matching how the original 18-row
+        // version sat). Flower (rows 0-1) + stem (rows 2-3) float above
+        // the nominal centre. Auras don't need a team glow — the AOE
+        // circle already conveys ownership.
+        anchorRow:   8,
         flickerRows: 0,
         teamGlow:    null
     }
