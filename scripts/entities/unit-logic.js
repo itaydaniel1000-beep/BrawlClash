@@ -76,6 +76,20 @@ Unit.prototype.update = function(dt, now) {
     // handled in the regular aura-loop below (a same-team unit stepping
     // onto a tile consumes it and gains +20% damage permanently). After
     // 15 seconds total he silently disappears from the field.
+    //
+    // Walkpoints are picked via a SEEDED PRNG (mulberry32). The seed is
+    // derived from the spawn (x, y) which is identical on both clients in
+    // a P2P match (SYNC_SPAWN sends raw coords) — so both screens pick
+    // the same sequence of random targets and the trunk walks the same
+    // path on both sides. Math.random() can't be used here because the
+    // two clients call it independently and diverge after the first pick.
+    const _trunkRand = (u) => {
+        u._trunkRngState = (u._trunkRngState + 0x6D2B79F5) >>> 0;
+        let t = u._trunkRngState;
+        t = Math.imul(t ^ t >>> 15, 1 | t);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
     if (this.isTrunk) {
         // Lifetime — 15 s and he's gone. Marked dead, removed by GC.
         if (now - (this._spawnTime || now) > (this._trunkLifetime || 15000)) {
@@ -106,9 +120,11 @@ Unit.prototype.update = function(dt, now) {
                                 Math.hypot(this._trunkTarget.x - this.x,
                                            this._trunkTarget.y - this.y) <= arrivedDist;
         if (needsNewTarget) {
+            // Use the seeded PRNG so the two clients in a P2P match pick
+            // identical walkpoints from the same RNG state.
             this._trunkTarget = {
-                x: 50 + Math.random() * (CONFIG.CANVAS_WIDTH - 100),
-                y: yMin + Math.random() * (yMax - yMin)
+                x: 50 + _trunkRand(this) * (CONFIG.CANVAS_WIDTH - 100),
+                y: yMin + _trunkRand(this) * (yMax - yMin)
             };
         }
         // Walk toward the current target at base speed.

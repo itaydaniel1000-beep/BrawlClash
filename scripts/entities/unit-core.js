@@ -84,6 +84,17 @@ class Unit extends Entity {
             //   y < height/2 → top  (enemy half)
             //   y ≥ height/2 → bottom (player half)
             this._trunkHalfBottom = this.y >= (CONFIG.CANVAS_HEIGHT / 2);
+            // Deterministic RNG state for P2P sync. Both clients spawn
+            // Trunk at the same (x, y) — sent via SYNC_SPAWN — so both
+            // seed the PRNG identically and pick the same walkpoint
+            // sequence. Without this, Math.random() runs independently on
+            // each device and the two trunks visibly diverge after a few
+            // seconds of wandering. Mulberry32 — tiny, fast, well-mixed.
+            //   Quantise the spawn coords to 0.1 px so float-precision
+            //   differences across the wire don't break determinism.
+            const _seedX = Math.floor(this.x * 10);
+            const _seedY = Math.floor(this.y * 10);
+            this._trunkRngState = ((_seedX * 73856093) ^ (_seedY * 19349663) ^ 0x9E3779B9) >>> 0;
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
             // unit-logic.js to skip the attack code-path entirely (otherwise
