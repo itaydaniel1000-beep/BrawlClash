@@ -122,6 +122,15 @@ class Aura extends Entity {
                 enemies.forEach(e => {
                     if (Math.hypot(e.x - this.x, e.y - this.y) <= this.radius) e.takeDamage(25);
                 });
+            } else if (this.type === 'spike') {
+                // Per user request: Spike now deals 200 dmg/sec to every
+                // enemy inside its radius (in addition to the existing
+                // ×0.5 movement-speed slow applied per-frame in
+                // unit-logic.js). Stacks naturally with the slow — pinned
+                // enemies linger longer and bleed more total HP.
+                enemies.forEach(e => {
+                    if (Math.hypot(e.x - this.x, e.y - this.y) <= this.radius) e.takeDamage(200);
+                });
             }
             this.lastTickTime = now;
         }
@@ -131,6 +140,25 @@ class Aura extends Entity {
         if (this.type === 'tara') lifetime = 3000;
         if (this.type === 'fire') lifetime = 3000;
         // 'fire-trail' deliberately omitted — it never expires.
+
+        // Tara death blast — per user request, when Tara's pull aura
+        // ends, every enemy still inside her radius takes a 400-HP burst.
+        // _taraExploded guards against the very-rare double-fire if the
+        // expiry frame and a damage-driven death frame both run.
+        if (this.type === 'tara' && !this._taraExploded && now - this.spawnTime > lifetime) {
+            this._taraExploded = true;
+            try {
+                const victims = units.concat(buildings, auras)
+                    .concat([playerSafe, enemySafe].filter(s => s))
+                    .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible &&
+                                 (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
+                for (const e of victims) {
+                    if (Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= this.radius) {
+                        if (typeof e.takeDamage === 'function') e.takeDamage(400);
+                    }
+                }
+            } catch (err) { /* ignore — aura still expires */ }
+        }
 
         if (now - this.spawnTime > lifetime) {
             this.isDead = true;

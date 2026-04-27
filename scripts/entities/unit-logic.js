@@ -939,6 +939,57 @@ const _TRUNK_FROZEN_SUBS = {
     // Y (purple eye) stays — reads through the ice tint
 };
 
+// === Princess sprite (used by Bonnie-transformed Bruce) ===================
+//
+// 16 cols × 16 rows. Top-down/three-quarter portrait style: gold crown
+// with two ruby gems → flowing brown hair → skin face with two dark eyes
+// and a small red mouth → narrowing neck → pink dress that widens out
+// into a flared base with two white "gem" accents at the chest. Per user
+// request: the morphed Bruce should look like a princess, not a bear.
+//
+// Color legend:
+//   Y = crown gold              J = ruby gem
+//   H = hair (warm brown)       K = skin (peach)
+//   B = eye (very dark navy)    p = lips (red-pink)
+//   P = dress pink              G = white gem accent
+//   '.' = transparent
+//
+// Frozen variants — pink dress turns ice; the rest reads through tint.
+//   F = ice main on dress       (P → F)
+const _PRINCESS_PALETTE = {
+    Y: '#F1C40F', J: '#C0392B',
+    H: '#8E562E',
+    K: '#FFD2A6',
+    B: '#2C3E50',
+    p: '#E74C3C',
+    P: '#FF66A3', G: '#ECF0F1',
+    F: '#7FCEDB'
+};
+
+const _PRINCESS_GRID = [
+    '......YYYY......',  //  0  crown peaks
+    '....YYJYYJYY....',  //  1  crown body w/ two ruby jewels
+    '...YYYYYYYYYY...',  //  2  crown base
+    '...HHHHHHHHHH...',  //  3  hair top
+    '..HHKKKKKKKKHH..',  //  4  forehead / hair sides
+    '..HHKKBKKBKKHH..',  //  5  eyes (cols 6, 9)
+    '..HHKKKKKKKKHH..',  //  6  cheeks
+    '..HHKKKpKpKKHH..',  //  7  small mouth
+    '...HHKKKKKKHH...',  //  8  chin narrows                 ← anchorRow
+    '....HHKKKKHH....',  //  9  neck
+    '...PPPPPPPPPP...',  // 10  dress shoulders
+    '..PPPPGPPGPPPP..',  // 11  dress with two white gems
+    '..PPPPPPPPPPPP..',  // 12  dress middle
+    '.PPPPPPPPPPPPPP.',  // 13  dress widening
+    'PPPPPPPPPPPPPPPP',  // 14  dress widest
+    'pPPPPPPPPPPPPPPp'   // 15  hem with edge shadow
+];
+
+const _PRINCESS_FROZEN_SUBS = {
+    P: 'F'
+    // Y/J/H/K/B/p/G stay — gold/red/brown/skin/ice all read through tint
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -1104,6 +1155,15 @@ const _CUSTOM_SPRITES = {
         teamGlow:    null  // untargetable + no HP bar — team glow would
                             // misrepresent him as a normal unit
     },
+    'bonnie-princess': {
+        grid:        _PRINCESS_GRID,
+        palette:     _PRINCESS_PALETTE,
+        frozenSubs:  _PRINCESS_FROZEN_SUBS,
+        cols:        16,
+        anchorRow:   8,    // chin row — body centre lines up with hitbox
+        flickerRows: 3,    // top 3 rows (crown) sparkle subtly
+        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+    },
     spike: {
         grid:        _SPIKE_GRID,
         palette:     _SPIKE_PALETTE,
@@ -1251,10 +1311,14 @@ Unit.prototype.draw = function(ctx) {
     // bespoke design. HP bar still draws below for consistency. Returns
     // early so the legacy circle path doesn't run on top.
     if (typeof _CUSTOM_SPRITES !== 'undefined' && _CUSTOM_SPRITES[this.type]) {
-        // Golden halo for Bonnie-transformed Bruce — drawn BEHIND the
-        // sprite so the player can tell at a glance which Bruces are
-        // morphed (the "different design" the spec asked for). Pulses
-        // gently with time.
+        // Bonnie-transformed Bruce now renders as a PRINCESS, not a bear
+        // (per user spec — "תראה כמו נסיכה"). Falls back to the regular
+        // Bruce sprite if the princess registry entry isn't loaded yet
+        // (e.g. mid-cache-bust on an old build).
+        const useType = (this._isFromBonnie && _CUSTOM_SPRITES['bonnie-princess'])
+            ? 'bonnie-princess' : this.type;
+        // Golden halo for the morphed unit — drawn BEHIND the sprite so
+        // the player can spot her at a glance. Pulses gently with time.
         if (this._isFromBonnie) {
             ctx.save();
             const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 250 + (this.x + this.y) / 80);
@@ -1267,7 +1331,7 @@ Unit.prototype.draw = function(ctx) {
             ctx.stroke();
             ctx.restore();
         }
-        _drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, this.isInvisible);
+        _drawCustomSprite(ctx, useType, this.x, this.y, this.team, this.isFrozen, this.isInvisible);
         if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
         if (!this.isInvisible) this.drawHpBar(ctx);
         return;
