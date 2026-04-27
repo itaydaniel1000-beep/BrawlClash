@@ -52,7 +52,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v14.1
+        v14.2
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -75,6 +75,12 @@
     <!-- Side Panels for UI (visible outside the #app board) -->
     <!-- #app is aspect-ratio 2:3 with height:100vh, so half-width = (50vh * 2 / 3) = ~33vh -->
     <!-- Place side panels just outside #app edges with a small gap -->
+    <!-- deck-far-left sits even further left of deck-left so the extra
+         spell/aura cards (emz/tara/spike/mr-p/rosa) have a dedicated
+         column that doesn't overflow on top of deck-left. -->
+    <div class="side-panel" id="deck-far-left"
+        style="display:none; position:fixed; left: calc(50vw - (100vh / 3) - 250px); top: 50%; transform: translateY(-50%);">
+    </div>
     <div class="side-panel" id="deck-left"
         style="display:none; position:fixed; left: calc(50vw - (100vh / 3) - 125px); top: 50%; transform: translateY(-50%);">
     </div>
@@ -760,7 +766,7 @@
     <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
     <script src="scripts/battle/battle-spawn.js?v=9.96"></script>
     <script src="scripts/battle/battle-input.js?v=13.9"></script>
-    <script src="scripts/battle/battle-deck.js?v=14.1"></script>
+    <script src="scripts/battle/battle-deck.js?v=14.2"></script>
 
     <!-- Engine Module -->
     <script src="scripts/engine/engine-core.js?v=9.96"></script>
