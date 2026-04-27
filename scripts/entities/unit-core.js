@@ -47,10 +47,10 @@ class Unit extends Entity {
             // after `_stepsRemaining` × `_stepSize` px of travel.
             this.maxHp = 100; this.hp = 100;
             this.attackDamage = 100;
-            this.speed = 450;          // 9× base 50 — only used as
+            this.speed = 300;          // 6× base 50 — only used as
                                        // sling magnitude on launch
-                                       // (user request: 3× of original
-                                       // 150 → 450)
+                                       // (450 → 300, user asked to
+                                       // dial back by 1.5×)
             this.color = '#FF69B4';
             this.isPacifist = true;    // skip standard attack code path
             this.isBubble = true;
