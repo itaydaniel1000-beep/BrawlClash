@@ -54,7 +54,7 @@ function initGame() {
         const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;
         playerElixir = startE; enemyElixir = 5; aiDeaths = []; pendingRebuilds = [];
         playerMaxElixir = maxE; playerKills = 0;
-        selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false;
+        selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false; isSelectingBonnieTransform = false;
 
         hardAIState = 0; aiDelayTimer = 0; hardAIAttackY = 250; hardAIEmzPlaced = false;
         aiWavePreparation = false;
@@ -144,6 +144,24 @@ function updateUI() {
             dashBtn.style.backgroundColor = isSelectingBullDash ? '#ff4757' : '#8c7ae6';
         } else {
             dashBtn.style.display = 'none';
+        }
+    }
+
+    // 🪄 Bonnie transform button — visible while ≥1 player-team Bonnie
+    // is alive on the field. Red while transform-select is active so the
+    // player can see "click on a Bonnie to morph" mode is engaged.
+    const bonnieBtn = document.getElementById('bonnie-transform-btn');
+    if (bonnieBtn) {
+        const activeBonnies = (typeof buildings !== 'undefined' ? buildings : [])
+            .filter(b => b && b.team === 'player' && b.type === 'bonnie' && !b.isDead);
+        if (activeBonnies.length > 0) {
+            bonnieBtn.style.display = 'block';
+            bonnieBtn.style.backgroundColor = isSelectingBonnieTransform ? '#ff4757' : '#a29bfe';
+        } else {
+            bonnieBtn.style.display = 'none';
+            // If the last Bonnie died while transform-select was on, drop
+            // the mode so a stale state doesn't intercept a future click.
+            if (isSelectingBonnieTransform) isSelectingBonnieTransform = false;
         }
     }
 

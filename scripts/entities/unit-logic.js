@@ -298,7 +298,19 @@ Unit.prototype.update = function(dt, now) {
             }
         }
     } else {
-        this.target = this.team === 'player' ? enemySafe : playerSafe;
+        if (this._skipSafe) {
+            // Bonnie-transformed Bruce — never targets the safe. Picks the
+            // nearest non-safe enemy entity instead; idles (target null) if
+            // there's literally nothing else on the field. Per user spec:
+            // "תוקף דברים אחרים חוץ מהכספת".
+            const enemies = units.concat(buildings, auras)
+                .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
+            this.target = enemies.length > 0
+                ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0]
+                : null;
+        } else {
+            this.target = this.team === 'player' ? enemySafe : playerSafe;
+        }
     }
 
     // Amber is a pacifist — she NEVER stops to attack, just walks. She also
@@ -1239,6 +1251,22 @@ Unit.prototype.draw = function(ctx) {
     // bespoke design. HP bar still draws below for consistency. Returns
     // early so the legacy circle path doesn't run on top.
     if (typeof _CUSTOM_SPRITES !== 'undefined' && _CUSTOM_SPRITES[this.type]) {
+        // Golden halo for Bonnie-transformed Bruce — drawn BEHIND the
+        // sprite so the player can tell at a glance which Bruces are
+        // morphed (the "different design" the spec asked for). Pulses
+        // gently with time.
+        if (this._isFromBonnie) {
+            ctx.save();
+            const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 250 + (this.x + this.y) / 80);
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, (this.radius || 18) + 8, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(241, 196, 15, ${(0.20 * pulse).toFixed(3)})`;
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = `rgba(255, 215, 0, ${(0.85 * pulse).toFixed(3)})`;
+            ctx.stroke();
+            ctx.restore();
+        }
         _drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, this.isInvisible);
         if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
         if (!this.isInvisible) this.drawHpBar(ctx);

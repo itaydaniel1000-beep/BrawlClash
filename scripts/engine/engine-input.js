@@ -174,6 +174,40 @@ function handleRemoteBullDash(data) {
 }
 window.handleRemoteBullDash = handleRemoteBullDash;
 
+// The opponent triggered their Bonnie's morph at (sender-local x, y). The
+// payload arrived flipped into our coordinate space. We replicate the same
+// kill-Bonnie + spawn-tagged-Bruce sequence on our side, but on the
+// enemy team since the morphing player is OUR opponent.
+function handleRemoteBonnieMorph(data) {
+    if (!data) return;
+    const tx = +data.x, ty = +data.y;
+    if (!isFinite(tx) || !isFinite(ty)) return;
+    try {
+        // Find the closest enemy-team Bonnie within tolerance and kill it.
+        // Tolerance generous (80 px) to absorb the small drift the two
+        // clients accumulate over a few seconds of play.
+        if (typeof buildings !== 'undefined') {
+            let best = null, bestDist = 80;
+            buildings.forEach(b => {
+                if (!b || b.isDead || b.type !== 'bonnie' || b.team !== 'enemy') return;
+                const d = Math.hypot((b.x || 0) - tx, (b.y || 0) - ty);
+                if (d < bestDist) { bestDist = d; best = b; }
+            });
+            if (best) { best.isDead = true; best.hp = 0; }
+        }
+        // Spawn the enemy-team transformed Bruce at the morph position.
+        // Manual `new Unit` (NOT spawnEntity) keeps the auto-broadcast
+        // from echoing back — our handler already runs once per message.
+        if (typeof Unit !== 'undefined' && typeof units !== 'undefined') {
+            const bruce = new Unit(tx, ty, 15, 'enemy', 'bruce');
+            bruce._isFromBonnie = true;
+            bruce._skipSafe     = true;
+            units.push(bruce);
+        }
+    } catch (e) { /* ignore — local sim still runs */ }
+}
+window.handleRemoteBonnieMorph = handleRemoteBonnieMorph;
+
 // The opponent's safe just fired — mirror the shot on our screen so BOTH
 // clients agree on which of our units is being targeted. Without this every
 // client runs its own safe-targeting logic and picks a different victim when
@@ -520,6 +554,21 @@ function initGameListeners() {
         }
         isSelectingBullDash = !isSelectingBullDash;
         bullDashBtn.style.backgroundColor = isSelectingBullDash ? '#e74c3c' : '#8c7ae6';
+    };
+
+    // 🪄 Bonnie transform button — toggles "click on a Bonnie to morph
+    // her into a special Bruce" mode. Pulls in the same picking pattern
+    // as bull-dash (toggle on, click target, mode resolves).
+    const bonnieBtn = document.getElementById('bonnie-transform-btn');
+    if (bonnieBtn) bonnieBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!isSelectingBonnieTransform) {
+            const bonniesAvailable = (typeof buildings !== 'undefined' ? buildings : [])
+                .some(b => b && b.team === 'player' && b.type === 'bonnie' && !b.isDead);
+            if (!bonniesAvailable) return;
+        }
+        isSelectingBonnieTransform = !isSelectingBonnieTransform;
+        bonnieBtn.style.backgroundColor = isSelectingBonnieTransform ? '#e74c3c' : '#a29bfe';
     };
 
     document.addEventListener('click', () => {

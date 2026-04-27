@@ -125,6 +125,11 @@ let currentState = GAME_STATE.MENU;
 let lastTime = 0;
 let difficulty = 'hard';
 let isSelectingBullDash = false;
+// Bonnie transform mode — toggled by the 🪄 button while at least one
+// player-team Bonnie is alive on the field. While true the next canvas
+// click on a Bonnie converts her into a "transformed" Bruce that skips
+// the safe in target-selection.
+let isSelectingBonnieTransform = false;
 // Admin "delete next click" mode — toggled by the admin-delete button, consumed
 // by the next canvas click that lands on an enemy unit.
 var isSelectingDeleteTarget = false;

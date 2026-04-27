@@ -20,7 +20,18 @@ class Building extends Entity {
             this.maxHp = 600; this.hp = 600; this.color = '#c23616'; this.attackDamage = 200; this.attackSpeed = 2500;
             this.attackRange = 299; 
         } else if (type === 'mr-p') {
-            this.maxHp = 1000; this.hp = 1000; this.color = '#54a0ff'; this.attackRange = 0; 
+            this.maxHp = 1000; this.hp = 1000; this.color = '#54a0ff'; this.attackRange = 0;
+        } else if (type === 'bonnie') {
+            // Long-range sniper. Range 450 (≈ half the canvas), damage 250,
+            // 5-second cooldown — exactly half Penny's fire rate so the
+            // user-spec "פי 2 איטי יותר" lands precisely. Higher HP than
+            // Penny (700 vs 600) since she's slower and a more inviting
+            // target for the opponent's chasers.
+            this.maxHp = 700; this.hp = 700;
+            this.color = '#a29bfe';
+            this.attackDamage = 250;
+            this.attackSpeed = 5000;
+            this.attackRange = 450;
         }
 
         // Level scaling removed — matches unit-core.js. Every building uses

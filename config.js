@@ -61,7 +61,15 @@ const CARDS = {
     // until incoming damage burns through it). Stacks with existing
     // shield. Costs a flat 3 elixir per cast. Rosa herself is never
     // instantiated on the field — pure spell.
-    'rosa':   { name: 'רוזה', cost: 3, type: 'spell', color: '#ff7eb9', icon: '🛡️' }
+    'rosa':   { name: 'רוזה', cost: 3, type: 'spell', color: '#ff7eb9', icon: '🛡️' },
+    // Bonnie — long-range sniper turret. 6 elixir. Hits half the map
+    // (range 450) but fires only every 5 s (2× slower than Penny). Has a
+    // unique transform ability: a side button (🪄) marks every player-
+    // team Bonnie on the field, and clicking one converts her into a
+    // special Bruce variant that never attacks the safe — useful for
+    // sweeping enemy turrets / units off the field without the bruce
+    // wasting his life smashing the gate.
+    'bonnie': { name: 'בוני', cost: 6, type: 'building', color: '#a29bfe', icon: '🏰' }
 };
 
 const STAR_POWERS = {

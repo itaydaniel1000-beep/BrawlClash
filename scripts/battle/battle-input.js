@@ -152,6 +152,51 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: false };
     }
 
+    // Bonnie transform mode — clicking on a player-team Bonnie kills the
+    // Bonnie in place and spawns a "transformed" Bruce at her position.
+    // The Bruce is flagged so unit-logic.js's target picker excludes the
+    // safe (per user spec — "תוקף דברים אחרים חוץ מהכספת") and so the
+    // draw routine paints a golden halo to mark him as transformed.
+    // Built directly via `new Unit(...)` (NOT spawnEntity) so the auto-
+    // broadcast doesn't double-spawn on the opponent's screen — instead
+    // we send a single BONNIE_MORPH message that the receiver handles
+    // identically (kill their enemy-team Bonnie + spawn an enemy-team
+    // tagged Bruce). The transform itself is FREE (Bonnie's ability),
+    // not a paid Bruce placement.
+    if (typeof isSelectingBonnieTransform !== 'undefined' && isSelectingBonnieTransform) {
+        const clickedBonnie = (typeof buildings !== 'undefined' ? buildings : [])
+            .find(b => b && b.team === 'player' && b.type === 'bonnie' && !b.isDead &&
+                        Math.hypot(b.x - x, b.y - y) <= (b.radius || 22) * 2);
+        if (clickedBonnie) {
+            const sx = clickedBonnie.x, sy = clickedBonnie.y;
+            clickedBonnie.isDead = true;
+            clickedBonnie.hp = 0;
+            const bruce = new Unit(sx, sy, 15, 'player', 'bruce');
+            bruce._isFromBonnie = true;
+            bruce._skipSafe     = true;
+            units.push(bruce);
+            try { AudioController.play('spawn'); } catch (e) { /* ignore */ }
+            // P2P: broadcast a single morph message — receiver replays the
+            // same kill+spawn on their side at the mirrored position.
+            try {
+                if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
+                    window.NetworkManager && typeof window.NetworkManager.broadcastBonnieMorph === 'function') {
+                    window.NetworkManager.broadcastBonnieMorph(sx, sy);
+                }
+            } catch (e) { /* ignore — local morph already happened */ }
+            // Stay armed if there are more Bonnies — let the player chain-
+            // transform; otherwise drop the mode + reset the button colour.
+            const moreBonnies = (typeof buildings !== 'undefined' ? buildings : [])
+                .some(b => b && b.team === 'player' && b.type === 'bonnie' && !b.isDead);
+            if (!moreBonnies) {
+                isSelectingBonnieTransform = false;
+                const btn = document.getElementById('bonnie-transform-btn');
+                if (btn) btn.style.backgroundColor = '#a29bfe';
+            }
+        }
+        return { placed: false };
+    }
+
     if (isSelectingBullDash) {
         let clickedBull = units.find(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed && Math.hypot(u.x - x, u.y - y) <= u.radius * 2);
         if (clickedBull) {

@@ -52,7 +52,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v14.3
+        v14.4
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -282,6 +282,15 @@
 
                     <button id="bull-dash-btn"
                         style="display:none; position: absolute; bottom: 10px; right: 60px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; z-index: 100; transition: background-color 0.2s;">💨</button>
+
+                    <!-- Bonnie transform button — visible when there's at
+                         least one alive player-team Bonnie. Click toggles
+                         transform-select mode; the next click on a Bonnie
+                         converts her into a special Bruce that skips the
+                         safe in target-selection. -->
+                    <button id="bonnie-transform-btn"
+                        style="display:none; position: absolute; bottom: 10px; right: 200px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #a29bfe; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #6c5ce7; z-index: 100; transition: background-color 0.2s;"
+                        title="הפוך בוני לברוס מיוחד">🪄</button>
 
                     <!-- Amber path button — appears while the Amber card is
                          selected. First click enters path mode (each map click
@@ -733,46 +742,46 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=13.9"></script>
-    <script src="globals.js?v=13.1"></script>
+    <script src="config.js?v=14.4"></script>
+    <script src="globals.js?v=14.4"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
     <script src="scripts/network/net-base.js?v=4.0"></script>
-    <script src="scripts/network/net-social.js?v=9.95"></script>
-    <script src="scripts/network/net-sync.js?v=9.95"></script>
+    <script src="scripts/network/net-social.js?v=14.4"></script>
+    <script src="scripts/network/net-sync.js?v=14.4"></script>
     <script src="network-logic.js?v=9.71"></script>
 
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=13.9"></script>
     <script src="scripts/entities/effects.js"></script>
     <script src="scripts/entities/unit-core.js?v=13.4"></script>
-    <script src="scripts/entities/unit-logic.js?v=13.9"></script>
-    <script src="scripts/entities/building.js?v=13.9"></script>
+    <script src="scripts/entities/unit-logic.js?v=14.4"></script>
+    <script src="scripts/entities/building.js?v=14.4"></script>
     <script src="scripts/entities/aura.js?v=13.9"></script>
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=13.9"></script>
+    <script src="scripts/ui/ui-core.js?v=14.4"></script>
     <script src="scripts/ui/ui-brawlers.js?v=13.9"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
     <script src="scripts/ui/ui-progression.js?v=3.3"></script>
     <script src="scripts/ui/ui-admin.js?v=9.71"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
-    <script src="scripts/ui/tutorial.js?v=13.9"></script>
+    <script src="scripts/ui/tutorial.js?v=14.4"></script>
     
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
     <script src="scripts/battle/battle-spawn.js?v=9.96"></script>
-    <script src="scripts/battle/battle-input.js?v=13.9"></script>
-    <script src="scripts/battle/battle-deck.js?v=14.3"></script>
+    <script src="scripts/battle/battle-input.js?v=14.4"></script>
+    <script src="scripts/battle/battle-deck.js?v=14.4"></script>
 
     <!-- Engine Module -->
-    <script src="scripts/engine/engine-core.js?v=9.96"></script>
+    <script src="scripts/engine/engine-core.js?v=14.4"></script>
     <script src="scripts/engine/engine-physics.js?v=13.1"></script>
     <script src="scripts/engine/engine-renderer.js?v=13.9"></script>
-    <script src="scripts/engine/engine-input.js?v=9.95"></script>
+    <script src="scripts/engine/engine-input.js?v=14.4"></script>
 </body>
 
 </html>

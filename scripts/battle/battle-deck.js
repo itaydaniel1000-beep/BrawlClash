@@ -105,6 +105,12 @@ function buildDeck() {
                 const dashBtn = document.getElementById('bull-dash-btn');
                 if (dashBtn) dashBtn.style.backgroundColor = '#8c7ae6';
             }
+            // ...and the Bonnie transform-select mode
+            if (typeof isSelectingBonnieTransform !== 'undefined' && isSelectingBonnieTransform) {
+                isSelectingBonnieTransform = false;
+                const bnBtn = document.getElementById('bonnie-transform-btn');
+                if (bnBtn) bnBtn.style.backgroundColor = '#a29bfe';
+            }
 
             if (selectedCardId === cardId) {
                 selectedCardId = null;
@@ -129,6 +135,12 @@ function buildDeck() {
                     isSelectingBullDash = false;
                     const dashBtn = document.getElementById('bull-dash-btn');
                     if (dashBtn) dashBtn.style.backgroundColor = '#8c7ae6';
+                }
+                // ...and the Bonnie transform-select mode
+                if (typeof isSelectingBonnieTransform !== 'undefined' && isSelectingBonnieTransform) {
+                    isSelectingBonnieTransform = false;
+                    const bnBtn = document.getElementById('bonnie-transform-btn');
+                    if (bnBtn) bnBtn.style.backgroundColor = '#a29bfe';
                 }
 
                 if (selectedFreezeCardId === cardId) {
