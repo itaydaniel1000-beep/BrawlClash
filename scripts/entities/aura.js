@@ -52,11 +52,18 @@ class Aura extends Entity {
             // its only effect is the one-shot +20% damage buff applied in
             // unit-logic.js when a same-team unit steps on the tile (the
             // tile self-destructs the same frame). HP-bar hidden,
-            // untargetable. Radius tightened to 25% of the v13.2 size
-            // (24 → 6) per user request — the visual is a scattered
-            // pixel cluster instead of a smooth halo, so the new tile
-            // reads as a small purple "energy speck" sitting on the field.
-            this.radius = 6;
+            // untargetable.
+            //
+            // Radius split (per user request — visual stays compact, but
+            // the absorb-area grows so units don't have to stand exactly
+            // on the speck to consume it):
+            //   • this.radius        = 12 — COLLISION. unit-logic.js
+            //                            uses this for the step-on check.
+            //   • this._visualRadius =  6 — DRAW only. Pixel scatter is
+            //                            still confined to 6 px so the
+            //                            tile reads the same as before.
+            this.radius        = 12;
+            this._visualRadius = 6;
             this.color = 'rgba(165, 94, 234, 0.45)';
             this.maxHp = 99999; this.hp = this.maxHp;
             this.isHealthHidden = true;
@@ -194,10 +201,15 @@ class Aura extends Entity {
             //   glowing  = bright lilac (#e0b3ff)
             const regR = 165, regG = 94,  regB = 234;
             const gloR = 224, gloG = 179, gloB = 255;
+            // Use the cosmetic _visualRadius (not this.radius — that's
+            // the larger collision area now). Keeps the cluster looking
+            // identical to the v13.6 version even though the absorb-area
+            // is 2× bigger.
+            const visR = this._visualRadius || this.radius;
             ctx.save();
             for (let i = 0; i < 7; i++) {
                 const ang  = _hash(i * 3)     * Math.PI * 2;
-                const dist = _hash(i * 3 + 1) * this.radius;     // up to radius 6
+                const dist = _hash(i * 3 + 1) * visR;            // scatter inside visR
                 const px = Math.round(this.x + Math.cos(ang) * dist);
                 const py = Math.round(this.y + Math.sin(ang) * dist);
                 // Per-pixel phase offset (0..2π) keeps each pixel out of
