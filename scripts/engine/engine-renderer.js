@@ -95,6 +95,42 @@ function draw(ctx) {
             if (typeof drawGhost === 'function') drawGhost(ctx);
         }
 
+        // Sirius copy-spell highlight — when sirius is held, every enemy
+        // entity on the field gets a pulsing purple ring so the player
+        // can see exactly which targets are clickable. Only enemies with
+        // a CARDS entry (i.e. copyable types) are highlighted; porters /
+        // safes / amber-trail are skipped since they can't be cloned.
+        if (typeof selectedCardId !== 'undefined' && selectedCardId === 'sirius') {
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 220);
+            const allEnemies = []
+                .concat(typeof units      !== 'undefined' ? units      : [])
+                .concat(typeof buildings  !== 'undefined' ? buildings  : [])
+                .concat(typeof auras      !== 'undefined' ? auras      : []);
+            ctx.save();
+            for (const e of allEnemies) {
+                if (!e || e.isDead || e.team !== 'enemy') continue;
+                const t = e.type;
+                if (!t) continue;
+                const card = (typeof CARDS !== 'undefined') ? CARDS[t] : null;
+                if (!card || card.type === 'spell') continue; // not copyable
+                const r = (e.radius || 18) + 6;
+                ctx.beginPath();
+                ctx.arc(e.x || 0, e.y || 0, r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(155, 89, 182, ${0.55 + 0.35 * pulse})`;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                // Faint inner fill so the enemy reads as "highlighted" even
+                // through dense overlap.
+                ctx.beginPath();
+                ctx.arc(e.x || 0, e.y || 0, r - 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(155, 89, 182, ${0.10 + 0.10 * pulse})`;
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
         // Bubble drag-aim sling preview — pink dashed line from anchor to
         // pointer + a faded bubble preview at the anchor + a red arrow
         // head at the pointer end so the player can see exactly which

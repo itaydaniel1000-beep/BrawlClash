@@ -40,7 +40,14 @@ const CARDS = {
     // bounces off walls, deals 100 contact damage once per enemy, dies after
     // 18 "steps" (× 50 px = 900 px max travel). Long-press on the map to
     // pick the launch direction (drag-aim sling), release to fire.
-    'bubble': { name: 'באבל', cost: 3, type: 'unit', color: '#FF69B4', icon: '🫧' }
+    'bubble': { name: 'באבל', cost: 3, type: 'unit', color: '#FF69B4', icon: '🫧' },
+    // Sirius — copy-spell. While held, every enemy entity on the field is
+    // tagged with a purple glow. Clicking one spawns a copy of that
+    // entity on the player's team at the same position. Cost is DYNAMIC:
+    // the copied entity's cost + 1. Shown as "?" on the card slot since
+    // the actual cost only resolves at click time. Sirius herself is
+    // never instantiated on the field — she's a pure spell.
+    'sirius': { name: 'סיריוס', cost: 1, type: 'spell', color: '#9b59b6', icon: '👯' }
 };
 
 const STAR_POWERS = {

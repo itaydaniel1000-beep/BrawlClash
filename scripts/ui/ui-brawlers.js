@@ -30,8 +30,10 @@ function renderCharCards() {
         const iconHtml = (typeof getCardIconHTML === 'function')
             ? getCardIconHTML(id, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
             : card.icon;
+        // Spell-type cards (e.g. sirius) have a dynamic cost, shown as "?"
+        const costLabel = (card.type === 'spell') ? '?' : card.cost;
         cardEl.innerHTML = `
-            <div class="card-cost">${card.cost}</div>
+            <div class="card-cost">${costLabel}</div>
             <div class="card-icon">${iconHtml}</div>
             <div class="card-name" style="display: flex; flex-direction: column; z-index: 10;">
                 <span>${card.name}</span>

@@ -63,8 +63,12 @@ function buildDeck() {
         const iconHtml = (typeof getCardIconHTML === 'function')
             ? getCardIconHTML(cardId, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
             : card.icon;
+        // Sirius's cost is dynamic (= clicked enemy's cost + 1), so the
+        // card slot shows "?" instead of a number. The 1-elixir surcharge
+        // is the minimum, but the actual price only resolves on click.
+        const costLabel = (card.type === 'spell') ? '?' : card.cost;
         cardEl.innerHTML = `
-            <div class="card-cost">${card.cost}</div>
+            <div class="card-cost">${costLabel}</div>
             <div class="card-icon">${iconHtml}</div>
             <div class="card-name">${card.name}</div>
         `;
@@ -73,6 +77,12 @@ function buildDeck() {
         freezeBtnEl.className = 'card-freeze-btn';
         freezeBtnEl.style.cssText = 'background:#74b9ff; border:2px solid white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; cursor:pointer; color:white; box-shadow:0 2px #54a0ff; transition: transform 0.1s;';
         freezeBtnEl.innerText = '🧊';
+        // Spell-type cards (sirius) have no on-field entity to freeze, so
+        // hide the 🧊 button entirely for them — pressing it would just
+        // pick a freeze-spell that can't actually be placed.
+        if (card.type === 'spell') {
+            freezeBtnEl.style.display = 'none';
+        }
 
         slot.appendChild(cardEl);
         slot.appendChild(freezeBtnEl);

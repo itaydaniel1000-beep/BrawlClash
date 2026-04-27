@@ -33,6 +33,52 @@ function _selectCard(cardId) {
 }
 
 function _placeAtInternal(x, y, shiftHeld) {
+    // Sirius — copy-spell. While selected, every click on an enemy entity
+    // spawns a player-team copy of that entity at the same position. Cost
+    // is dynamic: copied card's cost + 1 elixir surcharge. spawnEntity
+    // auto-deducts the copied card's base cost, so we deduct the +1 here
+    // by hand. Untargetable / non-CARDS entities (amber-trail, safes,
+    // porters) refuse to copy. The card is consumed on success; missed
+    // clicks keep it armed for another try.
+    if (selectedCardId === 'sirius') {
+        const candidates = units.concat(buildings, auras).filter(e =>
+            e && e.team === 'enemy' && !e.isDead &&
+            Math.hypot((e.x || 0) - x, (e.y || 0) - y) <= ((e.radius || 15) + 20));
+        if (!candidates.length) {
+            if (typeof showTransientToast === 'function') showTransientToast('🎯 לחץ על אויב כדי לשכפל');
+            return { placed: false };
+        }
+        candidates.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+        const target = candidates[0];
+        const enemyType = target.type;
+        const enemyCard = enemyType ? CARDS[enemyType] : null;
+        if (!enemyCard || enemyCard.type === 'spell') {
+            // Porter / safe / fire-trail / sirius itself — not in CARDS as a
+            // placeable, or another spell (can't copy a copy-spell). Refuse.
+            if (typeof showTransientToast === 'function') showTransientToast('⚠️ אי אפשר לשכפל את הדמות הזו');
+            return { placed: false };
+        }
+        const totalCost = (enemyCard.cost || 0) + 1;
+        const canAffordCopy = playerElixir >= (totalCost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
+        if (!canAffordCopy) {
+            if (typeof showTransientToast === 'function') showTransientToast(`🧪 צריך ${totalCost} אליקסיר לשכפל את ${enemyCard.name}`);
+            return { placed: false };
+        }
+        // Pay the +1 surcharge by hand. spawnEntity will subtract the
+        // copied card's base cost on top of this.
+        if (!adminHacks.infiniteElixir && !adminHacks.freeCards) {
+            playerElixir = Math.max(0, playerElixir - 1);
+        }
+        spawnEntity(target.x, target.y, 'player', enemyType);
+        // Consume the sirius slot — no chain-cloning even with shift held,
+        // because each click resolves a unique target and the player should
+        // re-pick to avoid accidental duplicate clones.
+        selectedCardId = null;
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        if (typeof showTransientToast === 'function') showTransientToast(`👯 שוכפל: ${enemyCard.name}`);
+        return { placed: true, cardId: 'sirius' };
+    }
+
     // Admin "delete enemy unit" toggle — consume the click, remove the clicked
     // enemy entity (unit / building / aura), and STAY ARMED. The 🗑️ button
     // itself is the toggle — tap it again to disarm.
@@ -364,7 +410,10 @@ function handleCanvasPress(e) {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = null;
     isLongPressing = false;
-    if (res && cardBeforePlace && !e.shiftKey) {
+    // Sirius is a one-shot copy-spell — never auto-repeat, otherwise a
+    // long-press on an enemy would clone them several times in a row,
+    // draining elixir for unintended duplicates.
+    if (res && cardBeforePlace && cardBeforePlace !== 'sirius' && !e.shiftKey) {
         _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS, wasFreeze);
     }
 }
@@ -440,6 +489,10 @@ function drawGhost(ctx) {
     // Bubble has its own drag-aim sling preview in engine-renderer.js.
     // Skip the standard pointer-following ghost so we don't double-draw.
     if (cardKey === 'bubble') return;
+    // Sirius is a copy-spell — the player clicks an enemy, not an empty
+    // tile. The pointer-following ghost would be misleading; the enemy
+    // highlight ring (drawn elsewhere) is the entire visual cue.
+    if (cardKey === 'sirius') return;
 
     ctx.save();
     ctx.globalAlpha = 0.4;
