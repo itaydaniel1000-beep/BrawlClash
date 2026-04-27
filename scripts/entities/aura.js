@@ -51,8 +51,12 @@ class Aura extends Entity {
             // Spawned by Trunk as he random-walks. Doesn't damage anyone —
             // its only effect is the one-shot +20% damage buff applied in
             // unit-logic.js when a same-team unit steps on the tile (the
-            // tile self-destructs the same frame). HP-bar hidden, untargetable.
-            this.radius = 24;
+            // tile self-destructs the same frame). HP-bar hidden,
+            // untargetable. Radius tightened to 25% of the v13.2 size
+            // (24 → 6) per user request — the visual is a scattered
+            // pixel cluster instead of a smooth halo, so the new tile
+            // reads as a small purple "energy speck" sitting on the field.
+            this.radius = 6;
             this.color = 'rgba(165, 94, 234, 0.45)';
             this.maxHp = 99999; this.hp = this.maxHp;
             this.isHealthHidden = true;
@@ -165,28 +169,42 @@ class Aura extends Entity {
             return;
         }
 
-        // Trunk trail — purple energy puddle. Solid violet base + a slowly
-        // pulsing brighter core so the tile feels "charged". No border, no
-        // HP bar, no icon (those would mark it as a normal aura). Persists
-        // forever (per user spec) — no fade timer, only consumption removes
-        // it. Steady alpha throughout.
+        // Trunk trail — scattered purple pixels (per user spec: "סגול,
+        // עשוי מפיקסלים מפוזרים"). Instead of a smooth halo, render a
+        // small cluster of 7 violet squares (1-2 px each) positioned
+        // around the trail's centre. Pixel offsets are derived from the
+        // trail's own (x, y) via a tiny deterministic hash so BOTH P2P
+        // clients see the exact same scatter pattern at every tile.
+        // Persists until consumed — no fade.
         if (this.type === 'trunk-trail') {
             const now = performance.now();
-            const alpha = 0.55;
-            const pulse = 0.85 + 0.15 * Math.sin(now / 200 + (this.x + this.y) / 30);
-            const r = this.radius * pulse;
+            // Tiny seeded scatter — same input → same output on both sides.
+            // 7 pixels in a roughly-circular cluster within ±this.radius.
+            const seedBase = Math.floor(this.x * 7) ^ Math.floor(this.y * 13);
+            const _hash = (i) => {
+                let t = (seedBase + i * 0x9E3779B9) | 0;
+                t = Math.imul(t ^ t >>> 15, 1 | t);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+            // Two violet shades — main violet + slightly brighter core
+            // pixels — to give the cluster depth. The "brighter" pixels
+            // pulse very subtly so the tile feels charged but doesn't
+            // distract.
+            const pulse = 0.85 + 0.15 * Math.sin(now / 220 + seedBase * 0.001);
             ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            // Outer violet halo
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(165, 94, 234, ${alpha.toFixed(3)})`;
-            ctx.fill();
-            // Inner brighter core (soft pink-violet) so it reads as energy.
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, r * 0.50, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(217, 161, 255, ${(alpha * 0.85).toFixed(3)})`;
-            ctx.fill();
+            for (let i = 0; i < 7; i++) {
+                const ang = _hash(i * 2) * Math.PI * 2;
+                const dist = _hash(i * 2 + 1) * this.radius;     // up to radius 6
+                const px = Math.round(this.x + Math.cos(ang) * dist);
+                const py = Math.round(this.y + Math.sin(ang) * dist);
+                const isCore = (i % 2 === 0); // 4 main + 3 highlight
+                const sz = isCore ? 2 : 1;    // tiny pixel cluster
+                ctx.fillStyle = isCore
+                    ? `rgba(165, 94, 234, ${(0.85 * pulse).toFixed(3)})`  // violet
+                    : `rgba(217, 161, 255, ${(0.95 * pulse).toFixed(3)})`; // bright lilac
+                ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
+            }
             ctx.restore();
             return;
         }
