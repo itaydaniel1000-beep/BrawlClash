@@ -274,7 +274,7 @@ function commitBubbleSling(sx, sy, dirX, dirY) {
     for (let i = units.length - 1; i >= 0; i--) {
         const u = units[i];
         if (u && u.type === 'bubble' && u.team === 'player' && !u.isDead) {
-            const speed = u.speed || 150;
+            const speed = u.speed || 450;
             u._velocity = { x: dirX * speed, y: dirY * speed };
             break;
         }
