@@ -139,15 +139,23 @@ function buildDeck() {
             };
         }
 
-        // Distribute by type: buildings → left, units → center, auras → right
-        // mr-p is classified as building in CARDS but visually belongs with the auras.
-        // On narrow viewports the fixed side-panels sit off-screen, so we collapse
-        // the whole deck into the centre row (which is inside #app and gains a
-        // scroll/wrap layout via the mobile CSS).
+        // Distribute the deck across three panels. Re-balanced after the
+        // bubble / sirius / trunk / rosa additions made the right panel
+        // overflow the screen. Now:
+        //   LEFT   — buildings (penny, scrappy) + first half of auras
+        //            (pam, max, 8bit) + first spell (sirius).
+        //   CENTER — every unit-type card (bruce, leon, bull, amber,
+        //            bubble, trunk).
+        //   RIGHT  — second half of auras (emz, tara, spike) + mr-p +
+        //            second spell (rosa).
+        // On narrow viewports the fixed side-panels sit off-screen, so
+        // we collapse the whole deck into the centre row (which is
+        // inside #app and gains a scroll/wrap layout via the mobile CSS).
         const collapseToCenter = window.innerWidth <= 600;
+        const _LEFT_SIDE = new Set(['penny', 'scrappy', 'pam', 'max', '8bit', 'sirius']);
         let target;
         if (collapseToCenter) target = centerEl;
-        else if (card.type === 'building' && cardId !== 'mr-p') target = leftEl;
+        else if (_LEFT_SIDE.has(cardId)) target = leftEl;
         else if (card.type === 'unit') target = centerEl;
         else target = rightEl;
 
