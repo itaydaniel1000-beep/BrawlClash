@@ -56,7 +56,7 @@ class Unit extends Entity {
             this.isBubble = true;
             this._velocity = { x: 0, y: 0 };  // set by commitBubbleSling()
             this._hitTargets = new Set();      // one-shot per enemy
-            this._stepsRemaining = 18;
+            this._stepsRemaining = 36; // user request: 18 → 36
             this._stepSize = 50;       // px per "step"
             this._distSinceStep = 0;
         } else if (type === 'amber') {
