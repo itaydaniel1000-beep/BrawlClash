@@ -59,6 +59,31 @@ class Unit extends Entity {
             this._stepsRemaining = 36; // user request: 18 → 36
             this._stepSize = 50;       // px per "step"
             this._distSinceStep = 0;
+        } else if (type === 'trunk') {
+            // Trunk — energy support unit. Random-walks inside the half he
+            // was placed in, dropping purple energy-trail tiles behind him.
+            // Same-team units stepping on a tile consume it and get a one-
+            // time permanent +20% damage buff. Invulnerable (cannot die
+            // from damage), HP bar hidden, self-destructs after 15 seconds.
+            this.maxHp = 99999; this.hp = 99999;     // huge — can't be drained
+            this.attackDamage = 0;
+            this.speed = 60;                          // moderate roam
+            this.color = '#a55eea';
+            this.isPacifist        = true;            // skip attack code
+            this.isInvulnerable    = true;            // takeDamage no-op
+            this.isHealthHidden    = true;            // skip HP bar draw
+            this.isTrunk           = true;            // movement branch flag
+            this._spawnTime        = performance.now();
+            this._trunkLifetime    = 15000;           // 15 s self-destruct
+            this._trunkTarget      = null;            // current random walkpoint
+            this._lastTrailTime    = 0;
+            // Cache the half this trunk is bound to. Set once at spawn from
+            // his y-coordinate (top half = enemy, bottom half = player) so
+            // even if a Tara aura tries to drag him across, his random
+            // walkpoints still respect his original side.
+            //   y < height/2 → top  (enemy half)
+            //   y ≥ height/2 → bottom (player half)
+            this._trunkHalfBottom = this.y >= (CONFIG.CANVAS_HEIGHT / 2);
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
             // unit-logic.js to skip the attack code-path entirely (otherwise

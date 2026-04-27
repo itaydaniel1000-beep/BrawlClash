@@ -60,7 +60,10 @@ function update(dt, now) {
         e && e.team === 'enemy' &&
         e.type !== 'porter' &&
         e.type !== 'amber' &&
-        e.type !== 'fire-trail';
+        e.type !== 'fire-trail' &&
+        e.type !== 'trunk' &&
+        e.type !== 'trunk-trail' &&
+        e.type !== 'bubble';
 
     let oldEnemyCount = units.concat(buildings, auras).filter(_isCountedEnemy).length;
 

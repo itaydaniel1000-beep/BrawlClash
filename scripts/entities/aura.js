@@ -47,6 +47,16 @@ class Aura extends Entity {
             this.radius = 28;
             this.color = 'rgba(231, 76, 60, 0.45)';
             this.maxHp = 99999; this.hp = this.maxHp;
+        } else if (type === 'trunk-trail') {
+            // Spawned by Trunk as he random-walks. Doesn't damage anyone —
+            // its only effect is the one-shot +20% damage buff applied in
+            // unit-logic.js when a same-team unit steps on the tile (the
+            // tile self-destructs the same frame). HP-bar hidden, untargetable.
+            this.radius = 24;
+            this.color = 'rgba(165, 94, 234, 0.45)';
+            this.maxHp = 99999; this.hp = this.maxHp;
+            this.isHealthHidden = true;
+            this.isInvulnerable = true;
         }
 
         // Level scaling removed — matches unit-core.js. Every aura uses its
@@ -65,6 +75,17 @@ class Aura extends Entity {
         if (this.type === 'fire-trail' && this._owner && this._owner.isDead) {
             if (!this._ownerDiedAt) this._ownerDiedAt = now;
             if (now - this._ownerDiedAt > 5000) {
+                this.isDead = true;
+                return;
+            }
+        }
+        // Trunk-trail mirrors the fire-trail rule: while Trunk lives the
+        // tile waits to be consumed; the moment Trunk vanishes (15-s timer
+        // or whatever else kills him) the tiles fade out 3 s later. Without
+        // this, dead-Trunk's tiles would clutter the field forever.
+        if (this.type === 'trunk-trail' && this._owner && this._owner.isDead) {
+            if (!this._ownerDiedAt) this._ownerDiedAt = now;
+            if (now - this._ownerDiedAt > 3000) {
                 this.isDead = true;
                 return;
             }
@@ -144,6 +165,35 @@ class Aura extends Entity {
             ctx.beginPath();
             ctx.arc(this.x, this.y, r * 0.55, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(241, 196, 15, ${(alpha * 0.9).toFixed(3)})`;
+            ctx.fill();
+            ctx.restore();
+            return;
+        }
+
+        // Trunk trail — purple energy puddle. Solid violet base + a slowly
+        // pulsing brighter core so the tile feels "charged". No border, no
+        // HP bar, no icon (those would mark it as a normal aura). Fades
+        // out across the 3-s post-Trunk-death grace window.
+        if (this.type === 'trunk-trail') {
+            const now = performance.now();
+            let alpha = 0.55;
+            if (this._owner && this._owner.isDead && this._ownerDiedAt) {
+                const f = Math.min(1, (now - this._ownerDiedAt) / 3000);
+                alpha = 0.55 * (1 - f);
+            }
+            const pulse = 0.85 + 0.15 * Math.sin(now / 200 + (this.x + this.y) / 30);
+            const r = this.radius * pulse;
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            // Outer violet halo
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(165, 94, 234, ${alpha.toFixed(3)})`;
+            ctx.fill();
+            // Inner brighter core (soft pink-violet) so it reads as energy.
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r * 0.50, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(217, 161, 255, ${(alpha * 0.85).toFixed(3)})`;
             ctx.fill();
             ctx.restore();
             return;

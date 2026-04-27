@@ -15,6 +15,9 @@ class Entity {
 
     takeDamage(amount) {
         if (this.isDead) return;
+        // Trunk is immortal by design — damage just bounces off. Same code
+        // path the godMode admin hack uses, no need to touch hp/lastDamageTime.
+        if (this.isInvulnerable) return;
         if (this.team === 'player' && adminHacks.godMode) return;
         // When the opponent is the admin, their entities (enemy on our screen)
         // inherit godMode — exchanged at battle start via ADMIN_CONFIG.
@@ -74,6 +77,10 @@ class Entity {
         }
     }
     drawHpBar(ctx, yOffset = 2) {
+        // Trunk + any other entity flagged as "health hidden" never shows
+        // a bar (per design — the player isn't supposed to see HP). Trunk
+        // is also immortal anyway, so the bar would always read full.
+        if (this.isHealthHidden) return;
         ctx.save();
         const hpPercent = Math.max(0, this.hp / this.maxHp);
         // A little taller than before so the numeric label fits INSIDE the

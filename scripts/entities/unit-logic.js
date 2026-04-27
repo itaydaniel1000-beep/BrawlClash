@@ -70,6 +70,59 @@ Unit.prototype.update = function(dt, now) {
         return;
     }
 
+    // === Trunk — random-walking energy buffer ============================
+    // Walks aimlessly inside the half he was placed in, drops a purple
+    // trunk-trail aura tile every ~250 ms. The trail-buff interaction is
+    // handled in the regular aura-loop below (a same-team unit stepping
+    // onto a tile consumes it and gains +20% damage permanently). After
+    // 15 seconds total he silently disappears from the field.
+    if (this.isTrunk) {
+        // Lifetime — 15 s and he's gone. Marked dead, removed by GC.
+        if (now - (this._spawnTime || now) > (this._trunkLifetime || 15000)) {
+            this.isDead = true;
+            return;
+        }
+        // Drop a trail tile at the current spot. Same cadence as Amber's
+        // fire-trail so the visual density feels consistent.
+        if (!this._lastTrailTime || (now - this._lastTrailTime) > 250) {
+            try {
+                const trail = new Aura(this.x, this.y, this.team, 'trunk-trail');
+                trail._owner = this;
+                if (typeof auras !== 'undefined') auras.push(trail);
+            } catch (e) {}
+            this._lastTrailTime = now;
+        }
+        // Pick a fresh random walkpoint when there isn't one or we've
+        // arrived at the previous one. Walkpoint is sampled from a 50-px
+        // inset rectangle covering ONLY the trunk's bound half — top half
+        // for enemy-team trunks, bottom half for player-team.
+        const halfTopY    = 50;
+        const halfBotY    = CONFIG.CANVAS_HEIGHT - 50;
+        const halfMidY    = CONFIG.CANVAS_HEIGHT / 2;
+        const yMin = this._trunkHalfBottom ? halfMidY + 20 : halfTopY;
+        const yMax = this._trunkHalfBottom ? halfBotY    : halfMidY - 20;
+        const arrivedDist = (this.radius || 15) + 4;
+        const needsNewTarget = !this._trunkTarget ||
+                                Math.hypot(this._trunkTarget.x - this.x,
+                                           this._trunkTarget.y - this.y) <= arrivedDist;
+        if (needsNewTarget) {
+            this._trunkTarget = {
+                x: 50 + Math.random() * (CONFIG.CANVAS_WIDTH - 100),
+                y: yMin + Math.random() * (yMax - yMin)
+            };
+        }
+        // Walk toward the current target at base speed.
+        const tgt = this._trunkTarget;
+        const angle = Math.atan2(tgt.y - this.y, tgt.x - this.x);
+        this.x += Math.cos(angle) * this.speed * (dt / 1000);
+        this.y += Math.sin(angle) * this.speed * (dt / 1000);
+        // Soft-clamp inside his bound half so a Tara pull / glitchy frame
+        // can't strand him on the wrong side mid-step.
+        if (this._trunkHalfBottom && this.y < halfMidY + 5) this.y = halfMidY + 5;
+        if (!this._trunkHalfBottom && this.y > halfMidY - 5) this.y = halfMidY - 5;
+        return;
+    }
+
     let speedMult = 1;
     let atkSpeedMult = 1;
     let damageMult = 1;
@@ -85,6 +138,21 @@ Unit.prototype.update = function(dt, now) {
                     speedMult *= 1.5;
                 } else if (a.type === '8bit') {
                     damageMult *= (1 + dmgBoost);
+                } else if (a.type === 'trunk-trail') {
+                    // Step on a trunk trail tile: tile is consumed (vanishes
+                    // this frame) and the unit gets a one-time permanent
+                    // +20% damage buff. Doesn't stack — already-buffed units
+                    // still consume the tile but don't get an extra bump.
+                    // Pacifists and Trunk himself never trigger trails — they
+                    // don't deal damage so consuming the tile would just deny
+                    // it from real attackers.
+                    if (!this.isPacifist && !this.isTrunk) {
+                        a.isDead = true;
+                        if (!this._trunkBuffed) {
+                            this._trunkBuffed = true;
+                            this.attackDamage = (this.attackDamage || 0) * 1.2;
+                        }
+                    }
                 }
             } else {
                 if (a.type === 'spike') {

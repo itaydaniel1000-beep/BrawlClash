@@ -151,9 +151,13 @@ var _pendingPathCardId = null;
 // that nothing the opponent owns should be wasted attacking them.
 function isAmberOrTrail(e) {
     // Despite the legacy name, this is the generic "do not target" check.
-    // Currently excludes Amber + her fire-trail tiles + Bubble (a
-    // chewing-gum projectile that's also untargetable per spec).
-    return !!(e && (e.type === 'amber' || e.type === 'fire-trail' || e.type === 'bubble'));
+    // Currently excludes Amber + her fire-trail tiles, Bubble (a
+    // chewing-gum projectile that's also untargetable per spec), and
+    // Trunk + his trunk-trail tiles (Trunk is invulnerable + invisible
+    // HP, his trail is a player-side buff aura).
+    return !!(e && (e.type === 'amber' || e.type === 'fire-trail' ||
+                    e.type === 'bubble' ||
+                    e.type === 'trunk' || e.type === 'trunk-trail'));
 }
 window.isAmberOrTrail = isAmberOrTrail;
 
