@@ -849,6 +849,50 @@ const _BUBBLE_FROZEN_SUBS = {
     // W (shine) stays — reads through ice tint
 };
 
+// === Trunk — top-down ant (per user request: "שיראה כמו נמלה") ============
+//
+// 10 cols × 14 rows. Top-down view: head at row 0-6 (with antennae and
+// purple energy-eyes that match the trunk-trail aura), thorax with three
+// pairs of legs at rows 7-10, segmented abdomen at rows 11-13.
+//
+// Color legend:
+//   B = main body (deep ant black/brown)
+//   L = thin leg / antenna stroke (slightly darker than B)
+//   Y = glowing purple eye (matches Trunk's #a55eea trail theme so the
+//       ant visibly reads as the source of the energy aura)
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice-tinted body, f = darker iced leg. Y (purple eye) stays — it
+//   reads through the ice tint and keeps the "energy" identity.
+const _TRUNK_PALETTE = {
+    B: '#2C2C2C', L: '#1A1A1A',
+    Y: '#A55EEA',
+    F: '#7FCEDB', f: '#5C9DC0'
+};
+
+const _TRUNK_GRID = [
+    '....BB....',  //  0  antennae tips
+    '...B..B...',  //  1  antennae stems
+    '...B..B...',  //  2  antennae continue
+    '...BBBB...',  //  3  head top
+    '..BBBBBB..',  //  4  head widens
+    '..BYBBYB..',  //  5  head with two purple energy eyes
+    '..BBBBBB..',  //  6  head bottom
+    '...BBBB...',  //  7  neck
+    'L..BBBB..L',  //  8  front legs + thorax
+    'L.BBBBBB.L',  //  9  middle legs + wider thorax  ← anchorRow
+    'L..BBBB..L',  // 10  rear legs
+    '..BBBBBB..',  // 11  abdomen top
+    '.BBBBBBBB.',  // 12  abdomen widest
+    '...BBBB...'   // 13  abdomen tip
+];
+
+const _TRUNK_FROZEN_SUBS = {
+    B: 'F', L: 'f'
+    // Y (purple eye) stays — reads through the ice tint
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -1002,6 +1046,17 @@ const _CUSTOM_SPRITES = {
         anchorRow:   6,    // visual centre of the bubble
         flickerRows: 0,    // static (motion comes from velocity, not flicker)
         teamGlow:    null  // bubble is untargetable; team glow would mislead
+    },
+    trunk: {
+        grid:        _TRUNK_GRID,
+        palette:     _TRUNK_PALETTE,
+        frozenSubs:  _TRUNK_FROZEN_SUBS,
+        cols:        10,
+        anchorRow:   9,    // middle-leg row — sits at the unit's hitbox centre
+        flickerRows: 3,    // top 3 rows (antennae) shimmer subtly so the ant
+                            // feels alive while random-walking
+        teamGlow:    null  // untargetable + no HP bar — team glow would
+                            // misrepresent him as a normal unit
     },
     spike: {
         grid:        _SPIKE_GRID,

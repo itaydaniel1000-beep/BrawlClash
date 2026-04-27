@@ -79,17 +79,12 @@ class Aura extends Entity {
                 return;
             }
         }
-        // Trunk-trail mirrors the fire-trail rule: while Trunk lives the
-        // tile waits to be consumed; the moment Trunk vanishes (15-s timer
-        // or whatever else kills him) the tiles fade out 3 s later. Without
-        // this, dead-Trunk's tiles would clutter the field forever.
-        if (this.type === 'trunk-trail' && this._owner && this._owner.isDead) {
-            if (!this._ownerDiedAt) this._ownerDiedAt = now;
-            if (now - this._ownerDiedAt > 3000) {
-                this.isDead = true;
-                return;
-            }
-        }
+        // Trunk-trail per user request ("שהכוח שלו לא יעלם עד שלא דורכים
+        // עליו" — the power doesn't disappear until someone steps on it):
+        // the tile is permanent. Trunk's own 15-s timer killing him does NOT
+        // remove his trails — they wait on the field forever for a friendly
+        // unit to walk over them. The only way a tile vanishes is via the
+        // step-on consumption in unit-logic.js.
 
         if (now - this.lastTickTime > 1000) {
             let enemies = units.concat(buildings, auras).filter(e => e.team !== this.team && !e.isFrozen);
@@ -172,15 +167,12 @@ class Aura extends Entity {
 
         // Trunk trail — purple energy puddle. Solid violet base + a slowly
         // pulsing brighter core so the tile feels "charged". No border, no
-        // HP bar, no icon (those would mark it as a normal aura). Fades
-        // out across the 3-s post-Trunk-death grace window.
+        // HP bar, no icon (those would mark it as a normal aura). Persists
+        // forever (per user spec) — no fade timer, only consumption removes
+        // it. Steady alpha throughout.
         if (this.type === 'trunk-trail') {
             const now = performance.now();
-            let alpha = 0.55;
-            if (this._owner && this._owner.isDead && this._ownerDiedAt) {
-                const f = Math.min(1, (now - this._ownerDiedAt) / 3000);
-                alpha = 0.55 * (1 - f);
-            }
+            const alpha = 0.55;
             const pulse = 0.85 + 0.15 * Math.sin(now / 200 + (this.x + this.y) / 30);
             const r = this.radius * pulse;
             ctx.save();
