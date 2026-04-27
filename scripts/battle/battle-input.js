@@ -255,6 +255,36 @@ function commitAmberPath() {
 }
 window.commitAmberPath = commitAmberPath;
 
+// Spawn a Bubble at (sx, sy) with launch direction (dirX, dirY) — both
+// already normalised (unit vector). Bubble's `speed` field becomes the
+// magnitude of `_velocity`. Costs the bubble card's elixir; refuses to
+// fire if the player can't afford. Called from handleCanvasRelease when
+// a drag-aim sling is released with sufficient drag distance.
+function commitBubbleSling(sx, sy, dirX, dirY) {
+    const card = CARDS['bubble'];
+    if (!card) return;
+    const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
+    if (!canAfford) {
+        if (typeof showTransientToast === 'function') showTransientToast('🧪 אין מספיק אליקסיר לבאבל');
+        return;
+    }
+    spawnEntity(sx, sy, 'player', 'bubble');
+    // Find the bubble we just created (last unit pushed) and set its
+    // velocity vector. spawnEntity already deducted elixir.
+    for (let i = units.length - 1; i >= 0; i--) {
+        const u = units[i];
+        if (u && u.type === 'bubble' && u.team === 'player' && !u.isDead) {
+            const speed = u.speed || 150;
+            u._velocity = { x: dirX * speed, y: dirY * speed };
+            break;
+        }
+    }
+    // Card stays selected so the player can chain-launch bubbles. Drag
+    // again to fire another. Picking a different card / pressing Esc
+    // clears it normally.
+}
+window.commitBubbleSling = commitBubbleSling;
+
 function _scheduleAutoRepeat(cardId, delay, isFreeze) {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = setTimeout(() => {
@@ -292,6 +322,25 @@ function handleCanvasPress(e) {
     if (!canvas) return;
     e.preventDefault();
 
+    // Bubble drag-aim: when the bubble card is held, every press starts a
+    // sling-aim drag instead of placing a unit. The press point is the
+    // anchor (where the bubble will spawn); the drag direction at release
+    // becomes the launch velocity. No long-press auto-repeat for bubble.
+    if (selectedCardId === 'bubble') {
+        const pt = clientToCanvasCoords(e.clientX, e.clientY);
+        // Anchor must sit in the player's half (or inside an own EMZ aura).
+        const inOwnHalf = pt.y > (CONFIG.CANVAS_HEIGHT / 2);
+        const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(pt.x - a.x, pt.y - a.y) <= a.radius);
+        const insideBorder = pt.x >= 10 && pt.x <= (CONFIG.CANVAS_WIDTH - 10) &&
+                             pt.y >= 10 && pt.y <= (CONFIG.CANVAS_HEIGHT - 10);
+        if ((inOwnHalf || insideOwnEmz) && insideBorder) {
+            _bubbleDragging = true;
+            _bubbleAnchor   = { x: pt.x, y: pt.y };
+            _bubbleCurrent  = { x: pt.x, y: pt.y };
+        }
+        return;
+    }
+
     // Capture which card was held BEFORE placement (the place call may clear
     // it). Either a normal card or a freeze card — auto-repeat needs to know
     // which kind it is so it can re-arm the right slot on every tick.
@@ -311,6 +360,19 @@ function handleCanvasPress(e) {
 }
 
 function handleCanvasRelease() {
+    // Bubble drag-aim release: launch the bubble in the drag direction at
+    // base speed. Min drag of 12 px to filter accidental taps.
+    if (_bubbleDragging) {
+        _bubbleDragging = false;
+        const dx = _bubbleCurrent.x - _bubbleAnchor.x;
+        const dy = _bubbleCurrent.y - _bubbleAnchor.y;
+        const dragDist = Math.hypot(dx, dy);
+        if (dragDist >= 12) {
+            commitBubbleSling(_bubbleAnchor.x, _bubbleAnchor.y, dx / dragDist, dy / dragDist);
+        }
+        return;
+    }
+
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = null;
     if (isLongPressing) {
@@ -332,6 +394,11 @@ function handleCanvasPointerMove(e) {
     lastPointerPos = pt;
     mouseX = pt.x;
     mouseY = pt.y;
+    // Bubble drag-aim: track the moving end of the sling so the dashed
+    // arrow follows the pointer in the renderer preview.
+    if (_bubbleDragging) {
+        _bubbleCurrent = { x: pt.x, y: pt.y };
+    }
 }
 
 // Back-compat wrapper — other code still references `handleCanvasClick`.
@@ -348,6 +415,10 @@ function drawGhost(ctx) {
     const cardKey = selectedCardId || selectedFreezeCardId;
     const card = CARDS[cardKey];
     if (!card) return;
+
+    // Bubble has its own drag-aim sling preview in engine-renderer.js.
+    // Skip the standard pointer-following ghost so we don't double-draw.
+    if (cardKey === 'bubble') return;
 
     ctx.save();
     ctx.globalAlpha = 0.4;

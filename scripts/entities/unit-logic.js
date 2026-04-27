@@ -2,6 +2,74 @@
 Unit.prototype.update = function(dt, now) {
     if (this.isDead || this.isFrozen) return;
 
+    // === Bubble — pure velocity-based projectile, bounces, one-shot DMG ===
+    // Completely separate movement model from every other unit. No target
+    // chasing, no per-frame target lookup. Bubble flies in a straight line
+    // at `_velocity`, reflects 90° off canvas walls, deals `attackDamage`
+    // exactly once per enemy it overlaps, and dies after `_stepsRemaining`
+    // steps × `_stepSize` px of total travel.
+    if (this.isBubble) {
+        const dt_s = dt / 1000;
+        const dx = this._velocity.x * dt_s;
+        const dy = this._velocity.y * dt_s;
+
+        // Step counter — track total distance, decrement steps as we pass
+        // each `_stepSize` chunk. Die when out of steps.
+        const dist = Math.hypot(dx, dy);
+        this._distSinceStep += dist;
+        while (this._distSinceStep >= this._stepSize) {
+            this._distSinceStep -= this._stepSize;
+            this._stepsRemaining--;
+            if (this._stepsRemaining <= 0) {
+                this.isDead = true;
+                return;
+            }
+        }
+
+        // Move
+        this.x += dx;
+        this.y += dy;
+
+        // Bounce off canvas walls — flip the perpendicular velocity
+        // component, clamp position back inside the playfield. Per user
+        // spec: hits wall → goes 90° opposite (standard reflection).
+        const margin = this.radius || 12;
+        if (this.x < margin) {
+            this.x = margin;
+            this._velocity.x = Math.abs(this._velocity.x);
+        } else if (this.x > CONFIG.CANVAS_WIDTH - margin) {
+            this.x = CONFIG.CANVAS_WIDTH - margin;
+            this._velocity.x = -Math.abs(this._velocity.x);
+        }
+        if (this.y < margin) {
+            this.y = margin;
+            this._velocity.y = Math.abs(this._velocity.y);
+        } else if (this.y > CONFIG.CANVAS_HEIGHT - margin) {
+            this.y = CONFIG.CANVAS_HEIGHT - margin;
+            this._velocity.y = -Math.abs(this._velocity.y);
+        }
+
+        // Contact damage — one-shot per enemy entity. Skip Amber/trail/
+        // bubble (they're untargetable per `isAmberOrTrail`).
+        try {
+            const enemies = units.concat(buildings, auras)
+                .concat([playerSafe, enemySafe].filter(s => s))
+                .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible &&
+                             typeof isAmberOrTrail === 'function' && !isAmberOrTrail(e));
+            for (const e of enemies) {
+                if (this._hitTargets.has(e)) continue;
+                const d = Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y);
+                if (d <= (e.radius || 15) + (this.radius || 12)) {
+                    this._hitTargets.add(e);
+                    if (typeof e.takeDamage === 'function') {
+                        e.takeDamage(this.attackDamage);
+                    }
+                }
+            }
+        } catch (e) { /* ignore — bubble keeps flying */ }
+        return;
+    }
+
     let speedMult = 1;
     let atkSpeedMult = 1;
     let damageMult = 1;
@@ -669,6 +737,50 @@ const _BULL_FROZEN_SUBS = {
     // E (red eyes) stays — glow visible through frost
 };
 
+// === Bubble — pink chewing-gum bubble =====================================
+//
+// Round bubble silhouette with a white shine in the upper-left and a
+// darker pink shadow on the lower-right. Designed manually (no Gemini
+// dependency this time — small enough to draw cleanly).
+//
+// Color legend:
+//   P = main pink                  p = darker pink shadow / right edge
+//   W = white shine (upper-left)
+//   '.' = transparent
+//
+// Frozen variants:
+//   F = ice main                   f = darker ice
+//   N = light frosted highlight
+const _BUBBLE_PALETTE = {
+    P: '#FF8FB1', p: '#D4567E',
+    W: '#FFFFFF',
+    F: '#9DD3FF', f: '#74B9FF', N: '#B0DAE6'
+};
+
+// 14 cols × 14 rows. Symmetric circular silhouette around col 6.5, with
+// asymmetric shading (W shine top-left, p shadow bottom-right).
+const _BUBBLE_GRID = [
+    '....PPPPPP....',  //  0  bubble top
+    '..PPPPPPPPPP..',  //  1
+    '.PPWWPPPPPPPp.',  //  2  white shine begins
+    'PPWWWPPPPPPPpp',  //  3
+    'PWWWPPPPPPPPPp',  //  4  shine peak
+    'PWWPPPPPPPPPPp',  //  5
+    'PWPPPPPPPPPPPp',  //  6  ← anchorRow
+    'PPPPPPPPPPPPPp',  //  7
+    'PPPPPPPPPPPPpp',  //  8
+    'PPPPPPPPPPPpp.',  //  9
+    '.PPPPPPPPPPpp.',  // 10
+    '..PPPPPPPPpp..',  // 11
+    '...PPPPPPpp...',  // 12
+    '....pppppp....'   // 13  shadow underside
+];
+
+const _BUBBLE_FROZEN_SUBS = {
+    P: 'F', p: 'f'
+    // W (shine) stays — reads through ice tint
+};
+
 // === Spike — cute cactus with pink flower on top (redesign v2) ============
 //
 // 23 cols × 18 rows. Designed via the 9-step sprite protocol:
@@ -813,6 +925,15 @@ const _CUSTOM_SPRITES = {
         anchorRow:   15,   // shoulders row — ties body to unit hitbox
         flickerRows: 3,    // top 3 rows of smoke wisps shimmer
         teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+    },
+    bubble: {
+        grid:        _BUBBLE_GRID,
+        palette:     _BUBBLE_PALETTE,
+        frozenSubs:  _BUBBLE_FROZEN_SUBS,
+        cols:        14,
+        anchorRow:   6,    // visual centre of the bubble
+        flickerRows: 0,    // static (motion comes from velocity, not flicker)
+        teamGlow:    null  // bubble is untargetable; team glow would mislead
     },
     spike: {
         grid:        _SPIKE_GRID,

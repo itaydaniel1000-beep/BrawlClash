@@ -150,9 +150,19 @@ var _pendingPathCardId = null;
 // enemy side, so making them untargetable matches the player's expectation
 // that nothing the opponent owns should be wasted attacking them.
 function isAmberOrTrail(e) {
-    return !!(e && (e.type === 'amber' || e.type === 'fire-trail'));
+    // Despite the legacy name, this is the generic "do not target" check.
+    // Currently excludes Amber + her fire-trail tiles + Bubble (a
+    // chewing-gum projectile that's also untargetable per spec).
+    return !!(e && (e.type === 'amber' || e.type === 'fire-trail' || e.type === 'bubble'));
 }
 window.isAmberOrTrail = isAmberOrTrail;
+
+// Bubble drag-aim state — set on pointerdown when `selectedCardId === 'bubble'`,
+// updated on pointermove, consumed on pointerup. The drag VECTOR (current -
+// anchor) becomes the bubble's launch direction.
+var _bubbleDragging = false;
+var _bubbleAnchor   = { x: 0, y: 0 };
+var _bubbleCurrent  = { x: 0, y: 0 };
 let selectedFreezeCardId = null;
 let selectedCardId = null;
 let playerTrophies = parseInt(localStorage.getItem(_userKey('trophies'))) || 0;

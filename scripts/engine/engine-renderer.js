@@ -94,6 +94,59 @@ function draw(ctx) {
         if ((typeof selectedCardId !== 'undefined' && selectedCardId) || (typeof selectedFreezeCardId !== 'undefined' && selectedFreezeCardId)) {
             if (typeof drawGhost === 'function') drawGhost(ctx);
         }
+
+        // Bubble drag-aim sling preview — pink dashed line from anchor to
+        // pointer + a faded bubble preview at the anchor + a red arrow
+        // head at the pointer end so the player can see exactly which
+        // direction the bubble will launch on release.
+        if (typeof _bubbleDragging !== 'undefined' && _bubbleDragging) {
+            const ax = _bubbleAnchor.x,  ay = _bubbleAnchor.y;
+            const cx = _bubbleCurrent.x, cy = _bubbleCurrent.y;
+            const dx = cx - ax, dy = cy - ay;
+            const dragLen = Math.hypot(dx, dy);
+
+            ctx.save();
+
+            // Faded bubble at the anchor (where it'll spawn).
+            ctx.globalAlpha = 0.5;
+            if (typeof _drawCustomSprite === 'function') {
+                _drawCustomSprite(ctx, 'bubble', ax, ay, 'player', false, false);
+            } else {
+                ctx.beginPath();
+                ctx.arc(ax, ay, 12, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 105, 180, 0.5)';
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+
+            if (dragLen >= 12) {
+                // Dashed sling line from anchor to pointer.
+                ctx.strokeStyle = 'rgba(255, 105, 180, 0.9)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 5]);
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(cx, cy);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Arrow head — small triangle at the pointer end pointing
+                // along the drag direction.
+                const ang = Math.atan2(dy, dx);
+                const ahLen = 14;
+                const ahAng = Math.PI / 6;  // 30°
+                ctx.fillStyle = '#FF1493';
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx - ahLen * Math.cos(ang - ahAng),
+                           cy - ahLen * Math.sin(ang - ahAng));
+                ctx.lineTo(cx - ahLen * Math.cos(ang + ahAng),
+                           cy - ahLen * Math.sin(ang + ahAng));
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+        }
         // Amber path-mode preview — dotted line + numbered orange circles
         // showing the waypoints the player has placed so far. Lets them see
         // the chosen route before committing on the 6th click / 🎯 tap.

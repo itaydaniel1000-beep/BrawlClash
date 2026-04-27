@@ -38,6 +38,25 @@ class Unit extends Entity {
             if (team === 'player' && hasStarPower('mr-p', 'sp2')) {
                 this.shieldHp = 500;
             }
+        } else if (type === 'bubble') {
+            // Bubble — chewing-gum projectile. Untargetable (handled in
+            // isAmberOrTrail), invulnerable to damage (isPacifist short-
+            // circuit), drag-aimed by the player on spawn. Movement is
+            // velocity-based (not target-chasing): unit-logic.js applies
+            // `_velocity` per-frame and bounces off canvas walls. Dies
+            // after `_stepsRemaining` × `_stepSize` px of travel.
+            this.maxHp = 100; this.hp = 100;
+            this.attackDamage = 100;
+            this.speed = 150;          // 3× base 50 — only used as
+                                       // sling magnitude on launch
+            this.color = '#FF69B4';
+            this.isPacifist = true;    // skip standard attack code path
+            this.isBubble = true;
+            this._velocity = { x: 0, y: 0 };  // set by commitBubbleSling()
+            this._hitTargets = new Set();      // one-shot per enemy
+            this._stepsRemaining = 18;
+            this._stepSize = 50;       // px per "step"
+            this._distSinceStep = 0;
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
             // unit-logic.js to skip the attack code-path entirely (otherwise
