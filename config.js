@@ -35,7 +35,12 @@ const CARDS = {
     // optionally steer her along up to 6 waypoints (each ≤ 5 squares)
     // with the 🎯 path button while the card is held; without a path
     // she walks to the nearest enemy and vanishes on contact.
-    'amber': { name: 'אמבר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥' }
+    'amber': { name: 'אמבר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥' },
+    // Bubble — slingshot gum bubble. 3 elixir. Untargetable, invulnerable,
+    // bounces off walls, deals 100 contact damage once per enemy, dies after
+    // 18 "steps" (× 50 px = 900 px max travel). Long-press on the map to
+    // pick the launch direction (drag-aim sling), release to fire.
+    'bubble': { name: 'באבל', cost: 3, type: 'unit', color: '#FF69B4', icon: '🫧' }
 };
 
 const STAR_POWERS = {
