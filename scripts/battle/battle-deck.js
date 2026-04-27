@@ -140,24 +140,23 @@ function buildDeck() {
         }
 
         // Distribute the deck across three panels. Re-balanced after the
-        // bubble / sirius / trunk / rosa additions made the right panel
-        // overflow the screen. Now:
-        //   LEFT   — buildings (penny, scrappy) + first half of auras
-        //            (pam, max, 8bit) + first spell (sirius).
+        // bubble / sirius / trunk / rosa additions made the panels
+        // overflow. Per user request the "extras" panel sits on the RIGHT.
+        //   LEFT   — buildings (penny, scrappy) + emz, tara, spike +
+        //            mr-p + rosa.
         //   CENTER — every unit-type card (bruce, leon, bull, amber,
         //            bubble, trunk).
-        //   RIGHT  — second half of auras (emz, tara, spike) + mr-p +
-        //            second spell (rosa).
+        //   RIGHT  — pam, max, 8bit + sirius.
         // On narrow viewports the fixed side-panels sit off-screen, so
         // we collapse the whole deck into the centre row (which is
         // inside #app and gains a scroll/wrap layout via the mobile CSS).
         const collapseToCenter = window.innerWidth <= 600;
-        const _LEFT_SIDE = new Set(['penny', 'scrappy', 'pam', 'max', '8bit', 'sirius']);
+        const _RIGHT_SIDE = new Set(['pam', 'max', '8bit', 'sirius']);
         let target;
         if (collapseToCenter) target = centerEl;
-        else if (_LEFT_SIDE.has(cardId)) target = leftEl;
+        else if (_RIGHT_SIDE.has(cardId)) target = rightEl;
         else if (card.type === 'unit') target = centerEl;
-        else target = rightEl;
+        else target = leftEl;
 
         if (!target) target = centerEl;
         // Append the whole slot (card + freeze button below) so they stack.
