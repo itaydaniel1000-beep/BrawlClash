@@ -107,25 +107,38 @@ Unit.prototype.update = function(dt, now) {
             this._lastTrailTime = now;
         }
         // Pick a fresh random walkpoint when there isn't one or we've
-        // arrived at the previous one. Walkpoint is sampled from a 50-px
-        // inset rectangle covering ONLY the trunk's bound half — top half
-        // for enemy-team trunks, bottom half for player-team.
-        const halfTopY    = 50;
-        const halfBotY    = CONFIG.CANVAS_HEIGHT - 50;
-        const halfMidY    = CONFIG.CANVAS_HEIGHT / 2;
-        const yMin = this._trunkHalfBottom ? halfMidY + 20 : halfTopY;
-        const yMax = this._trunkHalfBottom ? halfBotY    : halfMidY - 20;
+        // arrived at the previous one.
+        //
+        // P2P-sync trick: sample the walkpoint in CANONICAL "sender-space"
+        // coordinates (always the bottom half), THEN mirror to local team
+        // space if we're an enemy-team trunk on this client. Both clients
+        // call _trunkRand() the same number of times in the same order
+        // with the same seed — so both pick the same canonical raw point.
+        // The mirror at the end converts to whatever half each client's
+        // trunk lives in (player → bottom, enemy → top). Without the
+        // canonical-space sampling the two clients would compute
+        // mirrored-but-not-equal yMin/yMax ranges and the random scalar
+        // would land at different field-relative positions.
+        const halfBotY = CONFIG.CANVAS_HEIGHT - 50;
+        const halfMidY = CONFIG.CANVAS_HEIGHT / 2;
         const arrivedDist = (this.radius || 15) + 4;
         const needsNewTarget = !this._trunkTarget ||
                                 Math.hypot(this._trunkTarget.x - this.x,
                                            this._trunkTarget.y - this.y) <= arrivedDist;
         if (needsNewTarget) {
-            // Use the seeded PRNG so the two clients in a P2P match pick
-            // identical walkpoints from the same RNG state.
-            this._trunkTarget = {
-                x: 50 + _trunkRand(this) * (CONFIG.CANVAS_WIDTH - 100),
-                y: yMin + _trunkRand(this) * (yMax - yMin)
-            };
+            // Always sample in the canonical bottom-half rectangle.
+            const rawX = 50 + _trunkRand(this) * (CONFIG.CANVAS_WIDTH - 100);
+            const rawY = (halfMidY + 20) + _trunkRand(this) * (halfBotY - (halfMidY + 20));
+            // Mirror to local space when our trunk is on the enemy team
+            // (i.e., SYNC_SPAWN flipped him to the top half on this client).
+            if (this.team === 'enemy') {
+                this._trunkTarget = {
+                    x: CONFIG.CANVAS_WIDTH  - rawX,
+                    y: CONFIG.CANVAS_HEIGHT - rawY
+                };
+            } else {
+                this._trunkTarget = { x: rawX, y: rawY };
+            }
         }
         // Walk toward the current target at base speed.
         const tgt = this._trunkTarget;

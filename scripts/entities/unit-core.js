@@ -84,16 +84,20 @@ class Unit extends Entity {
             //   y < height/2 → top  (enemy half)
             //   y ≥ height/2 → bottom (player half)
             this._trunkHalfBottom = this.y >= (CONFIG.CANVAS_HEIGHT / 2);
-            // Deterministic RNG state for P2P sync. Both clients spawn
-            // Trunk at the same (x, y) — sent via SYNC_SPAWN — so both
-            // seed the PRNG identically and pick the same walkpoint
-            // sequence. Without this, Math.random() runs independently on
-            // each device and the two trunks visibly diverge after a few
-            // seconds of wandering. Mulberry32 — tiny, fast, well-mixed.
-            //   Quantise the spawn coords to 0.1 px so float-precision
-            //   differences across the wire don't break determinism.
-            const _seedX = Math.floor(this.x * 10);
-            const _seedY = Math.floor(this.y * 10);
+            // === Deterministic RNG state for P2P sync ===================
+            // Both clients must seed the PRNG identically. SYNC_SPAWN
+            // mirrors the spawn position ((W - x, H - y) on the receiver
+            // side) so the two clients see DIFFERENT local (x, y) — using
+            // local coords as the seed would diverge immediately.
+            // Solution: derive the seed from CANONICAL "sender-space"
+            // coordinates. Canonical = the sender's (player-team) coords
+            // on both screens. The receiver un-mirrors his local enemy-
+            // team coords back to canonical first, so both ends compute
+            // the same hash.
+            const _canonX = (team === 'player') ? this.x : (CONFIG.CANVAS_WIDTH  - this.x);
+            const _canonY = (team === 'player') ? this.y : (CONFIG.CANVAS_HEIGHT - this.y);
+            const _seedX = Math.floor(_canonX * 10);
+            const _seedY = Math.floor(_canonY * 10);
             this._trunkRngState = ((_seedX * 73856093) ^ (_seedY * 19349663) ^ 0x9E3779B9) >>> 0;
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
