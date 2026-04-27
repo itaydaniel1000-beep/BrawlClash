@@ -57,12 +57,14 @@ class Aura extends Entity {
             // Radius split (per user request — visual stays compact, but
             // the absorb-area grows so units don't have to stand exactly
             // on the speck to consume it):
-            //   • this.radius        = 12 — COLLISION. unit-logic.js
+            //   • this.radius        = 24 — COLLISION. unit-logic.js
             //                            uses this for the step-on check.
+            //                            Doubled twice from the v13.6
+            //                            baseline (6 → 12 → 24).
             //   • this._visualRadius =  6 — DRAW only. Pixel scatter is
             //                            still confined to 6 px so the
             //                            tile reads the same as before.
-            this.radius        = 12;
+            this.radius        = 24;
             this._visualRadius = 6;
             this.color = 'rgba(165, 94, 234, 0.45)';
             this.maxHp = 99999; this.hp = this.maxHp;
