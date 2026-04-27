@@ -170,16 +170,18 @@ class Aura extends Entity {
         }
 
         // Trunk trail — scattered purple pixels (per user spec: "סגול,
-        // עשוי מפיקסלים מפוזרים"). Instead of a smooth halo, render a
-        // small cluster of 7 violet squares (1-2 px each) positioned
-        // around the trail's centre. Pixel offsets are derived from the
-        // trail's own (x, y) via a tiny deterministic hash so BOTH P2P
-        // clients see the exact same scatter pattern at every tile.
-        // Persists until consumed — no fade.
+        // עשוי מפיקסלים מפוזרים"). Each pixel breathes between a regular
+        // deep violet and a glowing bright lilac (per user request:
+        // "שהפיקסלים יאבבו בסגול זוהר לסגול רגיל"). Every pixel has its
+        // own phase offset so the cluster shimmers organically — never
+        // all-bright or all-dim at the same instant.
+        // Pixel offsets and phases are derived from the trail's own (x, y)
+        // via a tiny deterministic hash so BOTH P2P clients see the exact
+        // same scatter pattern + the same per-pixel pulse timing at
+        // every tile. Persists until consumed — no fade.
         if (this.type === 'trunk-trail') {
             const now = performance.now();
             // Tiny seeded scatter — same input → same output on both sides.
-            // 7 pixels in a roughly-circular cluster within ±this.radius.
             const seedBase = Math.floor(this.x * 7) ^ Math.floor(this.y * 13);
             const _hash = (i) => {
                 let t = (seedBase + i * 0x9E3779B9) | 0;
@@ -187,22 +189,43 @@ class Aura extends Entity {
                 t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
                 return ((t ^ t >>> 14) >>> 0) / 4294967296;
             };
-            // Two violet shades — main violet + slightly brighter core
-            // pixels — to give the cluster depth. The "brighter" pixels
-            // pulse very subtly so the tile feels charged but doesn't
-            // distract.
-            const pulse = 0.85 + 0.15 * Math.sin(now / 220 + seedBase * 0.001);
+            // Two anchor colours we interpolate between, per pixel:
+            //   regular  = deep violet (#a55eea — same as Trunk's body)
+            //   glowing  = bright lilac (#e0b3ff)
+            const regR = 165, regG = 94,  regB = 234;
+            const gloR = 224, gloG = 179, gloB = 255;
             ctx.save();
             for (let i = 0; i < 7; i++) {
-                const ang = _hash(i * 2) * Math.PI * 2;
-                const dist = _hash(i * 2 + 1) * this.radius;     // up to radius 6
+                const ang  = _hash(i * 3)     * Math.PI * 2;
+                const dist = _hash(i * 3 + 1) * this.radius;     // up to radius 6
                 const px = Math.round(this.x + Math.cos(ang) * dist);
                 const py = Math.round(this.y + Math.sin(ang) * dist);
-                const isCore = (i % 2 === 0); // 4 main + 3 highlight
-                const sz = isCore ? 2 : 1;    // tiny pixel cluster
-                ctx.fillStyle = isCore
-                    ? `rgba(165, 94, 234, ${(0.85 * pulse).toFixed(3)})`  // violet
-                    : `rgba(217, 161, 255, ${(0.95 * pulse).toFixed(3)})`; // bright lilac
+                // Per-pixel phase offset (0..2π) keeps each pixel out of
+                // sync with its neighbours so the cluster shimmers
+                // organically instead of strobing.
+                const phase = _hash(i * 3 + 2) * Math.PI * 2;
+                // Sin wave 0..1 over an ~880 ms cycle — long enough to
+                // read as a "breathe" rather than a flicker.
+                const t = 0.5 + 0.5 * Math.sin(now / 140 + phase);
+                const r = Math.round(regR + (gloR - regR) * t);
+                const g = Math.round(regG + (gloG - regG) * t);
+                const b = Math.round(regB + (gloB - regB) * t);
+                // Alpha also rides the wave so the bright phase actually
+                // looks brighter (not just shifted in hue).
+                const alpha = (0.65 + 0.35 * t).toFixed(3);
+                // Glow only activates near the peak of the wave — saves
+                // GPU on the dim half-cycle and keeps the "off" pixels
+                // reading as flat colour.
+                if (t > 0.55) {
+                    ctx.shadowColor = `rgba(${gloR}, ${gloG}, ${gloB}, ${alpha})`;
+                    ctx.shadowBlur = 4 + 4 * (t - 0.55) / 0.45; // 4..8 px halo
+                } else {
+                    ctx.shadowBlur = 0;
+                }
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                // Bright-phase pixels render as 2 px so the glow has
+                // something to bloom from; dim-phase ones stay 1 px.
+                const sz = (t > 0.5) ? 2 : 1;
                 ctx.fillRect(px - sz / 2, py - sz / 2, sz, sz);
             }
             ctx.restore();
