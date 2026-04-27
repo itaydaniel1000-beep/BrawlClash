@@ -79,6 +79,49 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: true, cardId: 'sirius' };
     }
 
+    // Rosa — defensive shield-spell. Mirror image of Sirius: while held,
+    // every PLAYER-team entity is tagged with a coral glow; clicking one
+    // applies a 500-HP shield bubble that drains 25 HP/sec. Stacks on top
+    // of any existing shield. Skips entities that can't really benefit
+    // (trunk is invulnerable, bubbles fly past in seconds, trail tiles
+    // are ephemeral). Costs the flat rosa cost.
+    if (selectedCardId === 'rosa') {
+        const candidates = units.concat(buildings, auras).filter(e =>
+            e && e.team === 'player' && !e.isDead &&
+            !e.isInvulnerable &&
+            e.type !== 'fire-trail' && e.type !== 'trunk-trail' &&
+            e.type !== 'bubble' && e.type !== 'trunk' &&
+            (e.maxHp || 0) > 0 &&
+            Math.hypot((e.x || 0) - x, (e.y || 0) - y) <= ((e.radius || 15) + 20));
+        if (!candidates.length) {
+            if (typeof showTransientToast === 'function') showTransientToast('🎯 לחץ על דמות שלך כדי להעניק מגן');
+            return { placed: false };
+        }
+        candidates.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+        const target = candidates[0];
+        const card = CARDS['rosa'];
+        const canAfford = playerElixir >= (card.cost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
+        if (!canAfford) {
+            if (typeof showTransientToast === 'function') showTransientToast('🧪 אין מספיק אליקסיר לרוזה');
+            return { placed: false };
+        }
+        if (!adminHacks.infiniteElixir && !adminHacks.freeCards) {
+            playerElixir = Math.max(0, playerElixir - card.cost);
+        }
+        // Stack on top of any existing shield (e.g. mr-p SP2's 500). Decay
+        // is keyed on _shieldDecayInterval — Mr-P's static shield doesn't
+        // set this, so it never drains; Rosa's does, so it ticks down.
+        target.shieldHp = (target.shieldHp || 0) + 500;
+        target._shieldDecayInterval = 1000;   // tick every 1000 ms
+        target._shieldDecayAmount   = 25;     // –25 HP per tick
+        target._shieldDecayLast     = performance.now();
+        // Card is consumed — no chain-spam. Player re-picks for another cast.
+        selectedCardId = null;
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        if (typeof showTransientToast === 'function') showTransientToast(`🛡️ +500 מגן ל${CARDS[target.type] ? CARDS[target.type].name : 'דמות'}`);
+        return { placed: true, cardId: 'rosa' };
+    }
+
     // Admin "delete enemy unit" toggle — consume the click, remove the clicked
     // enemy entity (unit / building / aura), and STAY ARMED. The 🗑️ button
     // itself is the toggle — tap it again to disarm.
@@ -410,10 +453,11 @@ function handleCanvasPress(e) {
     clearTimeout(autoPlaceTimer);
     autoPlaceTimer = null;
     isLongPressing = false;
-    // Sirius is a one-shot copy-spell — never auto-repeat, otherwise a
-    // long-press on an enemy would clone them several times in a row,
-    // draining elixir for unintended duplicates.
-    if (res && cardBeforePlace && cardBeforePlace !== 'sirius' && !e.shiftKey) {
+    // Spell-type cards (sirius / rosa) are one-shot — never auto-repeat,
+    // otherwise a long-press would chain-cast them and burn elixir on
+    // unintended duplicate clones / shields.
+    const _isSpellHeld = cardBeforePlace && CARDS[cardBeforePlace] && CARDS[cardBeforePlace].type === 'spell';
+    if (res && cardBeforePlace && !_isSpellHeld && !e.shiftKey) {
         _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS, wasFreeze);
     }
 }
@@ -493,6 +537,10 @@ function drawGhost(ctx) {
     // tile. The pointer-following ghost would be misleading; the enemy
     // highlight ring (drawn elsewhere) is the entire visual cue.
     if (cardKey === 'sirius') return;
+    // Rosa is the player-team mirror of Sirius (shield spell on click).
+    // Same reason — the highlight ring on every player-team entity IS
+    // the cue; a pointer-following ghost would clutter.
+    if (cardKey === 'rosa') return;
 
     ctx.save();
     ctx.globalAlpha = 0.4;

@@ -79,6 +79,9 @@ class Aura extends Entity {
     update(dt, now) {
         if (this.isDead || this.isFrozen) return;
 
+        // Rosa's shield decays at 25 HP/sec while the aura lives.
+        if (typeof this._decayShield === 'function') this._decayShield(now);
+
         // Fire-trail lifetime rule (per user's spec):
         //   • While Amber is ALIVE → the tile never expires on its own.
         //   • The moment Amber dies → start a 5-second countdown; when it
@@ -285,6 +288,7 @@ class Aura extends Entity {
             }
         }
 
+        if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
         this.drawHpBar(ctx, -20);
         ctx.restore();
     }

@@ -63,10 +63,10 @@ function buildDeck() {
         const iconHtml = (typeof getCardIconHTML === 'function')
             ? getCardIconHTML(cardId, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
             : card.icon;
-        // Sirius's cost is dynamic (= clicked enemy's cost + 1), so the
-        // card slot shows "?" instead of a number. The 1-elixir surcharge
-        // is the minimum, but the actual price only resolves on click.
-        const costLabel = (card.type === 'spell') ? '?' : card.cost;
+        // Cards flagged `dynamicCost: true` (e.g. sirius) show "?" because
+        // the actual price only resolves at click time. Fixed-cost spells
+        // like rosa keep the normal numeric cost label.
+        const costLabel = card.dynamicCost ? '?' : card.cost;
         cardEl.innerHTML = `
             <div class="card-cost">${costLabel}</div>
             <div class="card-icon">${iconHtml}</div>

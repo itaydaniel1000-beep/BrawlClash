@@ -30,8 +30,9 @@ function renderCharCards() {
         const iconHtml = (typeof getCardIconHTML === 'function')
             ? getCardIconHTML(id, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
             : card.icon;
-        // Spell-type cards (e.g. sirius) have a dynamic cost, shown as "?"
-        const costLabel = (card.type === 'spell') ? '?' : card.cost;
+        // Cards flagged `dynamicCost: true` (e.g. sirius) show "?" — the
+        // actual price resolves at click time. Fixed-cost spells stay numeric.
+        const costLabel = card.dynamicCost ? '?' : card.cost;
         cardEl.innerHTML = `
             <div class="card-cost">${costLabel}</div>
             <div class="card-icon">${iconHtml}</div>

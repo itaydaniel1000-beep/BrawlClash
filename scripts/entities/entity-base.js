@@ -13,6 +13,60 @@ class Entity {
         this.deathLogged = false;
     }
 
+    // Rosa-style "shield bubble" — translucent cyan halo wrapped around
+    // the entity whenever shieldHp > 0. Subtle outer glow + softer inner
+    // fill so it reads as a transparent bubble. Pulses very gently with
+    // time. Called from each subclass's draw() AFTER the entity sprite
+    // has been drawn so the bubble sits on top.
+    drawShieldBubble(ctx) {
+        if (!this.shieldHp || this.shieldHp <= 0) return;
+        const now = performance.now();
+        const r = (this.radius || 18) + 6;
+        const pulse = 0.85 + 0.15 * Math.sin(now / 240 + (this.x + this.y) / 50);
+        ctx.save();
+        // Outer translucent fill
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(126, 214, 223, 0.18)';
+        ctx.fill();
+        // Bright cyan rim
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = `rgba(126, 214, 223, ${(0.55 * pulse).toFixed(3)})`;
+        ctx.stroke();
+        // Tiny highlight arc top-left to sell "glass bubble" feel
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r * pulse, Math.PI * 1.1, Math.PI * 1.45);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${(0.55 * pulse).toFixed(3)})`;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Time-based shield decay (used by Rosa's 500-HP/25-per-sec shield).
+    // Anyone with `_shieldDecayInterval` set will see their shieldHp tick
+    // down by `_shieldDecayAmount` every interval ms. Mr-P SP2's shield
+    // doesn't set the interval, so it never drains. Called once per frame
+    // from each subclass's update() (Unit/Building/Aura) so frozen
+    // entities pause their shield decay along with everything else.
+    _decayShield(now) {
+        if (this.shieldHp <= 0 || !this._shieldDecayInterval) return;
+        if (!this._shieldDecayLast) this._shieldDecayLast = now;
+        while (now - this._shieldDecayLast >= this._shieldDecayInterval) {
+            this.shieldHp = Math.max(0, this.shieldHp - (this._shieldDecayAmount || 25));
+            this._shieldDecayLast += this._shieldDecayInterval;
+            if (this.shieldHp <= 0) {
+                // Shield fully drained — clear the decay state so the
+                // entity goes back to "no shield" cleanly. (The HP-bar's
+                // shield strip + the bubble visual hide automatically
+                // when shieldHp is 0.)
+                this._shieldDecayInterval = 0;
+                this._shieldDecayAmount   = 0;
+                this._shieldDecayLast     = 0;
+                break;
+            }
+        }
+    }
+
     takeDamage(amount) {
         if (this.isDead) return;
         // Trunk is immortal by design — damage just bounces off. Same code

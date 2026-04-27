@@ -31,6 +31,9 @@ class Building extends Entity {
     update(dt, now) {
         if (this.isDead || this.isFrozen) return;
 
+        // Rosa's shield decays at 25 HP/sec while the building lives.
+        if (typeof this._decayShield === 'function') this._decayShield(now);
+
         let atkSpeedMult = 1;
         let damageMult = 1;
         auras.forEach(a => {
@@ -85,6 +88,7 @@ class Building extends Entity {
         if (typeof _CUSTOM_SPRITES !== 'undefined' && _CUSTOM_SPRITES[this.type] &&
             typeof _drawCustomSprite === 'function') {
             _drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, false);
+            if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
             this.drawHpBar(ctx, -49);
             return;
         }
@@ -107,6 +111,7 @@ class Building extends Entity {
         ctx.fillText(this.icon, this.x, this.y);
         ctx.restore();
 
+        if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
         this.drawHpBar(ctx, -49);
     }
 }

@@ -2,6 +2,11 @@
 Unit.prototype.update = function(dt, now) {
     if (this.isDead || this.isFrozen) return;
 
+    // Rosa's shield drains 25 HP/sec while the unit lives. Done up here so
+    // it ticks regardless of which movement branch (bubble / trunk / amber
+    // path / regular) handles the rest of the frame.
+    if (typeof this._decayShield === 'function') this._decayShield(now);
+
     // === Bubble — pure velocity-based projectile, bounces, one-shot DMG ===
     // Completely separate movement model from every other unit. No target
     // chasing, no per-frame target lookup. Bubble flies in a straight line
@@ -1235,6 +1240,7 @@ Unit.prototype.draw = function(ctx) {
     // early so the legacy circle path doesn't run on top.
     if (typeof _CUSTOM_SPRITES !== 'undefined' && _CUSTOM_SPRITES[this.type]) {
         _drawCustomSprite(ctx, this.type, this.x, this.y, this.team, this.isFrozen, this.isInvisible);
+        if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
         if (!this.isInvisible) this.drawHpBar(ctx);
         return;
     }
@@ -1266,6 +1272,7 @@ Unit.prototype.draw = function(ctx) {
     ctx.fillText(this.icon, this.x, this.y);
     ctx.restore();
 
+    if (typeof this.drawShieldBubble === 'function') this.drawShieldBubble(ctx);
     if (!this.isInvisible) this.drawHpBar(ctx);
 
     if (typeof isSelectingBullDash !== 'undefined' && isSelectingBullDash && this.team === 'player' && this.type === 'bull' && !this.hasDashed) {

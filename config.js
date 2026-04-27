@@ -47,14 +47,21 @@ const CARDS = {
     // the copied entity's cost + 1. Shown as "?" on the card slot since
     // the actual cost only resolves at click time. Sirius herself is
     // never instantiated on the field — she's a pure spell.
-    'sirius': { name: 'סיריוס', cost: 1, type: 'spell', color: '#9b59b6', icon: '👯' },
+    'sirius': { name: 'סיריוס', cost: 1, type: 'spell', color: '#9b59b6', icon: '👯', dynamicCost: true },
     // Trunk — energy support unit. 5 elixir. Random-walks ONLY in the
     // half he was placed in, dropping a purple "energy trail" aura behind
     // him. When a same-team unit steps on a trail tile, the tile vanishes
     // and that unit gets a permanent +20% damage buff (one-shot, doesn't
     // stack). Trunk himself is invulnerable, has no visible HP, and
     // self-destructs after 15 seconds on the field.
-    'trunk': { name: 'טרנק', cost: 5, type: 'unit', color: '#a55eea', icon: '⚡' }
+    'trunk': { name: 'טרנק', cost: 5, type: 'unit', color: '#a55eea', icon: '⚡' },
+    // Rosa — defensive shield-spell. While held, every player-team entity
+    // on the field is tagged with a coral-pink glow. Clicking one applies
+    // a 500-HP "shield bubble" that drains 25 HP/second until empty (or
+    // until incoming damage burns through it). Stacks with existing
+    // shield. Costs a flat 3 elixir per cast. Rosa herself is never
+    // instantiated on the field — pure spell.
+    'rosa':   { name: 'רוזה', cost: 3, type: 'spell', color: '#ff7eb9', icon: '🛡️' }
 };
 
 const STAR_POWERS = {

@@ -95,6 +95,40 @@ function draw(ctx) {
             if (typeof drawGhost === 'function') drawGhost(ctx);
         }
 
+        // Rosa shield-spell highlight — mirror of the Sirius highlight
+        // but on PLAYER-team entities. Pulsing coral-pink ring on every
+        // shield-eligible friendly so the player can see exactly which
+        // units are clickable. Skips invulnerables (trunk), in-flight
+        // bubbles, and trail tiles — none of those benefit from a shield.
+        if (typeof selectedCardId !== 'undefined' && selectedCardId === 'rosa') {
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 220);
+            const allFriends = []
+                .concat(typeof units      !== 'undefined' ? units      : [])
+                .concat(typeof buildings  !== 'undefined' ? buildings  : [])
+                .concat(typeof auras      !== 'undefined' ? auras      : []);
+            ctx.save();
+            for (const e of allFriends) {
+                if (!e || e.isDead || e.team !== 'player') continue;
+                if (e.isInvulnerable) continue;
+                const t = e.type;
+                if (t === 'fire-trail' || t === 'trunk-trail' || t === 'bubble' || t === 'trunk') continue;
+                if ((e.maxHp || 0) <= 0) continue;
+                const r = (e.radius || 18) + 6;
+                ctx.beginPath();
+                ctx.arc(e.x || 0, e.y || 0, r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 126, 185, ${0.55 + 0.35 * pulse})`;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(e.x || 0, e.y || 0, r - 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 126, 185, ${0.10 + 0.10 * pulse})`;
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
         // Sirius copy-spell highlight — when sirius is held, every enemy
         // entity on the field gets a pulsing purple ring so the player
         // can see exactly which targets are clickable. Only enemies with
