@@ -157,12 +157,16 @@ function isAmberOrTrail(e) {
 }
 window.isAmberOrTrail = isAmberOrTrail;
 
-// Bubble drag-aim state — set on pointerdown when `selectedCardId === 'bubble'`,
-// updated on pointermove, consumed on pointerup. The drag VECTOR (current -
-// anchor) becomes the bubble's launch direction.
-var _bubbleDragging = false;
-var _bubbleAnchor   = { x: 0, y: 0 };
-var _bubbleCurrent  = { x: 0, y: 0 };
+// Bubble drag-aim state — set on pointerdown when the bubble card is held
+// (regular OR freeze), updated on pointermove, consumed on pointerup. The
+// drag VECTOR (current - anchor) becomes the bubble's launch direction.
+// `_bubbleDraggingFreeze` records whether THIS drag started in freeze mode,
+// so on release we know whether the spawned bubble should be born frozen
+// (waiting for an unfreeze pulse) with its velocity already baked in.
+var _bubbleDragging       = false;
+var _bubbleDraggingFreeze = false;
+var _bubbleAnchor         = { x: 0, y: 0 };
+var _bubbleCurrent        = { x: 0, y: 0 };
 let selectedFreezeCardId = null;
 let selectedCardId = null;
 let playerTrophies = parseInt(localStorage.getItem(_userKey('trophies'))) || 0;
