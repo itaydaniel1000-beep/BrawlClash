@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="styles/global.css?v=5.3">
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=3.3">
-    <link rel="stylesheet" href="styles/lobby.css?v=9.28">
+    <link rel="stylesheet" href="styles/lobby.css?v=14.7">
     <link rel="stylesheet" href="styles/battle-ui.css?v=9.27">
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=9.44">
@@ -52,7 +52,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v14.6
+        v14.7
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -118,7 +118,11 @@
                         <span class="resource-value">0</span>
                     </div>
                 </div>
-                <div class="user-profile">
+                <!-- Click-able profile — opens the trophy profile screen
+                     where the player can claim a small prize every 100
+                     trophies. The 🎁 indicator below appears when at
+                     least one tier is unclaimed and reachable. -->
+                <div class="user-profile" onclick="openScreen('trophy-profile-screen')" style="cursor: pointer; position: relative;" title="פרופיל גביעים — קבל פרסים">
                     <div class="profile-icon">👤</div>
                     <div class="user-info">
                         <div class="user-name">המשתמש</div>
@@ -132,6 +136,7 @@
                             </div>
                         </div>
                     </div>
+                    <span id="trophy-claim-badge" style="display:none; position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; font-size:0.85rem; padding:2px 7px; border-radius:12px; font-weight:bold; border:2px solid #fff; box-shadow:0 2px 4px rgba(0,0,0,0.4); animation: trophyPulse 1.4s ease-in-out infinite;">🎁</span>
                 </div>
             </div>
 
@@ -363,6 +368,20 @@
                     <!-- Tiers injected here -->
                 </div>
                 <button onclick="closeScreen('brawl-pass-screen')" class="bs-btn bs-btn-danger">סגור</button>
+            </div>
+        </div>
+
+        <!-- Trophy Profile Screen — claim small rewards every 100 trophies -->
+        <div id="trophy-profile-screen" class="screen overlay" style="background: linear-gradient(135deg, #f39c12, #c0392b);">
+            <div class="menu-box" style="max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                <h2 style="color: #f1c40f; margin: 0;">🏆 פרופיל גביעים</h2>
+                <div id="trophy-progress-block" style="margin: 12px 0 16px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 10px; color: #fff;">
+                    <!-- Progress text + bar injected here -->
+                </div>
+                <div id="trophy-tiers-container" style="display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px;">
+                    <!-- Trophy tiers injected here -->
+                </div>
+                <button onclick="closeScreen('trophy-profile-screen')" class="bs-btn bs-btn-danger">סגור</button>
             </div>
         </div>
 
@@ -743,7 +762,7 @@
     
     <!-- Game Core & Config -->
     <script src="config.js?v=14.4"></script>
-    <script src="globals.js?v=14.6"></script>
+    <script src="globals.js?v=14.7"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
@@ -762,10 +781,10 @@
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=14.5"></script>
+    <script src="scripts/ui/ui-core.js?v=14.7"></script>
     <script src="scripts/ui/ui-brawlers.js?v=13.9"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
-    <script src="scripts/ui/ui-progression.js?v=3.3"></script>
+    <script src="scripts/ui/ui-progression.js?v=14.7"></script>
     <script src="scripts/ui/ui-admin.js?v=9.71"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.4"></script>

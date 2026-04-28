@@ -134,6 +134,8 @@ function openScreen(screenId) {
         if (typeof renderCharCards === 'function') renderCharCards();
     } else if (screenId === 'brawl-pass-screen') {
         if (typeof renderBrawlPass === 'function') renderBrawlPass();
+    } else if (screenId === 'trophy-profile-screen') {
+        if (typeof renderTrophyProfile === 'function') renderTrophyProfile();
     } else if (screenId === 'shop-screen') {
         if (typeof renderShop === 'function') renderShop();
     } else if (screenId === 'leaderboard-screen') {
@@ -277,6 +279,12 @@ function updateHomeScreen() {
         const progress = Math.min(100, (playerTrophies % 500) / 5);
         trophyRoadFill.style.width = `${progress}%`;
     }
+
+    // 🎁 nudge on the user-profile card whenever a 100-trophy tier is
+    // unclaimed. Refreshed every time the lobby repaints (post-battle,
+    // after a stat update, etc.) so the badge appears the moment the
+    // player crosses a milestone and disappears the moment they claim it.
+    if (typeof refreshTrophyClaimBadge === 'function') refreshTrophyClaimBadge();
 }
 
 function updateTrophyUI() {

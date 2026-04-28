@@ -637,6 +637,13 @@
     50%      { transform: translate(10px, -50%); }
 }
 
+/* Trophy-claim 🎁 badge — pulses on the user-profile card when the
+   player has at least one unclaimed 100-trophy tier waiting. */
+@keyframes trophyPulse {
+    0%, 100% { transform: scale(1);    box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+    50%      { transform: scale(1.18); box-shadow: 0 4px 8px rgba(231,76,60,0.6); }
+}
+
 body[data-guide-seen="1"] .guide-hint { display: none !important; }
 
 @media (max-width: 600px) {

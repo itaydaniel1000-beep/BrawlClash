@@ -214,6 +214,10 @@ let playerStats = {
     gems: parseInt(localStorage.getItem(_userKey('gems'))) || 0,
     levels: {},
     claimedTiers: JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [],
+    // New: trophy-road tiers (separate from brawl-pass `claimedTiers`).
+    // Stored as the integer tier number (1 = first 100 trophies, 2 = 200,
+    // etc.). Keeps brawl-pass progression independent of trophy progress.
+    claimedTrophyTiers: JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [],
     username: _activeUsername()
 };
 
@@ -290,6 +294,7 @@ function saveStats() {
     localStorage.setItem(_userKey('coins'), playerStats.coins);
     localStorage.setItem(_userKey('gems'), playerStats.gems);
     localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
+    localStorage.setItem(_userKey('claimedTrophy'), JSON.stringify(playerStats.claimedTrophyTiers || []));
     localStorage.setItem(_userKey('trophies'), playerTrophies);
     // Username stays in BOTH sessionStorage (per-tab active) and localStorage
     // (last-seen fallback for fresh tabs). Use the dedicated setter so both
@@ -337,6 +342,7 @@ function reloadActiveUserState() {
     playerStats.coins        = parseInt(localStorage.getItem(_userKey('coins'))) || 0;
     playerStats.gems         = parseInt(localStorage.getItem(_userKey('gems')))  || 0;
     playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
+    playerStats.claimedTrophyTiers = JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [];
     playerStats.username     = _activeUsername();
     playerStats.levels       = {};
     Object.keys(CARDS).forEach(id => {
