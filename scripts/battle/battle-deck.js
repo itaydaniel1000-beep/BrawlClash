@@ -61,7 +61,11 @@ function buildDeck() {
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
         cardEl.id = `card-${cardId}`;
-        cardEl.style.borderColor = card.color;
+        // Border + outer glow take the rarity colour so the player sees
+        // the tier at a glance (matches the brawler-selection screen).
+        const _rarityCol = (typeof getRarityColor === 'function') ? getRarityColor(cardId) : (card.color || '#7f8c8d');
+        cardEl.style.borderColor = _rarityCol;
+        cardEl.style.boxShadow   = `0 0 6px ${_rarityCol}66`;
         const iconHtml = (typeof getCardIconHTML === 'function')
             ? getCardIconHTML(cardId, 'width: 32px; height: auto; display: inline-block; image-rendering: pixelated; vertical-align: middle;')
             : card.icon;
