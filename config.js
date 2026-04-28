@@ -17,12 +17,14 @@ const ADMIN_USERNAME = 'danniel1234!';
 
 // Rarity tiers — drives the card border color in the brawler-selection
 // screen and the in-battle deck. Higher rarity = visually rarer card.
+// `unlockCost` is the price in credits 🎟️ to unlock a card of that
+// rarity from the unlock-characters screen.
 const RARITIES = {
-    'נדיר':            { color: '#2ecc71' },  // green
-    'נדיר במיוחד':      { color: '#3498db' },  // blue
-    'אדיר':            { color: '#ff6b9d' },  // pink
-    'מדהים':           { color: '#e74c3c' },  // red
-    'אגדי':            { color: '#f1c40f' }   // yellow / gold
+    'נדיר':            { color: '#2ecc71', unlockCost:  320 },  // green
+    'נדיר במיוחד':      { color: '#3498db', unlockCost:  640 },  // blue
+    'אדיר':            { color: '#ff6b9d', unlockCost: 1000 },  // pink
+    'מדהים':           { color: '#e74c3c', unlockCost: 2000 },  // red
+    'אגדי':            { color: '#f1c40f', unlockCost: 3600 }   // yellow / gold
 };
 
 // Helper — resolves a card's rarity color (falls back to its own card

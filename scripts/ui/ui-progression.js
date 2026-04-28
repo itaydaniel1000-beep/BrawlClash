@@ -126,6 +126,64 @@ function renderTrophyProfile() {
 }
 window.renderTrophyProfile = renderTrophyProfile;
 
+// Unlock-Characters screen — paid card-unlock flow, currency = 🎟️ credits.
+// Cost is per-rarity (RARITIES[rarity].unlockCost in config.js).
+function renderUnlockScreen() {
+    const creditsEl = document.getElementById('unlock-credits-display');
+    const grid      = document.getElementById('unlock-cards-container');
+    if (!grid) return;
+    const credits = (playerStats && playerStats.credits) || 0;
+
+    if (creditsEl) {
+        creditsEl.innerHTML = `
+            <span style="font-weight:bold;">היתרה שלך</span>
+            <span style="color:#9b59b6; font-weight:bold; font-size:1.05rem;">${credits.toLocaleString()} 🎟️</span>
+        `;
+    }
+
+    grid.innerHTML = '';
+    Object.keys(CARDS).forEach(id => {
+        const card = CARDS[id];
+        if (!card) return;
+        const isUnlocked = (typeof isCardUnlocked === 'function') ? isCardUnlocked(id) : true;
+        const cost = ((typeof RARITIES !== 'undefined' && RARITIES[card.rarity]) || {}).unlockCost || 0;
+        const rarityColor = (typeof getRarityColor === 'function') ? getRarityColor(id) : (card.color || '#7f8c8d');
+        const canAfford = credits >= cost;
+
+        const tile = document.createElement('div');
+        tile.style.cssText = `position:relative; background:${rarityColor}; border-radius:10px; padding:8px 6px; display:flex; flex-direction:column; align-items:center; gap:4px; border:3px solid ${isUnlocked ? '#2ecc71' : '#fff'}; ${!isUnlocked ? 'filter: grayscale(0.4) brightness(0.85);' : ''}`;
+        const iconHtml = (typeof getCardIconHTML === 'function')
+            ? getCardIconHTML(id, 'width: 28px; height: auto; image-rendering: pixelated; vertical-align: middle;')
+            : `<span style="font-size:1.5rem;">${card.icon}</span>`;
+        tile.innerHTML = `
+            <div style="font-size:1.5rem;">${iconHtml}</div>
+            <div style="color:#fff; font-weight:bold; font-size:0.78rem; text-shadow:0 1px 2px rgba(0,0,0,0.7); text-align:center;">${card.name}</div>
+            <div style="color:#fff; font-size:0.65rem; opacity:0.85; text-shadow:0 1px 2px rgba(0,0,0,0.6);">${card.rarity || ''}</div>
+            <div style="color:#fff; font-weight:bold; font-size:0.78rem; text-shadow:0 1px 2px rgba(0,0,0,0.7);">${cost.toLocaleString()} 🎟️</div>
+            <button class="bs-btn bs-btn-small" style="font-size:0.7rem; padding:4px 8px; min-width:64px;" ${isUnlocked ? 'disabled' : (canAfford ? '' : 'disabled')}>
+                ${isUnlocked ? '✔ פתוח' : (canAfford ? 'פתח' : 'אין מספיק')}
+            </button>
+        `;
+        const btn = tile.querySelector('button');
+        if (btn) btn.onclick = () => {
+            if (isUnlocked) return;
+            const have = (playerStats && playerStats.credits) || 0;
+            if (have < cost) return;
+            playerStats.credits = have - cost;
+            playerStats.unlockedCards = (playerStats.unlockedCards || []).concat([id]);
+            saveStats();
+            updateStatsUI();
+            renderUnlockScreen();
+            // The brawler-selection screen needs a re-render too in case it's
+            // sitting behind us in DOM — next time it opens it'll fetch the
+            // new state automatically via openScreen → renderCharCards.
+            try { AudioController.play('upgrade'); } catch (e) {}
+        };
+        grid.appendChild(tile);
+    });
+}
+window.renderUnlockScreen = renderUnlockScreen;
+
 function renderBrawlPass() {
     const container = document.getElementById('bp-tiers-container');
     if (!container) return;

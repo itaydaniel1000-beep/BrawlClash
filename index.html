@@ -52,7 +52,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v15.3
+        v15.4
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -202,6 +202,15 @@
                         <button id="lobby-sp-btn" class="side-btn sp-btn" onclick="openScreen('sp-selection-menu')">
                             <span class="btn-icon">⭐</span>
                             <span class="btn-label">כוחות</span>
+                        </button>
+                        <!-- Wide rectangular "Unlock Characters" button — sits
+                             below the regular round nav buttons. Opens the
+                             unlock screen where the player spends credits
+                             (🎟️) to unlock locked cards by rarity tier. -->
+                        <button id="lobby-unlock-btn" class="side-btn unlock-btn" onclick="openScreen('unlock-screen')"
+                                style="width: 92%; max-width: 220px; margin-top: 6px; padding: 8px 14px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #9b59b6, #6c5ce7); color: white; border: 3px solid #fff; box-shadow: 0 4px 0 #4834d4; cursor: pointer; font-family: 'Fredoka One', cursive;">
+                            <span class="btn-icon" style="font-size: 1.3rem;">🔓</span>
+                            <span class="btn-label" style="font-size: 0.95rem;">פתיחת דמויות</span>
                         </button>
                     </div>
                 </div>
@@ -389,6 +398,24 @@
                     <!-- Trophy tiers injected here -->
                 </div>
                 <button onclick="closeScreen('trophy-profile-screen')" class="bs-btn bs-btn-danger">סגור</button>
+            </div>
+        </div>
+
+        <!-- Unlock-Characters Screen — spend credits to unlock locked cards.
+             Cost is by rarity tier (cheaper for נדיר, more for אגדי). -->
+        <div id="unlock-screen" class="screen overlay" style="background: linear-gradient(135deg, #6c5ce7, #2c3e50);">
+            <div class="menu-box" style="max-width: 540px; width: 92%; max-height: 85vh; overflow-y: auto;">
+                <h2 style="color: #f1c40f; margin: 0 0 4px;">🔓 פתיחת דמויות</h2>
+                <div style="color:#bdc3c7; font-size:0.85rem; margin-bottom: 14px;">
+                    שלם בקרדיטים 🎟️ כדי לפתוח דמויות נעולות. כל נדירות בעלות שונה.
+                </div>
+                <div id="unlock-credits-display" style="margin-bottom: 12px; padding: 8px 12px; background: rgba(0,0,0,0.3); border-radius: 10px; color: #fff; display:flex; justify-content:space-between; align-items:center;">
+                    <!-- Current credits balance injected here -->
+                </div>
+                <div id="unlock-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                    <!-- Locked card grid injected here -->
+                </div>
+                <button onclick="closeScreen('unlock-screen')" class="bs-btn bs-btn-danger">סגור</button>
             </div>
         </div>
 
@@ -768,7 +795,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=14.9"></script>
+    <script src="config.js?v=15.4"></script>
     <script src="globals.js?v=15.3"></script>
     <script src="audio.js?v=3.8"></script>
     
@@ -788,10 +815,10 @@
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=14.8"></script>
+    <script src="scripts/ui/ui-core.js?v=15.4"></script>
     <script src="scripts/ui/ui-brawlers.js?v=15.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
-    <script src="scripts/ui/ui-progression.js?v=14.8"></script>
+    <script src="scripts/ui/ui-progression.js?v=15.4"></script>
     <script src="scripts/ui/ui-admin.js?v=9.71"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.4"></script>

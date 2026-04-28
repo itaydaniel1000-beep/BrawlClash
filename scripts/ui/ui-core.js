@@ -137,6 +137,8 @@ function openScreen(screenId) {
         if (typeof renderBrawlPass === 'function') renderBrawlPass();
     } else if (screenId === 'trophy-profile-screen') {
         if (typeof renderTrophyProfile === 'function') renderTrophyProfile();
+    } else if (screenId === 'unlock-screen') {
+        if (typeof renderUnlockScreen === 'function') renderUnlockScreen();
     } else if (screenId === 'shop-screen') {
         if (typeof renderShop === 'function') renderShop();
     } else if (screenId === 'leaderboard-screen') {
