@@ -71,6 +71,7 @@ function formatNumber(num) {
 function updateStatsUI() {
     document.querySelectorAll('.resource-item.coins .resource-value').forEach(el => el.innerText = formatNumber(playerStats.coins));
     document.querySelectorAll('.resource-item.gems .resource-value').forEach(el => el.innerText = formatNumber(playerStats.gems));
+    document.querySelectorAll('.resource-item.credits .resource-value').forEach(el => el.innerText = formatNumber(playerStats.credits || 0));
     const usernameEl = document.querySelector('.user-name');
     if (usernameEl && playerStats.username) usernameEl.innerText = playerStats.username;
     const trophyEl = document.getElementById('trophy-count');

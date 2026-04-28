@@ -52,7 +52,7 @@
                 font:bold 11px 'Assistant', sans-serif; padding:3px 7px;
                 border-radius:4px; z-index:99999; pointer-events:none;
                 box-shadow:0 2px 4px rgba(0,0,0,0.3);">
-        v14.7
+        v14.8
     </div>
 
     <!-- Floating admin controls — fixed to the bottom-right of the viewport so
@@ -115,6 +115,13 @@
                     </div>
                     <div class="resource-item gems">
                         <span class="resource-icon">💎</span>
+                        <span class="resource-value">0</span>
+                    </div>
+                    <!-- Credits — new currency awarded on every 3rd trophy
+                         tier (100 credits per tier-3-of-3). Spend rules
+                         coming in a future iteration. -->
+                    <div class="resource-item credits" style="background: rgba(155, 89, 182, 0.4); border: 2px solid #9b59b6;">
+                        <span class="resource-icon">🎟️</span>
                         <span class="resource-value">0</span>
                     </div>
                 </div>
@@ -762,7 +769,7 @@
     
     <!-- Game Core & Config -->
     <script src="config.js?v=14.4"></script>
-    <script src="globals.js?v=14.7"></script>
+    <script src="globals.js?v=14.8"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
@@ -781,10 +788,10 @@
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=14.7"></script>
+    <script src="scripts/ui/ui-core.js?v=14.8"></script>
     <script src="scripts/ui/ui-brawlers.js?v=13.9"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
-    <script src="scripts/ui/ui-progression.js?v=14.7"></script>
+    <script src="scripts/ui/ui-progression.js?v=14.8"></script>
     <script src="scripts/ui/ui-admin.js?v=9.71"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.4"></script>

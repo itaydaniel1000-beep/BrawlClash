@@ -1,17 +1,31 @@
 // ui-progression.js - Brawl Pass, Shop, and Leaderboard UI
 
-// Per-tier reward for the Trophy Profile screen. Every 100 trophies the
-// player can claim:
-//   • Always — TROPHY_REWARD_COINS coins
-//   • Bonus on every 5th tier (500, 1000, 1500…) — extra TROPHY_BONUS_GEMS
-//     gems so milestone tiers feel a little more special.
-const TROPHY_REWARD_COINS  = 25;
-const TROPHY_BONUS_EVERY   = 5;
-const TROPHY_BONUS_GEMS    = 5;
+// Trophy-profile reward cycle (per user spec — "כל שלוש פרסים זה 1000
+// מטבעות ואחרי מטבעות יבוא 10 יהלום ואחר כך 100 קרדיטים"). Every tier
+// of the cycle awards exactly ONE currency:
+//   • Tier 1, 4, 7, … → 1000 🪙 coins
+//   • Tier 2, 5, 8, … →   10 💎 gems
+//   • Tier 3, 6, 9, … →  100 🎟️ credits  (new currency)
+// Range goes up to 10 000 trophies = 100 tiers.
+const TROPHY_TIER_COINS   = 1000;
+const TROPHY_TIER_GEMS    = 10;
+const TROPHY_TIER_CREDITS = 100;
+const TROPHY_MAX_TIERS    = 100;       // 100 × 100 = 10 000 trophies cap
 
-// Highest tier the player has earned so far (1 tier per 100 trophies).
+// Highest tier the player has earned so far (1 tier per 100 trophies,
+// capped at the trophy-profile max).
 function _trophyTiersEarned() {
-    return Math.floor((typeof playerTrophies === 'number' ? playerTrophies : 0) / 100);
+    const raw = Math.floor((typeof playerTrophies === 'number' ? playerTrophies : 0) / 100);
+    return Math.min(TROPHY_MAX_TIERS, raw);
+}
+
+// Reward for tier `i` (1-indexed). Returns the single currency this tier
+// pays out, plus its amount, plus the icon for UI rendering.
+function _trophyTierReward(i) {
+    const phase = ((i - 1) % 3);
+    if (phase === 0) return { kind: 'coins',   amount: TROPHY_TIER_COINS,   icon: '🪙', color: '#f1c40f' };
+    if (phase === 1) return { kind: 'gems',    amount: TROPHY_TIER_GEMS,    icon: '💎', color: '#74b9ff' };
+    return                  { kind: 'credits', amount: TROPHY_TIER_CREDITS, icon: '🎟️', color: '#9b59b6' };
 }
 
 // True if at least one earned tier has not been claimed yet — used by the
@@ -46,31 +60,33 @@ function renderTrophyProfile() {
     const claimed  = (playerStats && playerStats.claimedTrophyTiers) || [];
 
     // Top progress block — current trophy count + bar to the next 100.
-    const nextTier        = earned + 1;
+    const atMax            = earned >= TROPHY_MAX_TIERS;
+    const nextTier         = Math.min(TROPHY_MAX_TIERS, earned + 1);
     const trophiesIntoTier = trophies % 100;
-    const pct              = Math.min(100, trophiesIntoTier);
+    const pct              = atMax ? 100 : Math.min(100, trophiesIntoTier);
+    const nextLabel        = atMax
+        ? `הגעת לדרגה המקסימלית (${TROPHY_MAX_TIERS})`
+        : `לדרגה ${nextTier}: עוד ${100 - trophiesIntoTier} 🏆`;
     progressEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
             <span style="font-weight:bold;">🏆 ${trophies.toLocaleString()}</span>
-            <span style="font-size:0.85rem; opacity:0.85;">לדרגה ${nextTier}: עוד ${100 - trophiesIntoTier} 🏆</span>
+            <span style="font-size:0.85rem; opacity:0.85;">${nextLabel}</span>
         </div>
         <div style="height:10px; background:rgba(255,255,255,0.15); border-radius:6px; overflow:hidden;">
             <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#f1c40f,#e67e22); transition:width 0.3s;"></div>
         </div>
     `;
 
-    // Tier list — every claimable / claimed tier, plus a preview of the
-    // next 3 unreached tiers so the player sees what's coming. Cap at 50
-    // tiers in the DOM to keep the screen snappy if someone hits 5000+.
+    // Tier list — render every tier from 1 up to the max (100). Container
+    // is scrollable, so even 100 rows stay snappy. Each tier shows its
+    // reward (coins / gems / credits in a 3-cycle) and a claim button.
     tiersEl.innerHTML = '';
-    const lastTier = Math.min(50, Math.max(earned + 3, 5));
-    for (let i = 1; i <= lastTier; i++) {
+    for (let i = 1; i <= TROPHY_MAX_TIERS; i++) {
         const trophiesNeeded = i * 100;
         const isClaimed = claimed.includes(i);
         const canClaim  = trophies >= trophiesNeeded && !isClaimed;
         const isLocked  = trophies <  trophiesNeeded;
-        const giveCoins = TROPHY_REWARD_COINS;
-        const giveGems  = (i % TROPHY_BONUS_EVERY === 0) ? TROPHY_BONUS_GEMS : 0;
+        const reward    = _trophyTierReward(i);
 
         const rowBg     = isClaimed ? 'rgba(255,255,255,0.05)' : (canClaim ? 'rgba(241,196,15,0.18)' : 'rgba(0,0,0,0.20)');
         const borderCol = isClaimed ? '#95a5a6' : (canClaim ? '#f1c40f' : '#7f8c8d');
@@ -82,8 +98,8 @@ function renderTrophyProfile() {
                 <div style="font-weight:bold; color:#fff;">דרגה ${i}</div>
                 <div style="font-size:0.78rem; color:#fff; opacity:0.8;">🏆 ${trophiesNeeded.toLocaleString()}</div>
             </div>
-            <div style="color:#f1c40f; font-weight:bold;">
-                +${giveCoins} 🪙${giveGems > 0 ? ` <span style="color:#74b9ff;">+${giveGems} 💎</span>` : ''}
+            <div style="font-weight:bold; color:${reward.color};">
+                +${reward.amount.toLocaleString()} ${reward.icon}
             </div>
             <button class="bs-btn bs-btn-small" ${(!canClaim) ? 'disabled' : ''} style="font-size:0.8rem; padding:5px 10px; min-width:70px;">${isClaimed ? 'התקבל' : (isLocked ? 'נעול' : 'קבל')}</button>
         `;
@@ -94,8 +110,10 @@ function renderTrophyProfile() {
             const claimedNow = (playerStats && playerStats.claimedTrophyTiers) || [];
             if (claimedNow.includes(i)) return;
             if ((typeof playerTrophies === 'number' ? playerTrophies : 0) < trophiesNeeded) return;
-            playerStats.coins = (playerStats.coins || 0) + giveCoins;
-            if (giveGems > 0) playerStats.gems = (playerStats.gems || 0) + giveGems;
+            const r = _trophyTierReward(i);
+            if (r.kind === 'coins')   playerStats.coins   = (playerStats.coins   || 0) + r.amount;
+            if (r.kind === 'gems')    playerStats.gems    = (playerStats.gems    || 0) + r.amount;
+            if (r.kind === 'credits') playerStats.credits = (playerStats.credits || 0) + r.amount;
             playerStats.claimedTrophyTiers = claimedNow.concat([i]);
             saveStats();
             updateStatsUI();

@@ -212,6 +212,10 @@ let playerStats = {
     // their saved values are.
     coins: parseInt(localStorage.getItem(_userKey('coins'))) || 0,
     gems: parseInt(localStorage.getItem(_userKey('gems'))) || 0,
+    // Credits — new currency introduced alongside the trophy-profile reward
+    // cycle (tier-3-of-3 pays 100 credits). Spend rules will be added as
+    // the user iterates on the design.
+    credits: parseInt(localStorage.getItem(_userKey('credits'))) || 0,
     levels: {},
     claimedTiers: JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [],
     // New: trophy-road tiers (separate from brawl-pass `claimedTiers`).
@@ -293,6 +297,7 @@ Object.keys(CARDS).forEach(id => {
 function saveStats() {
     localStorage.setItem(_userKey('coins'), playerStats.coins);
     localStorage.setItem(_userKey('gems'), playerStats.gems);
+    localStorage.setItem(_userKey('credits'), playerStats.credits || 0);
     localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
     localStorage.setItem(_userKey('claimedTrophy'), JSON.stringify(playerStats.claimedTrophyTiers || []));
     localStorage.setItem(_userKey('trophies'), playerTrophies);
@@ -339,8 +344,9 @@ function reloadActiveUserState() {
     } catch (e) { playerStarPowers = {}; }
 
     // playerStats (rebuild but keep object identity)
-    playerStats.coins        = parseInt(localStorage.getItem(_userKey('coins'))) || 0;
-    playerStats.gems         = parseInt(localStorage.getItem(_userKey('gems')))  || 0;
+    playerStats.coins        = parseInt(localStorage.getItem(_userKey('coins')))   || 0;
+    playerStats.gems         = parseInt(localStorage.getItem(_userKey('gems')))    || 0;
+    playerStats.credits      = parseInt(localStorage.getItem(_userKey('credits'))) || 0;
     playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
     playerStats.claimedTrophyTiers = JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [];
     playerStats.username     = _activeUsername();
