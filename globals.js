@@ -241,14 +241,13 @@ let playerStats = {
 
 // Returns true when the given cardId is currently usable by the local
 // player. Always-true for the 'נדיר' rarity (safety net for new cards
-// shipped post-init), the admin user, and any card explicitly in the
-// unlockedCards list.
+// shipped post-init) and any card explicitly in the unlockedCards
+// list. Admin used to bypass this check but the user wanted the lock
+// to actually be visible while they test, so the bypass was removed.
+// Admin can still unlock cards manually via the upgrade flow / future
+// dev-tools button if they want full access.
 function isCardUnlocked(cardId) {
     if (!cardId) return false;
-    try {
-        if (typeof playerStats !== 'undefined' &&
-            playerStats.username === ADMIN_USERNAME) return true;
-    } catch (e) {}
     const c = (typeof CARDS !== 'undefined') ? CARDS[cardId] : null;
     if (c && c.rarity === 'נדיר') return true;
     const list = (typeof playerStats !== 'undefined' && Array.isArray(playerStats.unlockedCards))
