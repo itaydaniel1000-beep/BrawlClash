@@ -33,20 +33,18 @@ function renderCharCards() {
         // Cards flagged `dynamicCost: true` (e.g. sirius) show "?" — the
         // actual price resolves at click time. Fixed-cost spells stay numeric.
         const costLabel = card.dynamicCost ? '?' : card.cost;
-        // Rarity tier (per user spec): the card's outer border + a small
-        // label below the level take the rarity colour (green / blue /
-        // pink / red / yellow) so the player can read the tier instantly.
-        const rarityName  = card.rarity || '';
+        // Rarity tier (per user spec — "אני רוצה שהרקע של הקלף יהיה הצבע
+        // של הנדירות"): the entire card BACKGROUND takes the rarity
+        // colour (green / blue / pink / red / yellow). White text + a
+        // dark text-shadow keeps the name readable on any tier.
         const rarityColor = (typeof getRarityColor === 'function') ? getRarityColor(id) : (card.color || '#7f8c8d');
-        cardEl.style.borderColor = rarityColor;
-        cardEl.style.boxShadow   = `0 0 8px ${rarityColor}66`;  // subtle outer glow in rarity colour
+        cardEl.style.background = rarityColor;
         cardEl.innerHTML = `
             <div class="card-cost">${costLabel}</div>
             <div class="card-icon">${iconHtml}</div>
             <div class="card-name" style="display: flex; flex-direction: column; z-index: 10;">
-                <span>${card.name}</span>
-                <span style="color: #f1c40f; font-size: 0.6rem;">רמה ${level}</span>
-                ${rarityName ? `<span style="color:${rarityColor}; font-size:0.55rem; font-weight:bold; text-shadow:0 1px 2px rgba(0,0,0,0.6); margin-top:1px;">${rarityName}</span>` : ''}
+                <span style="color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.7);">${card.name}</span>
+                <span style="color: #fff; font-size: 0.6rem; text-shadow:0 1px 2px rgba(0,0,0,0.6);">רמה ${level}</span>
             </div>
             ${playerDeck.includes(id) ? '<div style="position:absolute; top:-5px; right:-5px; background:#2ecc71; color:white; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:2px solid white; font-size:0.7rem; box-shadow:0 1px 3px rgba(0,0,0,0.3); z-index:30;">✓</div>' : ''}
             <div class="card-upgrade-btn" style="position:absolute; bottom:2px; right:2px; background:#2ecc71; border:1px solid white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; cursor:pointer; color:white; box-shadow:0 1px #27ae60; z-index:30; transition: transform 0.1s;">⬆️</div>
