@@ -191,10 +191,15 @@ let mouseX = 0, mouseY = 0;
 let playerDeck = [];
 try {
     const savedDeck = localStorage.getItem(_userKey('deck'));
-    if (savedDeck) playerDeck = JSON.parse(savedDeck);
-    else playerDeck = Object.keys(CARDS).slice(0, 8); 
-} catch(e) { 
-    playerDeck = Object.keys(CARDS).slice(0, 8);
+    if (savedDeck) {
+        playerDeck = JSON.parse(savedDeck);
+    } else {
+        // Brand-new player: deck starts with whatever cards are unlocked
+        // by default — currently just the 'נדיר' rarity tier (3 cards).
+        playerDeck = Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר').slice(0, 8);
+    }
+} catch(e) {
+    playerDeck = Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר').slice(0, 8);
 }
 let tempDeck = [];
 let favoriteBrawler = localStorage.getItem(_userKey('favorite')) || null;
@@ -222,8 +227,35 @@ let playerStats = {
     // Stored as the integer tier number (1 = first 100 trophies, 2 = 200,
     // etc.). Keeps brawl-pass progression independent of trophy progress.
     claimedTrophyTiers: JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [],
+    // Per-card unlock list. New players start with ONLY the 'נדיר' rarity
+    // cards unlocked (bruce, pam, scrappy); higher tiers ship locked
+    // until the player unlocks them through some future progression flow.
+    // localStorage key 'unlocked' holds the array; missing → first-time
+    // init via the IIFE that filters CARDS by rarity at load time.
+    unlockedCards: JSON.parse(localStorage.getItem(_userKey('unlocked')) || 'null') ||
+        (typeof CARDS !== 'undefined'
+            ? Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר')
+            : []),
     username: _activeUsername()
 };
+
+// Returns true when the given cardId is currently usable by the local
+// player. Always-true for the 'נדיר' rarity (safety net for new cards
+// shipped post-init), the admin user, and any card explicitly in the
+// unlockedCards list.
+function isCardUnlocked(cardId) {
+    if (!cardId) return false;
+    try {
+        if (typeof playerStats !== 'undefined' &&
+            playerStats.username === ADMIN_USERNAME) return true;
+    } catch (e) {}
+    const c = (typeof CARDS !== 'undefined') ? CARDS[cardId] : null;
+    if (c && c.rarity === 'נדיר') return true;
+    const list = (typeof playerStats !== 'undefined' && Array.isArray(playerStats.unlockedCards))
+        ? playerStats.unlockedCards : [];
+    return list.includes(cardId);
+}
+window.isCardUnlocked = isCardUnlocked;
 
 // Admin Hacks (Developer Menu)
 // NOTE: `var` (not `let`) so it attaches to window — the PeerJS sync code and
@@ -300,6 +332,7 @@ function saveStats() {
     localStorage.setItem(_userKey('credits'), playerStats.credits || 0);
     localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
     localStorage.setItem(_userKey('claimedTrophy'), JSON.stringify(playerStats.claimedTrophyTiers || []));
+    localStorage.setItem(_userKey('unlocked'),      JSON.stringify(playerStats.unlockedCards     || []));
     localStorage.setItem(_userKey('trophies'), playerTrophies);
     // Username stays in BOTH sessionStorage (per-tab active) and localStorage
     // (last-seen fallback for fresh tabs). Use the dedicated setter so both
@@ -331,11 +364,18 @@ function reloadActiveUserState() {
             const parsed = JSON.parse(savedDeck);
             if (Array.isArray(parsed)) parsed.forEach(c => playerDeck.push(c));
         } else {
-            Object.keys(CARDS).slice(0, 8).forEach(c => playerDeck.push(c));
+            // First-time deck for this user — only 'נדיר' cards are open.
+            Object.keys(CARDS)
+                .filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר')
+                .slice(0, 8)
+                .forEach(c => playerDeck.push(c));
         }
     } catch (e) {
         playerDeck.length = 0;
-        Object.keys(CARDS).slice(0, 8).forEach(c => playerDeck.push(c));
+        Object.keys(CARDS)
+            .filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר')
+            .slice(0, 8)
+            .forEach(c => playerDeck.push(c));
     }
 
     // Star powers
@@ -349,6 +389,8 @@ function reloadActiveUserState() {
     playerStats.credits      = parseInt(localStorage.getItem(_userKey('credits'))) || 0;
     playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
     playerStats.claimedTrophyTiers = JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [];
+    playerStats.unlockedCards = JSON.parse(localStorage.getItem(_userKey('unlocked')) || 'null') ||
+        Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר');
     playerStats.username     = _activeUsername();
     playerStats.levels       = {};
     Object.keys(CARDS).forEach(id => {

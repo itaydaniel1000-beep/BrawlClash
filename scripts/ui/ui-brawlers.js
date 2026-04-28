@@ -1,6 +1,17 @@
 // ui-brawlers.js - Brawler Cards and Upgrades
 
 function toggleCardInDeck(id) {
+    // Locked cards can't enter the deck — show a quick toast instead of
+    // silently failing so the player knows why nothing happened. (Admin
+    // bypasses the lock entirely via isCardUnlocked.)
+    if (typeof isCardUnlocked === 'function' && !isCardUnlocked(id)) {
+        if (typeof showTransientToast === 'function') {
+            showTransientToast('🔒 הדמות הזו עדיין נעולה');
+        } else {
+            alert('🔒 הדמות הזו עדיין נעולה');
+        }
+        return;
+    }
     if (playerDeck.includes(id)) {
         playerDeck = playerDeck.filter(cid => cid !== id);
     } else {
@@ -39,6 +50,14 @@ function renderCharCards() {
         // dark text-shadow keeps the name readable on any tier.
         const rarityColor = (typeof getRarityColor === 'function') ? getRarityColor(id) : (card.color || '#7f8c8d');
         cardEl.style.background = rarityColor;
+        // Locked cards (anything not 'נדיר' on a fresh save) are dimmed
+        // and overlaid with a 🔒 so the player sees they're inaccessible.
+        // Click still fires but toggleCardInDeck refuses with a toast.
+        const locked = (typeof isCardUnlocked === 'function') ? !isCardUnlocked(id) : false;
+        if (locked) cardEl.style.filter = 'grayscale(0.6) brightness(0.65)';
+        const lockOverlay = locked
+            ? '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); border-radius:5px; z-index:25;"><span style="font-size:1.6rem; filter:drop-shadow(0 2px 3px rgba(0,0,0,0.7));">🔒</span></div>'
+            : '';
         cardEl.innerHTML = `
             <div class="card-cost">${costLabel}</div>
             <div class="card-icon">${iconHtml}</div>
@@ -48,6 +67,7 @@ function renderCharCards() {
             </div>
             ${playerDeck.includes(id) ? '<div style="position:absolute; top:-5px; right:-5px; background:#2ecc71; color:white; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; border:2px solid white; font-size:0.7rem; box-shadow:0 1px 3px rgba(0,0,0,0.3); z-index:30;">✓</div>' : ''}
             <div class="card-upgrade-btn" style="position:absolute; bottom:2px; right:2px; background:#2ecc71; border:1px solid white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.7rem; cursor:pointer; color:white; box-shadow:0 1px #27ae60; z-index:30; transition: transform 0.1s;">⬆️</div>
+            ${lockOverlay}
         `;
         
         const upgradeBtn = cardEl.querySelector('.card-upgrade-btn');
