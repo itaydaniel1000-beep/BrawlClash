@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=15.1">
     <link rel="stylesheet" href="styles/lobby.css?v=14.7">
-    <link rel="stylesheet" href="styles/battle-ui.css?v=9.27">
+    <link rel="stylesheet" href="styles/battle-ui.css?v=9.29">
     <link rel="stylesheet" href="styles/overlays.css?v=3.3">
     <link rel="stylesheet" href="styles/game.css?v=9.44">
     <link rel="stylesheet" href="styles/animations.css?v=3.3">
@@ -302,7 +302,7 @@
                     </div>
 
                     <button id="bull-dash-btn"
-                        style="display:none; position: absolute; bottom: 10px; right: 60px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; z-index: 100; transition: background-color 0.2s;">💨</button>
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; transition: background-color 0.2s;">💨</button>
 
                     <!-- Bonnie transform button — visible when there's at
                          least one alive player-team Bonnie. Click toggles
@@ -310,7 +310,7 @@
                          converts her into a special Bruce that skips the
                          safe in target-selection. -->
                     <button id="bonnie-transform-btn"
-                        style="display:none; position: absolute; bottom: 10px; right: 200px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #a29bfe; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #6c5ce7; z-index: 100; transition: background-color 0.2s;"
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #a29bfe; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #6c5ce7; transition: background-color 0.2s;"
                         title="הפוך בוני לברוס מיוחד">🪄</button>
 
                     <!-- Amber path button — appears while the Amber card is
@@ -320,14 +320,14 @@
                          (or auto-commits after 6). Spawn point = waypoints[0],
                          the rest are her walking destinations. -->
                     <button id="amber-path-btn" onclick="toggleAmberPathMode()"
-                        style="display:none; position: absolute; bottom: 10px; right: 130px; padding: 15px; font-size: 24px; font-family: 'Fredoka One', cursive; background-color: #e67e22; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #a04e0a; z-index: 100; transition: background-color 0.2s;"
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #e67e22; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #a04e0a; transition: background-color 0.2s;"
                         title="בחר מסלול לאמבר (עד 6 נקודות)">🎯</button>
 
                     <!-- Admin: Delete-Enemy-Unit button — stacks above bull-dash
                          on the bottom-right of the map while adminHacks.deleteUnit
                          is on. -->
                     <button id="admin-delete-btn" onclick="activateDeleteUnitMode()"
-                        style="display:none; position: absolute; bottom: 70px; right: 60px; padding: 12px; font-size: 22px; background-color: #c0392b; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #7b1818; z-index: 100; transition: background-color 0.2s;"
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #c0392b; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #7b1818; transition: background-color 0.2s;"
                         title="מחיקת דמות של היריב">🗑️</button>
 
                     <!-- Release Freeze Button: hugs bottom-left of the map. -->
@@ -449,6 +449,10 @@
                 <!-- Target username stays as a separate field so the AI is unambiguous. -->
                 <label for="grant-admin-target" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שם המשתמש הממוקד:</label>
                 <input type="text" id="grant-admin-target" placeholder="לדוגמה: itay123" maxlength="24" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; margin-bottom: 12px; color: #000;">
+
+                <!-- Exclusion field — capabilities listed here are stripped from the final grant. -->
+                <label for="grant-admin-exclude" style="color: #e17055; font-weight: 800; display: block; margin-bottom: 4px;">🚫 לא לכלול בהענקה (אופציונלי):</label>
+                <input type="text" id="grant-admin-exclude" placeholder="לדוגמה: גוד מוד, הענקת אדמין" maxlength="200" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #e17055; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; margin-bottom: 12px; color: #000;">
 
                 <!-- AI chat log. User messages + AI replies stack here. -->
                 <label style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שיחה עם ה-AI:</label>
@@ -819,19 +823,19 @@
     <script src="scripts/ui/ui-brawlers.js?v=15.2"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
     <script src="scripts/ui/ui-progression.js?v=15.4"></script>
-    <script src="scripts/ui/ui-admin.js?v=9.71"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.72"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.4"></script>
-    
+
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
-    <script src="scripts/battle/battle-spawn.js?v=9.96"></script>
-    <script src="scripts/battle/battle-input.js?v=14.4"></script>
+    <script src="scripts/battle/battle-spawn.js?v=9.98"></script>
+    <script src="scripts/battle/battle-input.js?v=14.6"></script>
     <script src="scripts/battle/battle-deck.js?v=15.0"></script>
 
     <!-- Engine Module -->
-    <script src="scripts/engine/engine-core.js?v=14.4"></script>
+    <script src="scripts/engine/engine-core.js?v=14.8"></script>
     <script src="scripts/engine/engine-physics.js?v=13.1"></script>
     <script src="scripts/engine/engine-renderer.js?v=13.9"></script>
     <script src="scripts/engine/engine-input.js?v=14.4"></script>

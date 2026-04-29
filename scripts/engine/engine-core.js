@@ -1,5 +1,68 @@
 // engine-core.js - Game Loop and Core State Management
 
+// Move special action buttons to <body> on mobile so overflow:hidden on #app
+// doesn't clip them. On desktop restore to canvas-wrap.
+var _actionBtnOriginalParent = null;
+
+function _positionActionButtons() {
+    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn'];
+    var MOBILE_TOPS = ['22%', '36%', '50%', '64%'];
+    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe'];
+
+    var isMobile = ('ontouchstart' in window) ||
+                   (navigator.maxTouchPoints > 0) ||
+                   (window.innerWidth <= 768);
+
+    IDS.forEach(function(id, i) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+
+        if (isMobile) {
+            // Move to <body> so #app overflow:hidden won't clip.
+            if (btn.parentElement !== document.body) {
+                if (!_actionBtnOriginalParent) _actionBtnOriginalParent = btn.parentElement;
+                document.body.appendChild(btn);
+            }
+            var prevDisplay = btn.style.display;
+            btn.style.cssText = '';
+            btn.style.display      = prevDisplay || 'none';
+            btn.style.position     = 'fixed';
+            btn.style.top          = MOBILE_TOPS[i];
+            btn.style.bottom       = 'auto';
+            btn.style.right        = '4px';
+            btn.style.left         = 'auto';
+            btn.style.width        = '44px';
+            btn.style.height       = '44px';
+            btn.style.fontSize     = '20px';
+            btn.style.zIndex       = '9999';
+            btn.style.boxSizing    = 'border-box';
+            btn.style.borderRadius = '50%';
+            btn.style.border       = '3px solid #fff';
+            btn.style.color        = '#fff';
+            btn.style.cursor       = 'pointer';
+            btn.style.background   = BG_COLORS[i];
+            btn.style.fontFamily   = "'Fredoka One', cursive";
+            btn.style.boxShadow    = '0 4px 8px rgba(0,0,0,0.5)';
+
+        } else {
+            // Restore to canvas-wrap
+            if (_actionBtnOriginalParent && btn.parentElement === document.body) {
+                _actionBtnOriginalParent.appendChild(btn);
+            }
+            var prevDisplay2 = btn.style.display;
+            btn.style.cssText   = '';
+            btn.style.display   = prevDisplay2 || 'none';
+            btn.style.position  = 'absolute';
+            btn.style.top       = 'auto';
+            btn.style.left      = 'auto';
+            btn.style.right     = ['60px','130px','60px','200px'][i];
+            btn.style.bottom    = ['70px','10px','10px','10px'][i];
+            btn.style.zIndex    = '100';
+        }
+    });
+}
+window._positionActionButtons = _positionActionButtons;
+
 function setupCanvas() {
     canvas = document.getElementById('game-canvas');
     if (!canvas) return;
@@ -80,6 +143,7 @@ function initGame() {
         // per-difficulty bonus for the enemy safe.
 
         buildDeck();
+        _positionActionButtons();
         updateUI();
 
         if (!gameLoopRunning) {
@@ -205,6 +269,7 @@ function updateUI() {
             if (!canAfford) d.classList.add('disabled');
             else d.classList.remove('disabled');
         }
+
     });
 
     let releaseBtn = document.getElementById('release-freeze-btn');
@@ -213,3 +278,5 @@ function updateUI() {
         releaseBtn.style.display = hasFrozen ? 'block' : 'none';
     }
 }
+
+window.addEventListener('resize', _positionActionButtons);

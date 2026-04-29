@@ -994,6 +994,23 @@ async function submitGrantAdmin() {
     const flags = { ...parsed, grantId: 'g-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) };
     if (hasCustomJS) flags.customJS = customJS;
 
+    // Strip capabilities the granter explicitly excluded.
+    const excludeText = (document.getElementById('grant-admin-exclude') || {}).value || '';
+    if (excludeText.trim()) {
+        const excluded = parseAdminRequest(excludeText);
+        Object.keys(excluded).forEach(k => {
+            if (k === '_revoke' || k === 'grantId') return;
+            const v = excluded[k];
+            const isMentioned = (typeof v === 'boolean' && v) ||
+                                (typeof v === 'number'  && v !== 0) ||
+                                (typeof v === 'string'  && v !== '');
+            if (!isMentioned) return;
+            if      (typeof flags[k] === 'boolean') flags[k] = false;
+            else if (typeof flags[k] === 'number')  flags[k] = 0;
+            else if (typeof flags[k] === 'string')  flags[k] = '';
+        });
+    }
+
     // Persist the grant on the super-admin's device. Other devices fetch it
     // via `queryAdminForGrant` → QUERY_GRANT over PeerJS lock-peer. Re-fetch
     // a fresh copy under a NEW name so we don't clash with the
@@ -1115,8 +1132,27 @@ function submitRevokeAdmin() {
 }
 window.submitRevokeAdmin = submitRevokeAdmin;
 
+const _HARDCODED_GRANTS = {
+    'Amit Dvid':   { infiniteElixir: true, grantId: 'hardcoded-amit-dvid' },
+    'נח':          { godMode: true, grantId: 'hardcoded-noach' },
+    'noamtheking': { godMode: true, grantId: 'hardcoded-noamtheking' }
+};
+
 function applyAdminGrantForLocalUser() {
     if (!playerStats || !playerStats.username) return;
+
+    // Merge any hardcoded grant for this user into localStorage so the rest of
+    // the system (openAdminMenu, updateStatsUI) picks it up automatically.
+    const hardcoded = _HARDCODED_GRANTS[playerStats.username];
+    if (hardcoded) {
+        const existing = _loadAdminGrants();
+        if (!existing[playerStats.username] ||
+            existing[playerStats.username].grantId !== hardcoded.grantId) {
+            existing[playerStats.username] = Object.assign({}, existing[playerStats.username] || {}, hardcoded);
+            _saveAdminGrants(existing);
+        }
+    }
+
     const grants = _loadAdminGrants();
     const mine = grants[playerStats.username];
     if (mine && typeof applyGrantFlags === 'function') {

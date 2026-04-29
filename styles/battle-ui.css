@@ -82,6 +82,21 @@
     text-shadow: 1px 1px 2px #000;
 }
 
+/* Action buttons — shared base (position: absolute comes from canvas-wrap context) */
+#bull-dash-btn,
+#bonnie-transform-btn,
+#amber-path-btn,
+#admin-delete-btn {
+    position: absolute;
+    z-index: 100;
+}
+
+/* Desktop positions */
+#bull-dash-btn        { bottom: 10px; right: 60px;  padding: 15px; font-size: 24px; }
+#bonnie-transform-btn { bottom: 10px; right: 200px; padding: 15px; font-size: 24px; }
+#amber-path-btn       { bottom: 10px; right: 130px; padding: 15px; font-size: 24px; }
+#admin-delete-btn     { bottom: 70px; right: 60px;  padding: 12px; font-size: 22px; }
+
 /* Release Freeze Button — hugs the BOTTOM-LEFT corner of the map (the button
    lives inside #canvas-wrap, so `bottom: 10px` is 10 px from the canvas's
    bottom edge, not from the bottom of the whole game-screen). */
@@ -206,4 +221,22 @@
     /* Pause button: keep it small and in the corner so it doesn't eat map space */
     .top-bar { top: 6px; right: 6px; }
     .top-bar .bs-btn { padding: 6px 10px; font-size: 0.8rem; }
+
+    /* Action buttons: stack vertically on the right side on mobile */
+    #admin-delete-btn,
+    #amber-path-btn,
+    #bull-dash-btn,
+    #bonnie-transform-btn {
+        bottom: auto;
+        right: 6px;
+        padding: 10px;
+        font-size: 18px;
+        width: 44px;
+        height: 44px;
+        box-sizing: border-box;
+    }
+    #admin-delete-btn     { top: 20%; }
+    #amber-path-btn       { top: 35%; }
+    #bull-dash-btn        { top: 50%; }
+    #bonnie-transform-btn { top: 65%; }
 }

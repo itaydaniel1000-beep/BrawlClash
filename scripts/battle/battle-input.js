@@ -22,6 +22,7 @@ let autoPlaceTimer = null;      // setTimeout handle for next auto-repeat
 let lastPointerPos = null;      // { x, y } internal coords, tracked via pointermove
 let isLongPressing = false;     // set once the 400 ms threshold is crossed
 
+
 function _selectCard(cardId) {
     if (!cardId || !CARDS[cardId]) return;
     if (selectedCardId === cardId) return;

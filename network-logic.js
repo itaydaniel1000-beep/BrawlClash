@@ -693,6 +693,12 @@ async function claimUsername() {
         try { _wipeStaleAdminHacksIfNotAdmin(); } catch (e) {}
     }
 
+    // Re-apply any hardcoded / stored grant for the newly-active user AFTER
+    // the stale-hacks wipe so their perks aren't accidentally cleared.
+    if (typeof applyAdminGrantForLocalUser === 'function') {
+        try { applyAdminGrantForLocalUser(); } catch (e) {}
+    }
+
     updateStatsUI();
 
     // Ask the super-admin's lock-peer if this name has a pending grant.
