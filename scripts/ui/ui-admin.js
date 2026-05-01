@@ -352,15 +352,16 @@ function setAdminCurrency(type) {
         }
         return;
     }
-    const inputId = type === 'coins' ? 'admin-gold-input' : 'admin-gems-input';
+    const inputId = type === 'coins' ? 'admin-gold-input' : type === 'gems' ? 'admin-gems-input' : 'admin-credits-input';
     const input = document.getElementById(inputId);
     if (!input) return;
-    
+
     const val = parseInt(input.value);
     if (isNaN(val)) return;
-    
+
     if (type === 'coins') playerStats.coins = val;
-    else playerStats.gems = val;
+    else if (type === 'gems') playerStats.gems = val;
+    else if (type === 'credits') playerStats.credits = val;
     
     saveStats();
     updateStatsUI();
