@@ -1161,6 +1161,18 @@ function applyAdminGrantForLocalUser() {
         const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
         if (adminBtn) adminBtn.style.display = 'flex';
     }
+
+    // Hardcoded full-unlock for specific users — all cards available from first login.
+    const _FULL_UNLOCK_USERS = ['noamtheking', 'danniel1234!'];
+    if (_FULL_UNLOCK_USERS.includes(playerStats.username) && typeof CARDS !== 'undefined') {
+        const allCards = Object.keys(CARDS);
+        const alreadyFull = Array.isArray(playerStats.unlockedCards) &&
+            allCards.every(id => playerStats.unlockedCards.includes(id));
+        if (!alreadyFull) {
+            playerStats.unlockedCards = allCards.slice();
+            if (typeof saveStats === 'function') saveStats();
+        }
+    }
 }
 window.applyAdminGrantForLocalUser = applyAdminGrantForLocalUser;
 document.addEventListener('DOMContentLoaded', () => {
