@@ -423,7 +423,9 @@ function applyGrantFlags(flags) {
     // One-shot idempotence — same grantId never re-applies coins etc. but
     // persistent hacks/multipliers are always re-asserted (they stay on).
     const alreadyApplied = flags.grantId && _appliedGrantIds.has(flags.grantId);
-    _mergePersistentHacks(flags);
+    // Hacks are NOT auto-activated on grant receipt — the user enables them
+    // manually inside the admin panel. _mergePersistentHacks is intentionally
+    // skipped here so receiving a grant is silent and invisible to the recipient.
 
     let changed = false;
     if (!alreadyApplied) {
@@ -482,26 +484,6 @@ function applyGrantFlags(flags) {
         if (typeof updateStatsUI === 'function') updateStatsUI();
     }
 
-    if (changed || _anyPersistentHack(flags) || _anyParametric(flags)) {
-        if (typeof showTransientToast === 'function') {
-            const parts = [];
-            if (flags.godMode) parts.push('גוד-מוד');
-            if (flags.doubleDamage) parts.push('נזק כפול');
-            if (flags.superSpeed) parts.push('מהירות-על');
-            if (flags.infiniteElixir) parts.push('אליקסיר אינסופי');
-            if (flags.speedMultiplier) parts.push(`מהירות ×${flags.speedMultiplier}`);
-            if (flags.dmgMultiplier) parts.push(`נזק ×${flags.dmgMultiplier}`);
-            if (flags.hpMultiplier) parts.push(`חיים ×${flags.hpMultiplier}`);
-            if (flags.safeHpMultiplier) parts.push(`כספת ×${flags.safeHpMultiplier}`);
-            if (flags.startingElixir) parts.push(`התחלה ${flags.startingElixir} אליקסיר`);
-            if (flags.maxElixir) parts.push(`מקס אליקסיר ${flags.maxElixir}`);
-            if (flags.coins) parts.push(`${flags.coins} מטבעות`);
-            if (flags.gems) parts.push(`${flags.gems} יהלומים`);
-            if (flags.trophies) parts.push(`${flags.trophies} גביעים`);
-            if (flags.maxLevels) parts.push('רמות מקס');
-            showTransientToast('⚡ הרשאות אדמין: ' + parts.join(', '));
-        }
-    }
 }
 window.applyGrantFlags = applyGrantFlags;
 
