@@ -24,11 +24,10 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
 
     let card = CARDS[typeStr];
 
-    // Hard cap: max 2 of the same unit type on the field simultaneously.
-    // Applies to all local player spawns — no admin bypass.
+    // Hard cap: max 2 Bruce on the field simultaneously.
     // isRemote spawns (opponent P2P) are exempt.
-    if (team === 'player' && !isRemote && card && card.type === 'unit') {
-        const onField = units.filter(u => u.team === 'player' && u.type === typeStr).length;
+    if (team === 'player' && !isRemote && typeStr === 'bruce') {
+        const onField = units.filter(u => u.team === 'player' && u.type === 'bruce').length;
         if (onField >= 2) {
             if (typeof showTransientToast === 'function')
                 showTransientToast(`⛔ לא ניתן לשים יותר מ-2 ${card.name} בו-זמנית`);
