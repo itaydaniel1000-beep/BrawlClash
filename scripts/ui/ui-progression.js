@@ -221,28 +221,86 @@ function renderBrawlPass() {
     }
 }
 
+// Currency-exchange rates — how many target-currency units ONE gem buys.
+// One-directional only (gems → coins / gems → credits, never the reverse),
+// per user spec.
+const GEM_TO_COINS   = 30;   // 1 💎 → 30 🪙
+const GEM_TO_CREDITS = 5;    // 1 💎 → 5 🎟️
+
+// Perform a gem→currency exchange. `gemCost` gems are spent, the matching
+// amount of `target` currency ('coins' | 'credits') is granted.
+function exchangeGems(gemCost, target) {
+    const have = (playerStats && playerStats.gems) || 0;
+    if (have < gemCost) {
+        if (typeof showTransientToast === 'function') {
+            showTransientToast(`💎 אין מספיק יהלומים — צריך ${gemCost}`);
+        }
+        return;
+    }
+    playerStats.gems = have - gemCost;
+    if (target === 'coins')   playerStats.coins   = (playerStats.coins   || 0) + gemCost * GEM_TO_COINS;
+    if (target === 'credits') playerStats.credits = (playerStats.credits || 0) + gemCost * GEM_TO_CREDITS;
+    if (typeof saveStats === 'function') saveStats();
+    if (typeof updateStatsUI === 'function') updateStatsUI();
+    renderShop();   // refresh the balance strip + button affordability
+    try { AudioController.play('upgrade'); } catch (e) {}
+    if (typeof showTransientToast === 'function') {
+        const gained = target === 'coins'
+            ? `${gemCost * GEM_TO_COINS} 🪙`
+            : `${gemCost * GEM_TO_CREDITS} 🎟️`;
+        showTransientToast(`✅ קיבלת ${gained}`);
+    }
+}
+window.exchangeGems = exchangeGems;
+
 function renderShop() {
     const container = document.getElementById('shop-items-container');
     if (!container) return;
     container.innerHTML = "";
-    const deals = [
-        { name: 'חבילת זהב', price: '50 💎', icon: '💰', amount: 1000 },
-        { name: 'מגה תיבה', price: '80 💎', icon: '📦', amount: 'רנדומלי' },
-        { name: 'נקודות כוח', price: '100 🪙', icon: '⚡', amount: 50 },
-        { name: 'סקין נדיר', price: '150 💎', icon: '🎨', amount: 1 }
-    ];
-    
-    deals.forEach(deal => {
+
+    const gems = (playerStats && playerStats.gems) || 0;
+
+    // Balance strip — spans both grid columns so the player always sees how
+    // many gems they have to spend.
+    const balance = document.createElement('div');
+    balance.style.cssText = 'grid-column: 1 / -1; display:flex; justify-content:center; gap:18px; background:rgba(0,0,0,0.35); border:2px solid rgba(255,255,255,0.15); border-radius:12px; padding:10px; font-weight:bold; color:#fff;';
+    balance.innerHTML = `
+        <span style="color:#74b9ff;">💎 ${gems.toLocaleString()}</span>
+        <span style="color:#f1c40f;">🪙 ${((playerStats && playerStats.coins) || 0).toLocaleString()}</span>
+        <span style="color:#9b59b6;">🎟️ ${((playerStats && playerStats.credits) || 0).toLocaleString()}</span>
+    `;
+    container.appendChild(balance);
+
+    // Section header helper — full-width row label.
+    const addHeader = (text) => {
+        const h = document.createElement('div');
+        h.style.cssText = 'grid-column: 1 / -1; color:#f1c40f; font-weight:bold; text-align:center; margin-top:6px;';
+        h.innerText = text;
+        container.appendChild(h);
+    };
+
+    // One exchange offer card.
+    const addOffer = (gemCost, target) => {
+        const icon   = target === 'coins' ? '🪙' : '🎟️';
+        const amount = gemCost * (target === 'coins' ? GEM_TO_COINS : GEM_TO_CREDITS);
+        const canAfford = gems >= gemCost;
+
         const item = document.createElement('div');
-        item.style = `background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; border: 2px solid rgba(255, 255, 255, 0.1); cursor: pointer;`;
+        item.style.cssText = `background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap:4px; border: 2px solid ${canAfford ? 'rgba(116,185,255,0.5)' : 'rgba(255,255,255,0.1)'}; cursor: ${canAfford ? 'pointer' : 'not-allowed'}; opacity: ${canAfford ? 1 : 0.5};`;
         item.innerHTML = `
-            <div style="font-size: 2rem;">${deal.icon}</div>
-            <div style="font-weight: bold; color: white; margin: 5px 0;">${deal.name}</div>
-            <div style="color: #fbc531;">${deal.price}</div>
+            <div style="font-size: 1.6rem;">${icon}</div>
+            <div style="font-weight: bold; color: white;">+${amount.toLocaleString()} ${icon}</div>
+            <div style="color: #74b9ff; font-size: 0.9rem;">עלות: ${gemCost} 💎</div>
         `;
-        item.onclick = () => alert(`קנית ${deal.name}! (בכאילו)`);
+        if (canAfford) item.onclick = () => exchangeGems(gemCost, target);
         container.appendChild(item);
-    });
+    };
+
+    addHeader(`💎 ➜ 🪙  (יהלום = ${GEM_TO_COINS} מטבעות)`);
+    [1, 5, 25].forEach(g => addOffer(g, 'coins'));
+
+    addHeader(`💎 ➜ 🎟️  (יהלום = ${GEM_TO_CREDITS} קרדיטים)`);
+    [1, 5, 25].forEach(g => addOffer(g, 'credits'));
 }
 
 function renderLeaderboard() {
