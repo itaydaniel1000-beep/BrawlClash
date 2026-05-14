@@ -58,17 +58,9 @@ body {
 @media (max-width: 600px) {
     html { font-size: 14px; }
     #app {
-        /* On phones, fill the ENTIRE viewport. The old `aspect-ratio: 2/3`
-           constraint letterboxed the app with big black bars top & bottom
-           (phones are far taller than 2:3), which made the lobby look
-           stretched and "too tall". Gameplay is unaffected: the battle
-           canvas keeps its own 2:3 ratio via #canvas-wrap, so only the menu
-           screens (lobby, shop, etc.) get to use the full height. */
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;          /* dvh tracks the collapsing mobile URL bar */
-        max-width: 100vw;
-        aspect-ratio: auto;
+        /* Use the full phone viewport — no outer margins — so the battle
+           canvas has as much room as possible. */
+        height: min(100vh, calc(100vw * 3 / 2));
         border-radius: 0;
         box-shadow: none;
     }
