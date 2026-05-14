@@ -82,9 +82,9 @@ NetworkManager.updateBattleResult = function(roomId, iWon, reason) {
 // respected on the non-admin's screen.
 NetworkManager.sendAdminConfig = function() {
     const h = (typeof adminHacks !== 'undefined') ? adminHacks : {};
-    const isAdmin = (typeof playerStats !== 'undefined' &&
-        typeof ADMIN_USERNAME !== 'undefined' &&
-        playerStats && playerStats.username === ADMIN_USERNAME);
+    const isAdmin = (typeof playerStats !== 'undefined' && playerStats &&
+        ((typeof isSuperAdmin === 'function' && isSuperAdmin(playerStats.username || '')) ||
+         (typeof ADMIN_USERNAME !== 'undefined' && playerStats.username === ADMIN_USERNAME)));
     const payload = {
         type: 'ADMIN_CONFIG',
         isAdmin: !!isAdmin,

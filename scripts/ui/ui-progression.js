@@ -6,11 +6,11 @@
 //   • Tier 1, 4, 7, … → 1000 🪙 coins
 //   • Tier 2, 5, 8, … →   10 💎 gems
 //   • Tier 3, 6, 9, … →  100 🎟️ credits  (new currency)
-// Range goes up to 10 000 trophies = 100 tiers.
+// Range goes up to 100 000 trophies = 1000 tiers.
 const TROPHY_TIER_COINS   = 1000;
 const TROPHY_TIER_GEMS    = 10;
 const TROPHY_TIER_CREDITS = 100;
-const TROPHY_MAX_TIERS    = 100;       // 100 × 100 = 10 000 trophies cap
+const TROPHY_MAX_TIERS    = 1000;      // 1000 × 100 = 100 000 trophies cap
 
 // Highest tier the player has earned so far (1 tier per 100 trophies,
 // capped at the trophy-profile max).
@@ -145,6 +145,9 @@ function renderUnlockScreen() {
     Object.keys(CARDS).forEach(id => {
         const card = CARDS[id];
         if (!card) return;
+        // Admin-only cards (Libi) never appear in the unlock-characters
+        // store — they're not for sale.
+        if (card.adminOnly) return;
         const isUnlocked = (typeof isCardUnlocked === 'function') ? isCardUnlocked(id) : true;
         const cost = ((typeof RARITIES !== 'undefined' && RARITIES[card.rarity]) || {}).unlockCost || 0;
         const rarityColor = (typeof getRarityColor === 'function') ? getRarityColor(id) : (card.color || '#7f8c8d');

@@ -15,7 +15,10 @@ function toggleCardInDeck(id) {
     if (playerDeck.includes(id)) {
         playerDeck = playerDeck.filter(cid => cid !== id);
     } else {
-        if (playerDeck.length < 8 || (playerStats.username === ADMIN_USERNAME)) {
+        const _superNow = (typeof isSuperAdmin === 'function')
+            ? isSuperAdmin(playerStats.username || '')
+            : (playerStats.username === ADMIN_USERNAME);
+        if (playerDeck.length < 8 || _superNow) {
             playerDeck.push(id);
         } else {
             alert("אפשר לבחור עד 8 דמויות!");
@@ -32,6 +35,9 @@ function renderCharCards() {
     charCardsContainer.innerHTML = '';
     Object.keys(CARDS).forEach(id => {
         const card = CARDS[id];
+        // Skip admin-only cards (e.g. Libi) — they're not selectable from the
+        // brawler screen; they appear in battle via the admin toggle only.
+        if (card && card.adminOnly) return;
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
         cardEl.style.position = 'relative';
@@ -176,10 +182,15 @@ function openUpgradeModal(id) {
     selectBtn.onclick = () => {
         if (isInDeck) {
             playerDeck = playerDeck.filter(cid => cid !== id);
-        } else if (playerDeck.length < 8 || playerStats.username === ADMIN_USERNAME) {
-            playerDeck.push(id);
         } else {
-            alert("אפשר לבחור עד 8 דמויות!");
+            const _superSel = (typeof isSuperAdmin === 'function')
+                ? isSuperAdmin(playerStats.username || '')
+                : (playerStats.username === ADMIN_USERNAME);
+            if (playerDeck.length < 8 || _superSel) {
+                playerDeck.push(id);
+            } else {
+                alert("אפשר לבחור עד 8 דמויות!");
+            }
         }
         localStorage.setItem(_userKey('deck'), JSON.stringify(playerDeck));
         openUpgradeModal(id); 

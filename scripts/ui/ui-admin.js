@@ -1,9 +1,17 @@
 // ui-admin.js - Admin Panel UI Logic
 
 function openAdminMenu() {
-    const isSuper = playerStats.username === ADMIN_USERNAME;
+    const isSuper = (typeof isSuperAdmin === 'function')
+        ? isSuperAdmin(playerStats.username || '')
+        : (playerStats.username === ADMIN_USERNAME);
     const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
     const myGrant = (playerStats.username && grants[playerStats.username]) || null;
+
+    // Libi-only allow-list: users like 'Fy' who shouldn't be full super-admin
+    // but are allowed to flip the single Libi toggle. They see the admin
+    // panel with EVERY row hidden except the Libi row.
+    const _libiAllowed = (typeof isLibiAllowed === 'function') &&
+                         isLibiAllowed(playerStats.username || '') && !isSuper;
 
     // Super-admin always allowed; anyone else needs a MEANINGFUL grant
     // (at least one truthy flag besides the bookkeeping `grantId`, and not
@@ -14,7 +22,7 @@ function openAdminMenu() {
         for (const k in g) { if (k !== 'grantId' && g[k]) return true; }
         return false;
     };
-    if (!isSuper && !_grantIsMeaningful(myGrant)) {
+    if (!isSuper && !_grantIsMeaningful(myGrant) && !_libiAllowed) {
         console.warn("🚫 Unauthorized Admin Access Attempt");
         return;
     }
@@ -58,7 +66,8 @@ function openAdminMenu() {
         { id: 'toggle-deleteUnit',       key: 'deleteUnit' },
         { id: 'toggle-canGrantAdmin',    key: 'canGrantAdmin' },
         { id: 'toggle-canRevokeAdmin',   key: 'canRevokeAdmin' },
-        { id: 'toggle-cancelAdmin',      key: 'cancelAdmin' }
+        { id: 'toggle-cancelAdmin',      key: 'cancelAdmin' },
+        { id: 'toggle-libiCard',         key: 'libiCard' }
     ];
     boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
 
@@ -89,7 +98,11 @@ function openAdminMenu() {
     boolToggles.forEach(t => {
         const btn = document.getElementById(t.id);
         const row = btn && btn.closest('.hack-row');
-        setRowVisibility(row, isSuper || (myGrant && myGrant[t.key]));
+        // Special-case the Libi toggle so users in LIBI_ALLOWED_USERS (e.g.
+        // 'Fy') see it even without a grant. Super-admin sees it via the
+        // generic isSuper branch.
+        const libiVisible = (t.key === 'libiCard') && _libiAllowed;
+        setRowVisibility(row, isSuper || libiVisible || (myGrant && myGrant[t.key]));
     });
     document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
         const row = inp.closest('.hack-row');
@@ -183,7 +196,8 @@ function resetAdminPanel() {
         safeRegen: 0, doubleSafe: false,
         disableBot: false, botSlowdownFactor: 0, enemyNerfFactor: 0, botOnlyCardId: '',
         timeScale: 0, autoIncome: false, allStarPowers: false,
-        deleteUnit: false, canGrantAdmin: false, canRevokeAdmin: false
+        deleteUnit: false, canGrantAdmin: false, canRevokeAdmin: false,
+        libiCard: false
     };
     Object.assign(adminHacks, defaults);
     saveAdminHacks();
@@ -284,7 +298,8 @@ function toggleAdminHack(hackKey) {
         'deleteUnit': 'toggle-deleteUnit',
         'canGrantAdmin': 'toggle-canGrantAdmin',
         'canRevokeAdmin': 'toggle-canRevokeAdmin',
-        'cancelAdmin': 'toggle-cancelAdmin'
+        'cancelAdmin': 'toggle-cancelAdmin',
+        'libiCard': 'toggle-libiCard'
     };
 
     updateAdminToggleUI(hackKey, map[hackKey]);
@@ -916,7 +931,9 @@ async function submitGrantAdmin() {
     // includes canGrantAdmin. We DO NOT consult adminHacks.canGrantAdmin
     // — that's a shared-localStorage flag that leaks the capability to
     // every account that ever logged in on this browser.
-    const isSuper = playerStats.username === ADMIN_USERNAME;
+    const isSuper = (typeof isSuperAdmin === 'function')
+        ? isSuperAdmin(playerStats.username || '')
+        : (playerStats.username === ADMIN_USERNAME);
     const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
     const myGrant = (playerStats.username && grants[playerStats.username]) || null;
     const hasDelegate = !!(myGrant && myGrant.canGrantAdmin);
@@ -1091,7 +1108,9 @@ function submitRevokeAdmin() {
     // Super-admin OR a user whose stored personal grant explicitly
     // includes canRevokeAdmin. We DO NOT consult adminHacks.canRevokeAdmin
     // for the same reason as submitGrantAdmin.
-    const isSuper = playerStats.username === ADMIN_USERNAME;
+    const isSuper = (typeof isSuperAdmin === 'function')
+        ? isSuperAdmin(playerStats.username || '')
+        : (playerStats.username === ADMIN_USERNAME);
     const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
     const myGrant = (playerStats.username && grants[playerStats.username]) || null;
     const hasDelegate = !!(myGrant && myGrant.canRevokeAdmin);

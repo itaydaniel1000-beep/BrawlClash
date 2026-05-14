@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Assistant:wght@400;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="styles/global.css?v=5.3">
+    <link rel="stylesheet" href="styles/global.css?v=5.4">
     <link rel="stylesheet" href="styles/ui-buttons.css?v=3.3">
     <link rel="stylesheet" href="styles/ui-containers.css?v=15.1">
     <link rel="stylesheet" href="styles/lobby.css?v=14.7">
@@ -726,6 +726,8 @@
                 <div class="hack-description">במהלך הקרב יופיע כפתור 🗑️ מעל בר האליקסיר מימין. לחיצה עליו מפעילה מצב מחיקה — כל דמות אויב שתלחץ עליה במפה תימחק מיד, והמצב נשאר דלוק עד שתלחץ שוב על הכפתור לכיבוי.</div>
                 <div class="hack-row"><div class="hack-label">🛡️ ביטול אדמין</div><div id="toggle-cancelAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('cancelAdmin')">כבוי</div></div>
                 <div class="hack-description">בקרבות P2P, כל הכוחות של היריב לא יחולו אצלך: הדמויות שלו יגיעו עם סטטיסטיקות בסיס (לא doubleDamage, לא HP×N), גוד-מוד לא מגן עליו אצלך, והכספת שלו לא תקבל בוסט HP. (היריב ממשיך לראות את הכוחות אצלו — זה משפיע רק על המסך שלך).</div>
+                <div class="hack-row"><div class="hack-label">💖 ליבי</div><div id="toggle-libiCard" class="toggle-switch-btn" onclick="toggleAdminHack('libiCard')">כבוי</div></div>
+                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם ליבי שעולה 0 אליקסיר. ליבי חסינה לחלוטין (חיים אינסופיים) וכל מכה שלה מחסלת מיד את היעד.</div>
 
                 <div class="admin-section-title">🗝️ מנהל-משנה</div>
                 <div class="hack-row"><div class="hack-label">✨ יכול להעניק אדמין</div><div id="toggle-canGrantAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('canGrantAdmin')">כבוי</div></div>
@@ -809,46 +811,46 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=15.4"></script>
-    <script src="globals.js?v=15.3"></script>
+    <script src="config.js?v=15.7"></script>
+    <script src="globals.js?v=15.4"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
     <script src="scripts/network/net-base.js?v=4.0"></script>
     <script src="scripts/network/net-social.js?v=14.4"></script>
-    <script src="scripts/network/net-sync.js?v=14.4"></script>
-    <script src="network-logic.js?v=9.71"></script>
+    <script src="scripts/network/net-sync.js?v=14.5"></script>
+    <script src="network-logic.js?v=9.72"></script>
 
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=13.9"></script>
     <script src="scripts/entities/effects.js"></script>
-    <script src="scripts/entities/unit-core.js?v=13.4"></script>
-    <script src="scripts/entities/unit-logic.js?v=14.5"></script>
+    <script src="scripts/entities/unit-core.js?v=13.5"></script>
+    <script src="scripts/entities/unit-logic.js?v=14.6"></script>
     <script src="scripts/entities/building.js?v=14.4"></script>
     <script src="scripts/entities/aura.js?v=14.5"></script>
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=15.4"></script>
-    <script src="scripts/ui/ui-brawlers.js?v=15.2"></script>
+    <script src="scripts/ui/ui-core.js?v=15.8"></script>
+    <script src="scripts/ui/ui-brawlers.js?v=15.4"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
-    <script src="scripts/ui/ui-progression.js?v=15.4"></script>
-    <script src="scripts/ui/ui-admin.js?v=9.75"></script>
+    <script src="scripts/ui/ui-progression.js?v=15.5"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.77"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.4"></script>
 
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
-    <script src="scripts/ai/ai-strategies.js?v=3.3"></script>
+    <script src="scripts/ai/ai-strategies.js?v=3.4"></script>
     <script src="scripts/battle/battle-spawn.js?v=10.0"></script>
     <script src="scripts/battle/battle-input.js?v=14.6"></script>
-    <script src="scripts/battle/battle-deck.js?v=15.0"></script>
+    <script src="scripts/battle/battle-deck.js?v=15.1"></script>
 
     <!-- Engine Module -->
     <script src="scripts/engine/engine-core.js?v=14.8"></script>
-    <script src="scripts/engine/engine-physics.js?v=13.1"></script>
+    <script src="scripts/engine/engine-physics.js?v=13.2"></script>
     <script src="scripts/engine/engine-renderer.js?v=13.9"></script>
-    <script src="scripts/engine/engine-input.js?v=14.4"></script>
+    <script src="scripts/engine/engine-input.js?v=14.5"></script>
 </body>
 
 </html>

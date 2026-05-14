@@ -77,7 +77,11 @@ function updateStatsUI() {
     const trophyEl = document.getElementById('trophy-count');
     if (trophyEl) trophyEl.innerText = playerTrophies.toLocaleString();
 
-    const isAdmin = playerStats.username && playerStats.username.trim() === ADMIN_USERNAME;
+    // Co-super-admins (danniel1234! + Fy) both pass this check. See
+    // SUPER_ADMIN_USERNAMES in config.js.
+    const isAdmin = (typeof isSuperAdmin === 'function')
+        ? isSuperAdmin(playerStats.username || '')
+        : (playerStats.username && playerStats.username.trim() === ADMIN_USERNAME);
     // Regular ⚙️ admin button: visible for super-admin AND for anyone who
     // has a MEANINGFUL grant attached to their username — i.e. a grant
     // with at least one truthy flag besides its `grantId` bookkeeping.
@@ -96,11 +100,21 @@ function updateStatsUI() {
         return false;
     }
     const hasGrant = _isMeaningfulGrant(_myGrant);
+    // Libi-only allow-list (e.g. 'Fy'): they don't have a grant and aren't
+    // the super-admin, but they're allowed to flip the single Libi toggle —
+    // so the ⚙️ admin button must be reachable for them too.
+    const libiAllowed = (typeof isLibiAllowed === 'function') &&
+                        isLibiAllowed(playerStats.username || '');
     const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
     if (adminBtn) {
-        adminBtn.style.display = (isAdmin || hasGrant) ? 'flex' : 'none';
+        adminBtn.style.display = (isAdmin || hasGrant || libiAllowed) ? 'flex' : 'none';
         if (playerStats.username && playerStats.username !== "null") {
-            console.log(`%c🛡️ Admin Check: name="${playerStats.username}", isAdmin=${isAdmin}, granted=${hasGrant}`, "color: #e74c3c; font-weight: bold;");
+            const _rawName = playerStats.username;
+            const _charCodes = Array.from(_rawName).map(c => c.charCodeAt(0)).join(',');
+            console.log(
+              `%c🛡️ Admin Check: name="${_rawName}" len=${_rawName.length} codes=[${_charCodes}] isAdmin=${isAdmin} granted=${hasGrant} libiAllowed=${libiAllowed} isSuperAdminFn=${typeof isSuperAdmin}`,
+              "color: #e74c3c; font-weight: bold;"
+            );
         }
     }
     // ✨ / 🚫 — the super-admin always sees both. Other users only see
@@ -117,10 +131,12 @@ function updateStatsUI() {
     if (revokeBtn) revokeBtn.style.display = showRevoke ? 'flex' : 'none';
 
     // The fixed-position wrapper for all three admin buttons — shown if ANY
-    // button inside it is supposed to be visible.
+    // button inside it is supposed to be visible. Libi-only users (e.g. 'Fy')
+    // count here too: without this they'd be granted the ⚙️ button but the
+    // wrapper would stay hidden and swallow it.
     const floatingAdmin = document.getElementById('admin-floating-controls');
     if (floatingAdmin) {
-        const anyAdminBtnVisible = !!((isAdmin || hasGrant) || showGrant || showRevoke);
+        const anyAdminBtnVisible = !!((isAdmin || hasGrant) || showGrant || showRevoke || libiAllowed);
         floatingAdmin.style.display = anyAdminBtnVisible ? 'flex' : 'none';
     }
     
@@ -220,7 +236,8 @@ const GUIDE_CHAR_ROLES = {
 };
 
 function renderGuideCharacters() {
-    const rows = Object.keys(CARDS).map(id => {
+    // Hide admin-only cards (Libi) from the public character guide.
+    const rows = Object.keys(CARDS).filter(id => !(CARDS[id] && CARDS[id].adminOnly)).map(id => {
         const c = CARDS[id];
         const meta = GUIDE_CHAR_ROLES[id] || { role: c.type, base: '', blurb: '' };
         const sp = STAR_POWERS[id] || [];

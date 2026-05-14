@@ -15,6 +15,33 @@ const CONFIG = {
 
 const ADMIN_USERNAME = 'danniel1234!';
 
+// Co-super-admins. Users in this list see the FULL admin panel (every
+// toggle, every grant/revoke button, every currency editor) and pass every
+// gameplay admin-power gate — exactly like the canonical `ADMIN_USERNAME`.
+// ADMIN_USERNAME is included so callers can use this list as the single
+// source of truth for "is this account a super-admin?" without remembering
+// to also `|| name === ADMIN_USERNAME` everywhere.
+//
+// Note: this is UI/gameplay only. The username-registry lock-peer (used by
+// network-logic.js to gate username uniqueness across devices) stays
+// hard-coded to `ADMIN_USERNAME` since only one peer can hold that role.
+const SUPER_ADMIN_USERNAMES = ['danniel1234!', 'Fy'];
+function isSuperAdmin(name) {
+    if (!name) return false;
+    const needle = name.trim().toLowerCase();
+    return SUPER_ADMIN_USERNAMES.some(n => n.toLowerCase() === needle);
+}
+
+// Users allowed to toggle the secret "Libi" admin power. Super-admins are
+// included so they always see the toggle in their panel alongside every
+// other admin row.
+const LIBI_ALLOWED_USERS = ['danniel1234!', 'Fy'];
+function isLibiAllowed(name) {
+    if (!name) return false;
+    const needle = name.trim().toLowerCase();
+    return LIBI_ALLOWED_USERS.some(n => n.toLowerCase() === needle);
+}
+
 // Rarity tiers — drives the card border color in the brawler-selection
 // screen and the in-battle deck. Higher rarity = visually rarer card.
 // `unlockCost` is the price in credits 🎟️ to unlock a card of that
@@ -109,7 +136,14 @@ const CARDS = {
     // sweeping enemy turrets / units off the field without the bruce
     // wasting his life smashing the gate.
     'bonnie': { name: 'בוני', cost: 6, type: 'building', color: '#a29bfe', icon: '🏰',
-               rarity: 'מדהים' }
+               rarity: 'מדהים' },
+    // Libi — secret admin-only ultimate unit. Costs 0 elixir, invulnerable
+    // (cannot take damage), one-shots everything it attacks (effectively
+    // infinite damage). Only added to the deck when the player has the
+    // "libiCard" admin toggle ON and is in LIBI_ALLOWED_USERS. Not unlock-
+    // able from the shop and not visible in the brawler-selection screen.
+    'libi':   { name: 'ליבי', cost: 0, type: 'unit', color: '#ff69b4', icon: '💖',
+               rarity: 'אגדי', adminOnly: true }
 };
 
 const STAR_POWERS = {

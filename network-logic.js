@@ -569,18 +569,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof verifyUsernameWithAdmin === 'function') {
                     setTimeout(() => {
                         verifyUsernameWithAdmin(playerStats.username).then(v => {
+                            // FAIL-OPEN: don't eject a logged-in player just
+                            // because the registry maps the name to another
+                            // device. They keep playing under their name.
                             if (!v.ok && v.reason === 'taken') {
-                                ejectToUsernameScreen('registry says name belongs to another device');
+                                console.warn('⚠️ username-lock: registry says name belongs to another device — staying logged in (fail-open).');
                             }
                         });
                     }, 800);
                 }
             })
             .catch((err) => {
-                // Only force a re-claim for actual "name taken" rejection.
-                // Broker timeouts / generic errors shouldn't eject the user.
+                // FAIL-OPEN: don't eject the user even on a hard "name-taken"
+                // rejection — another tab/device holding the broker lock no
+                // longer kicks this session out.
                 if (err && err.message === 'name-taken') {
-                    ejectToUsernameScreen('name is now held by another device');
+                    console.warn('⚠️ username-lock: name held by another device — staying logged in (fail-open).');
                 }
             });
     }, 1500);
@@ -604,27 +608,34 @@ async function claimUsername() {
         await tryClaimUsernameLock(name);
 
         // Persistent uniqueness check via the super-admin's username registry.
-        // PeerJS lock above is ephemeral (lost when the holder closes their
-        // tab); the registry survives offline periods.
+        // FAIL-OPEN: if the registry says the name is "taken" we no longer
+        // block the login — cross-device name-sharing is now allowed. We just
+        // log a warning so the behaviour is still visible in the console.
         if (typeof verifyUsernameWithAdmin === 'function') {
             const verify = await verifyUsernameWithAdmin(name);
             if (!verify.ok && verify.reason === 'taken') {
-                throw new Error('name-taken');
+                console.warn('⚠️ Username "' + name + '" is registered to another device — allowing login anyway (fail-open).');
             }
         }
     } catch (e) {
-        if (feedback) {
-            feedback.style.color = '#ff7675';
-            if (e && e.message === 'name-taken') {
-                feedback.innerText = '❌ השם כבר בשימוש. בחר שם אחר.';
-            } else if (e && e.message === 'broker-timeout') {
-                feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
-            } else {
-                feedback.innerText = '❌ שגיאת רשת, נסה שוב.';
+        // FAIL-OPEN on "name-taken": the PeerJS broker lock for this name is
+        // held elsewhere (another tab/device, or a stale ghost lock), but we
+        // let the player in regardless. Only genuine network errors
+        // (broker-timeout / unknown) still ask the user to retry.
+        if (e && e.message === 'name-taken') {
+            console.warn('⚠️ Username lock for "' + name + '" is held elsewhere — allowing login anyway (fail-open).');
+        } else {
+            if (feedback) {
+                feedback.style.color = '#ff7675';
+                if (e && e.message === 'broker-timeout') {
+                    feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
+                } else {
+                    feedback.innerText = '❌ שגיאת רשת, נסה שוב.';
+                }
             }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+            return;
         }
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
-        return;
     }
 
     // Rename success path: free the old name in the registry so OTHER devices

@@ -99,6 +99,20 @@ class Unit extends Entity {
             const _seedX = Math.floor(_canonX * 10);
             const _seedY = Math.floor(_canonY * 10);
             this._trunkRngState = ((_seedX * 73856093) ^ (_seedY * 19349663) ^ 0x9E3779B9) >>> 0;
+        } else if (type === 'libi') {
+            // Libi — secret admin-only ultimate. Invulnerable (cannot die),
+            // effectively infinite damage so a single contact one-shots
+            // anything she touches (units, buildings, safe). Walks like
+            // Bruce (target-chase). HP bar hidden because nothing can ever
+            // drain it.
+            this.maxHp = 1e9; this.hp = 1e9;
+            this.attackDamage = 1e9;
+            this.speed = 80;                  // a touch faster than bruce
+            this.attackSpeed = 400;           // quick swings too
+            this.attackRange = 60;
+            this.color = '#ff69b4';
+            this.isInvulnerable = true;       // takeDamage no-op (entity-base.js)
+            this.isHealthHidden = true;       // skip HP bar — always full
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
             // unit-logic.js to skip the attack code-path entirely (otherwise

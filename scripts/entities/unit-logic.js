@@ -266,7 +266,7 @@ Unit.prototype.update = function(dt, now) {
         return;
     }
 
-    if (this.type === 'bull' || this.type === 'porter') {
+    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi') {
         let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
 

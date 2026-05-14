@@ -48,7 +48,19 @@ function buildDeck() {
     if (farRightEl) farRightEl.innerHTML = '';
     if (centerEl)   centerEl.innerHTML   = '';
 
-    playerDeck.forEach(cardId => {
+    // Effective deck — adds the secret Libi card only for admin users who
+    // are allowed to see her AND have the toggle on. We avoid mutating the
+    // saved playerDeck (which is persisted to localStorage) so Libi stays
+    // ephemeral: a battle-only injection that vanishes when the toggle flips.
+    const _username = (playerStats && playerStats.username) ? playerStats.username : '';
+    const _libiOn   = !!(adminHacks && adminHacks.libiCard) &&
+                      (typeof isLibiAllowed === 'function' ? isLibiAllowed(_username)
+                                                           : _username === ADMIN_USERNAME);
+    const _effectiveDeck = _libiOn && CARDS['libi']
+        ? playerDeck.concat(playerDeck.includes('libi') ? [] : ['libi'])
+        : playerDeck;
+
+    _effectiveDeck.forEach(cardId => {
         const card = CARDS[cardId];
         if (!card) return;
 

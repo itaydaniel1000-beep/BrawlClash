@@ -19,8 +19,9 @@ function update(dt, now) {
         let _isAdminUser = false;
         try {
             const isSuper = (typeof playerStats !== 'undefined' && playerStats &&
-                             typeof ADMIN_USERNAME !== 'undefined' &&
-                             playerStats.username === ADMIN_USERNAME);
+                             ((typeof isSuperAdmin === 'function' && isSuperAdmin(playerStats.username || '')) ||
+                              (typeof ADMIN_USERNAME !== 'undefined' &&
+                               playerStats.username === ADMIN_USERNAME)));
             const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
             const granted = !!(playerStats && playerStats.username && grants && grants[playerStats.username]);
             _isAdminUser  = isSuper || granted;

@@ -75,8 +75,9 @@ function handleNetworkGameOver(data) {
 function _userMayCancelAdmin() {
     try {
         const isSuper = (typeof playerStats !== 'undefined' && playerStats &&
-                         typeof ADMIN_USERNAME !== 'undefined' &&
-                         playerStats.username === ADMIN_USERNAME);
+                         ((typeof isSuperAdmin === 'function' && isSuperAdmin(playerStats.username || '')) ||
+                          (typeof ADMIN_USERNAME !== 'undefined' &&
+                           playerStats.username === ADMIN_USERNAME)));
         if (isSuper) return true;
         const grants  = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
         const myGrant = (typeof playerStats !== 'undefined' && playerStats && playerStats.username && grants[playerStats.username]) || null;

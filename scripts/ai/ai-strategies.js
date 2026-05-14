@@ -2,7 +2,9 @@
 
 function aiUpdateEasy(dt, now) {
     if (now - lastAIActionTime > 3000) {
-        let options = Object.keys(CARDS);
+        // Skip cards flagged `adminOnly` (e.g. the Libi ultimate) — the bot
+        // must never roll one of them on its own.
+        let options = Object.keys(CARDS).filter(k => !CARDS[k].adminOnly);
         let choice = options[Math.floor(Math.random() * options.length)];
         if (aiSpawn(Math.random() * CONFIG.CANVAS_WIDTH, 100, choice)) {
             lastAIActionTime = now;
@@ -15,7 +17,7 @@ function aiUpdateNormal(dt, now) {
         let players = units.filter(u => u.team === 'player');
         if (players.length > 0) {
             let target = players[0];
-            let options = Object.keys(CARDS).filter(k => CARDS[k].type === 'unit');
+            let options = Object.keys(CARDS).filter(k => CARDS[k].type === 'unit' && !CARDS[k].adminOnly);
             let choice = options[Math.floor(Math.random() * options.length)];
             if (aiSpawn(target.x, 100, choice)) lastAIActionTime = now;
         } else {

@@ -289,7 +289,11 @@ var adminHacks = (function loadAdminHacks() {
         // for the duration of a P2P match. We refuse to apply opponent buffs
         // locally AND ask the opponent's client to temporarily wipe its own
         // adminHacks (backed up + restored at match end).
-        cancelAdmin: false
+        cancelAdmin: false,
+        // Secret "Libi" ultimate card. When on, an extra invulnerable
+        // 0-elixir unit appears in the deck during battle. Only the users
+        // in LIBI_ALLOWED_USERS see the toggle in the admin panel.
+        libiCard: false
     };
     try {
         const raw = localStorage.getItem(_userKey('admin_hacks'));
