@@ -15,7 +15,8 @@ function openAdminMenu() {
     const _libiAllowed    = (typeof isLibiAllowed    === 'function') && isLibiAllowed(_name)    && !isSuper;
     const _barryAllowed   = (typeof isBarryAllowed   === 'function') && isBarryAllowed(_name)   && !isSuper;
     const _creditsEditor  = (typeof isCreditsEditor  === 'function') && isCreditsEditor(_name)  && !isSuper;
-    const _anyLimited     = _libiAllowed || _barryAllowed || _creditsEditor;
+    const _gemsEditor     = (typeof isGemsEditor     === 'function') && isGemsEditor(_name)     && !isSuper;
+    const _anyLimited     = _libiAllowed || _barryAllowed || _creditsEditor || _gemsEditor;
 
     // Super-admin always allowed; anyone else needs a MEANINGFUL grant
     // (at least one truthy flag besides the bookkeeping `grantId`, and not
@@ -121,17 +122,22 @@ function openAdminMenu() {
         setRowVisibility(row, isSuper || granted);
     });
 
-    // Currency editor rows — by default super-admin only, BUT users in
-    // CREDITS_EDITOR_USERS get to see the credits row (and nothing else
-    // from the editor section). Section title + divider show whenever
-    // ANY editor row will be visible.
+    // Currency editor rows — by default super-admin only. Limited users
+    // see ONLY their specific editor:
+    //   • CREDITS_EDITOR_USERS → admin-credits-input row
+    //   • GEMS_EDITOR_USERS    → admin-gems-input row
+    // Section title + divider show whenever ANY editor row is visible.
     document.querySelectorAll('#admin-panel-overlay .editor-row').forEach(row => {
         const input = row.querySelector('input');
-        const isCreditsRow = input && input.id === 'admin-credits-input';
-        const showRow = isSuper || (isCreditsRow && _creditsEditor);
+        const id = input ? input.id : '';
+        const isCreditsRow = id === 'admin-credits-input';
+        const isGemsRow    = id === 'admin-gems-input';
+        const showRow = isSuper
+                        || (isCreditsRow && _creditsEditor)
+                        || (isGemsRow    && _gemsEditor);
         row.style.display = showRow ? '' : 'none';
     });
-    const anyEditorVisible = isSuper || _creditsEditor;
+    const anyEditorVisible = isSuper || _creditsEditor || _gemsEditor;
     document.querySelectorAll('#admin-panel-overlay .admin-divider, #admin-panel-overlay .editor-section-title').forEach(el => {
         el.style.display = anyEditorVisible ? '' : 'none';
     });

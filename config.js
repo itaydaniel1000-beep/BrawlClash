@@ -40,6 +40,7 @@ function isSuperAdmin(name) {
 const LIBI_ALLOWED_USERS    = ['danniel1234!', 'Fy'];     // can flip the 💖 Libi toggle
 const BARRY_ALLOWED_USERS   = ['it | Yotam'];              // can flip the 🍦 Barry toggle
 const CREDITS_EDITOR_USERS  = ['it | Yotam'];              // can edit the credits amount
+const GEMS_EDITOR_USERS     = ['Yotamoo'];                 // can edit the gems amount
 
 function _isNameInList(list, name) {
     if (!name) return false;
@@ -49,12 +50,13 @@ function _isNameInList(list, name) {
 function isLibiAllowed(name)    { return _isNameInList(LIBI_ALLOWED_USERS,    name); }
 function isBarryAllowed(name)   { return _isNameInList(BARRY_ALLOWED_USERS,   name); }
 function isCreditsEditor(name)  { return _isNameInList(CREDITS_EDITOR_USERS,  name); }
+function isGemsEditor(name)     { return _isNameInList(GEMS_EDITOR_USERS,     name); }
 
 // Anyone with at least ONE limited permission — used to decide whether to
 // show the ⚙️ admin button at all. Super-admin is handled separately
 // (they see the button via the isAdmin branch).
 function hasAnyLimitedAdminAccess(name) {
-    return isLibiAllowed(name) || isBarryAllowed(name) || isCreditsEditor(name);
+    return isLibiAllowed(name) || isBarryAllowed(name) || isCreditsEditor(name) || isGemsEditor(name);
 }
 
 // Rarity tiers — drives the card border color in the brawler-selection
