@@ -191,7 +191,7 @@ function renderBrawlPass() {
     const container = document.getElementById('bp-tiers-container');
     if (!container) return;
     container.innerHTML = "";
-    for (let i = 1; i <= 10; i++) {
+    for (let i = 1; i <= 60; i++) {
         const canClaim = playerTrophies >= i * 100;
         const isClaimed = playerStats.claimedTiers.includes(i);
 
