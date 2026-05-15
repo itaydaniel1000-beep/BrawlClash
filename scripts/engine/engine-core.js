@@ -55,8 +55,8 @@ function _positionActionButtons() {
             btn.style.position  = 'absolute';
             btn.style.top       = 'auto';
             btn.style.left      = 'auto';
-            btn.style.right     = ['60px','130px','60px','200px'][i];
-            btn.style.bottom    = ['70px','10px','10px','10px'][i];
+            btn.style.right     = ['60px','130px','60px','200px','60px'][i];
+            btn.style.bottom    = ['70px','10px','10px','10px','140px'][i];
             btn.style.zIndex    = '100';
         }
     });
