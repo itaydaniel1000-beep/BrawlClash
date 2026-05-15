@@ -630,22 +630,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof verifyUsernameWithAdmin === 'function') {
                     setTimeout(() => {
                         verifyUsernameWithAdmin(playerStats.username).then(v => {
-                            // FAIL-OPEN: don't eject a logged-in player just
-                            // because the registry maps the name to another
-                            // device. They keep playing under their name.
+                            // FAIL-CLOSED: if a fresh registry check says
+                            // this name was claimed elsewhere, eject. Stops
+                            // two devices from sharing the same account.
                             if (!v.ok && v.reason === 'taken') {
-                                console.warn('⚠️ username-lock: registry says name belongs to another device — staying logged in (fail-open).');
+                                ejectToUsernameScreen('registry says name belongs to another device');
                             }
                         });
                     }, 800);
                 }
             })
             .catch((err) => {
-                // FAIL-OPEN: don't eject the user even on a hard "name-taken"
-                // rejection — another tab/device holding the broker lock no
-                // longer kicks this session out.
+                // FAIL-CLOSED again — if the broker lock was lost mid-
+                // session (another device claimed our name), eject so the
+                // user has to re-authenticate.
                 if (err && err.message === 'name-taken') {
-                    console.warn('⚠️ username-lock: name held by another device — staying logged in (fail-open).');
+                    ejectToUsernameScreen('name is now held by another device');
                 }
             });
     }, 1500);
@@ -699,34 +699,34 @@ async function claimUsername() {
         await tryClaimUsernameLock(name);
 
         // Persistent uniqueness check via the super-admin's username registry.
-        // FAIL-OPEN: if the registry says the name is "taken" we no longer
-        // block the login — cross-device name-sharing is now allowed. We just
-        // log a warning so the behaviour is still visible in the console.
+        // FAIL-CLOSED: if the registry says this name belongs to a different
+        // device, refuse the login outright. (Was fail-open earlier — we
+        // reverted because two people on different devices were ending up
+        // sharing the same account, which the player flagged as a bug.)
         if (typeof verifyUsernameWithAdmin === 'function') {
             const verify = await verifyUsernameWithAdmin(name);
             if (!verify.ok && verify.reason === 'taken') {
-                console.warn('⚠️ Username "' + name + '" is registered to another device — allowing login anyway (fail-open).');
+                throw new Error('name-taken');
             }
         }
     } catch (e) {
-        // FAIL-OPEN on "name-taken": the PeerJS broker lock for this name is
-        // held elsewhere (another tab/device, or a stale ghost lock), but we
-        // let the player in regardless. Only genuine network errors
-        // (broker-timeout / unknown) still ask the user to retry.
-        if (e && e.message === 'name-taken') {
-            console.warn('⚠️ Username lock for "' + name + '" is held elsewhere — allowing login anyway (fail-open).');
-        } else {
-            if (feedback) {
-                feedback.style.color = '#ff7675';
-                if (e && e.message === 'broker-timeout') {
-                    feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
-                } else {
-                    feedback.innerText = '❌ שגיאת רשת, נסה שוב.';
-                }
+        if (feedback) {
+            feedback.style.color = '#ff7675';
+            if (e && e.message === 'name-taken') {
+                // FAIL-CLOSED — if the name is currently held on another
+                // device (either the PeerJS broker lock or the super-admin's
+                // persistent registry says so), refuse. The user must close
+                // the other tab / device first, wait ~30 s for the broker
+                // lock to drop, and try again.
+                feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. סגור את הטאב/האפליקציה שם וחכה כ-30 שניות, ואז נסה שוב.';
+            } else if (e && e.message === 'broker-timeout') {
+                feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
+            } else {
+                feedback.innerText = '❌ שגיאת רשת, נסה שוב.';
             }
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
-            return;
         }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+        return;
     }
 
     // Rename success path: free the old name in the registry so OTHER devices
