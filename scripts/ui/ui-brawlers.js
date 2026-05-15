@@ -1,4 +1,32 @@
 // ui-brawlers.js - Brawler Cards and Upgrades
+//
+// Upgrade cost table — mirrors the Brawl Stars power-level price curve
+// (PP + coins per upgrade, ramping up each tier). Index 0 = cost to go
+// from level 1 → 2, index 1 = 2 → 3, … MAX_LEVEL is 12 in this game, so
+// we need 11 entries (1→2 through 11→12). Levels 1→11 use the canonical
+// Brawl Stars numbers; the extra 11→12 step extrapolates the curve.
+const UPGRADE_COSTS = [
+    { pp:   20, coins:   20 },   // 1 → 2
+    { pp:   30, coins:   35 },   // 2 → 3
+    { pp:   50, coins:   75 },   // 3 → 4
+    { pp:   80, coins:  140 },   // 4 → 5
+    { pp:  130, coins:  290 },   // 5 → 6
+    { pp:  210, coins:  480 },   // 6 → 7
+    { pp:  340, coins:  800 },   // 7 → 8
+    { pp:  550, coins: 1250 },   // 8 → 9
+    { pp:  890, coins: 1875 },   // 9 → 10
+    { pp: 1440, coins: 2800 },   // 10 → 11
+    { pp: 2330, coins: 4200 }    // 11 → 12 (extrapolated to fit MAX_LEVEL=12)
+];
+
+// Look up the cost of upgrading a card from `currentLevel` to currentLevel+1.
+// Returns null if the card is already at MAX_LEVEL (no upgrade possible).
+function getUpgradeCost(currentLevel) {
+    const idx = currentLevel - 1;
+    if (idx < 0 || idx >= UPGRADE_COSTS.length) return null;
+    return UPGRADE_COSTS[idx];
+}
+window.getUpgradeCost = getUpgradeCost;
 
 function toggleCardInDeck(id) {
     // Locked cards can't enter the deck — show a quick toast instead of
@@ -137,37 +165,54 @@ function openUpgradeModal(id) {
     document.getElementById('stat-hp').innerText = `חיים: ${Math.floor(baseHp * scale)} ➔ ${Math.floor(baseHp * nextScale)}`;
     document.getElementById('stat-damage').innerText = baseDmg > 0 ? `נזק: ${Math.floor(baseDmg * scale)} ➔ ${Math.floor(baseDmg * nextScale)}` : "";
     
-    const cost = level * 200;
-    document.getElementById('upgrade-cost').innerText = cost;
+    const cost = getUpgradeCost(level);   // null at MAX_LEVEL
+    const ppEl    = document.getElementById('upgrade-cost-pp');
+    const coinsEl = document.getElementById('upgrade-cost');
+    if (cost) {
+        if (ppEl)    ppEl.innerText    = cost.pp.toLocaleString();
+        if (coinsEl) coinsEl.innerText = cost.coins.toLocaleString();
+    } else {
+        if (ppEl)    ppEl.innerText    = '-';
+        if (coinsEl) coinsEl.innerText = '-';
+    }
 
     const btn = document.getElementById('upgrade-action-btn');
-    const atMaxLevel = level >= MAX_LEVEL;
+    const atMaxLevel = level >= MAX_LEVEL || !cost;
+    const havePp    = (playerStats.pp    || 0);
+    const haveCoins = (playerStats.coins || 0);
+    const canAfford = !!cost && havePp >= cost.pp && haveCoins >= cost.coins;
     if (atMaxLevel) {
         btn.disabled = true;
         btn.style.opacity = "0.5";
         btn.innerText = 'רמה מקסימלית!';
         document.getElementById('stat-level').innerText = `רמה: ${level} (מקס)`;
-    } else if (playerStats.coins >= cost) {
+    } else if (canAfford) {
         btn.disabled = false;
         btn.style.opacity = '1';
         btn.innerText = 'שדרג!';
     } else {
         btn.disabled = true;
         btn.style.opacity = '0.5';
-        btn.innerText = 'שדרג!';
+        // Show what's missing — helps the player know which currency to grind.
+        const missing = [];
+        if (havePp    < cost.pp)    missing.push(`${cost.pp - havePp} 💪`);
+        if (haveCoins < cost.coins) missing.push(`${cost.coins - haveCoins} 🪙`);
+        btn.innerText = missing.length ? `חסר ${missing.join(' + ')}` : 'שדרג!';
     }
 
-    // The actual upgrade action — deducts coins, bumps the level, persists, and
-    // re-opens the modal so the user sees the new stats/cost immediately.
-    // (This handler was missing after the monolithic file was split, which is
-    //  why "upgrade" was a no-op even with enough coins.)
+    // The actual upgrade action — deducts both PP and coins, bumps the level,
+    // persists, and re-opens the modal so the player sees the new stats/cost
+    // for the NEXT upgrade immediately.
     btn.onclick = () => {
         if (!currentlyUpgradingId) return;
-        const lvl = playerStats.levels[currentlyUpgradingId];
+        const lvl  = playerStats.levels[currentlyUpgradingId];
         if (lvl >= MAX_LEVEL) return;
-        const price = lvl * 200;
-        if (playerStats.coins < price) return;
-        playerStats.coins -= price;
+        const price = getUpgradeCost(lvl);
+        if (!price) return;
+        if ((playerStats.pp || 0)    < price.pp)    return;
+        if ((playerStats.coins || 0) < price.coins) return;
+        playerStats.pp    = (playerStats.pp    || 0) - price.pp;
+        playerStats.coins = (playerStats.coins || 0) - price.coins;
         playerStats.levels[currentlyUpgradingId]++;
         saveStats();
         updateStatsUI();
