@@ -47,7 +47,11 @@ function update(dt, now) {
             elixirGenRate *= 1.1;
         }
         playerElixir = Math.min(playerMaxElixir, playerElixir + (elixirGenRate * dt / 1000));
-        let aiGenMult = difficulty === 'hard' ? 1.5 : 1.0;
+        // Bot elixir-gen multiplier — bumped across all difficulties so the
+        // bot can actually keep up with the player's deck cycle.
+        let aiGenMult = 1.2;
+        if (difficulty === 'normal') aiGenMult = 1.5;
+        if (difficulty === 'hard')   aiGenMult = 2.0;
         enemyElixir += (CONFIG.ELIXIR_GEN_RATE * aiGenMult * dt / 1000);
     }
 

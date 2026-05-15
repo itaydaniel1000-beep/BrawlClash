@@ -1,10 +1,16 @@
 // ai-strategies.js - Implementation of AI Difficulty Levels
 
 function aiUpdateEasy(dt, now) {
-    if (now - lastAIActionTime > 3000) {
+    // Reduced cooldown 3000 → 1800 ms for a noticeably more aggressive bot.
+    if (now - lastAIActionTime > 1800) {
         // Skip cards flagged `adminOnly` (e.g. the Libi ultimate) — the bot
-        // must never roll one of them on its own.
-        let options = Object.keys(CARDS).filter(k => !CARDS[k].adminOnly);
+        // must never roll one of them on its own. Also restrict to units +
+        // buildings (skip spells/auras) so the bot doesn't waste turns on
+        // cards it can't use intelligently (sirius, rosa, fire trails, etc).
+        let options = Object.keys(CARDS).filter(k => {
+            const c = CARDS[k];
+            return c && !c.adminOnly && (c.type === 'unit' || c.type === 'building');
+        });
         let choice = options[Math.floor(Math.random() * options.length)];
         if (aiSpawn(Math.random() * CONFIG.CANVAS_WIDTH, 100, choice)) {
             lastAIActionTime = now;
@@ -13,7 +19,8 @@ function aiUpdateEasy(dt, now) {
 }
 
 function aiUpdateNormal(dt, now) {
-    if (now - lastAIActionTime > 2000) {
+    // Reduced cooldown 2000 → 1100 ms — the bot reacts almost twice as fast.
+    if (now - lastAIActionTime > 1100) {
         let players = units.filter(u => u.team === 'player');
         if (players.length > 0) {
             let target = players[0];
@@ -42,7 +49,8 @@ function aiUpdateHard(dt, now) {
         return;
     }
 
-    if (now - lastAIActionTime > 1500) {
+    // Reduced cooldown 1500 → 700 ms on hard — relentless pressure.
+    if (now - lastAIActionTime > 700) {
         let dangerousPlayers = units.filter(u => u.team === 'player' && u.y < CONFIG.CANVAS_HEIGHT * 0.4);
         if (dangerousPlayers.length > 0) {
             let target = dangerousPlayers[0];
