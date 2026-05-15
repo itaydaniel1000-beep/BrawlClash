@@ -34,21 +34,16 @@ class Building extends Entity {
             this.attackRange = 450;
         } else if (type === 'cake') {
             // 🎂 Birthday cake — limited-time event tower (May 21 → 27).
-            // Stationary; doesn't attack. While alive it pulses a healing
-            // aura that restores 40 HP/sec to every same-team entity
-            // within 120 px. On death it explodes in confetti, dealing
-            // 250 burst damage to every enemy in 100 px (handled in
-            // entity-base.js takeDamage when hp <= 0 — see _cakeExplode).
+            // Stationary candle-launcher: every 2 seconds picks the
+            // nearest enemy within 200 px and fires a flaming-candle
+            // projectile dealing 100 damage. Only 1 cake per team can
+            // be on the field at a time (cap enforced in battle-spawn.js).
             this.maxHp = 1500; this.hp = 1500;
             this.color = '#ff6b9d';
-            this.attackDamage = 0;
-            this.attackSpeed = 0;
-            this.attackRange = 0;
-            this._cakeHealRadius = 120;
-            this._cakeHealPerSec = 40;
-            this._cakeBurstRadius = 100;
-            this._cakeBurstDamage = 250;
-            this._cakeLastHeal = performance.now();
+            this.attackDamage = 100;
+            this.attackSpeed = 2000;      // ms between shots
+            this.attackRange = 200;
+            this.lastAttackTime = 0;
         }
 
         // Level scaling removed — matches unit-core.js. Every building uses
@@ -78,23 +73,23 @@ class Building extends Entity {
             }
         }
 
-        // 🎂 Cake — pulse a heal to nearby allies once per second.
+        // 🎂 Cake — every 2 s, fire a flaming-candle projectile at the
+        // closest enemy in range. Picks units / buildings / auras / safe,
+        // same target selection as Penny / Scrappy. Damage 100, range 200.
         if (this.type === 'cake') {
-            if (!this._cakeLastHeal) this._cakeLastHeal = now;
-            if (now - this._cakeLastHeal >= 1000) {
-                this._cakeLastHeal = now;
-                const radius = this._cakeHealRadius || 120;
-                const amount = this._cakeHealPerSec || 40;
-                const allies = units.concat(buildings, auras)
+            if (now - this.lastAttackTime > (this.attackSpeed * atkSpeedMult)) {
+                const candidates = units.concat(buildings, auras)
                     .concat([playerSafe, enemySafe].filter(s => s))
-                    .filter(e => e && e.team === this.team && !e.isDead &&
-                                 e !== this &&
-                                 Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= radius);
-                allies.forEach(a => {
-                    if (typeof a.hp === 'number' && typeof a.maxHp === 'number' && a.hp < a.maxHp) {
-                        a.hp = Math.min(a.maxHp, a.hp + amount);
-                    }
-                });
+                    .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible && !e.isFrozen &&
+                                 (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)) &&
+                                 Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= this.attackRange);
+                if (candidates.length > 0) {
+                    candidates.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
+                    const target = candidates[0];
+                    const dmg = this.attackDamage * damageMult;
+                    projectiles.push(new Projectile(this.x, this.y, target, dmg, this.team, false));
+                    this.lastAttackTime = now;
+                }
             }
         }
 

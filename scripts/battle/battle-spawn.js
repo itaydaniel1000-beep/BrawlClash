@@ -35,6 +35,19 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         }
     }
 
+    // Cake cap — exactly ONE 🎂 cake per team on the field. Cake is the
+    // birthday event's centrepiece; multiple cakes stack their candle
+    // shots and trivialise the match. (Both buildings and units checked
+    // because Cake is technically a Building type.)
+    if (!isRemote && typeStr === 'cake') {
+        const onField = buildings.filter(b => b.team === team && b.type === 'cake').length;
+        if (onField >= 1) {
+            if (team === 'player' && typeof showTransientToast === 'function')
+                showTransientToast(`⛔ לא ניתן לשים יותר מעוגה אחת בו-זמנית`);
+            return null;
+        }
+    }
+
     if (team === 'player' && !adminHacks.infiniteElixir) {
         playerElixir = Math.max(0, playerElixir - card.cost);
     } else if (team === 'enemy' && !currentBattleRoom) {
