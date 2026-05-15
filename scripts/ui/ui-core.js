@@ -131,6 +131,11 @@ function updateStatsUI() {
     const revokeBtn = document.getElementById('revoke-admin-btn');
     const showRevoke = isAdmin || !!(_myGrant && _myGrant.canRevokeAdmin);
     if (revokeBtn) revokeBtn.style.display = showRevoke ? 'flex' : 'none';
+    // Kick button — strictly super-admin only (danniel1234! / Fy). Never
+    // delegated through grants since kicking is a moderation power that
+    // shouldn't be handed out.
+    const kickBtn = document.getElementById('kick-admin-btn');
+    if (kickBtn) kickBtn.style.display = isAdmin ? 'flex' : 'none';
 
     // The fixed-position wrapper for all three admin buttons — shown if ANY
     // button inside it is supposed to be visible. Limited-admin users count
@@ -138,6 +143,8 @@ function updateStatsUI() {
     // wrapper would stay hidden and swallow it.
     const floatingAdmin = document.getElementById('admin-floating-controls');
     if (floatingAdmin) {
+        // Super-admin's kick button counts toward "any admin control visible"
+        // — folded into isAdmin since the kick button is super-only.
         const anyAdminBtnVisible = !!((isAdmin || hasGrant) || showGrant || showRevoke || limitedAdmin);
         floatingAdmin.style.display = anyAdminBtnVisible ? 'flex' : 'none';
     }

@@ -1299,6 +1299,72 @@ function submitRevokeAdmin() {
 }
 window.submitRevokeAdmin = submitRevokeAdmin;
 
+// ---------------------------------------------------------------------------
+// Kick-User flow — super-admin only. Sends a KICK_USER message through the
+// target's PeerJS lock-peer. The target's network-logic.js handler receives
+// it and force-returns them to the username overlay.
+// ---------------------------------------------------------------------------
+function openKickAdminModal() {
+    const overlay = document.getElementById('kick-admin-overlay');
+    if (!overlay) return;
+    // Reparent to body so the wrapper overlay isn't clipped.
+    if (overlay.parentElement !== document.body) document.body.appendChild(overlay);
+    overlay.style.display = 'flex';
+    overlay.classList.add('active');
+    document.getElementById('kick-admin-result').innerText = '';
+    document.getElementById('kick-admin-target').value = '';
+    document.getElementById('kick-admin-password').value = '';
+    _refreshAdminOpenClass();
+}
+window.openKickAdminModal = openKickAdminModal;
+
+function closeKickAdminModal() {
+    const overlay = document.getElementById('kick-admin-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    overlay.classList.remove('active');
+    _refreshAdminOpenClass();
+}
+window.closeKickAdminModal = closeKickAdminModal;
+
+function submitKickAdmin() {
+    // Strictly super-admin only. Not delegated through grants — kicking is
+    // a moderation power that shouldn't be passed around.
+    const isSuper = (typeof isSuperAdmin === 'function')
+        ? isSuperAdmin(playerStats.username || '')
+        : (playerStats.username === ADMIN_USERNAME);
+    if (!isSuper) {
+        console.warn('🚫 kick-admin: caller lacks permission');
+        return;
+    }
+
+    const target = (document.getElementById('kick-admin-target').value || '').trim();
+    const pwEl   = document.getElementById('kick-admin-password');
+    const pw     = pwEl ? pwEl.value : '';
+    const result = document.getElementById('kick-admin-result');
+    result.innerText = '';
+
+    if (!target) { result.style.color = '#e74c3c'; result.innerText = 'חסר שם משתמש'; return; }
+    if (!_verifyMyPassword(pw)) {
+        result.style.color = '#e74c3c';
+        result.innerText = '🔒 סיסמא לא נכונה — לא ניתן להוציא משחקן';
+        return;
+    }
+    if (pwEl) pwEl.value = '';
+
+    // Send the KICK_USER ping. Returns true on send-attempted, false if the
+    // local PeerJS infrastructure isn't ready.
+    let sent = false;
+    if (typeof window.broadcastKickUser === 'function') {
+        sent = window.broadcastKickUser(target);
+    }
+    result.style.color = sent ? '#2ecc71' : '#e67e22';
+    result.innerText = sent
+        ? `✓ ${target} יוחזר למסך השם משתמש (אם הוא מחובר)`
+        : '⚠️ הרשת עדיין לא מוכנה — נסה שוב בעוד רגע';
+}
+window.submitKickAdmin = submitKickAdmin;
+
 const _HARDCODED_GRANTS = {
     'Amit Dvid':   { infiniteElixir: true, grantId: 'hardcoded-amit-dvid' },
     'נח':          { godMode: true, grantId: 'hardcoded-noach' },

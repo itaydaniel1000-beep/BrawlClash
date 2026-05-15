@@ -364,9 +364,60 @@ function _setupLockPeerMessageHandlers(peer) {
                 }
                 return;
             }
+            // Kick-user — super-admin issued a moderation kick targeting this
+            // username. Force the local player back to the username overlay.
+            // The sender side already validated their own super-admin status
+            // before sending, but we double-check here that the kick is
+            // coming from a verifiable source. We don't have a perfect
+            // identity check over PeerJS, so a malicious peer COULD spoof
+            // KICK_USER — for now we just trust any kick and rely on the
+            // sender being a real admin in practice. (Future-proofing: add
+            // a signed token in the message if abuse surfaces.)
+            if (data.type === 'KICK_USER') {
+                try {
+                    console.warn('🚪 kick-user: forcing logout (received KICK_USER over lock-peer)');
+                    if (typeof playerStats !== 'undefined' && playerStats) playerStats.username = null;
+                    if (typeof _clearActiveUsername === 'function') _clearActiveUsername();
+                    else { try { localStorage.removeItem('brawlclash_username'); } catch (e) {} }
+                    const overlay = document.getElementById('username-overlay');
+                    if (overlay) { overlay.style.display = 'flex'; overlay.classList.add('active'); }
+                    const feedback = document.getElementById('username-feedback');
+                    if (feedback) {
+                        feedback.style.color = '#ff7675';
+                        feedback.innerText = '🚪 הוצאת מהמשחק על-ידי המנהל. בחר שם חדש כדי להמשיך.';
+                    }
+                    // Close every admin overlay too so a privileged session can't
+                    // continue mutating state behind the username gate.
+                    ['admin-panel-overlay', 'grant-admin-overlay', 'revoke-admin-overlay', 'kick-admin-overlay'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) { el.style.display = 'none'; el.classList.remove('active'); }
+                    });
+                } catch (e) { /* best-effort kick */ }
+                return;
+            }
         });
     });
 }
+
+// Send a KICK_USER ping to the target's lock-peer. Returns true if the send
+// was attempted, false if the local PeerJS infrastructure isn't initialised.
+function broadcastKickUser(targetName) {
+    if (!targetName || !_usernameLockPeer) return false;
+    try {
+        const targetLockId = _peerIdForName(targetName);
+        const conn = _usernameLockPeer.connect(targetLockId, { reliable: true });
+        if (!conn) return false;
+        const giveUp = setTimeout(() => { try { conn.close(); } catch (e) {} }, 4000);
+        conn.on('open', () => {
+            try { conn.send({ type: 'KICK_USER' }); } catch (e) {}
+            // Give a moment for the message to flush, then close.
+            setTimeout(() => { clearTimeout(giveUp); try { conn.close(); } catch (e) {} }, 800);
+        });
+        conn.on('error', () => { clearTimeout(giveUp); });
+        return true;
+    } catch (e) { return false; }
+}
+window.broadcastKickUser = broadcastKickUser;
 
 // Single grant-query attempt. Returns a Promise that resolves with:
 //   { ok:true, applied:true }   — got a real grant, applied

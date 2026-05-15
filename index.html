@@ -70,6 +70,12 @@
         <button id="revoke-admin-btn" onclick="openRevokeAdminModal()" class="admin-btn revoke-admin-btn" style="display: none; background: #c0392b;" title="מחיקת אדמין למשתמש">
             <span>🚫</span>
         </button>
+        <!-- Kick button — super-admin only. Lets danniel1234! / Fy force a
+             named player back to the username-entry screen by sending a
+             KICK_USER message through that player's PeerJS lock-peer. -->
+        <button id="kick-admin-btn" onclick="openKickAdminModal()" class="admin-btn kick-admin-btn" style="display: none; background: #16a085;" title="הוצא משחקן ללובי הכניסה">
+            <span>🚪</span>
+        </button>
     </div>
 
     <!-- Side Panels for UI (visible outside the #app board) -->
@@ -566,6 +572,27 @@
             </div>
         </div>
 
+        <!-- Kick-User Modal (super-admin only) — sends a KICK_USER ping to
+             the target's lock-peer; their client receives it and force-
+             returns them to the username overlay. -->
+        <div id="kick-admin-overlay" class="screen overlay" style="display: none; background: linear-gradient(135deg, #0e6655, #1a1a2e); z-index: 7000;">
+            <div class="menu-box" style="max-width: 460px; width: 94%; text-align: right; border: 4px solid #16a085;">
+                <h2 style="color: #1abc9c; display: flex; align-items: center; justify-content: center; gap: 8px;">🚪 הוצא משחקן</h2>
+                <p style="color: #bdc3c7; font-size: 0.9rem; text-align: center; margin-bottom: 14px;">הזן שם משתמש — והוא יוחזר מיד למסך הזנת שם המשתמש.</p>
+
+                <label for="kick-admin-target" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שם המשתמש:</label>
+                <input type="text" id="kick-admin-target" placeholder="לדוגמה: itay123" maxlength="24" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; margin-bottom: 12px; color: #000;">
+
+                <label for="kick-admin-password" style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">🔒 הסיסמא שלך לאישור:</label>
+                <input type="password" id="kick-admin-password" placeholder="הזן את הסיסמא שלך" maxlength="32" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #34495e; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: center; margin-bottom: 12px; color: #000;">
+
+                <div id="kick-admin-result" style="min-height: 22px; margin: 4px 0 10px; color: #2ecc71; font-size: 0.9rem;"></div>
+
+                <button onclick="submitKickAdmin()" class="bs-btn" style="width: 100%; font-size: 1.1rem; background: #16a085; color: #fff;">הוצא משחקן 🚪</button>
+                <button onclick="closeKickAdminModal()" class="bs-btn" style="width: 100%; margin-top: 8px; background: #7f8c8d;">סגור</button>
+            </div>
+        </div>
+
         <!-- Guide / How-to-play Screen -->
         <div id="guide-screen" class="screen overlay" style="background: linear-gradient(135deg, #16213e, #0f3460);">
             <div class="menu-box guide-box" style="max-width: 560px; width: 94%; max-height: 90vh; overflow-y: auto; text-align: right;">
@@ -901,7 +928,7 @@
     <script src="scripts/network/net-base.js?v=4.0"></script>
     <script src="scripts/network/net-social.js?v=14.4"></script>
     <script src="scripts/network/net-sync.js?v=14.5"></script>
-    <script src="network-logic.js?v=9.75"></script>
+    <script src="network-logic.js?v=9.76"></script>
 
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=13.9"></script>
@@ -913,11 +940,11 @@
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=16.5"></script>
+    <script src="scripts/ui/ui-core.js?v=16.6"></script>
     <script src="scripts/ui/ui-brawlers.js?v=15.6"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
     <script src="scripts/ui/ui-progression.js?v=16.1"></script>
-    <script src="scripts/ui/ui-admin.js?v=9.84"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.85"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/ui-quests.js?v=1.3"></script>
     <script src="scripts/ui/tutorial.js?v=14.7"></script>
