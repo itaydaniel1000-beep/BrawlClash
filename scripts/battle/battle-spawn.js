@@ -130,23 +130,10 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     // scaling is baked in by the time `new Unit()` returns, regardless of
     // whether battle-spawn.js itself is a fresh copy or a cached older one.
 
-    // Bot power scaling — multiplies HP and damage of locally-simulated
-    // enemies based on the chosen difficulty. Brings the bot up to a level
-    // that actually feels challenging instead of fodder. Skipped in P2P
-    // (the opponent is a real player who controls their own stats).
-    if (team === 'enemy' && !isRemote && !currentBattleRoom) {
-        let hpMult  = 1, dmgMult = 1;
-        if      (difficulty === 'easy')   { hpMult = 1.3; dmgMult = 1.0; }
-        else if (difficulty === 'normal') { hpMult = 1.7; dmgMult = 1.3; }
-        else if (difficulty === 'hard')   { hpMult = 2.5; dmgMult = 1.7; }
-        if (hpMult !== 1) {
-            entity.maxHp *= hpMult;
-            entity.hp = entity.maxHp;
-        }
-        if (dmgMult !== 1 && entity.attackDamage !== undefined) {
-            entity.attackDamage *= dmgMult;
-        }
-    }
+    // Bot units use the SAME base stats as the player's units — no HP or
+    // damage multipliers. The challenge comes purely from smart AI play
+    // (see ai-strategies.js), not from stat-cheating. P2P is also exempt
+    // for the same reason (the opponent picks their own stats).
 
     // Enemy-nerf: admin-granted weakening of bot units (HP and damage divided).
     // Applied only to locally-simulated enemies (not remote P2P spawns, since the
