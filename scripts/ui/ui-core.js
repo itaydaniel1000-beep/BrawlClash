@@ -101,19 +101,19 @@ function updateStatsUI() {
         return false;
     }
     const hasGrant = _isMeaningfulGrant(_myGrant);
-    // Libi-only allow-list (e.g. 'Fy'): they don't have a grant and aren't
-    // the super-admin, but they're allowed to flip the single Libi toggle —
-    // so the ⚙️ admin button must be reachable for them too.
-    const libiAllowed = (typeof isLibiAllowed === 'function') &&
-                        isLibiAllowed(playerStats.username || '');
+    // Limited-admin allow-lists (Libi / Barry / Credits-editor users) —
+    // non-super users with at least one specific permission also get the
+    // ⚙️ admin button so they can reach their one row.
+    const limitedAdmin = (typeof hasAnyLimitedAdminAccess === 'function') &&
+                         hasAnyLimitedAdminAccess(playerStats.username || '');
     const adminBtn = document.querySelector('.admin-btn:not(.grant-admin-btn):not(.revoke-admin-btn)');
     if (adminBtn) {
-        adminBtn.style.display = (isAdmin || hasGrant || libiAllowed) ? 'flex' : 'none';
+        adminBtn.style.display = (isAdmin || hasGrant || limitedAdmin) ? 'flex' : 'none';
         if (playerStats.username && playerStats.username !== "null") {
             const _rawName = playerStats.username;
             const _charCodes = Array.from(_rawName).map(c => c.charCodeAt(0)).join(',');
             console.log(
-              `%c🛡️ Admin Check: name="${_rawName}" len=${_rawName.length} codes=[${_charCodes}] isAdmin=${isAdmin} granted=${hasGrant} libiAllowed=${libiAllowed} isSuperAdminFn=${typeof isSuperAdmin}`,
+              `%c🛡️ Admin Check: name="${_rawName}" len=${_rawName.length} codes=[${_charCodes}] isAdmin=${isAdmin} granted=${hasGrant} limitedAdmin=${limitedAdmin} isSuperAdminFn=${typeof isSuperAdmin}`,
               "color: #e74c3c; font-weight: bold;"
             );
         }
@@ -132,12 +132,12 @@ function updateStatsUI() {
     if (revokeBtn) revokeBtn.style.display = showRevoke ? 'flex' : 'none';
 
     // The fixed-position wrapper for all three admin buttons — shown if ANY
-    // button inside it is supposed to be visible. Libi-only users (e.g. 'Fy')
-    // count here too: without this they'd be granted the ⚙️ button but the
+    // button inside it is supposed to be visible. Limited-admin users count
+    // here too: without this they'd be granted the ⚙️ button but the
     // wrapper would stay hidden and swallow it.
     const floatingAdmin = document.getElementById('admin-floating-controls');
     if (floatingAdmin) {
-        const anyAdminBtnVisible = !!((isAdmin || hasGrant) || showGrant || showRevoke || libiAllowed);
+        const anyAdminBtnVisible = !!((isAdmin || hasGrant) || showGrant || showRevoke || limitedAdmin);
         floatingAdmin.style.display = anyAdminBtnVisible ? 'flex' : 'none';
     }
     

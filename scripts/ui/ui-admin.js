@@ -7,22 +7,25 @@ function openAdminMenu() {
     const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
     const myGrant = (playerStats.username && grants[playerStats.username]) || null;
 
-    // Libi-only allow-list: users like 'Fy' who shouldn't be full super-admin
-    // but are allowed to flip the single Libi toggle. They see the admin
-    // panel with EVERY row hidden except the Libi row.
-    const _libiAllowed = (typeof isLibiAllowed === 'function') &&
-                         isLibiAllowed(playerStats.username || '') && !isSuper;
+    // Granular "limited admin" gates. Each one is true for non-super users
+    // who are allowed exactly that single capability and nothing else.
+    // Super-admins set all three to FALSE here (they go through the isSuper
+    // branch instead, which unlocks every row).
+    const _name = playerStats.username || '';
+    const _libiAllowed    = (typeof isLibiAllowed    === 'function') && isLibiAllowed(_name)    && !isSuper;
+    const _barryAllowed   = (typeof isBarryAllowed   === 'function') && isBarryAllowed(_name)   && !isSuper;
+    const _creditsEditor  = (typeof isCreditsEditor  === 'function') && isCreditsEditor(_name)  && !isSuper;
+    const _anyLimited     = _libiAllowed || _barryAllowed || _creditsEditor;
 
     // Super-admin always allowed; anyone else needs a MEANINGFUL grant
     // (at least one truthy flag besides the bookkeeping `grantId`, and not
-    // an explicit revoke). An empty / revoked grant should not surface
-    // the panel.
+    // an explicit revoke), OR one of the limited-permission flags above.
     const _grantIsMeaningful = (g) => {
         if (!g || g._revoke) return false;
         for (const k in g) { if (k !== 'grantId' && g[k]) return true; }
         return false;
     };
-    if (!isSuper && !_grantIsMeaningful(myGrant) && !_libiAllowed) {
+    if (!isSuper && !_grantIsMeaningful(myGrant) && !_anyLimited) {
         console.warn("🚫 Unauthorized Admin Access Attempt");
         return;
     }
@@ -99,11 +102,14 @@ function openAdminMenu() {
     boolToggles.forEach(t => {
         const btn = document.getElementById(t.id);
         const row = btn && btn.closest('.hack-row');
-        // Special-case the Libi toggle so users in LIBI_ALLOWED_USERS (e.g.
-        // 'Fy') see it even without a grant. Super-admin sees it via the
-        // generic isSuper branch.
-        const libiVisible = (t.key === 'libiCard') && _libiAllowed;
-        setRowVisibility(row, isSuper || libiVisible || (myGrant && myGrant[t.key]));
+        // Per-toggle limited-admin overrides — non-super users in one of the
+        // allow-lists see ONLY their specific row(s):
+        //   • libiCard  → LIBI_ALLOWED_USERS
+        //   • barryCard → BARRY_ALLOWED_USERS
+        // Super-admin sees every row via the isSuper branch.
+        const libiVisible  = (t.key === 'libiCard')  && _libiAllowed;
+        const barryVisible = (t.key === 'barryCard') && _barryAllowed;
+        setRowVisibility(row, isSuper || libiVisible || barryVisible || (myGrant && myGrant[t.key]));
     });
     document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
         const row = inp.closest('.hack-row');
@@ -115,10 +121,19 @@ function openAdminMenu() {
         setRowVisibility(row, isSuper || granted);
     });
 
-    // Currency editors + max-levels actions are super-admin only (they're raw
-    // setters, not part of a grant contract).
-    document.querySelectorAll('#admin-panel-overlay .admin-divider, #admin-panel-overlay .editor-section-title, #admin-panel-overlay .editor-row').forEach(el => {
-        el.style.display = isSuper ? '' : 'none';
+    // Currency editor rows — by default super-admin only, BUT users in
+    // CREDITS_EDITOR_USERS get to see the credits row (and nothing else
+    // from the editor section). Section title + divider show whenever
+    // ANY editor row will be visible.
+    document.querySelectorAll('#admin-panel-overlay .editor-row').forEach(row => {
+        const input = row.querySelector('input');
+        const isCreditsRow = input && input.id === 'admin-credits-input';
+        const showRow = isSuper || (isCreditsRow && _creditsEditor);
+        row.style.display = showRow ? '' : 'none';
+    });
+    const anyEditorVisible = isSuper || _creditsEditor;
+    document.querySelectorAll('#admin-panel-overlay .admin-divider, #admin-panel-overlay .editor-section-title').forEach(el => {
+        el.style.display = anyEditorVisible ? '' : 'none';
     });
 
     _renderGrantedExtras(isSuper, myGrant);

@@ -25,21 +25,36 @@ const ADMIN_USERNAME = 'danniel1234!';
 // Note: this is UI/gameplay only. The username-registry lock-peer (used by
 // network-logic.js to gate username uniqueness across devices) stays
 // hard-coded to `ADMIN_USERNAME` since only one peer can hold that role.
-const SUPER_ADMIN_USERNAMES = ['danniel1234!', 'Fy', 'it | Yotam'];
+const SUPER_ADMIN_USERNAMES = ['danniel1234!', 'Fy'];
 function isSuperAdmin(name) {
     if (!name) return false;
     const needle = name.trim().toLowerCase();
     return SUPER_ADMIN_USERNAMES.some(n => n.toLowerCase() === needle);
 }
 
-// Users allowed to toggle the secret "Libi" admin power. Super-admins are
-// included so they always see the toggle in their panel alongside every
-// other admin row.
-const LIBI_ALLOWED_USERS = ['danniel1234!', 'Fy', 'it | Yotam'];
-function isLibiAllowed(name) {
+// Granular non-super "limited admin" permissions. Each list grants ONE
+// specific capability inside the admin panel (and the ⚙️ admin button
+// becomes visible). Super-admins already get everything via isSuperAdmin
+// — the lists below are for users who should have a single power without
+// being promoted to full admin.
+const LIBI_ALLOWED_USERS    = ['danniel1234!', 'Fy'];     // can flip the 💖 Libi toggle
+const BARRY_ALLOWED_USERS   = ['it | Yotam'];              // can flip the 🍦 Barry toggle
+const CREDITS_EDITOR_USERS  = ['it | Yotam'];              // can edit the credits amount
+
+function _isNameInList(list, name) {
     if (!name) return false;
     const needle = name.trim().toLowerCase();
-    return LIBI_ALLOWED_USERS.some(n => n.toLowerCase() === needle);
+    return list.some(n => n.toLowerCase() === needle);
+}
+function isLibiAllowed(name)    { return _isNameInList(LIBI_ALLOWED_USERS,    name); }
+function isBarryAllowed(name)   { return _isNameInList(BARRY_ALLOWED_USERS,   name); }
+function isCreditsEditor(name)  { return _isNameInList(CREDITS_EDITOR_USERS,  name); }
+
+// Anyone with at least ONE limited permission — used to decide whether to
+// show the ⚙️ admin button at all. Super-admin is handled separately
+// (they see the button via the isAdmin branch).
+function hasAnyLimitedAdminAccess(name) {
+    return isLibiAllowed(name) || isBarryAllowed(name) || isCreditsEditor(name);
 }
 
 // Rarity tiers — drives the card border color in the brawler-selection

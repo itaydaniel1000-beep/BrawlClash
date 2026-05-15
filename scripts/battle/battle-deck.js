@@ -57,8 +57,9 @@ function buildDeck() {
         ? isSuperAdmin(_username)
         : (_username === ADMIN_USERNAME);
     const _libiOn   = !!(adminHacks && adminHacks.libiCard) &&
-                      (typeof isLibiAllowed === 'function' ? isLibiAllowed(_username) : _isSuper);
-    const _barryOn  = !!(adminHacks && adminHacks.barryCard) && _isSuper;
+                      (_isSuper || (typeof isLibiAllowed  === 'function' && isLibiAllowed(_username)));
+    const _barryOn  = !!(adminHacks && adminHacks.barryCard) &&
+                      (_isSuper || (typeof isBarryAllowed === 'function' && isBarryAllowed(_username)));
     let _effectiveDeck = playerDeck.slice();
     if (_libiOn  && CARDS['libi']  && !_effectiveDeck.includes('libi'))  _effectiveDeck.push('libi');
     if (_barryOn && CARDS['barry'] && !_effectiveDeck.includes('barry')) _effectiveDeck.push('barry');
