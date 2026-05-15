@@ -225,6 +225,12 @@ function updateUI() {
         if (myBarrys.length > 0) {
             icecreamBtn.style.display = 'block';
             icecreamBtn.style.position = icecreamBtn.style.position || 'relative';
+            // Larger touch target — the default 44×44 from
+            // _positionActionButtons is too small once the 🍦 + badge are
+            // inside; bumping to 64×64 makes the whole thing reliably
+            // tappable on a phone.
+            icecreamBtn.style.width  = '64px';
+            icecreamBtn.style.height = '64px';
             const ready = totalCharges > 0;
             // Gray when loading (no charges yet), blue when ready, red while
             // the admin has the "next click drops a cone" mode armed.
@@ -233,7 +239,14 @@ function updateUI() {
                 : (ready ? '#3498db' : '#7f8c8d');
             icecreamBtn.style.opacity = ready ? '1' : '0.65';
             const badgeColor = ready ? '#3498db' : '#7f8c8d';
-            icecreamBtn.innerHTML = `<span style="font-size:32px; line-height:1; display:inline-block; vertical-align:middle;">🍦</span><span style="position:absolute; top:-6px; right:-6px; background:#fff; color:${badgeColor}; border-radius:50%; width:24px; height:24px; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.5); border:2px solid ${badgeColor};">${totalCharges}</span>`;
+            // Both children get pointer-events: none so EVERY tap (cone or
+            // badge area) lands on the button itself rather than the span —
+            // avoids mobile quirks where touches on a child element with
+            // its own layout box don't bubble cleanly to the parent button.
+            // Badge sits INSIDE the button (top: 2 / right: 2) instead of
+            // overflowing, so the entire visible UI is within the 64×64
+            // clickable rectangle.
+            icecreamBtn.innerHTML = `<span style="font-size:36px; line-height:1; display:inline-block; vertical-align:middle; pointer-events:none;">🍦</span><span style="position:absolute; top:2px; right:2px; background:#fff; color:${badgeColor}; border-radius:50%; width:24px; height:24px; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.5); border:2px solid ${badgeColor}; pointer-events:none;">${totalCharges}</span>`;
         } else {
             icecreamBtn.style.display = 'none';
             if (isSelectingIcecream) isSelectingIcecream = false;
