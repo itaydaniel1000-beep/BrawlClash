@@ -130,8 +130,10 @@ class Entity {
             }
 
             // 🎂 Cake death-burst — when the cake is destroyed, every enemy
-            // inside the burst radius takes a chunk of damage and the screen
-            // gets a confetti shower (more particles, brighter colours).
+            // inside the burst radius takes a chunk of damage and a much
+            // bigger / longer / chunkier confetti shower plays so it
+            // actually reads as a celebration instead of vanishing in half
+            // a second like the regular death sparks.
             if (this.type === 'cake') {
                 const radius = this._cakeBurstRadius || 100;
                 const dmg    = this._cakeBurstDamage || 250;
@@ -142,9 +144,39 @@ class Entity {
                                      Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= radius);
                     victims.forEach(v => { if (typeof v.takeDamage === 'function') v.takeDamage(dmg); });
                 } catch (e) {}
-                const confettiColors = ['#ff6b9d', '#f1c40f', '#74b9ff', '#2ecc71', '#9b59b6', '#ff9ff3', '#fff'];
-                for (let i = 0; i < 40; i++) {
-                    particles.push(new Particle(this.x, this.y, confettiColors[i % confettiColors.length]));
+                const confettiColors = ['#ff6b9d', '#f1c40f', '#74b9ff', '#2ecc71', '#9b59b6', '#ff9ff3', '#e84393', '#fff'];
+                const cx = this.x, cy = this.y;
+                for (let i = 0; i < 80; i++) {
+                    const p = new Particle(cx, cy, confettiColors[i % confettiColors.length]);
+                    // Radial burst — pieces fly out in every direction at
+                    // 4-12 px/frame for a chunky firework spread.
+                    const ang   = Math.random() * Math.PI * 2;
+                    const speed = 4 + Math.random() * 8;
+                    p.vx = Math.cos(ang) * speed;
+                    p.vy = Math.sin(ang) * speed - 2;   // slight upward bias
+                    p.size = 6 + Math.random() * 7;     // 6-13 px (was 2-7)
+                    // Per-instance update/draw with longer lifetime (1.8 s)
+                    // and gravity so pieces arc + fall like real confetti.
+                    p._maxLife = 1800;
+                    p.update = function(dt) {
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        this.vy += 0.18;                 // gravity tug
+                        this.vx *= 0.985;                // mild air drag
+                        this.age += dt;
+                        if (this.age > this._maxLife) this.isDead = true;
+                    };
+                    p.draw = function(ctx) {
+                        ctx.save();
+                        ctx.globalAlpha = Math.max(0, 1 - (this.age / this._maxLife));
+                        ctx.fillStyle = this.color;
+                        // Rotate each piece for a "tumbling paper" look.
+                        ctx.translate(this.x, this.y);
+                        ctx.rotate(this.age * 0.012 + (this.vx + this.vy));
+                        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.55);
+                        ctx.restore();
+                    };
+                    particles.push(p);
                 }
             }
         }
