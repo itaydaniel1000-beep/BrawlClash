@@ -9,13 +9,28 @@ Unit.prototype.update = function(dt, now) {
 
     // Barry — accumulates one 🍦 charge every 5 seconds while alive. The
     // UI consumes these via the side button (see engine-core.js +
-    // engine-input.js). Caps at 4 so a long-lived Barry doesn't stockpile
-    // infinite charges.
+    // engine-input.js). The cap is GLOBAL across the team: even with two
+    // Barrys on the field, the combined ready-charge pool never exceeds
+    // 4. Each Barry still ticks her own 5s timer, but if the team already
+    // has 4 charges queued the tick is a no-op (her timer just keeps
+    // ticking so she'll add one the moment a charge is consumed).
     if (this.type === 'barry') {
         if (!this._lastIcecreamTick) this._lastIcecreamTick = now;
         if (now - this._lastIcecreamTick >= 5000) {
             this._lastIcecreamTick = now;
-            this._icecreamReady = Math.min(4, (this._icecreamReady || 0) + 1);
+            try {
+                let teamTotal = 0;
+                for (const u of units) {
+                    if (u.team === this.team && u.type === 'barry' && !u.isDead) {
+                        teamTotal += (u._icecreamReady || 0);
+                    }
+                }
+                if (teamTotal < 4) {
+                    this._icecreamReady = (this._icecreamReady || 0) + 1;
+                }
+            } catch (e) {
+                this._icecreamReady = Math.min(4, (this._icecreamReady || 0) + 1);
+            }
         }
     }
 

@@ -233,7 +233,7 @@ function updateUI() {
                 : (ready ? '#3498db' : '#7f8c8d');
             icecreamBtn.style.opacity = ready ? '1' : '0.65';
             const badgeColor = ready ? '#3498db' : '#7f8c8d';
-            icecreamBtn.innerHTML = `🍦<span style="position:absolute; top:-4px; right:-4px; background:#fff; color:${badgeColor}; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.4);">${totalCharges}</span>`;
+            icecreamBtn.innerHTML = `<span style="font-size:32px; line-height:1; display:inline-block; vertical-align:middle;">🍦</span><span style="position:absolute; top:-6px; right:-6px; background:#fff; color:${badgeColor}; border-radius:50%; width:24px; height:24px; font-size:14px; font-weight:bold; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.5); border:2px solid ${badgeColor};">${totalCharges}</span>`;
         } else {
             icecreamBtn.style.display = 'none';
             if (isSelectingIcecream) isSelectingIcecream = false;
