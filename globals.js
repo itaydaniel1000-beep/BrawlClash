@@ -471,6 +471,27 @@ function reloadActiveUserState() {
             });
         }
     } catch (e) {}
+
+    // Switching users — close every admin overlay so the previous account's
+    // permissions don't carry over into the new account's session. Without
+    // this, a super-admin could open the panel, switch to a limited / non-
+    // admin account, and continue flipping toggles or editing currencies
+    // because the open panel never re-checked permissions.
+    try {
+        ['admin-panel-overlay', 'grant-admin-overlay', 'revoke-admin-overlay'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = 'none';
+                el.classList.remove('active');
+            }
+        });
+        // Drop the body class that slides #app to make room for the panel
+        // on desktop. With every overlay now closed, the lobby should
+        // recentre.
+        if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('admin-panel-open');
+        }
+    } catch (e) {}
 }
 window.reloadActiveUserState = reloadActiveUserState;
 

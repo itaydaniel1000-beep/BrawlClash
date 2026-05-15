@@ -201,6 +201,9 @@ window.closeAdminMenu = closeAdminMenu;
 // reset for the super-admin. Refreshes the open panel's UI so every toggle
 // and number input reflects the defaults immediately.
 function resetAdminPanel() {
+    // Reset wipes EVERY hack to its default — super-admin only.
+    if (!_adminActionAllowed('super')) return;
+
     if (_isAdminSuspended()) {
         if (typeof showTransientToast === 'function') {
             showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לאפס את התפריט במהלך הקרב');
@@ -268,6 +271,36 @@ function _isAdminSuspended() {
     return !!(typeof window !== 'undefined' && window._suspendedAdminBackup);
 }
 
+// Defense in depth — every admin action calls this to verify the CURRENT
+// player is allowed to perform `kind` right now. The panel-open code in
+// openAdminMenu already gates visibility on the same predicates, but a
+// stale open overlay (from a previous session, dev tools, etc.) shouldn't
+// let a non-admin sneak privileged calls through. `kind` is one of:
+//   • 'super'         — full super-admin only (numeric hacks, reset, max-levels)
+//   • 'libi'          — Libi toggle
+//   • 'barry'         — Barry toggle
+//   • 'credits'       — credits currency editor
+//   • 'gems'          — gems currency editor
+//   • 'grant:<key>'   — gameplay toggle covered by the user's personal grant
+// Returns true if allowed, false (with a console warning + toast) if not.
+function _adminActionAllowed(kind) {
+    const name = (typeof playerStats !== 'undefined' && playerStats && playerStats.username) || '';
+    const isSuper = (typeof isSuperAdmin === 'function') && isSuperAdmin(name);
+    if (isSuper) return true;
+    if (kind === 'libi'    && typeof isLibiAllowed    === 'function' && isLibiAllowed(name))    return true;
+    if (kind === 'barry'   && typeof isBarryAllowed   === 'function' && isBarryAllowed(name))   return true;
+    if (kind === 'credits' && typeof isCreditsEditor  === 'function' && isCreditsEditor(name))  return true;
+    if (kind === 'gems'    && typeof isGemsEditor     === 'function' && isGemsEditor(name))     return true;
+    if (kind && kind.indexOf('grant:') === 0) {
+        const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+        const myGrant = (name && grants[name]) || null;
+        const flag = kind.slice(6);
+        if (myGrant && !myGrant._revoke && myGrant[flag]) return true;
+    }
+    console.warn(`🚫 admin action "${kind}" denied for "${name}"`);
+    return false;
+}
+
 // Drop a body-level class + a banner inside the admin-panel container so
 // CSS can gray out every gameplay toggle and the user immediately sees
 // why nothing reacts to clicks.
@@ -294,6 +327,14 @@ function _refreshAdminSuspendedUI(overlay) {
 window._refreshAdminSuspendedUI = _refreshAdminSuspendedUI;
 
 function toggleAdminHack(hackKey) {
+    // Re-check permission for the CURRENT user — the panel might be a stale
+    // overlay opened by a previous account.
+    let actionKind = 'super';
+    if (hackKey === 'libiCard')  actionKind = 'libi';
+    else if (hackKey === 'barryCard') actionKind = 'barry';
+    else actionKind = 'grant:' + hackKey;   // gameplay toggles can also be granted
+    if (!_adminActionAllowed(actionKind) && !_adminActionAllowed('super')) return;
+
     if (_isAdminSuspended() && !_ADMIN_META_TOGGLES.has(hackKey)) {
         if (typeof showTransientToast === 'function') {
             showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לשנות הגדרות אדמין במהלך הקרב');
@@ -335,6 +376,7 @@ window.toggleAdminHack = toggleAdminHack;
 // (stays armed for multiple deletions); clicking it again disarms it.
 // Works the same on desktop and mobile — no Shift required.
 function activateDeleteUnitMode() {
+    if (!_adminActionAllowed('grant:deleteUnit') && !_adminActionAllowed('super')) return;
     if (!adminHacks.deleteUnit) return;
     if (isSelectingDeleteTarget) {
         // Already armed → treat the click as "turn it off".
@@ -368,6 +410,9 @@ window._resetDeleteUnitButtonStyle = _resetDeleteUnitButtonStyle;
 
 // Numeric / string admin setter — bound to <input oninput> in the admin panel.
 function setAdminNumber(key, raw) {
+    // Numeric hacks (multipliers, elixir cap, etc.) are super-admin / grant only.
+    if (!_adminActionAllowed('grant:' + key) && !_adminActionAllowed('super')) return;
+
     if (_isAdminSuspended()) {
         if (typeof showTransientToast === 'function') {
             showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לשנות הגדרות אדמין במהלך הקרב');
@@ -385,6 +430,13 @@ function setAdminNumber(key, raw) {
 window.setAdminNumber = setAdminNumber;
 
 function setAdminCurrency(type) {
+    // Re-check permission — credits/gems editors are granted individually,
+    // every other currency (coins / trophies / pp) is super-admin only.
+    let kind = 'super';
+    if (type === 'credits') kind = 'credits';
+    else if (type === 'gems') kind = 'gems';
+    if (!_adminActionAllowed(kind) && !_adminActionAllowed('super')) return;
+
     if (_isAdminSuspended()) {
         if (typeof showTransientToast === 'function') {
             showTransientToast('🛡️ ביטול אדמין פעיל — לא ניתן לערוך מטבעות במהלך הקרב');
@@ -411,6 +463,7 @@ function setAdminCurrency(type) {
 window.setAdminCurrency = setAdminCurrency;
 
 function maxAllLevels() {
+    if (!_adminActionAllowed('super')) return;
     Object.keys(CARDS).forEach(id => {
         playerStats.levels[id] = MAX_LEVEL;
         localStorage.setItem(_userKey('level_' + id), MAX_LEVEL);
