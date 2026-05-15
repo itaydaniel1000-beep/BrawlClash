@@ -210,6 +210,19 @@ try {
     if (savedSP) playerStarPowers = JSON.parse(savedSP);
 } catch(e) { playerStarPowers = {}; }
 
+// Cards available to brand-new players on their very first run. The base
+// rule is "any 'נדיר' (rare) rarity card", and `_ALWAYS_UNLOCKED_IDS` adds
+// explicit IDs on top of that (currently: bull). Single source of truth so
+// the initial unlockedCards array, the runtime isCardUnlocked() check, and
+// the admin "unlock everything" path all stay in sync.
+const _ALWAYS_UNLOCKED_IDS = ['bull'];
+function _isStarterCard(card, id) {
+    if (!card) return false;
+    if (card.rarity === 'נדיר') return true;
+    if (_ALWAYS_UNLOCKED_IDS.indexOf(id) !== -1) return true;
+    return false;
+}
+
 // --- Player Stats & Levels ---
 let playerStats = {
     // Defaults are 0 — brand-new users (no localStorage) start with nothing
@@ -239,14 +252,14 @@ let playerStats = {
     // Stored as the integer tier number (1 = first 100 trophies, 2 = 200,
     // etc.). Keeps brawl-pass progression independent of trophy progress.
     claimedTrophyTiers: JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [],
-    // Per-card unlock list. New players start with ONLY the 'נדיר' rarity
-    // cards unlocked (bruce, pam, scrappy); higher tiers ship locked
-    // until the player unlocks them through some future progression flow.
-    // localStorage key 'unlocked' holds the array; missing → first-time
-    // init via the IIFE that filters CARDS by rarity at load time.
+    // Per-card unlock list. New players start with every 'נדיר' (rare)
+    // card AND the IDs in _ALWAYS_UNLOCKED_IDS (currently: bull). Higher
+    // tiers ship locked until the player unlocks them through the
+    // characters store. localStorage key 'unlocked' holds the array;
+    // missing → first-time init via the IIFE below.
     unlockedCards: JSON.parse(localStorage.getItem(_userKey('unlocked')) || 'null') ||
         (typeof CARDS !== 'undefined'
-            ? Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר')
+            ? Object.keys(CARDS).filter(id => CARDS[id] && _isStarterCard(CARDS[id], id))
             : []),
     username: _activeUsername()
 };
@@ -261,7 +274,10 @@ let playerStats = {
 function isCardUnlocked(cardId) {
     if (!cardId) return false;
     const c = (typeof CARDS !== 'undefined') ? CARDS[cardId] : null;
-    if (c && c.rarity === 'נדיר') return true;
+    // Starter cards (rare rarity + the explicit always-unlocked list) are
+    // available for free regardless of what the saved unlockedCards array
+    // says. This makes 'bull' available out-of-the-box for every account.
+    if (_isStarterCard(c, cardId)) return true;
     const list = (typeof playerStats !== 'undefined' && Array.isArray(playerStats.unlockedCards))
         ? playerStats.unlockedCards : [];
     return list.includes(cardId);
@@ -411,7 +427,7 @@ function reloadActiveUserState() {
     playerStats.claimedPremiumTiers = JSON.parse(localStorage.getItem(_userKey('claimedPremium')) || 'null') || [];
     playerStats.claimedTrophyTiers = JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [];
     playerStats.unlockedCards = JSON.parse(localStorage.getItem(_userKey('unlocked')) || 'null') ||
-        Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר');
+        Object.keys(CARDS).filter(id => CARDS[id] && _isStarterCard(CARDS[id], id));
     playerStats.username     = _activeUsername();
     playerStats.levels       = {};
     Object.keys(CARDS).forEach(id => {
