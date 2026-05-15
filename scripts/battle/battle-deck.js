@@ -66,10 +66,13 @@ function buildDeck() {
     // 🎂 Birthday cake — auto-injects into every player's deck during the
     // event's "active" week (May 21 → 27). Not saved to the persisted
     // playerDeck so it vanishes the moment the window closes.
-    if (typeof _isCakeAvailable === 'function' && _isCakeAvailable() &&
-        CARDS['cake'] && !_effectiveDeck.includes('cake')) {
-        _effectiveDeck.push('cake');
-    }
+    //
+    // Super-admins (danniel1234! / Fy) get a permanent backstage pass —
+    // they keep the cake in their deck year-round so the dev can test the
+    // event mechanic whenever they want, not just during the live window.
+    const _cakeOn = !!CARDS['cake'] && !_effectiveDeck.includes('cake') &&
+                    ((typeof _isCakeAvailable === 'function' && _isCakeAvailable()) || _isSuper);
+    if (_cakeOn) _effectiveDeck.push('cake');
 
     _effectiveDeck.forEach(cardId => {
         const card = CARDS[cardId];
