@@ -7,6 +7,18 @@ Unit.prototype.update = function(dt, now) {
     // path / regular) handles the rest of the frame.
     if (typeof this._decayShield === 'function') this._decayShield(now);
 
+    // Barry — accumulates one 🍦 charge every 5 seconds while alive. The
+    // UI consumes these via the side button (see engine-core.js +
+    // engine-input.js). Caps at 4 so a long-lived Barry doesn't stockpile
+    // infinite charges.
+    if (this.type === 'barry') {
+        if (!this._lastIcecreamTick) this._lastIcecreamTick = now;
+        if (now - this._lastIcecreamTick >= 5000) {
+            this._lastIcecreamTick = now;
+            this._icecreamReady = Math.min(4, (this._icecreamReady || 0) + 1);
+        }
+    }
+
     // === Bubble — pure velocity-based projectile, bounces, one-shot DMG ===
     // Completely separate movement model from every other unit. No target
     // chasing, no per-frame target lookup. Bubble flies in a straight line

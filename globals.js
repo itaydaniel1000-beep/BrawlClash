@@ -130,6 +130,12 @@ let isSelectingBullDash = false;
 // click on a Bonnie converts her into a "transformed" Bruce that skips
 // the safe in target-selection.
 let isSelectingBonnieTransform = false;
+// Barry's ice-cream placement mode — toggled by the 🍦 side button when a
+// Barry has a ready charge. While true the next canvas click anywhere on
+// the map spawns an 'icecream' aura on the player team, consuming one
+// charge from the first Barry that has one.
+let isSelectingIcecream = false;
+
 // Admin "delete next click" mode — toggled by the admin-delete button, consumed
 // by the next canvas click that lands on an enemy unit.
 var isSelectingDeleteTarget = false;
@@ -321,7 +327,12 @@ var adminHacks = (function loadAdminHacks() {
         // Secret "Libi" ultimate card. When on, an extra invulnerable
         // 0-elixir unit appears in the deck during battle. Only the users
         // in LIBI_ALLOWED_USERS see the toggle in the admin panel.
-        libiCard: false
+        libiCard: false,
+        // Secret "Barry" admin unit — same gating model as Libi. When on,
+        // a 🍦 Barry card is injected into the in-battle deck for the
+        // super-admin only. Barry must be placed in the enemy half and
+        // generates ice-cream area auras over time.
+        barryCard: false
     };
     try {
         const raw = localStorage.getItem(_userKey('admin_hacks'));

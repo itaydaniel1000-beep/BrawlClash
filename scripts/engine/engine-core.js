@@ -5,9 +5,9 @@
 var _actionBtnOriginalParent = null;
 
 function _positionActionButtons() {
-    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn'];
-    var MOBILE_TOPS = ['22%', '36%', '50%', '64%'];
-    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe'];
+    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn'];
+    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%'];
+    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db'];
 
     var isMobile = ('ontouchstart' in window) ||
                    (navigator.maxTouchPoints > 0) ||
@@ -117,7 +117,7 @@ function initGame() {
         const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;
         playerElixir = startE; enemyElixir = 5; aiDeaths = []; pendingRebuilds = [];
         playerMaxElixir = maxE; playerKills = 0;
-        selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false; isSelectingBonnieTransform = false;
+        selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false; isSelectingBonnieTransform = false; isSelectingIcecream = false;
 
         hardAIState = 0; aiDelayTimer = 0; hardAIAttackY = 250; hardAIEmzPlaced = false;
         aiWavePreparation = false;
@@ -208,6 +208,25 @@ function updateUI() {
             dashBtn.style.backgroundColor = isSelectingBullDash ? '#ff4757' : '#8c7ae6';
         } else {
             dashBtn.style.display = 'none';
+        }
+    }
+
+    // Barry's 🍦 button — show while at least one alive Barry has a ready
+    // ice-cream charge. The badge shows the total charges pooled across
+    // all of OUR Barrys. Stays hidden when no charges are loaded.
+    let icecreamBtn = document.getElementById('icecream-btn');
+    if (icecreamBtn) {
+        const myBarrys = units.filter(u => u.team === 'player' && u.type === 'barry' && !u.isDead);
+        let totalCharges = 0;
+        myBarrys.forEach(b => { totalCharges += (b._icecreamReady || 0); });
+        if (myBarrys.length > 0 && totalCharges > 0) {
+            icecreamBtn.style.display = 'block';
+            icecreamBtn.style.backgroundColor = isSelectingIcecream ? '#e74c3c' : '#3498db';
+            icecreamBtn.innerHTML = `🍦<span style="position:absolute; top:-4px; right:-4px; background:#fff; color:#3498db; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.4);">${totalCharges}</span>`;
+            icecreamBtn.style.position = icecreamBtn.style.position || 'relative';
+        } else {
+            icecreamBtn.style.display = 'none';
+            if (isSelectingIcecream) isSelectingIcecream = false;
         }
     }
 

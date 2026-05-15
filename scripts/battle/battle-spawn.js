@@ -24,10 +24,10 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
 
     let card = CARDS[typeStr];
 
-    // Hard cap: max 2 Bruce per team on the field simultaneously.
+    // Hard cap: max 2 Bruce / Barry per team on the field simultaneously.
     // isRemote spawns (opponent P2P) are exempt.
-    if (!isRemote && typeStr === 'bruce') {
-        const onField = units.filter(u => u.team === team && u.type === 'bruce').length;
+    if (!isRemote && (typeStr === 'bruce' || typeStr === 'barry')) {
+        const onField = units.filter(u => u.team === team && u.type === typeStr).length;
         if (onField >= 2) {
             if (team === 'player' && typeof showTransientToast === 'function')
                 showTransientToast(`⛔ לא ניתן לשים יותר מ-2 ${card.name} בו-זמנית`);

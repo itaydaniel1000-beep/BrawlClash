@@ -143,7 +143,23 @@ const CARDS = {
     // "libiCard" admin toggle ON and is in LIBI_ALLOWED_USERS. Not unlock-
     // able from the shop and not visible in the brawler-selection screen.
     'libi':   { name: 'ליבי', cost: 0, type: 'unit', color: '#ff69b4', icon: '💖',
-               rarity: 'אגדי', adminOnly: true }
+               rarity: 'אגדי', adminOnly: true },
+    // Barry — second admin-only unit. 4000 HP tank that MUST be placed in
+    // the ENEMY half (placeInEnemyHalf flag — handled in battle-input.js).
+    // Costs 15 elixir so the admin needs maxElixir ≥ 15 (set via the
+    // admin panel) to actually cast her. Special ability: every 5 seconds
+    // a 🍦 ice-cream charge accumulates on a side button. Pressing it
+    // lets the admin drop an ice-cream aura (Spike-radius, deals
+    // 150 dmg/sec) anywhere on the map. Max 4 ice creams per team on
+    // the field at once, max 2 Barrys per team.
+    'barry':  { name: 'בארי', cost: 15, type: 'unit', color: '#3498db', icon: '🍦',
+               rarity: 'אגדי', adminOnly: true, placeInEnemyHalf: true },
+    // Internal 'icecream' aura — never appears in any deck / shop / brawler
+    // grid (adminOnly + hiddenFromAll filters elsewhere). It exists in
+    // CARDS only so spawnEntity() can route it through the same code path
+    // every other aura uses, which also gives us P2P sync for free.
+    'icecream': { name: 'גלידה', cost: 0, type: 'aura', color: '#3498db', icon: '🍦',
+                  rarity: 'אגדי', adminOnly: true, hiddenFromAll: true }
 };
 
 const STAR_POWERS = {

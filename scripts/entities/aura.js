@@ -28,9 +28,21 @@ class Aura extends Entity {
             this.color = 'rgba(156, 136, 255, 0.3)';
             this.maxHp = 1000; this.hp = this.maxHp;
         } else if (type === 'spike') {
-            this.radius = 55; 
-            this.color = 'rgba(46, 204, 113, 0.4)'; 
+            this.radius = 55;
+            this.color = 'rgba(46, 204, 113, 0.4)';
             this.maxHp = 1000; this.hp = this.maxHp;
+        } else if (type === 'icecream') {
+            // Barry's ice-cream aura — same radius as Spike's pin, deals
+            // damage per tick to enemies inside. Colour follows the team:
+            // blue for the local player, red for the opponent (see draw()
+            // in the renderer; the colour set here is the base / overlay
+            // tint). Lifetime is longer than Spike's so the placed cones
+            // actually have time to deal damage before vanishing.
+            this.radius = 55;
+            this.color = team === 'player'
+                ? 'rgba(52, 152, 219, 0.45)'    // blue
+                : 'rgba(231, 76, 60, 0.45)';    // red
+            this.maxHp = 1500; this.hp = this.maxHp;
         } else if (type === 'tara') {
             this.radius = 110; 
             this.color = 'rgba(45, 52, 54, 0.6)'; 
@@ -131,6 +143,12 @@ class Aura extends Entity {
                 enemies.forEach(e => {
                     if (Math.hypot(e.x - this.x, e.y - this.y) <= this.radius) e.takeDamage(200);
                 });
+            } else if (this.type === 'icecream') {
+                // Barry's ice cream — 150 dmg/sec to enemies inside the
+                // radius. No slow effect (the cone is purely damage).
+                enemies.forEach(e => {
+                    if (Math.hypot(e.x - this.x, e.y - this.y) <= this.radius) e.takeDamage(150);
+                });
             }
             this.lastTickTime = now;
         }
@@ -139,6 +157,7 @@ class Aura extends Entity {
         if (this.type === 'spike') lifetime = (this.team === 'player' && hasStarPower('spike', 'sp2')) ? 15000 : 10000;
         if (this.type === 'tara') lifetime = 3000;
         if (this.type === 'fire') lifetime = 3000;
+        if (this.type === 'icecream') lifetime = 12000;   // 12s — Barry's cones linger
         // 'fire-trail' deliberately omitted — it never expires.
 
         // Tara death blast — per user request, when Tara's pull aura

@@ -572,6 +572,28 @@ function initGameListeners() {
         bonnieBtn.style.backgroundColor = isSelectingBonnieTransform ? '#e74c3c' : '#a29bfe';
     };
 
+    // 🍦 Barry ice-cream button — toggles "next canvas click drops an
+    // ice-cream aura anywhere on the map" mode. Will refuse to enter
+    // selection mode when no Barry has a ready charge OR when the team
+    // already has 4 ice creams on the field.
+    const icecreamBtn = document.getElementById('icecream-btn');
+    if (icecreamBtn) icecreamBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!isSelectingIcecream) {
+            const ready = units.some(u => u.team === 'player' && u.type === 'barry' &&
+                                          !u.isDead && (u._icecreamReady || 0) > 0);
+            if (!ready) return;
+            const onField = auras.filter(a => a.team === 'player' && a.type === 'icecream' && !a.isDead).length;
+            if (onField >= 4) {
+                if (typeof showTransientToast === 'function')
+                    showTransientToast('🍦 כבר 4 גלידות במגרש');
+                return;
+            }
+        }
+        isSelectingIcecream = !isSelectingIcecream;
+        icecreamBtn.style.backgroundColor = isSelectingIcecream ? '#e74c3c' : '#3498db';
+    };
+
     document.addEventListener('click', () => {
         const selector = document.getElementById('emote-selector');
         if (selector) selector.classList.remove('active');

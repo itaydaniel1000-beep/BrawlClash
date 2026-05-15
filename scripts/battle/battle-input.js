@@ -198,6 +198,30 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: false };
     }
 
+    // 🍦 Barry ice-cream placement — anywhere on the map (no half / EMZ
+    // restriction). Consumes one charge from the first Barry that has
+    // one. Capped at 4 ice creams per team on the field. We route the
+    // actual spawn through spawnEntity() so P2P sync, audio and on-field
+    // bookkeeping all happen for free, the same way every other aura does.
+    if (typeof isSelectingIcecream !== 'undefined' && isSelectingIcecream) {
+        const myBarry = units.find(u => u.team === 'player' && u.type === 'barry' &&
+                                        !u.isDead && (u._icecreamReady || 0) > 0);
+        const onField = auras.filter(a => a.team === 'player' && a.type === 'icecream' && !a.isDead).length;
+        if (!myBarry) {
+            isSelectingIcecream = false;
+        } else if (onField >= 4) {
+            if (typeof showTransientToast === 'function') showTransientToast('🍦 כבר 4 גלידות במגרש');
+            isSelectingIcecream = false;
+        } else {
+            myBarry._icecreamReady = Math.max(0, (myBarry._icecreamReady || 0) - 1);
+            spawnEntity(x, y, 'player', 'icecream');
+            isSelectingIcecream = false;
+        }
+        const btn = document.getElementById('icecream-btn');
+        if (btn) btn.style.backgroundColor = '#3498db';
+        return { placed: false };
+    }
+
     if (isSelectingBullDash) {
         let clickedBull = units.find(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed && Math.hypot(u.x - x, u.y - y) <= u.radius * 2);
         if (clickedBull) {
@@ -257,10 +281,15 @@ function _placeAtInternal(x, y, shiftHeld) {
 
     // Each side places only on its own half of the field (or inside an EMZ
     // aura their team owns). For the local human the player side is the
-    // BOTTOM half (y > height/2).
+    // BOTTOM half (y > height/2). Cards flagged `placeInEnemyHalf` (e.g.
+    // Barry) flip the rule — they can ONLY be placed in the TOP half.
     const bottomHalf = y > (CONFIG.CANVAS_HEIGHT / 2);
+    const topHalf    = !bottomHalf;
     const insideOwnEmz = auras.some(a => a.team === 'player' && a.type === 'emz' && !a.isFrozen && Math.hypot(x - a.x, y - a.y) <= a.radius);
-    const validSide = bottomHalf || insideOwnEmz;
+    const _sel = selectedFreezeCardId || selectedCardId;
+    const _selCard = _sel ? CARDS[_sel] : null;
+    const enemyHalfCard = !!(_selCard && _selCard.placeInEnemyHalf);
+    const validSide = enemyHalfCard ? topHalf : (bottomHalf || insideOwnEmz);
     const insideBorder = x >= 10 && x <= (CONFIG.CANVAS_WIDTH - 10) &&
                          y >= 10 && y <= (CONFIG.CANVAS_HEIGHT - 10);
 

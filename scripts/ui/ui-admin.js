@@ -67,7 +67,8 @@ function openAdminMenu() {
         { id: 'toggle-canGrantAdmin',    key: 'canGrantAdmin' },
         { id: 'toggle-canRevokeAdmin',   key: 'canRevokeAdmin' },
         { id: 'toggle-cancelAdmin',      key: 'cancelAdmin' },
-        { id: 'toggle-libiCard',         key: 'libiCard' }
+        { id: 'toggle-libiCard',         key: 'libiCard' },
+        { id: 'toggle-barryCard',        key: 'barryCard' }
     ];
     boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
 
@@ -197,7 +198,8 @@ function resetAdminPanel() {
         disableBot: false, botSlowdownFactor: 0, enemyNerfFactor: 0, botOnlyCardId: '',
         timeScale: 0, autoIncome: false, allStarPowers: false,
         deleteUnit: false, canGrantAdmin: false, canRevokeAdmin: false,
-        libiCard: false
+        libiCard: false,
+        barryCard: false
     };
     Object.assign(adminHacks, defaults);
     saveAdminHacks();
@@ -299,7 +301,8 @@ function toggleAdminHack(hackKey) {
         'canGrantAdmin': 'toggle-canGrantAdmin',
         'canRevokeAdmin': 'toggle-canRevokeAdmin',
         'cancelAdmin': 'toggle-cancelAdmin',
-        'libiCard': 'toggle-libiCard'
+        'libiCard': 'toggle-libiCard',
+        'barryCard': 'toggle-barryCard'
     };
 
     updateAdminToggleUI(hackKey, map[hackKey]);

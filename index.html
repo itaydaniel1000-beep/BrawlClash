@@ -307,6 +307,15 @@
                     <button id="bull-dash-btn"
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #8c7ae6; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #574b90; transition: background-color 0.2s;">💨</button>
 
+                    <!-- Barry ice-cream button — visible when at least one
+                         player-team Barry has a ready 🍦 charge. Clicking
+                         enters placement mode (next click on the map drops
+                         an ice-cream aura). Team-capped at 4 cones on the
+                         field; the click is a no-op when the cap is hit. -->
+                    <button id="icecream-btn"
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #3498db; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #2473a6; transition: background-color 0.2s;"
+                        title="הצב גלידה (נטענת כל 5 שניות)">🍦</button>
+
                     <!-- Bonnie transform button — visible when there's at
                          least one alive player-team Bonnie. Click toggles
                          transform-select mode; the next click on a Bonnie
@@ -739,6 +748,8 @@
                 <div class="hack-description">בקרבות P2P, כל הכוחות של היריב לא יחולו אצלך: הדמויות שלו יגיעו עם סטטיסטיקות בסיס (לא doubleDamage, לא HP×N), גוד-מוד לא מגן עליו אצלך, והכספת שלו לא תקבל בוסט HP. (היריב ממשיך לראות את הכוחות אצלו — זה משפיע רק על המסך שלך).</div>
                 <div class="hack-row"><div class="hack-label">💖 ליבי</div><div id="toggle-libiCard" class="toggle-switch-btn" onclick="toggleAdminHack('libiCard')">כבוי</div></div>
                 <div class="hack-description">מוסיף לחפיסה קלף סודי בשם ליבי שעולה 0 אליקסיר. ליבי חסינה לחלוטין (חיים אינסופיים) וכל מכה שלה מחסלת מיד את היעד.</div>
+                <div class="hack-row"><div class="hack-label">🍦 בארי</div><div id="toggle-barryCard" class="toggle-switch-btn" onclick="toggleAdminHack('barryCard')">כבוי</div></div>
+                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם בארי. בארי עולה 15 אליקסיר (דורש max-elixir גבוה או אליקסיר אינסופי), חיים 4000, וניתן להציב אותה רק בחצי של היריב. כל 5 שניות נטענת לה גלידה — לחיצה על הכפתור 🍦 בצד תאפשר לך להציב גלידה בכל מקום במפה (טווח כמו ספייק, נזק 150 לשנייה). מקסימום 4 גלידות ו-2 בארי במגרש בו-זמנית.</div>
 
                 <div class="admin-section-title">🗝️ מנהל-משנה</div>
                 <div class="hack-row"><div class="hack-label">✨ יכול להעניק אדמין</div><div id="toggle-canGrantAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('canGrantAdmin')">כבוי</div></div>
@@ -827,8 +838,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=15.7"></script>
-    <script src="globals.js?v=15.6"></script>
+    <script src="config.js?v=15.8"></script>
+    <script src="globals.js?v=15.7"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
@@ -840,10 +851,10 @@
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=13.9"></script>
     <script src="scripts/entities/effects.js"></script>
-    <script src="scripts/entities/unit-core.js?v=13.5"></script>
-    <script src="scripts/entities/unit-logic.js?v=14.6"></script>
+    <script src="scripts/entities/unit-core.js?v=13.6"></script>
+    <script src="scripts/entities/unit-logic.js?v=14.7"></script>
     <script src="scripts/entities/building.js?v=14.4"></script>
-    <script src="scripts/entities/aura.js?v=14.5"></script>
+    <script src="scripts/entities/aura.js?v=14.6"></script>
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
@@ -851,22 +862,22 @@
     <script src="scripts/ui/ui-brawlers.js?v=15.5"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
     <script src="scripts/ui/ui-progression.js?v=15.9"></script>
-    <script src="scripts/ui/ui-admin.js?v=9.78"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.79"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.5"></script>
 
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.6"></script>
-    <script src="scripts/battle/battle-spawn.js?v=10.2"></script>
-    <script src="scripts/battle/battle-input.js?v=14.6"></script>
-    <script src="scripts/battle/battle-deck.js?v=15.1"></script>
+    <script src="scripts/battle/battle-spawn.js?v=10.3"></script>
+    <script src="scripts/battle/battle-input.js?v=14.7"></script>
+    <script src="scripts/battle/battle-deck.js?v=15.2"></script>
 
     <!-- Engine Module -->
-    <script src="scripts/engine/engine-core.js?v=14.8"></script>
+    <script src="scripts/engine/engine-core.js?v=14.9"></script>
     <script src="scripts/engine/engine-physics.js?v=13.4"></script>
     <script src="scripts/engine/engine-renderer.js?v=13.9"></script>
-    <script src="scripts/engine/engine-input.js?v=14.5"></script>
+    <script src="scripts/engine/engine-input.js?v=14.6"></script>
 </body>
 
 </html>
