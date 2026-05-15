@@ -112,6 +112,9 @@ function initGame() {
 
         units = []; buildings = []; projectiles = []; auras = [];
         particles = []; floatingTexts = [];
+        // Fresh match → reset the cake's once-per-match lock for both teams.
+        // (Set in battle-spawn.js, read at the start of every spawn attempt.)
+        window._cakeUsedThisMatch = { player: false, enemy: false };
         // Admin-granted overrides: startingElixir / maxElixir (0 = use default).
         const startE = (typeof adminHacks !== 'undefined' && adminHacks.startingElixir) ? adminHacks.startingElixir : 5;
         const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;

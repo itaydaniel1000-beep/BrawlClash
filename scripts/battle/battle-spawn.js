@@ -35,15 +35,24 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         }
     }
 
-    // Cake cap — exactly ONE 🎂 cake per team on the field. Cake is the
-    // birthday event's centrepiece; multiple cakes stack their candle
-    // shots and trivialise the match. (Both buildings and units checked
-    // because Cake is technically a Building type.)
-    if (!isRemote && typeStr === 'cake') {
-        const onField = buildings.filter(b => b.team === team && b.type === 'cake').length;
-        if (onField >= 1) {
+    // Cake cap — exactly ONE 🎂 cake per team PER MATCH. Once a cake has
+    // been placed it can never be placed again by that team this match,
+    // even if the first one has already died (naturally or via the blow-
+    // out-candles button). The cake's death-wipe is enormously powerful
+    // (every opposing unit / building / aura dies in one frame), so the
+    // limit has to be once-per-match — otherwise a player could chain
+    // two cakes and clear the field twice in a single game.
+    //
+    // The flag lives on a window-scoped object so it survives across this
+    // file's module boundary and is reset by initGame() at every match
+    // start. Both local AND remote spawns flip the flag — that way, if
+    // the opponent places their cake first, we still correctly track
+    // their team's usage on our screen for any future logic that needs it.
+    if (!window._cakeUsedThisMatch) window._cakeUsedThisMatch = { player: false, enemy: false };
+    if (typeStr === 'cake') {
+        if (!isRemote && window._cakeUsedThisMatch[team]) {
             if (team === 'player' && typeof showTransientToast === 'function')
-                showTransientToast(`⛔ לא ניתן לשים יותר מעוגה אחת בו-זמנית`);
+                showTransientToast(`⛔ העוגה כבר נוצלה במשחק הזה — רק פעם אחת לקרב`);
             return null;
         }
     }
@@ -135,6 +144,16 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
 
     if (isFrozen) entity.isFrozen = true;
     AudioController.play('spawn');
+
+    // Lock the cake to once-per-match for this team. The check at the top
+    // of spawnEntity reads this flag for LOCAL placement attempts; flipping
+    // it here AFTER a successful spawn (including remote P2P spawns) keeps
+    // both clients' bookkeeping consistent and prevents a re-place after
+    // the cake's death-wipe runs.
+    if (typeStr === 'cake') {
+        if (!window._cakeUsedThisMatch) window._cakeUsedThisMatch = { player: false, enemy: false };
+        window._cakeUsedThisMatch[team] = true;
+    }
 
     // Note: the previous post-spawn "bot-scale" block that used to live here
     // was removed. Level-scaling is now unified into the entity constructors
