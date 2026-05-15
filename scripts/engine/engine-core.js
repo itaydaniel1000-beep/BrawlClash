@@ -261,6 +261,10 @@ function updateUI() {
     // trips the cake-death wipe in entity-base.js (every opposing unit /
     // building / aura on the field dies instantly). Hidden the moment the
     // last cake dies (so the button can't be spam-pressed on a stale ref).
+    // Size overrides bump it beyond the standard 44×44 (mobile) so the
+    // 🎂💥 emoji combo reads cleanly + the button feels like the "ult"
+    // it is. Both mobile + desktop get explicit dimensions because the
+    // base CSS only sets a colour, not a size.
     const cakeBlowBtn = document.getElementById('cake-blow-btn');
     if (cakeBlowBtn) {
         const aliveCakes = (typeof buildings !== 'undefined' ? buildings : [])
@@ -268,6 +272,14 @@ function updateUI() {
         if (aliveCakes.length > 0) {
             cakeBlowBtn.style.display = 'block';
             cakeBlowBtn.style.backgroundColor = '#ff6b9d';
+            cakeBlowBtn.style.width    = '84px';
+            cakeBlowBtn.style.height   = '84px';
+            cakeBlowBtn.style.fontSize = '32px';
+            cakeBlowBtn.style.lineHeight = '1';
+            cakeBlowBtn.style.padding    = '0';
+            cakeBlowBtn.style.display    = 'flex';
+            cakeBlowBtn.style.alignItems = 'center';
+            cakeBlowBtn.style.justifyContent = 'center';
         } else {
             cakeBlowBtn.style.display = 'none';
         }
