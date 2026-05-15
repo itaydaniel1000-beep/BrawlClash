@@ -548,6 +548,34 @@
         units.forEach(u => { if (u && u._tutorialSiriusTarget) u.isDead = true; });
     }
 
+    // Rosa is a shield-spell — she needs a PLAYER-team unit to target. The
+    // tutorial may not have a usable one (units placed in earlier steps
+    // could have walked off / died), so we drop a stationary player Bruce
+    // as a guaranteed target. Tagged so the cleanup pass can find it.
+    function _spawnTutorialRosaTarget() {
+        const out = [];
+        if (typeof spawnEntity !== 'function' || typeof units === 'undefined') return out;
+        try {
+            spawnEntity(300, 700, 'player', 'bruce');
+            for (let i = units.length - 1; i >= 0; i--) {
+                const u = units[i];
+                if (u && u.team === 'player' && u.type === 'bruce' &&
+                    !u._tutorialRosaTarget && !u.isDead) {
+                    u.speed = 0;
+                    u._tutorialRosaTarget = true;
+                    out.push(u);
+                    break;
+                }
+            }
+        } catch (e) {}
+        return out;
+    }
+
+    function _removeTutorialRosaTargets() {
+        if (typeof units === 'undefined') return;
+        units.forEach(u => { if (u && u._tutorialRosaTarget) u.isDead = true; });
+    }
+
     function onBrawlerPicked(brawler, idx) {
         const tip = BRAWLER_TIPS[brawler] || 'דמות חדשה.';
 
@@ -580,6 +608,20 @@
                 title: 'סיריוס 👯',
                 text: tip + '<br><br>הצבנו לך 2 ברוסים נייחים בחצי האדום כתרגול. ' +
                       '<b>לחץ על אחד מהם</b> כדי לשכפל אותו — עותק יופיע בצד שלך.',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
+            });
+        } else if (brawler === 'rosa') {
+            // Rosa is a shield-spell — she needs a player-team target to
+            // shield. We spawn a stationary player Bruce so the player
+            // always has something obvious to click on. Cleanup runs the
+            // moment any player-team unit picks up a shieldHp > 0.
+            _spawnTutorialRosaTarget();
+            showStep({
+                title: 'רוזה 🛡️',
+                text: tip + '<br><br>הצבנו לך ברוס נייח בחצי שלך כתרגול. ' +
+                      '<b>לחץ עליו</b> כדי להעניק לו בועת מגן.',
                 target: '#game-canvas',
                 button: false,
                 allowClick: '#game-canvas'
@@ -623,13 +665,14 @@
             }, 150);
         }
 
-        // Snapshot the player-team unit count BEFORE Sirius/Rosa pick — used
-        // by the spell branch to detect "a new player unit appeared", which
-        // is the only on-field signal that the spell resolved (Sirius spawns
-        // a clone; Rosa just modifies an existing unit, see special handling
-        // below).
+        // Snapshot the player-team unit count BEFORE the pick — Sirius's
+        // detection uses this to spot "a new player unit appeared" (her
+        // clone). Decoy targets we just spawned are excluded so the count
+        // reflects only the player's REAL units at this moment.
         const _initialPlayerUnitCount = (typeof units !== 'undefined')
-            ? units.filter(u => u && u.team === 'player' && !u._tutorialSiriusTarget).length
+            ? units.filter(u => u && u.team === 'player' &&
+                                !u._tutorialSiriusTarget &&
+                                !u._tutorialRosaTarget).length
             : 0;
 
         // Watch for placement: a new player-team unit/building/aura with
@@ -642,10 +685,13 @@
         // place-on-canvas click and a 🎯-path commit (commitAmberPath()
         // also pushes her into `units`).
         //
-        // Sirius is a special case: she's a spell, so she NEVER appears in
-        // any of the arrays under her own type. Instead the signal is "a
-        // new player-team unit appeared" (the cloned Bruce, which we set
-        // up as a decoy target). Once we see one, we clean up the decoys.
+        // Sirius / Rosa are special cases: they're spells, so they NEVER
+        // appear in any of the arrays under their own type. We watch for
+        // a different signal per spell:
+        //   • Sirius — a new player-team unit appears (the clone).
+        //   • Rosa   — any player-team unit picks up shieldHp > 0.
+        // Once the signal fires we clean up the matching decoys and
+        // advance to the next brawler.
         const tickHandle = setInterval(() => {
             try {
                 if (brawler === 'sirius') {
@@ -654,6 +700,20 @@
                     if (currentPlayerUnitCount > _initialPlayerUnitCount) {
                         clearInterval(tickHandle);
                         _removeTutorialSiriusTargets();
+                        document.querySelectorAll('.card').forEach(c => {
+                            c.style.pointerEvents = '';
+                            c.style.opacity = '';
+                        });
+                        setTimeout(() => teachBrawler(idx + 1), 600);
+                    }
+                    return;
+                }
+                if (brawler === 'rosa') {
+                    const shielded = units.some(u =>
+                        u && u.team === 'player' && !u.isDead && (u.shieldHp || 0) > 0);
+                    if (shielded) {
+                        clearInterval(tickHandle);
+                        _removeTutorialRosaTargets();
                         document.querySelectorAll('.card').forEach(c => {
                             c.style.pointerEvents = '';
                             c.style.opacity = '';
