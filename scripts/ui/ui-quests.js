@@ -61,12 +61,42 @@ function _drawDailyQuests(count) {
     return out;
 }
 
+// Backfill the reward on saved quests so a pool update (e.g. switching
+// every reward to flat 500 tokens) doesn't leave today's already-drawn
+// quests stuck on the old currency. Matches by quest id and overwrites
+// reward in place — progress / claimed are preserved.
+function _migrateDailyQuestRewards() {
+    if (!Array.isArray(playerStats.dailyQuests)) return false;
+    let changed = false;
+    playerStats.dailyQuests.forEach(q => {
+        if (!q || !q.id) return;
+        const cur = QUEST_POOL.find(p => p.id === q.id);
+        if (!cur) return;
+        if (!q.reward
+            || q.reward.kind   !== cur.reward.kind
+            || q.reward.amount !== cur.reward.amount) {
+            q.reward = cur.reward;
+            changed = true;
+        }
+    });
+    return changed;
+}
+
 // Refresh the daily quest list if the day changed since the last refresh.
-// Idempotent — calling it multiple times the same day is a no-op.
+// Idempotent — calling it multiple times the same day is a no-op for the
+// quest pool, but the reward-schema migration ALWAYS runs so a pool
+// update reaches today's already-drawn quests too.
 function refreshDailyQuestsIfNeeded() {
     _initQuestState();
     const today = _questsTodayKey();
-    if (playerStats.questsLastRefresh === today) return;
+    if (playerStats.questsLastRefresh === today) {
+        // Same day — but check if a pool update changed the reward shape
+        // for any of today's saved quests, and patch them in place.
+        if (_migrateDailyQuestRewards() && typeof saveStats === 'function') {
+            saveStats();
+        }
+        return;
+    }
     playerStats.questsLastRefresh = today;
     playerStats.dailyQuests = _drawDailyQuests(3);
     if (typeof saveStats === 'function') saveStats();
