@@ -211,19 +211,29 @@ function updateUI() {
         }
     }
 
-    // Barry's 🍦 button — show while at least one alive Barry has a ready
-    // ice-cream charge. The badge shows the total charges pooled across
-    // all of OUR Barrys. Stays hidden when no charges are loaded.
+    // Barry's 🍦 button — visible the moment ANY of our Barrys is alive,
+    // even with 0 charges loaded, so the admin can see the loading
+    // happen (badge counts up from 0 → 4 over 5-second ticks). The
+    // button reads ACTIVE blue when there's at least one ready charge,
+    // and GRAY (disabled-looking) when still loading. Click handler
+    // refuses entry into selection mode when 0 charges.
     let icecreamBtn = document.getElementById('icecream-btn');
     if (icecreamBtn) {
         const myBarrys = units.filter(u => u.team === 'player' && u.type === 'barry' && !u.isDead);
         let totalCharges = 0;
         myBarrys.forEach(b => { totalCharges += (b._icecreamReady || 0); });
-        if (myBarrys.length > 0 && totalCharges > 0) {
+        if (myBarrys.length > 0) {
             icecreamBtn.style.display = 'block';
-            icecreamBtn.style.backgroundColor = isSelectingIcecream ? '#e74c3c' : '#3498db';
-            icecreamBtn.innerHTML = `🍦<span style="position:absolute; top:-4px; right:-4px; background:#fff; color:#3498db; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.4);">${totalCharges}</span>`;
             icecreamBtn.style.position = icecreamBtn.style.position || 'relative';
+            const ready = totalCharges > 0;
+            // Gray when loading (no charges yet), blue when ready, red while
+            // the admin has the "next click drops a cone" mode armed.
+            icecreamBtn.style.backgroundColor = isSelectingIcecream
+                ? '#e74c3c'
+                : (ready ? '#3498db' : '#7f8c8d');
+            icecreamBtn.style.opacity = ready ? '1' : '0.65';
+            const badgeColor = ready ? '#3498db' : '#7f8c8d';
+            icecreamBtn.innerHTML = `🍦<span style="position:absolute; top:-4px; right:-4px; background:#fff; color:${badgeColor}; border-radius:50%; width:18px; height:18px; font-size:11px; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,0.4);">${totalCharges}</span>`;
         } else {
             icecreamBtn.style.display = 'none';
             if (isSelectingIcecream) isSelectingIcecream = false;

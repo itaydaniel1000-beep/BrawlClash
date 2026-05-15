@@ -100,16 +100,16 @@ class Unit extends Entity {
             const _seedY = Math.floor(_canonY * 10);
             this._trunkRngState = ((_seedX * 73856093) ^ (_seedY * 19349663) ^ 0x9E3779B9) >>> 0;
         } else if (type === 'barry') {
-            // Barry — admin-only ice-cream tank. Walks like Bruce (target
-            // chase), 4000 HP, modest 150 damage. Her real value is the
-            // 🍦 charge timer below: every 5 seconds while she's alive,
-            // _icecreamReady ticks up by 1. The UI consumes those charges
-            // to let the admin place ice-cream auras anywhere on the map
-            // (see battle-input.js + engine-core.js for the button + the
-            // placement flow).
+            // Barry — admin-only ice-cream summoner. STATIONARY (speed 0):
+            // she stays put wherever the admin drops her in the enemy half
+            // and acts as a long-lived 4000-HP charge generator. She still
+            // swings at any enemy that wanders into her 60px reach
+            // (handled in unit-logic.js by routing 'barry' through the
+            // nearest-enemy targeting branch — she'll only ever attack
+            // what comes to her, since she can't chase).
             this.maxHp = 4000; this.hp = 4000;
             this.attackDamage = 150;
-            this.speed = 55;
+            this.speed = 0;                     // never moves
             this.attackRange = 60;
             this.attackSpeed = 900;
             this.color = '#3498db';
