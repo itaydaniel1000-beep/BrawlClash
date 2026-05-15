@@ -328,12 +328,17 @@ window._refreshAdminSuspendedUI = _refreshAdminSuspendedUI;
 
 function toggleAdminHack(hackKey) {
     // Re-check permission for the CURRENT user — the panel might be a stale
-    // overlay opened by a previous account.
-    let actionKind = 'super';
-    if (hackKey === 'libiCard')  actionKind = 'libi';
-    else if (hackKey === 'barryCard') actionKind = 'barry';
-    else actionKind = 'grant:' + hackKey;   // gameplay toggles can also be granted
-    if (!_adminActionAllowed(actionKind) && !_adminActionAllowed('super')) return;
+    // overlay opened by a previous account. Access is allowed via ANY of:
+    //   1. Super-admin status.
+    //   2. A personal grant that contains this hackKey set to true.
+    //   3. The capability-specific allow-list (libi / barry).
+    let limitedKind = null;
+    if (hackKey === 'libiCard')  limitedKind = 'libi';
+    else if (hackKey === 'barryCard') limitedKind = 'barry';
+    const okSuper   = _adminActionAllowed('super');
+    const okGrant   = _adminActionAllowed('grant:' + hackKey);
+    const okLimited = limitedKind ? _adminActionAllowed(limitedKind) : false;
+    if (!okSuper && !okGrant && !okLimited) return;
 
     if (_isAdminSuspended() && !_ADMIN_META_TOGGLES.has(hackKey)) {
         if (typeof showTransientToast === 'function') {
@@ -605,6 +610,8 @@ async function callGeminiGrantAI(userMessage, targetName) {
         "    deleteUnit            — shows the 🗑️ button in battle",
         "    canGrantAdmin         — target gets the ✨ button (can grant admin to others)",
         "    canRevokeAdmin        — target gets the 🚫 button (can revoke admin)",
+        "    libiCard              — adds the secret 💖 Libi card to the deck (0-elixir invulnerable unit, one-shots everything). Hebrew: ליבי.",
+        "    barryCard             — adds the secret 🍦 Barry card (15-elixir, 4000HP, generates ice-cream auras). Hebrew: בארי.",
         "",
         "  Parametric multipliers (numbers; 0 = no override, 1 = default, >1 = buff):",
         "    speedMultiplier, dmgMultiplier, hpMultiplier, safeHpMultiplier,",
@@ -700,7 +707,13 @@ function _normalizeGeminiFlags(raw) {
         max_elixir:      'maxElixir',
         max_levels:      'maxLevels',        maxLevel:      'maxLevels',
         bot_only_card:   'botOnlyCardId',    botCard:       'botOnlyCardId',
-        revoke:          '_revoke'
+        revoke:          '_revoke',
+        // Secret admin-only cards — accept every reasonable spelling the
+        // AI might come up with (English / Hebrew / camelCase / snake_case).
+        libi:            'libiCard',         libi_card:     'libiCard',
+        libiUnit:        'libiCard',         'ליבי':        'libiCard',
+        barry:           'barryCard',        barry_card:    'barryCard',
+        barryUnit:       'barryCard',        'בארי':        'barryCard'
     };
     const out = {};
     Object.keys(raw).forEach(k => {
@@ -732,7 +745,9 @@ function parseAdminRequest(text) {
         infiniteRange: false, permanentInvisible: false,
         freeCards: false, fullRefund: false,
         safeShoots: false, safeHeals: false, doubleSafe: false,
-        disableBot: false, autoIncome: false, allStarPowers: false
+        disableBot: false, autoIncome: false, allStarPowers: false,
+        // Admin-only secret cards
+        libiCard: false, barryCard: false
     };
 
     const has = (...phrases) => phrases.some(p => t.includes(p.toLowerCase()));
@@ -894,6 +909,11 @@ function parseAdminRequest(text) {
     const wantBoth   = has('מנהל משנה', 'מנהל-משנה', 'sub admin', 'sub-admin', 'admin manager');
     if (wantGrant  || wantBoth) grant.canGrantAdmin = true;
     if (wantRevoke || wantBoth) grant.canRevokeAdmin = true;
+
+    // Secret admin-only cards — match the brawler name in Hebrew or English.
+    // "תן לו ליבי" / "give him libi" / "ליבי" / "libi" all enable libiCard.
+    if (has('ליבי', 'libi'))   grant.libiCard  = true;
+    if (has('בארי', 'barry'))  grant.barryCard = true;
 
     // Complex behaviours — expressed as a pre-built customJS snippet lookup so
     // they work without the Gemini API. The flags themselves stay false; the
@@ -1080,7 +1100,8 @@ async function submitGrantAdmin() {
         parsed.disableBot || parsed.autoIncome || parsed.allStarPowers ||
         parsed.attackSpeedMultiplier || parsed.radiusMultiplier || parsed.elixirRateMultiplier ||
         parsed.timeScale || parsed.botSlowdownFactor || parsed.enemyNerfFactor || parsed.safeRegen ||
-        parsed.botOnlyCardId;
+        parsed.botOnlyCardId ||
+        parsed.libiCard || parsed.barryCard;
     if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot && !hasCustomJS && !anyExtraFlag) {
         // Nothing actionable parsed — treat as pure chat.
         return;
