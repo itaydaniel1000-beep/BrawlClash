@@ -272,21 +272,18 @@ function updateUI() {
         if (aliveCakes.length > 0) {
             cakeBlowBtn.style.display = 'block';
             cakeBlowBtn.style.backgroundColor = '#ff6b9d';
-            // Sized for visibility ("user still sees it small after the
-            // previous bump"). Using setProperty(..., 'important') so any
-            // earlier inline rule from _positionActionButtons (44×44 fixed
-            // on mobile) can no longer win the cascade. The button is now
-            // 320×320 — it's intentionally bigger than the deck cards
-            // because this is a once-per-match nuke. Anchor it to the
-            // bottom-right corner of the viewport with fixed positioning
-            // so it doesn't get clipped by #app's overflow:hidden on
-            // mobile and doesn't overlap the elixir bar at the bottom.
+            // Sized 4× smaller than the previous 320 px version per user
+            // request. Still bigger than the standard 44×44 side-rail
+            // buttons so it remains recognisable as the "ultimate", just
+            // not overwhelming. Anchored to the same fixed bottom-right
+            // slot via setProperty('important') so _positionActionButtons'
+            // 44 px default can't reclaim the cascade.
             const cbStyle = cakeBlowBtn.style;
-            cbStyle.setProperty('width',  '320px', 'important');
-            cbStyle.setProperty('height', '320px', 'important');
-            cbStyle.setProperty('font-size', '140px', 'important');
-            cbStyle.setProperty('border', '10px solid #fff', 'important');
-            cbStyle.setProperty('box-shadow', '0 16px #c0397f', 'important');
+            cbStyle.setProperty('width',  '80px', 'important');
+            cbStyle.setProperty('height', '80px', 'important');
+            cbStyle.setProperty('font-size', '35px', 'important');
+            cbStyle.setProperty('border', '3px solid #fff', 'important');
+            cbStyle.setProperty('box-shadow', '0 4px #c0397f', 'important');
             cbStyle.setProperty('line-height', '1', 'important');
             cbStyle.setProperty('padding', '0', 'important');
             cbStyle.setProperty('display', 'flex', 'important');
