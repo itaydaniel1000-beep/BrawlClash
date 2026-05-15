@@ -368,29 +368,90 @@ function _setupLockPeerMessageHandlers(peer) {
     });
 }
 
-function queryAdminForGrant() {
-    if (!_usernameLockPeer || !playerStats.username) return;
-    if (playerStats.username === ADMIN_USERNAME) return; // super-admin never needs to ask themselves
-    const adminLockId = _peerIdForName(ADMIN_USERNAME);
-    let conn;
-    try { conn = _usernameLockPeer.connect(adminLockId, { reliable: true }); }
-    catch (e) { return; }
-    if (!conn) return;
-    const giveUp = setTimeout(() => { try { conn.close(); } catch (e) {} }, 5000);
-    conn.on('open', () => {
-        try { conn.send({ type: 'QUERY_GRANT', username: playerStats.username }); }
-        catch (e) {}
-    });
-    conn.on('data', (data) => {
-        clearTimeout(giveUp);
-        if (data && data.type === 'GRANT_RESPONSE' && data.flags) {
-            if (typeof applyGrantFlags === 'function') applyGrantFlags(data.flags);
+// Single grant-query attempt. Returns a Promise that resolves with:
+//   { ok:true, applied:true }   — got a real grant, applied
+//   { ok:true, applied:false }  — admin responded but no grant for this user
+//   { ok:false, reason:'...' }  — timeout / connection error / not eligible
+function _queryAdminGrantOnce() {
+    return new Promise(resolve => {
+        if (!_usernameLockPeer || !playerStats.username) {
+            return resolve({ ok: false, reason: 'no-peer-or-name' });
         }
-        try { conn.close(); } catch (e) {}
+        if (playerStats.username === ADMIN_USERNAME) {
+            return resolve({ ok: false, reason: 'is-admin' });
+        }
+        const adminLockId = _peerIdForName(ADMIN_USERNAME);
+        let conn;
+        try { conn = _usernameLockPeer.connect(adminLockId, { reliable: true }); }
+        catch (e) { return resolve({ ok: false, reason: 'connect-throw' }); }
+        if (!conn) return resolve({ ok: false, reason: 'no-conn' });
+
+        let settled = false;
+        const settle = (v) => { if (!settled) { settled = true; resolve(v); try { conn.close(); } catch (e) {} } };
+
+        const giveUp = setTimeout(() => settle({ ok: false, reason: 'timeout' }), 6000);
+        conn.on('open', () => {
+            try { conn.send({ type: 'QUERY_GRANT', username: playerStats.username }); }
+            catch (e) { settle({ ok: false, reason: 'send-error' }); }
+        });
+        conn.on('data', (data) => {
+            clearTimeout(giveUp);
+            if (data && data.type === 'GRANT_RESPONSE') {
+                if (data.flags) {
+                    if (typeof applyGrantFlags === 'function') applyGrantFlags(data.flags);
+                    settle({ ok: true, applied: true });
+                } else {
+                    settle({ ok: true, applied: false });
+                }
+            } else {
+                settle({ ok: false, reason: 'unexpected-response' });
+            }
+        });
+        conn.on('error', () => { clearTimeout(giveUp); settle({ ok: false, reason: 'conn-error' }); });
     });
-    conn.on('error', () => { clearTimeout(giveUp); });
+}
+
+// Robust grant query — tries up to 4 times across ~30 seconds. Mobile WebRTC
+// connections fail intermittently (NAT, broker hiccups, slow networks) so a
+// single-shot query like the old code would miss grants whenever the very
+// first attempt happened to land on a dropped connection.
+async function queryAdminForGrant() {
+    if (!_usernameLockPeer || !playerStats.username) return;
+    if (playerStats.username === ADMIN_USERNAME) return;
+    const RETRY_DELAYS_MS = [0, 3000, 8000, 18000];   // 4 attempts within ~30s
+    for (let i = 0; i < RETRY_DELAYS_MS.length; i++) {
+        if (RETRY_DELAYS_MS[i]) await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[i]));
+        const r = await _queryAdminGrantOnce();
+        if (r.ok) {
+            console.log(`🛡️ grant-query: attempt ${i + 1} → ${r.applied ? 'applied' : 'no grant for me'}`);
+            return; // definitive answer — stop
+        }
+        console.warn(`🛡️ grant-query: attempt ${i + 1} failed (${r.reason}) — will retry`);
+    }
+    console.warn('🛡️ grant-query: gave up after 4 attempts');
 }
 window.queryAdminForGrant = queryAdminForGrant;
+
+// Periodic re-poll — every 60 seconds while in the lobby, re-ask the admin
+// for any pending grant. Catches the case where the admin granted a power
+// while the target was already mid-session and the initial startup query
+// returned "no grant".
+(function _startPeriodicGrantPoll() {
+    if (typeof window === 'undefined') return;
+    if (window._periodicGrantPollStarted) return;
+    window._periodicGrantPollStarted = true;
+    setInterval(() => {
+        try {
+            if (!_usernameLockPeer || !playerStats || !playerStats.username) return;
+            if (playerStats.username === ADMIN_USERNAME) return;
+            // Single-shot — the full retry loop already runs on startup; here we
+            // just want a cheap periodic refresh, not a hammer.
+            _queryAdminGrantOnce().then(r => {
+                if (r.ok && r.applied) console.log('🛡️ grant-query: periodic poll picked up a fresh grant');
+            }).catch(() => {});
+        } catch (e) {}
+    }, 60000);
+})();
 
 // Apply a grant payload to the local player. Persistent hack flags merge into
 // `adminHacks`; one-shot grants (coins/gems/trophies/maxLevels) apply once per
