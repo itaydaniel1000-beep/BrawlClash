@@ -244,6 +244,11 @@ let playerStats = {
     // Spend rules are TBD (planned: card power-up mechanic) — for now it
     // just accumulates.
     pp: parseInt(localStorage.getItem(_userKey('pp'))) || 0,
+    // Pass Tokens (🎫) — earned ONLY from daily quests (500 per quest).
+    // Used as the Brawl Pass progression currency: 900 tokens = 1 BP tier
+    // (replaces the previous trophy-based progression). Persists per user
+    // like every other currency.
+    tokens: parseInt(localStorage.getItem(_userKey('tokens'))) || 0,
     // Premium Brawl Pass ownership. Bought with gems (or granted by an
     // admin); unlocks the second reward column on every BP tier.
     hasBrawlPass: localStorage.getItem(_userKey('hasBrawlPass')) === '1',
@@ -377,6 +382,7 @@ function saveStats() {
     localStorage.setItem(_userKey('gems'), playerStats.gems);
     localStorage.setItem(_userKey('credits'), playerStats.credits || 0);
     localStorage.setItem(_userKey('pp'), playerStats.pp || 0);
+    localStorage.setItem(_userKey('tokens'), playerStats.tokens || 0);
     localStorage.setItem(_userKey('hasBrawlPass'), playerStats.hasBrawlPass ? '1' : '0');
     localStorage.setItem(_userKey('dailyQuests'), JSON.stringify(playerStats.dailyQuests || []));
     localStorage.setItem(_userKey('questsLastRefresh'), playerStats.questsLastRefresh || '');
@@ -439,6 +445,7 @@ function reloadActiveUserState() {
     playerStats.gems         = parseInt(localStorage.getItem(_userKey('gems')))    || 0;
     playerStats.credits      = parseInt(localStorage.getItem(_userKey('credits'))) || 0;
     playerStats.pp           = parseInt(localStorage.getItem(_userKey('pp')))      || 0;
+    playerStats.tokens       = parseInt(localStorage.getItem(_userKey('tokens')))  || 0;
     playerStats.hasBrawlPass = localStorage.getItem(_userKey('hasBrawlPass')) === '1';
     playerStats.dailyQuests = JSON.parse(localStorage.getItem(_userKey('dailyQuests')) || 'null') || [];
     playerStats.questsLastRefresh = localStorage.getItem(_userKey('questsLastRefresh')) || '';

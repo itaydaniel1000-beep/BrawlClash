@@ -7,17 +7,21 @@
 // quest hits its target the player can claim the reward, which is
 // granted to the matching currency on playerStats.
 
+// Every quest awards the same flat reward — 500 🎫 tokens — used to
+// progress the Brawl Pass (see ui-progression.js).
+const QUEST_REWARD = { kind: 'tokens', amount: 500 };
+
 // ---- Quest catalog (pool — 3 random quests per day) ----------------------
 const QUEST_POOL = [
-    { id: 'win3',         text: 'נצח 3 קרבות',          target: 3,   metric: 'wins',     reward: { kind: 'coins',   amount: 200 } },
-    { id: 'win5',         text: 'נצח 5 קרבות',          target: 5,   metric: 'wins',     reward: { kind: 'gems',    amount: 30  } },
-    { id: 'play5',        text: 'שחק 5 קרבות',          target: 5,   metric: 'battles',  reward: { kind: 'gems',    amount: 20  } },
-    { id: 'play10',       text: 'שחק 10 קרבות',         target: 10,  metric: 'battles',  reward: { kind: 'coins',   amount: 500 } },
-    { id: 'spawn30',      text: 'הצב 30 דמויות בקרב',   target: 30,  metric: 'spawns',   reward: { kind: 'pp',      amount: 100 } },
-    { id: 'spawn80',      text: 'הצב 80 דמויות בקרב',   target: 80,  metric: 'spawns',   reward: { kind: 'pp',      amount: 300 } },
-    { id: 'trophy50',     text: 'הרווח 50 גביעים',      target: 50,  metric: 'trophies', reward: { kind: 'credits', amount: 50  } },
-    { id: 'trophy150',    text: 'הרווח 150 גביעים',     target: 150, metric: 'trophies', reward: { kind: 'gems',    amount: 25  } },
-    { id: 'pp200',        text: 'אסוף 200 נקודות כוח',  target: 200, metric: 'pp_earned',reward: { kind: 'coins',   amount: 300 } }
+    { id: 'win3',      text: 'נצח 3 קרבות',         target: 3,   metric: 'wins',      reward: QUEST_REWARD },
+    { id: 'win5',      text: 'נצח 5 קרבות',         target: 5,   metric: 'wins',      reward: QUEST_REWARD },
+    { id: 'play5',     text: 'שחק 5 קרבות',         target: 5,   metric: 'battles',   reward: QUEST_REWARD },
+    { id: 'play10',    text: 'שחק 10 קרבות',        target: 10,  metric: 'battles',   reward: QUEST_REWARD },
+    { id: 'spawn30',   text: 'הצב 30 דמויות בקרב',  target: 30,  metric: 'spawns',    reward: QUEST_REWARD },
+    { id: 'spawn80',   text: 'הצב 80 דמויות בקרב',  target: 80,  metric: 'spawns',    reward: QUEST_REWARD },
+    { id: 'trophy50',  text: 'הרווח 50 גביעים',     target: 50,  metric: 'trophies',  reward: QUEST_REWARD },
+    { id: 'trophy150', text: 'הרווח 150 גביעים',    target: 150, metric: 'trophies',  reward: QUEST_REWARD },
+    { id: 'pp200',     text: 'אסוף 200 נקודות כוח', target: 200, metric: 'pp_earned', reward: QUEST_REWARD }
 ];
 
 // ---- Date helpers --------------------------------------------------------
@@ -102,6 +106,7 @@ function claimQuestReward(idx) {
     if (r.kind === 'gems')    playerStats.gems    = (playerStats.gems    || 0) + r.amount;
     if (r.kind === 'credits') playerStats.credits = (playerStats.credits || 0) + r.amount;
     if (r.kind === 'pp')      playerStats.pp      = (playerStats.pp      || 0) + r.amount;
+    if (r.kind === 'tokens')  playerStats.tokens  = (playerStats.tokens  || 0) + r.amount;
     q.claimed = true;
     if (typeof saveStats     === 'function') saveStats();
     if (typeof updateStatsUI === 'function') updateStatsUI();
@@ -134,11 +139,13 @@ function _questRewardChip(reward) {
     const icon  = reward.kind === 'coins'   ? '🪙'
                 : reward.kind === 'gems'    ? '💎'
                 : reward.kind === 'credits' ? '🎟️'
-                : reward.kind === 'pp'      ? '💪' : '🎁';
+                : reward.kind === 'pp'      ? '💪'
+                : reward.kind === 'tokens'  ? '🎫' : '🎁';
     const color = reward.kind === 'coins'   ? '#f1c40f'
                 : reward.kind === 'gems'    ? '#74b9ff'
                 : reward.kind === 'credits' ? '#9b59b6'
-                : reward.kind === 'pp'      ? '#e84393' : '#fff';
+                : reward.kind === 'pp'      ? '#e84393'
+                : reward.kind === 'tokens'  ? '#2ecc71' : '#fff';
     return `<span style="color:${color}; font-weight:bold; font-size:1.05rem;">+${reward.amount.toLocaleString()} ${icon}</span>`;
 }
 

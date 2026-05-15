@@ -191,7 +191,9 @@ window.renderUnlockScreen = renderUnlockScreen;
 // BRAWL PASS — Free + Premium tracks, 60 tiers, Brawl-Stars-style layout
 // ============================================================================
 const BRAWL_PASS_MAX_TIER       = 60;
-const BRAWL_PASS_TROPHY_PER_TIER = 100;     // tier i unlocks at trophies >= i*100
+// Progression now uses 🎫 PASS TOKENS (earned only from daily quests) — 900
+// tokens per tier. Trophies are no longer the BP progression currency.
+const BRAWL_PASS_TOKENS_PER_TIER = 900;
 const BRAWL_PASS_PRICE_GEMS     = 30;       // cost to buy premium pass
 
 // Returns the reward for `tier` on the given `track` ('free' | 'premium').
@@ -296,10 +298,14 @@ function renderBrawlPass() {
     `;
     container.appendChild(header);
 
+    // Current token balance — used by every tier card to decide whether
+    // the player has progressed far enough to unlock it.
+    const myTokens = (playerStats && playerStats.tokens) || 0;
+
     // ---- Tier columns --------------------------------------------------------
     for (let i = 1; i <= BRAWL_PASS_MAX_TIER; i++) {
-        const trophiesNeeded = i * BRAWL_PASS_TROPHY_PER_TIER;
-        const tierUnlocked   = playerTrophies >= trophiesNeeded;
+        const tokensNeeded   = i * BRAWL_PASS_TOKENS_PER_TIER;
+        const tierUnlocked   = myTokens >= tokensNeeded;
         const isMilestone    = i % 5 === 0;
         const isJackpot      = i % 10 === 0;
 
@@ -315,13 +321,13 @@ function renderBrawlPass() {
         const premChip = _bpChip(premiumReward, {
             unlocked: tierUnlocked && hasBP,
             claimed:  premClaimed,
-            lockedReason: !hasBP ? '🔒 פרימיום' : (!tierUnlocked ? `🏆 ${trophiesNeeded}` : '')
+            lockedReason: !hasBP ? '🔒 פרימיום' : (!tierUnlocked ? `🎫 ${tokensNeeded}` : '')
         });
         premBtn.appendChild(premChip);
         premBtn.onclick = () => {
             if (premClaimed) return;
             if (!hasBP) { if (typeof showTransientToast === 'function') showTransientToast('🔒 צריך לקנות Brawl Pass'); return; }
-            if (!tierUnlocked) { if (typeof showTransientToast === 'function') showTransientToast(`🏆 צריך ${trophiesNeeded} גביעים`); return; }
+            if (!tierUnlocked) { if (typeof showTransientToast === 'function') showTransientToast(`🎫 צריך ${tokensNeeded} טוקנים`); return; }
             _grantReward(premiumReward);
             playerStats.claimedPremiumTiers = (playerStats.claimedPremiumTiers || []).concat([i]);
             saveStats();
@@ -338,7 +344,7 @@ function renderBrawlPass() {
         tierLabel.style.cssText = `background:${bandColor}; color:#fff; font-weight:bold; text-align:center; padding:6px; border-radius:8px; box-shadow: 0 2px 0 rgba(0,0,0,0.3); position:relative;`;
         tierLabel.innerHTML = `
             <div style="font-size:0.95rem;">דרגה ${i}</div>
-            <div style="font-size:0.65rem; opacity:0.85;">🏆 ${trophiesNeeded.toLocaleString()}</div>
+            <div style="font-size:0.65rem; opacity:0.85;">🎫 ${tokensNeeded.toLocaleString()}</div>
             ${isJackpot ? '<div style="position:absolute; top:-8px; right:-8px; background:#f1c40f; color:#000; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; box-shadow:0 2px 4px rgba(0,0,0,0.4);">🏆</div>' : ''}
             ${isMilestone && !isJackpot ? '<div style="position:absolute; top:-6px; right:-6px; background:#9b59b6; color:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:0.65rem;">⭐</div>' : ''}
         `;
@@ -352,12 +358,12 @@ function renderBrawlPass() {
         const freeChip = _bpChip(freeReward, {
             unlocked: tierUnlocked,
             claimed:  freeClaimed,
-            lockedReason: !tierUnlocked ? `🏆 ${trophiesNeeded}` : ''
+            lockedReason: !tierUnlocked ? `🎫 ${tokensNeeded}` : ''
         });
         freeBtn.appendChild(freeChip);
         freeBtn.onclick = () => {
             if (freeClaimed) return;
-            if (!tierUnlocked) { if (typeof showTransientToast === 'function') showTransientToast(`🏆 צריך ${trophiesNeeded} גביעים`); return; }
+            if (!tierUnlocked) { if (typeof showTransientToast === 'function') showTransientToast(`🎫 צריך ${tokensNeeded} טוקנים`); return; }
             _grantReward(freeReward);
             playerStats.claimedTiers = (playerStats.claimedTiers || []).concat([i]);
             saveStats();
