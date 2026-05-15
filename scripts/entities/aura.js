@@ -185,6 +185,9 @@ class Aura extends Entity {
     }
 
     draw(ctx) {
+        // Frozen ENEMY auras are hidden from us until the opponent
+        // releases them (matches the Unit/Building hide rule).
+        if (this.isFrozen && this.team === 'enemy') return;
         // Fire trail — render as a flickering flame blob (no border, no HP
         // bar, no icon). Each tick we randomise the radius slightly and
         // cross-fade between two warm-orange tones so the trail visibly

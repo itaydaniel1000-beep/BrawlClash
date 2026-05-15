@@ -91,6 +91,10 @@ class Building extends Entity {
     }
 
     draw(ctx) {
+        // Frozen ENEMY buildings are hidden from us — they're held back on
+        // the opponent's side and only become visible when the opponent
+        // releases their freeze.
+        if (this.isFrozen && this.team === 'enemy') return;
         // Custom pixel-art sprite (e.g. scrappy's dog face). Replaces the
         // standard "circle + emoji" rendering when the building's type is
         // registered in _CUSTOM_SPRITES. HP bar still draws below for
