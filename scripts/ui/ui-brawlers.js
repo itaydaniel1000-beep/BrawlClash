@@ -65,7 +65,7 @@ function renderCharCards() {
         const card = CARDS[id];
         // Skip admin-only cards (e.g. Libi) — they're not selectable from the
         // brawler screen; they appear in battle via the admin toggle only.
-        if (card && card.adminOnly) return;
+        if (card && (card.adminOnly || card.eventOnly)) return;
         const cardEl = document.createElement('div');
         cardEl.className = 'card';
         cardEl.style.position = 'relative';

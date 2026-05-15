@@ -188,6 +188,13 @@
                                 <span class="guide-hint-arrow">👉</span>
                             </div>
                         </div>
+                        <!-- 🎉 Event button — sits below the guide. Visible
+                             whenever an event is active. The content of the
+                             event screen is filled in by JS so we can swap
+                             event themes without touching the HTML. -->
+                        <button class="side-btn event-btn" onclick="openScreen('event-screen')" title="אירוע מיוחד" style="background: linear-gradient(135deg, #ff6b9d, #f1c40f); box-shadow: 0 5px 0 #c0392b;">
+                            <span class="btn-icon">🎉</span>
+                        </button>
                     </div>
                 </div>
 
@@ -412,6 +419,19 @@
                 <h2 id="game-over-title">ניצחון!</h2>
                 <button id="restart-btn" class="bs-btn bs-btn-primary">המשך</button>
                 <button id="game-over-char-btn" class="bs-btn bs-btn-primary" style="margin-top:10px; background-color: #8c7ae6;">שנה דמויות</button>
+            </div>
+        </div>
+
+        <!-- 🎉 Event Screen — themed around the dev's 21-May birthday. The
+             body of the screen is rendered by renderEventScreen() in
+             ui-event.js so we can swap themes without touching the HTML. -->
+        <div id="event-screen" class="screen overlay" style="background: linear-gradient(135deg, #ff6b9d, #ff9ff3, #f1c40f);">
+            <div class="menu-box" style="max-width: 500px; width: 92%; max-height: 85vh; overflow-y: auto; border: 4px solid #f1c40f;">
+                <h2 style="color: #fff; text-shadow: 2px 2px 0 #000; display: flex; align-items: center; justify-content: center; gap: 10px;">🎂 אירוע יום הולדת 🎉</h2>
+                <div id="event-container" style="margin: 16px 0;">
+                    <!-- rendered by renderEventScreen() -->
+                </div>
+                <button onclick="closeScreen('event-screen')" class="bs-btn bs-btn-danger">סגור</button>
             </div>
         </div>
 
@@ -920,7 +940,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=16.1"></script>
+    <script src="config.js?v=16.2"></script>
     <script src="globals.js?v=16.0"></script>
     <script src="audio.js?v=3.8"></script>
     
@@ -931,30 +951,31 @@
     <script src="network-logic.js?v=9.76"></script>
 
     <!-- Entities Module -->
-    <script src="scripts/entities/entity-base.js?v=13.9"></script>
+    <script src="scripts/entities/entity-base.js?v=14.0"></script>
     <script src="scripts/entities/effects.js"></script>
     <script src="scripts/entities/unit-core.js?v=13.7"></script>
     <script src="scripts/entities/unit-logic.js?v=15.0"></script>
-    <script src="scripts/entities/building.js?v=14.5"></script>
+    <script src="scripts/entities/building.js?v=14.6"></script>
     <script src="scripts/entities/aura.js?v=14.7"></script>
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=16.6"></script>
-    <script src="scripts/ui/ui-brawlers.js?v=15.6"></script>
+    <script src="scripts/ui/ui-core.js?v=16.8"></script>
+    <script src="scripts/ui/ui-brawlers.js?v=15.7"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
-    <script src="scripts/ui/ui-progression.js?v=16.1"></script>
+    <script src="scripts/ui/ui-progression.js?v=16.2"></script>
     <script src="scripts/ui/ui-admin.js?v=9.85"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/ui-quests.js?v=1.3"></script>
+    <script src="scripts/ui/ui-event.js?v=1.1"></script>
     <script src="scripts/ui/tutorial.js?v=14.7"></script>
 
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
-    <script src="scripts/ai/ai-strategies.js?v=3.6"></script>
+    <script src="scripts/ai/ai-strategies.js?v=3.7"></script>
     <script src="scripts/battle/battle-spawn.js?v=10.4"></script>
     <script src="scripts/battle/battle-input.js?v=14.7"></script>
-    <script src="scripts/battle/battle-deck.js?v=15.4"></script>
+    <script src="scripts/battle/battle-deck.js?v=15.5"></script>
 
     <!-- Engine Module -->
     <script src="scripts/engine/engine-core.js?v=15.3"></script>

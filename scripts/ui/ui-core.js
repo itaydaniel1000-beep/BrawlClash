@@ -170,6 +170,8 @@ function openScreen(screenId) {
         if (typeof renderLeaderboard === 'function') renderLeaderboard();
     } else if (screenId === 'social-overlay') {
         if (typeof renderSocialPlayers === 'function') renderSocialPlayers();
+    } else if (screenId === 'event-screen') {
+        if (typeof renderEventScreen === 'function') renderEventScreen();
     } else if (screenId === 'guide-screen') {
         // Make sure the character list is populated from CARDS + STAR_POWERS
         // before the user sees either panel.
@@ -268,7 +270,7 @@ const GUIDE_CHAR_ROLES = {
 function renderGuideCharacters() {
     // Hide admin-only cards (Libi / Barry / ice-cream aura) from the public
     // character guide — they're not for normal players to read about.
-    const rows = Object.keys(CARDS).filter(id => !(CARDS[id] && CARDS[id].adminOnly)).map(id => {
+    const rows = Object.keys(CARDS).filter(id => !(CARDS[id] && (CARDS[id].adminOnly || CARDS[id].eventOnly))).map(id => {
         const c = CARDS[id];
         const meta = GUIDE_CHAR_ROLES[id] || { role: c.type, base: '', blurb: '' };
         const sp = STAR_POWERS[id] || [];
@@ -340,6 +342,8 @@ function updateHomeScreen() {
     // refreshes the 🎁 badge on the 📜 button.
     if (typeof refreshDailyQuestsIfNeeded === 'function') refreshDailyQuestsIfNeeded();
     if (typeof refreshQuestsBadge === 'function') refreshQuestsBadge();
+    // 🎉 Event button — show only while the event window is open.
+    if (typeof refreshEventButtonVisibility === 'function') refreshEventButtonVisibility();
     // Re-parse the lobby resource pills (🪙/💎/🎟️/💪/🎫) into Twemoji
     // SVGs so they stay consistent across every OS — refresh on every
     // stats update because the pill values are re-written every time.

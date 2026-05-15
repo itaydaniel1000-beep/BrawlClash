@@ -20,7 +20,7 @@ function _aiCountOnField(type) {
 // "Affordable AND legal" — has the elixir to play `type`, and not at the
 // 2-bruce-per-team cap. Returns the card-id or null.
 function _aiAffordable(type) {
-    if (!type || !CARDS[type] || CARDS[type].adminOnly) return null;
+    if (!type || !CARDS[type] || CARDS[type].adminOnly || CARDS[type].eventOnly) return null;
     if (enemyElixir < CARDS[type].cost) return null;
     if (type === 'bruce' && _aiCountOnField('bruce') >= 2) return null;
     return type;

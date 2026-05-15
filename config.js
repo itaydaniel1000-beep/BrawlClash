@@ -176,7 +176,13 @@ const CARDS = {
     // CARDS only so spawnEntity() can route it through the same code path
     // every other aura uses, which also gives us P2P sync for free.
     'icecream': { name: 'גלידה', cost: 0, type: 'aura', color: '#3498db', icon: '🍦',
-                  rarity: 'אגדי', adminOnly: true, hiddenFromAll: true }
+                  rarity: 'אגדי', adminOnly: true, hiddenFromAll: true },
+    // 🎂 Birthday cake — limited-time event card, available only during
+    // the May 21 → 27 window (see ui-event.js). Healing tower: stationary,
+    // heals allies in radius, explodes in confetti on death. Excluded from
+    // every "all cards" list by the `eventOnly` flag.
+    'cake':   { name: 'עוגה', cost: 5, type: 'building', color: '#ff6b9d', icon: '🎂',
+               rarity: 'אגדי', eventOnly: true }
 };
 
 const STAR_POWERS = {

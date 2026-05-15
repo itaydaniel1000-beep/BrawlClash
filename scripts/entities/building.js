@@ -32,6 +32,23 @@ class Building extends Entity {
             this.attackDamage = 250;
             this.attackSpeed = 5000;
             this.attackRange = 450;
+        } else if (type === 'cake') {
+            // 🎂 Birthday cake — limited-time event tower (May 21 → 27).
+            // Stationary; doesn't attack. While alive it pulses a healing
+            // aura that restores 40 HP/sec to every same-team entity
+            // within 120 px. On death it explodes in confetti, dealing
+            // 250 burst damage to every enemy in 100 px (handled in
+            // entity-base.js takeDamage when hp <= 0 — see _cakeExplode).
+            this.maxHp = 1500; this.hp = 1500;
+            this.color = '#ff6b9d';
+            this.attackDamage = 0;
+            this.attackSpeed = 0;
+            this.attackRange = 0;
+            this._cakeHealRadius = 120;
+            this._cakeHealPerSec = 40;
+            this._cakeBurstRadius = 100;
+            this._cakeBurstDamage = 250;
+            this._cakeLastHeal = performance.now();
         }
 
         // Level scaling removed — matches unit-core.js. Every building uses
@@ -58,6 +75,26 @@ class Building extends Entity {
             if (now - this.lastHealTime > 1000) {
                 this.hp = Math.min(this.maxHp, this.hp + 50);
                 this.lastHealTime = now;
+            }
+        }
+
+        // 🎂 Cake — pulse a heal to nearby allies once per second.
+        if (this.type === 'cake') {
+            if (!this._cakeLastHeal) this._cakeLastHeal = now;
+            if (now - this._cakeLastHeal >= 1000) {
+                this._cakeLastHeal = now;
+                const radius = this._cakeHealRadius || 120;
+                const amount = this._cakeHealPerSec || 40;
+                const allies = units.concat(buildings, auras)
+                    .concat([playerSafe, enemySafe].filter(s => s))
+                    .filter(e => e && e.team === this.team && !e.isDead &&
+                                 e !== this &&
+                                 Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= radius);
+                allies.forEach(a => {
+                    if (typeof a.hp === 'number' && typeof a.maxHp === 'number' && a.hp < a.maxHp) {
+                        a.hp = Math.min(a.maxHp, a.hp + amount);
+                    }
+                });
             }
         }
 

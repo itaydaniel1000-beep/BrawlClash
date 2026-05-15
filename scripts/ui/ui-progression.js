@@ -147,7 +147,7 @@ function renderUnlockScreen() {
         if (!card) return;
         // Admin-only cards (Libi) never appear in the unlock-characters
         // store — they're not for sale.
-        if (card.adminOnly) return;
+        if (card.adminOnly || card.eventOnly) return;
         const isUnlocked = (typeof isCardUnlocked === 'function') ? isCardUnlocked(id) : true;
         const cost = ((typeof RARITIES !== 'undefined' && RARITIES[card.rarity]) || {}).unlockCost || 0;
         const rarityColor = (typeof getRarityColor === 'function') ? getRarityColor(id) : (card.color || '#7f8c8d');

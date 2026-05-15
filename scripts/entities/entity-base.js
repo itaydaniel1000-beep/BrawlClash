@@ -128,6 +128,25 @@ class Entity {
                     projectiles.push(new Projectile(this.x, this.y, fakeTarget, 200, this.team, false));
                 }
             }
+
+            // 🎂 Cake death-burst — when the cake is destroyed, every enemy
+            // inside the burst radius takes a chunk of damage and the screen
+            // gets a confetti shower (more particles, brighter colours).
+            if (this.type === 'cake') {
+                const radius = this._cakeBurstRadius || 100;
+                const dmg    = this._cakeBurstDamage || 250;
+                try {
+                    const victims = units.concat(buildings, auras)
+                        .concat([playerSafe, enemySafe].filter(s => s))
+                        .filter(e => e && e.team !== this.team && !e.isDead &&
+                                     Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= radius);
+                    victims.forEach(v => { if (typeof v.takeDamage === 'function') v.takeDamage(dmg); });
+                } catch (e) {}
+                const confettiColors = ['#ff6b9d', '#f1c40f', '#74b9ff', '#2ecc71', '#9b59b6', '#ff9ff3', '#fff'];
+                for (let i = 0; i < 40; i++) {
+                    particles.push(new Particle(this.x, this.y, confettiColors[i % confettiColors.length]));
+                }
+            }
         }
     }
     drawHpBar(ctx, yOffset = 2) {

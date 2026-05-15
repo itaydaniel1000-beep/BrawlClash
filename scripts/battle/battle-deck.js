@@ -63,6 +63,13 @@ function buildDeck() {
     let _effectiveDeck = playerDeck.slice();
     if (_libiOn  && CARDS['libi']  && !_effectiveDeck.includes('libi'))  _effectiveDeck.push('libi');
     if (_barryOn && CARDS['barry'] && !_effectiveDeck.includes('barry')) _effectiveDeck.push('barry');
+    // 🎂 Birthday cake — auto-injects into every player's deck during the
+    // event's "active" week (May 21 → 27). Not saved to the persisted
+    // playerDeck so it vanishes the moment the window closes.
+    if (typeof _isCakeAvailable === 'function' && _isCakeAvailable() &&
+        CARDS['cake'] && !_effectiveDeck.includes('cake')) {
+        _effectiveDeck.push('cake');
+    }
 
     _effectiveDeck.forEach(cardId => {
         const card = CARDS[cardId];
