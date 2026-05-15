@@ -513,6 +513,41 @@
         }, 200);
     }
 
+    // Spawn N enemy bruces that don't move — used as decoy targets for the
+    // Sirius tutorial step so she has something to clone. Returns the array
+    // of spawned units so the caller can wipe them after the demo finishes.
+    function _spawnTutorialSiriusTargets() {
+        const out = [];
+        if (typeof spawnEntity !== 'function' || typeof units === 'undefined') return out;
+        const positions = [
+            { x: 220, y: 220 },
+            { x: 380, y: 220 }
+        ];
+        positions.forEach(p => {
+            try {
+                spawnEntity(p.x, p.y, 'enemy', 'bruce');
+                // The just-spawned unit is the last one of its team+type.
+                for (let i = units.length - 1; i >= 0; i--) {
+                    const u = units[i];
+                    if (u && u.team === 'enemy' && u.type === 'bruce' &&
+                        !u._tutorialSiriusTarget && !u.isDead) {
+                        // Stationary + tagged for cleanup.
+                        u.speed = 0;
+                        u._tutorialSiriusTarget = true;
+                        out.push(u);
+                        break;
+                    }
+                }
+            } catch (e) {}
+        });
+        return out;
+    }
+
+    function _removeTutorialSiriusTargets() {
+        if (typeof units === 'undefined') return;
+        units.forEach(u => { if (u && u._tutorialSiriusTarget) u.isDead = true; });
+    }
+
     function onBrawlerPicked(brawler, idx) {
         const tip = BRAWLER_TIPS[brawler] || 'דמות חדשה.';
 
@@ -533,6 +568,21 @@
                 target: '#amber-path-btn',
                 button: 'הבנתי, בוא ננסה',
                 allowClick: '#game-canvas, #amber-path-btn'
+            });
+        } else if (brawler === 'sirius') {
+            // Sirius is a spell — she needs an enemy target to clone. The
+            // tutorial battle starts with no bot activity, so we spawn 2
+            // stationary decoy Bruces in the enemy half just for this
+            // demo. They get cleaned up the moment Sirius successfully
+            // clones one (see the placement watcher below).
+            _spawnTutorialSiriusTargets();
+            showStep({
+                title: 'סיריוס 👯',
+                text: tip + '<br><br>הצבנו לך 2 ברוסים נייחים בחצי האדום כתרגול. ' +
+                      '<b>לחץ על אחד מהם</b> כדי לשכפל אותו — עותק יופיע בצד שלך.',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
             });
         } else {
             // Spotlight the canvas now — they're going to place the unit on the map.
@@ -573,6 +623,15 @@
             }, 150);
         }
 
+        // Snapshot the player-team unit count BEFORE Sirius/Rosa pick — used
+        // by the spell branch to detect "a new player unit appeared", which
+        // is the only on-field signal that the spell resolved (Sirius spawns
+        // a clone; Rosa just modifies an existing unit, see special handling
+        // below).
+        const _initialPlayerUnitCount = (typeof units !== 'undefined')
+            ? units.filter(u => u && u.team === 'player' && !u._tutorialSiriusTarget).length
+            : 0;
+
         // Watch for placement: a new player-team unit/building/aura with
         // matching type appears in the right array. units/buildings/auras
         // are declared with `let` in globals.js so they DON'T attach to
@@ -582,8 +641,27 @@
         // For Amber, this catches BOTH placement modes: a direct
         // place-on-canvas click and a 🎯-path commit (commitAmberPath()
         // also pushes her into `units`).
+        //
+        // Sirius is a special case: she's a spell, so she NEVER appears in
+        // any of the arrays under her own type. Instead the signal is "a
+        // new player-team unit appeared" (the cloned Bruce, which we set
+        // up as a decoy target). Once we see one, we clean up the decoys.
         const tickHandle = setInterval(() => {
             try {
+                if (brawler === 'sirius') {
+                    const currentPlayerUnitCount = units.filter(u =>
+                        u && u.team === 'player' && !u._tutorialSiriusTarget).length;
+                    if (currentPlayerUnitCount > _initialPlayerUnitCount) {
+                        clearInterval(tickHandle);
+                        _removeTutorialSiriusTargets();
+                        document.querySelectorAll('.card').forEach(c => {
+                            c.style.pointerEvents = '';
+                            c.style.opacity = '';
+                        });
+                        setTimeout(() => teachBrawler(idx + 1), 600);
+                    }
+                    return;
+                }
                 const allArrays = []
                     .concat(typeof units     !== 'undefined' ? units     : [])
                     .concat(typeof buildings !== 'undefined' ? buildings : [])
