@@ -221,5 +221,8 @@ function renderQuests() {
     footer.style.cssText = 'color:#bdc3c7; text-align:center; font-size:0.8rem; margin-top:8px;';
     footer.innerText = '🌙 המשימות מתחדשות בכל יום בחצות';
     container.appendChild(footer);
+    // Normalise every emoji on the quest cards (reward chips, badges,
+    // mission text) to Twemoji SVGs.
+    if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen('quests-screen');
 }
 window.renderQuests = renderQuests;

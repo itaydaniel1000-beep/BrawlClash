@@ -33,6 +33,21 @@ body {
     overflow: hidden;
 }
 
+/* Twemoji default style — without these every emoji-replacement <img>
+   from twemoji.parse() collapses to 0×0 because the surrounding CSS
+   only sized the original emoji char by font-size. Forcing 1em × 1em
+   makes the img inherit whatever font-size its parent had, which is
+   exactly the size the original emoji was rendering at. The negative
+   vertical-align fine-tunes the baseline. */
+img.emoji {
+    height: 1em;
+    width: 1em;
+    margin: 0 0.05em 0 0.1em;
+    vertical-align: -0.1em;
+    display: inline-block;
+    image-rendering: auto;
+}
+
 #app {
     position: relative;
     /* Keep the 2:3 aspect ratio AND fit inside the viewport on both axes.

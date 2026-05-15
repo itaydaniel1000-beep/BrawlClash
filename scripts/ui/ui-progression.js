@@ -457,6 +457,7 @@ function renderShop() {
 
     addHeader(`💎 ➜ 🎟️  (יהלום = ${GEM_TO_CREDITS} קרדיטים)`);
     [1, 5, 25].forEach(g => addOffer(g, 'credits'));
+    if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen('shop-screen');
 }
 
 function renderLeaderboard() {

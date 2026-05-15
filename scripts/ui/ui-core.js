@@ -179,7 +179,28 @@ function openScreen(screenId) {
 
     // Use switchScreen so the nuclear-fix .active class toggles visibility/opacity properly
     switchScreen(screenId);
+    // Normalise every emoji on the new screen to Twemoji SVGs so the same
+    // character looks identical across iOS / Android / Windows / Linux.
+    // Falls through harmlessly if the Twemoji CDN failed to load.
+    if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen(screenId);
 }
+
+// Parse all emoji chars in the given screen (or document.body if no id was
+// given) into Twemoji <img> elements. Safe to call on every screen change.
+// Uses cdnjs because the Twitter github mirror was archived and serves 404s
+// for most emojis; cdnjs hosts a frozen-but-complete copy of twemoji 14.0.2.
+function renderTwemojiOnScreen(screenId) {
+    try {
+        if (typeof twemoji === 'undefined') return;
+        const target = (screenId && document.getElementById(screenId)) || document.body;
+        twemoji.parse(target, {
+            folder: 'svg',
+            ext: '.svg',
+            base: 'https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/'
+        });
+    } catch (e) { /* silent — emojis still render natively */ }
+}
+window.renderTwemojiOnScreen = renderTwemojiOnScreen;
 
 function showGuideTab(which) {
     document.querySelectorAll('.guide-panel').forEach(p => {
@@ -312,6 +333,10 @@ function updateHomeScreen() {
     // refreshes the 🎁 badge on the 📜 button.
     if (typeof refreshDailyQuestsIfNeeded === 'function') refreshDailyQuestsIfNeeded();
     if (typeof refreshQuestsBadge === 'function') refreshQuestsBadge();
+    // Re-parse the lobby resource pills (🪙/💎/🎟️/💪/🎫) into Twemoji
+    // SVGs so they stay consistent across every OS — refresh on every
+    // stats update because the pill values are re-written every time.
+    if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen('lobby-screen');
 }
 
 function updateTrophyUI() {

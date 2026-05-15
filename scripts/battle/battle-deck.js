@@ -199,5 +199,7 @@ function buildDeck() {
         // Append the whole slot (card + freeze button below) so they stack.
         target.appendChild(cardEl._wrapperSlot || cardEl);
     });
+    // Normalise every emoji card icon to Twemoji SVGs for cross-OS look.
+    if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen('game-screen');
 }
 window.buildDeck = buildDeck;

@@ -129,6 +129,9 @@ function renderCharCards() {
         charCardsContainer.appendChild(cardEl);
     });
     if (charCountDisplay) charCountDisplay.innerText = `נבחרו: ${playerDeck.length} / 8`;
+    // Normalise every emoji card icon to a Twemoji SVG so 🍭/🐧/etc.
+    // look the same on every OS instead of falling back to the system font.
+    if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen('char-selection-menu');
 }
 
 function openUpgradeModal(id) {
