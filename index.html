@@ -378,9 +378,13 @@
 
         <!-- NEW: Brawl Pass Screen -->
         <div id="brawl-pass-screen" class="screen overlay" style="background: linear-gradient(135deg, #8e44ad, #2c3e50);">
-            <div class="menu-box" style="max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <div class="menu-box" style="max-width: 95vw; width: 95%; max-height: 80vh; overflow-y: auto;">
                 <h2 style="color: #f1c40f;">BRAWL PASS</h2>
-                <div id="bp-tiers-container" style="display: flex; flex-direction: column; gap: 10px; margin: 20px 0;">
+                <!-- Horizontal tier track: tiers sit side-by-side and the row
+                     scrolls horizontally when there are more tiers than fit on
+                     screen. Each card is a fixed-width column so the layout
+                     stays tidy regardless of the parent width. -->
+                <div id="bp-tiers-container" style="display: flex; flex-direction: row; gap: 10px; margin: 20px 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; scroll-snap-type: x mandatory;">
                     <!-- Tiers injected here -->
                 </div>
                 <button onclick="closeScreen('brawl-pass-screen')" class="bs-btn bs-btn-danger">סגור</button>
@@ -834,7 +838,7 @@
     <script src="scripts/ui/ui-core.js?v=15.8"></script>
     <script src="scripts/ui/ui-brawlers.js?v=15.4"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
-    <script src="scripts/ui/ui-progression.js?v=15.6"></script>
+    <script src="scripts/ui/ui-progression.js?v=15.7"></script>
     <script src="scripts/ui/ui-admin.js?v=9.77"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.4"></script>

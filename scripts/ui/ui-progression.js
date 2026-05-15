@@ -194,17 +194,21 @@ function renderBrawlPass() {
     for (let i = 1; i <= 10; i++) {
         const canClaim = playerTrophies >= i * 100;
         const isClaimed = playerStats.claimedTiers.includes(i);
-        
+
+        // Horizontal layout: each tier is a vertical CARD that takes its place
+        // in the row. The accent stripe moved from the right edge to the TOP
+        // so it reads as a header bar on a portrait card.
+        const accent = canClaim ? (isClaimed ? '#95a5a6' : '#f1c40f') : '#333';
         const tier = document.createElement('div');
-        tier.style = `background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-right: 5px solid ${canClaim ? (isClaimed ? '#95a5a6' : '#f1c40f') : '#333'};`;
-        
+        tier.style = `flex: 0 0 auto; min-width: 110px; max-width: 130px; background: rgba(255,255,255,0.1); padding: 12px 10px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; border-top: 5px solid ${accent}; scroll-snap-align: start;`;
+
         const price = (i % 2 === 0 ? '50 🪙' : '10 💎');
         tier.innerHTML = `
             <div style="font-weight: bold; color: white;">דרגה ${i}</div>
-            <div style="color: #f1c40f;">${price}</div>
-            <button class="bs-btn bs-btn-small" ${(!canClaim || isClaimed) ? 'disabled' : ''} style="font-size: 0.8rem; padding: 5px 10px;">${isClaimed ? 'התקבל' : 'קבל'}</button>
+            <div style="color: #f1c40f; font-size: 0.95rem;">${price}</div>
+            <button class="bs-btn bs-btn-small" ${(!canClaim || isClaimed) ? 'disabled' : ''} style="font-size: 0.8rem; padding: 5px 12px; width: 100%;">${isClaimed ? 'התקבל' : 'קבל'}</button>
         `;
-        
+
         const btn = tier.querySelector('button');
         btn.onclick = () => {
             if (playerStats.claimedTiers.includes(i) || playerTrophies < i * 100) return;
@@ -216,7 +220,7 @@ function renderBrawlPass() {
             renderBrawlPass();
             AudioController.play('upgrade');
         };
-        
+
         container.appendChild(tier);
     }
 }
