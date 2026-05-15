@@ -187,41 +187,187 @@ function renderUnlockScreen() {
 }
 window.renderUnlockScreen = renderUnlockScreen;
 
+// ============================================================================
+// BRAWL PASS — Free + Premium tracks, 60 tiers, Brawl-Stars-style layout
+// ============================================================================
+const BRAWL_PASS_MAX_TIER       = 60;
+const BRAWL_PASS_TROPHY_PER_TIER = 100;     // tier i unlocks at trophies >= i*100
+const BRAWL_PASS_PRICE_GEMS     = 30;       // cost to buy premium pass
+
+// Returns the reward for `tier` on the given `track` ('free' | 'premium').
+// Pattern (mirroring Brawl Stars rhythm):
+//   • Every 10 tiers (10/20/30/40/50/60): JACKPOT — big gems on premium,
+//     small gems on free. Tier 60 is the biggest.
+//   • Every 5 tiers that isn't a 10-multiple: bonus credits.
+//   • Otherwise: 3-tier rotation of PP / coins / credits, with premium giving
+//     ~4× the free amount.
+function _bpReward(tier, track) {
+    const isFinal     = tier === BRAWL_PASS_MAX_TIER;
+    const isJackpot   = tier % 10 === 0;
+    const isMilestone = tier % 5 === 0;
+    const phase       = (tier - 1) % 3;
+
+    if (track === 'premium') {
+        if (isFinal)     return { kind: 'gems',    amount: 200, icon: '💎', color: '#74b9ff', label: 'גרנד פרס' };
+        if (isJackpot)   return { kind: 'gems',    amount: 50,  icon: '💎', color: '#74b9ff', label: 'מילסטון' };
+        if (isMilestone) return { kind: 'credits', amount: 200, icon: '🎟️', color: '#9b59b6', label: 'בונוס' };
+        if (phase === 0) return { kind: 'pp',      amount: 200, icon: '💪', color: '#e84393' };
+        if (phase === 1) return { kind: 'coins',   amount: 300, icon: '🪙', color: '#f1c40f' };
+        return                  { kind: 'credits', amount: 30,  icon: '🎟️', color: '#9b59b6' };
+    }
+    // free track — same shape, smaller numbers
+    if (isFinal)     return { kind: 'gems',    amount: 50, icon: '💎', color: '#74b9ff', label: 'גרנד פרס' };
+    if (isJackpot)   return { kind: 'gems',    amount: 10, icon: '💎', color: '#74b9ff', label: 'מילסטון' };
+    if (isMilestone) return { kind: 'credits', amount: 50, icon: '🎟️', color: '#9b59b6', label: 'בונוס' };
+    if (phase === 0) return { kind: 'pp',      amount: 50, icon: '💪', color: '#e84393' };
+    if (phase === 1) return { kind: 'coins',   amount: 75, icon: '🪙', color: '#f1c40f' };
+    return                  { kind: 'credits', amount: 5,  icon: '🎟️', color: '#9b59b6' };
+}
+
+function _grantReward(r) {
+    if (r.kind === 'coins')   playerStats.coins   = (playerStats.coins   || 0) + r.amount;
+    if (r.kind === 'gems')    playerStats.gems    = (playerStats.gems    || 0) + r.amount;
+    if (r.kind === 'credits') playerStats.credits = (playerStats.credits || 0) + r.amount;
+    if (r.kind === 'pp')      playerStats.pp      = (playerStats.pp      || 0) + r.amount;
+}
+
+function buyBrawlPass() {
+    if (playerStats.hasBrawlPass) {
+        if (typeof showTransientToast === 'function') showTransientToast('👑 כבר יש לך Brawl Pass');
+        return;
+    }
+    const have = playerStats.gems || 0;
+    if (have < BRAWL_PASS_PRICE_GEMS) {
+        if (typeof showTransientToast === 'function') showTransientToast(`💎 צריך ${BRAWL_PASS_PRICE_GEMS} יהלומים`);
+        return;
+    }
+    playerStats.gems = have - BRAWL_PASS_PRICE_GEMS;
+    playerStats.hasBrawlPass = true;
+    saveStats();
+    updateStatsUI();
+    renderBrawlPass();
+    try { AudioController.play('upgrade'); } catch (e) {}
+    if (typeof showTransientToast === 'function') showTransientToast('👑 פתחת את ה-Brawl Pass!');
+}
+window.buyBrawlPass = buyBrawlPass;
+
+// Build a small reward chip — used for both free and premium cells.
+function _bpChip(reward, opts) {
+    const { unlocked, claimed, lockedReason } = opts;
+    const chip = document.createElement('div');
+    const bg = claimed   ? 'rgba(149,165,166,0.25)'
+             : unlocked  ? 'rgba(255,255,255,0.15)'
+                         : 'rgba(0,0,0,0.35)';
+    const border = claimed ? '#95a5a6' : (unlocked ? reward.color : '#444');
+    chip.style.cssText = `background:${bg}; border:2px solid ${border}; border-radius:10px; padding:8px 6px; display:flex; flex-direction:column; align-items:center; gap:3px; min-height:78px; justify-content:center; opacity:${unlocked ? 1 : 0.55};`;
+    chip.innerHTML = `
+        <div style="font-size:1.4rem;">${reward.icon}</div>
+        <div style="font-weight:bold; color:#fff; font-size:0.9rem;">${reward.amount.toLocaleString()}</div>
+        ${reward.label ? `<div style="font-size:0.6rem; color:${reward.color}; font-weight:bold;">${reward.label}</div>` : ''}
+        ${claimed ? `<div style="font-size:0.6rem; color:#95a5a6;">✓ התקבל</div>`
+                   : !unlocked && lockedReason ? `<div style="font-size:0.55rem; color:#bdc3c7;">${lockedReason}</div>` : ''}
+    `;
+    return chip;
+}
+
 function renderBrawlPass() {
     const container = document.getElementById('bp-tiers-container');
     if (!container) return;
-    container.innerHTML = "";
-    for (let i = 1; i <= 60; i++) {
-        const canClaim = playerTrophies >= i * 100;
-        const isClaimed = playerStats.claimedTiers.includes(i);
+    container.innerHTML = '';
 
-        // Horizontal layout: each tier is a vertical CARD that takes its place
-        // in the row. The accent stripe moved from the right edge to the TOP
-        // so it reads as a header bar on a portrait card.
-        const accent = canClaim ? (isClaimed ? '#95a5a6' : '#f1c40f') : '#333';
-        const tier = document.createElement('div');
-        tier.style = `flex: 0 0 auto; min-width: 110px; max-width: 130px; background: rgba(255,255,255,0.1); padding: 12px 10px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; border-top: 5px solid ${accent}; scroll-snap-align: start;`;
+    const hasBP = !!playerStats.hasBrawlPass;
+    const freeClaims    = playerStats.claimedTiers || [];
+    const premiumClaims = playerStats.claimedPremiumTiers || [];
 
-        const price = (i % 2 === 0 ? '50 🪙' : '10 💎');
-        tier.innerHTML = `
-            <div style="font-weight: bold; color: white;">דרגה ${i}</div>
-            <div style="color: #f1c40f; font-size: 0.95rem;">${price}</div>
-            <button class="bs-btn bs-btn-small" ${(!canClaim || isClaimed) ? 'disabled' : ''} style="font-size: 0.8rem; padding: 5px 12px; width: 100%;">${isClaimed ? 'התקבל' : 'קבל'}</button>
-        `;
+    // ---- Header strip: status + buy button + legend --------------------------
+    const header = document.createElement('div');
+    header.style.cssText = 'flex: 0 0 auto; min-width: 170px; max-width: 200px; background: linear-gradient(160deg, rgba(241,196,15,0.25), rgba(155,89,182,0.25)); border: 2px solid #f1c40f; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; scroll-snap-align: start;';
+    header.innerHTML = `
+        <div style="font-weight:bold; color:#f1c40f; font-size:0.95rem;">👑 BRAWL PASS</div>
+        <div style="font-size:0.75rem; color:#fff; text-align:center; opacity:0.85;">${hasBP ? 'מסלול פרימיום פעיל' : `פתח את הפרימיום ב-${BRAWL_PASS_PRICE_GEMS} 💎`}</div>
+        ${hasBP
+            ? `<div style="background:#27ae60; color:#fff; font-weight:bold; padding:6px 14px; border-radius:8px; font-size:0.8rem;">✓ נרכש</div>`
+            : `<button onclick="buyBrawlPass()" class="bs-btn bs-btn-small" style="background:linear-gradient(180deg,#f1c40f,#e67e22); color:#000; font-weight:bold; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;">קנה Pass</button>`
+        }
+        <div style="margin-top:4px; font-size:0.65rem; color:#fff; opacity:0.8; line-height:1.3; text-align:center;">
+            🆓 שורה תחתונה — חינם<br>
+            👑 שורה עליונה — פרימיום
+        </div>
+    `;
+    container.appendChild(header);
 
-        const btn = tier.querySelector('button');
-        btn.onclick = () => {
-            if (playerStats.claimedTiers.includes(i) || playerTrophies < i * 100) return;
-            if (i % 2 === 0) playerStats.coins += 50;
-            else playerStats.gems += 10;
-            playerStats.claimedTiers.push(i);
+    // ---- Tier columns --------------------------------------------------------
+    for (let i = 1; i <= BRAWL_PASS_MAX_TIER; i++) {
+        const trophiesNeeded = i * BRAWL_PASS_TROPHY_PER_TIER;
+        const tierUnlocked   = playerTrophies >= trophiesNeeded;
+        const isMilestone    = i % 5 === 0;
+        const isJackpot      = i % 10 === 0;
+
+        const column = document.createElement('div');
+        const colWidth = isJackpot ? 130 : 110;
+        column.style.cssText = `flex: 0 0 ${colWidth}px; display:flex; flex-direction:column; align-items:stretch; gap:6px; scroll-snap-align: start;`;
+
+        // PREMIUM cell (top) — claimable only if user owns the BP
+        const premiumReward = _bpReward(i, 'premium');
+        const premClaimed   = premiumClaims.includes(i);
+        const premBtn = document.createElement('div');
+        premBtn.style.cssText = 'cursor: pointer;';
+        const premChip = _bpChip(premiumReward, {
+            unlocked: tierUnlocked && hasBP,
+            claimed:  premClaimed,
+            lockedReason: !hasBP ? '🔒 פרימיום' : (!tierUnlocked ? `🏆 ${trophiesNeeded}` : '')
+        });
+        premBtn.appendChild(premChip);
+        premBtn.onclick = () => {
+            if (premClaimed) return;
+            if (!hasBP) { if (typeof showTransientToast === 'function') showTransientToast('🔒 צריך לקנות Brawl Pass'); return; }
+            if (!tierUnlocked) { if (typeof showTransientToast === 'function') showTransientToast(`🏆 צריך ${trophiesNeeded} גביעים`); return; }
+            _grantReward(premiumReward);
+            playerStats.claimedPremiumTiers = (playerStats.claimedPremiumTiers || []).concat([i]);
             saveStats();
             updateStatsUI();
             renderBrawlPass();
-            AudioController.play('upgrade');
+            try { AudioController.play('upgrade'); } catch (e) {}
         };
+        column.appendChild(premBtn);
 
-        container.appendChild(tier);
+        // Connecting "road" — tier label band in the middle. Highlights when
+        // unlocked; milestone (×5) tiers get a yellow ring for emphasis.
+        const tierLabel = document.createElement('div');
+        const bandColor = tierUnlocked ? (isJackpot ? '#f1c40f' : '#74b9ff') : '#34495e';
+        tierLabel.style.cssText = `background:${bandColor}; color:#fff; font-weight:bold; text-align:center; padding:6px; border-radius:8px; box-shadow: 0 2px 0 rgba(0,0,0,0.3); position:relative;`;
+        tierLabel.innerHTML = `
+            <div style="font-size:0.95rem;">דרגה ${i}</div>
+            <div style="font-size:0.65rem; opacity:0.85;">🏆 ${trophiesNeeded.toLocaleString()}</div>
+            ${isJackpot ? '<div style="position:absolute; top:-8px; right:-8px; background:#f1c40f; color:#000; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:0.75rem; box-shadow:0 2px 4px rgba(0,0,0,0.4);">🏆</div>' : ''}
+            ${isMilestone && !isJackpot ? '<div style="position:absolute; top:-6px; right:-6px; background:#9b59b6; color:#fff; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; font-size:0.65rem;">⭐</div>' : ''}
+        `;
+        column.appendChild(tierLabel);
+
+        // FREE cell (bottom) — always claimable when the tier is unlocked
+        const freeReward = _bpReward(i, 'free');
+        const freeClaimed = freeClaims.includes(i);
+        const freeBtn = document.createElement('div');
+        freeBtn.style.cssText = 'cursor: pointer;';
+        const freeChip = _bpChip(freeReward, {
+            unlocked: tierUnlocked,
+            claimed:  freeClaimed,
+            lockedReason: !tierUnlocked ? `🏆 ${trophiesNeeded}` : ''
+        });
+        freeBtn.appendChild(freeChip);
+        freeBtn.onclick = () => {
+            if (freeClaimed) return;
+            if (!tierUnlocked) { if (typeof showTransientToast === 'function') showTransientToast(`🏆 צריך ${trophiesNeeded} גביעים`); return; }
+            _grantReward(freeReward);
+            playerStats.claimedTiers = (playerStats.claimedTiers || []).concat([i]);
+            saveStats();
+            updateStatsUI();
+            renderBrawlPass();
+            try { AudioController.play('upgrade'); } catch (e) {}
+        };
+        column.appendChild(freeBtn);
+
+        container.appendChild(column);
     }
 }
 

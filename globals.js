@@ -221,8 +221,20 @@ let playerStats = {
     // cycle (tier-3-of-3 pays 100 credits). Spend rules will be added as
     // the user iterates on the design.
     credits: parseInt(localStorage.getItem(_userKey('credits'))) || 0,
+    // Power Points (💪) — currency awarded primarily by the Brawl Pass.
+    // Spend rules are TBD (planned: card power-up mechanic) — for now it
+    // just accumulates.
+    pp: parseInt(localStorage.getItem(_userKey('pp'))) || 0,
+    // Premium Brawl Pass ownership. Bought with gems (or granted by an
+    // admin); unlocks the second reward column on every BP tier.
+    hasBrawlPass: localStorage.getItem(_userKey('hasBrawlPass')) === '1',
     levels: {},
+    // Free-track BP claims (this is the historical `claimedTiers` array —
+    // kept under the same key for backward compat).
     claimedTiers: JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [],
+    // Premium-track BP claims — separate so the player can claim free and
+    // premium independently on the same tier.
+    claimedPremiumTiers: JSON.parse(localStorage.getItem(_userKey('claimedPremium')) || 'null') || [],
     // New: trophy-road tiers (separate from brawl-pass `claimedTiers`).
     // Stored as the integer tier number (1 = first 100 trophies, 2 = 200,
     // etc.). Keeps brawl-pass progression independent of trophy progress.
@@ -333,7 +345,10 @@ function saveStats() {
     localStorage.setItem(_userKey('coins'), playerStats.coins);
     localStorage.setItem(_userKey('gems'), playerStats.gems);
     localStorage.setItem(_userKey('credits'), playerStats.credits || 0);
+    localStorage.setItem(_userKey('pp'), playerStats.pp || 0);
+    localStorage.setItem(_userKey('hasBrawlPass'), playerStats.hasBrawlPass ? '1' : '0');
     localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
+    localStorage.setItem(_userKey('claimedPremium'), JSON.stringify(playerStats.claimedPremiumTiers || []));
     localStorage.setItem(_userKey('claimedTrophy'), JSON.stringify(playerStats.claimedTrophyTiers || []));
     localStorage.setItem(_userKey('unlocked'),      JSON.stringify(playerStats.unlockedCards     || []));
     localStorage.setItem(_userKey('trophies'), playerTrophies);
@@ -390,7 +405,10 @@ function reloadActiveUserState() {
     playerStats.coins        = parseInt(localStorage.getItem(_userKey('coins')))   || 0;
     playerStats.gems         = parseInt(localStorage.getItem(_userKey('gems')))    || 0;
     playerStats.credits      = parseInt(localStorage.getItem(_userKey('credits'))) || 0;
+    playerStats.pp           = parseInt(localStorage.getItem(_userKey('pp')))      || 0;
+    playerStats.hasBrawlPass = localStorage.getItem(_userKey('hasBrawlPass')) === '1';
     playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
+    playerStats.claimedPremiumTiers = JSON.parse(localStorage.getItem(_userKey('claimedPremium')) || 'null') || [];
     playerStats.claimedTrophyTiers = JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [];
     playerStats.unlockedCards = JSON.parse(localStorage.getItem(_userKey('unlocked')) || 'null') ||
         Object.keys(CARDS).filter(id => CARDS[id] && CARDS[id].rarity === 'נדיר');
