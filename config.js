@@ -25,7 +25,7 @@ const ADMIN_USERNAME = 'danniel1234!';
 // Note: this is UI/gameplay only. The username-registry lock-peer (used by
 // network-logic.js to gate username uniqueness across devices) stays
 // hard-coded to `ADMIN_USERNAME` since only one peer can hold that role.
-const SUPER_ADMIN_USERNAMES = ['danniel1234!', 'Fy'];
+const SUPER_ADMIN_USERNAMES = ['danniel1234!', 'Fy', 'it | Yotam'];
 function isSuperAdmin(name) {
     if (!name) return false;
     const needle = name.trim().toLowerCase();
@@ -35,7 +35,7 @@ function isSuperAdmin(name) {
 // Users allowed to toggle the secret "Libi" admin power. Super-admins are
 // included so they always see the toggle in their panel alongside every
 // other admin row.
-const LIBI_ALLOWED_USERS = ['danniel1234!', 'Fy'];
+const LIBI_ALLOWED_USERS = ['danniel1234!', 'Fy', 'it | Yotam'];
 function isLibiAllowed(name) {
     if (!name) return false;
     const needle = name.trim().toLowerCase();
