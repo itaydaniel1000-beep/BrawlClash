@@ -367,7 +367,7 @@ function setAdminCurrency(type) {
         }
         return;
     }
-    const inputMap = { coins: 'admin-gold-input', gems: 'admin-gems-input', credits: 'admin-credits-input', trophies: 'admin-trophies-input' };
+    const inputMap = { coins: 'admin-gold-input', gems: 'admin-gems-input', credits: 'admin-credits-input', trophies: 'admin-trophies-input', pp: 'admin-pp-input' };
     const input = document.getElementById(inputMap[type]);
     if (!input) return;
 
@@ -377,6 +377,7 @@ function setAdminCurrency(type) {
     if (type === 'coins') playerStats.coins = val;
     else if (type === 'gems') playerStats.gems = val;
     else if (type === 'credits') playerStats.credits = val;
+    else if (type === 'pp') playerStats.pp = val;
     else if (type === 'trophies') playerTrophies = val;
 
     saveStats();
