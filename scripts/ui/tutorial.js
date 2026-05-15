@@ -848,26 +848,15 @@
         showReplayHint();
     }
 
-    // Persistent floating chip pointing at the 📖 guide button.
+    // Persistent floating "להסבר מחדש לחץ כאן" chip was removed at the
+    // user's request — they didn't want it cluttering the lobby. The 📖
+    // guide button is still there for replaying the tutorial; the floating
+    // hint is just no longer shown. We also evict any chip that's already
+    // in the DOM (e.g. from a previous version of the script that ran
+    // before this update reached the user's browser).
     function showReplayHint() {
-        if (document.getElementById('tutorial-replay-hint')) return;
-        const guide = document.querySelector('.guide-btn');
-        if (!guide) return;
-        const chip = document.createElement('div');
-        chip.id = 'tutorial-replay-hint';
-        chip.innerText = 'להסבר מחדש לחץ כאן';
-        document.body.appendChild(chip);
-        const reposition = () => {
-            const r = guide.getBoundingClientRect();
-            chip.style.top  = (r.top + r.height / 2 - 18) + 'px';
-            chip.style.left = (r.left - chip.offsetWidth - 12) + 'px';
-        };
-        setTimeout(reposition, 50);
-        window.addEventListener('resize', reposition);
-        chip.addEventListener('click', () => {
-            chip.remove();
-            startTutorial(true);
-        });
+        const existing = document.getElementById('tutorial-replay-hint');
+        if (existing) existing.remove();
     }
 
     // ---- Public API ----
