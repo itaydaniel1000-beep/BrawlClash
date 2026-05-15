@@ -272,9 +272,16 @@ function updateUI() {
         if (aliveCakes.length > 0) {
             cakeBlowBtn.style.display = 'block';
             cakeBlowBtn.style.backgroundColor = '#ff6b9d';
-            cakeBlowBtn.style.width    = '84px';
-            cakeBlowBtn.style.height   = '84px';
-            cakeBlowBtn.style.fontSize = '32px';
+            // Tripled from the previous 84 / 32 sizing per user request —
+            // the button now reads as a clear "ultimate" move and is hard
+            // to miss in the heat of a match. Border + shadow widths bump
+            // too so the chrome scales with the larger circle and the
+            // press-feel matches the visual weight.
+            cakeBlowBtn.style.width    = '252px';
+            cakeBlowBtn.style.height   = '252px';
+            cakeBlowBtn.style.fontSize = '96px';
+            cakeBlowBtn.style.border   = '8px solid #fff';
+            cakeBlowBtn.style.boxShadow = '0 14px #c0397f';
             cakeBlowBtn.style.lineHeight = '1';
             cakeBlowBtn.style.padding    = '0';
             cakeBlowBtn.style.display    = 'flex';
