@@ -220,7 +220,22 @@
 
             <!-- Bottom Bar -->
             <div class="home-bottom-bar">
-                <div class="bottom-left">
+                <div class="bottom-left" style="display:flex; gap:10px; align-items:flex-end;">
+                    <!-- Daily quests button — opens the quests screen. The
+                         🎁 badge pulses when at least one quest has hit its
+                         target and is ready to be claimed. -->
+                    <button class="brawl-pass-btn quests-btn" id="lobby-quests-btn"
+                            onclick="openScreen('quests-screen'); if (typeof renderQuests==='function') renderQuests();"
+                            style="position:relative; background: linear-gradient(45deg, #74b9ff, #0984e3); border-color:#fff;">
+                        <div class="bp-icon-container">
+                            <span class="bp-icon">📜</span>
+                        </div>
+                        <div class="bp-info">
+                            <span class="bp-title" style="color:#fff;">משימות</span>
+                        </div>
+                        <span id="quests-claim-badge"
+                              style="display:none; position:absolute; top:-6px; right:-6px; background:#e74c3c; color:#fff; border-radius:50%; width:22px; height:22px; font-size:0.85rem; font-weight:bold; align-items:center; justify-content:center; display:none; border:2px solid #fff; box-shadow:0 2px 4px rgba(0,0,0,0.4);">🎁</span>
+                    </button>
                     <button class="brawl-pass-btn">
                         <div class="bp-icon-container">
                             <span class="bp-icon">🎟️</span>
@@ -385,6 +400,18 @@
                 <h2 id="game-over-title">ניצחון!</h2>
                 <button id="restart-btn" class="bs-btn bs-btn-primary">המשך</button>
                 <button id="game-over-char-btn" class="bs-btn bs-btn-primary" style="margin-top:10px; background-color: #8c7ae6;">שנה דמויות</button>
+            </div>
+        </div>
+
+        <!-- NEW: Daily Quests Screen — opened from the lobby's 📜 button.
+             Contents are rendered by renderQuests() in ui-quests.js. -->
+        <div id="quests-screen" class="screen overlay" style="background: linear-gradient(135deg, #2980b9, #2c3e50);">
+            <div class="menu-box" style="max-width: 500px; width: 92%; max-height: 80vh; overflow-y: auto;">
+                <h2 style="color: #f1c40f;">📜 משימות יומיות</h2>
+                <div id="quests-container" style="display: flex; flex-direction: column; gap: 8px; margin: 16px 0;">
+                    <!-- Quest cards injected here -->
+                </div>
+                <button onclick="closeScreen('quests-screen')" class="bs-btn bs-btn-danger">סגור</button>
             </div>
         </div>
 
@@ -839,7 +866,7 @@
     
     <!-- Game Core & Config -->
     <script src="config.js?v=16.1"></script>
-    <script src="globals.js?v=15.8"></script>
+    <script src="globals.js?v=15.9"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
@@ -858,24 +885,25 @@
     <script src="scripts/entities/projectile.js?v=9.82"></script>
     
     <!-- UI Module -->
-    <script src="scripts/ui/ui-core.js?v=16.1"></script>
+    <script src="scripts/ui/ui-core.js?v=16.2"></script>
     <script src="scripts/ui/ui-brawlers.js?v=15.5"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.0"></script>
     <script src="scripts/ui/ui-progression.js?v=15.9"></script>
     <script src="scripts/ui/ui-admin.js?v=9.82"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
+    <script src="scripts/ui/ui-quests.js?v=1.0"></script>
     <script src="scripts/ui/tutorial.js?v=14.7"></script>
 
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=3.6"></script>
-    <script src="scripts/battle/battle-spawn.js?v=10.3"></script>
+    <script src="scripts/battle/battle-spawn.js?v=10.4"></script>
     <script src="scripts/battle/battle-input.js?v=14.7"></script>
     <script src="scripts/battle/battle-deck.js?v=15.3"></script>
 
     <!-- Engine Module -->
     <script src="scripts/engine/engine-core.js?v=15.3"></script>
-    <script src="scripts/engine/engine-physics.js?v=13.4"></script>
+    <script src="scripts/engine/engine-physics.js?v=13.5"></script>
     <script src="scripts/engine/engine-renderer.js?v=13.9"></script>
     <script src="scripts/engine/engine-input.js?v=14.6"></script>
 </body>

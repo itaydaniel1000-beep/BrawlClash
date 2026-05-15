@@ -247,6 +247,10 @@ let playerStats = {
     // Premium Brawl Pass ownership. Bought with gems (or granted by an
     // admin); unlocks the second reward column on every BP tier.
     hasBrawlPass: localStorage.getItem(_userKey('hasBrawlPass')) === '1',
+    // Daily quests — 3 random missions drawn from QUEST_POOL (ui-quests.js).
+    // Refreshed once per calendar day via refreshDailyQuestsIfNeeded().
+    dailyQuests: JSON.parse(localStorage.getItem(_userKey('dailyQuests')) || 'null') || [],
+    questsLastRefresh: localStorage.getItem(_userKey('questsLastRefresh')) || '',
     levels: {},
     // Free-track BP claims (this is the historical `claimedTiers` array —
     // kept under the same key for backward compat).
@@ -374,6 +378,8 @@ function saveStats() {
     localStorage.setItem(_userKey('credits'), playerStats.credits || 0);
     localStorage.setItem(_userKey('pp'), playerStats.pp || 0);
     localStorage.setItem(_userKey('hasBrawlPass'), playerStats.hasBrawlPass ? '1' : '0');
+    localStorage.setItem(_userKey('dailyQuests'), JSON.stringify(playerStats.dailyQuests || []));
+    localStorage.setItem(_userKey('questsLastRefresh'), playerStats.questsLastRefresh || '');
     localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
     localStorage.setItem(_userKey('claimedPremium'), JSON.stringify(playerStats.claimedPremiumTiers || []));
     localStorage.setItem(_userKey('claimedTrophy'), JSON.stringify(playerStats.claimedTrophyTiers || []));
@@ -434,6 +440,8 @@ function reloadActiveUserState() {
     playerStats.credits      = parseInt(localStorage.getItem(_userKey('credits'))) || 0;
     playerStats.pp           = parseInt(localStorage.getItem(_userKey('pp')))      || 0;
     playerStats.hasBrawlPass = localStorage.getItem(_userKey('hasBrawlPass')) === '1';
+    playerStats.dailyQuests = JSON.parse(localStorage.getItem(_userKey('dailyQuests')) || 'null') || [];
+    playerStats.questsLastRefresh = localStorage.getItem(_userKey('questsLastRefresh')) || '';
     playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
     playerStats.claimedPremiumTiers = JSON.parse(localStorage.getItem(_userKey('claimedPremium')) || 'null') || [];
     playerStats.claimedTrophyTiers = JSON.parse(localStorage.getItem(_userKey('claimedTrophy')) || 'null') || [];

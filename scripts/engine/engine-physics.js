@@ -144,14 +144,29 @@ function update(dt, now) {
                 ' (hp=' + playerSafe.hp + '/' + playerSafe.maxHp + ') enemySafe.isDead=' + enemySafe.isDead +
                 ' (hp=' + enemySafe.hp + '/' + enemySafe.maxHp + ')');
             let winStatus = "lose";
+            let trophyDelta = 0;
             if (playerSafe.isDead) {
+                trophyDelta = -Math.min(3, playerTrophies);
                 playerTrophies = Math.max(0, playerTrophies - 3);
                 winStatus = "lose";
             } else {
+                trophyDelta = 8;
                 playerTrophies += 8;
                 winStatus = "win";
             }
             localStorage.setItem(_userKey('trophies'), playerTrophies);
+
+            // Daily quests — bump every metric this match contributed to.
+            // `battles` always +1; `wins` +1 only on a win; `trophies`
+            // accumulates positive gains only (a loss subtracts trophies,
+            // which shouldn't count as "earning" them).
+            try {
+                if (typeof bumpQuestProgress === 'function') {
+                    bumpQuestProgress('battles', 1);
+                    if (winStatus === 'win') bumpQuestProgress('wins', 1);
+                    if (trophyDelta > 0)     bumpQuestProgress('trophies', trophyDelta);
+                }
+            } catch (e) {}
 
             if (currentBattleRoom && window.NetworkManager) {
                 const iWon = (winStatus === "win");

@@ -307,6 +307,10 @@ function updateHomeScreen() {
     // after a stat update, etc.) so the badge appears the moment the
     // player crosses a milestone and disappears the moment they claim it.
     if (typeof refreshTrophyClaimBadge === 'function') refreshTrophyClaimBadge();
+    // Daily quests — rolls the missions over if the day changed and
+    // refreshes the 🎁 badge on the 📜 button.
+    if (typeof refreshDailyQuestsIfNeeded === 'function') refreshDailyQuestsIfNeeded();
+    if (typeof refreshQuestsBadge === 'function') refreshQuestsBadge();
 }
 
 function updateTrophyUI() {

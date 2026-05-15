@@ -151,5 +151,26 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     if (team === 'player' && !isRemote && adminHacks.fullRefund && card && card.cost) {
         playerElixir = Math.min(playerMaxElixir, playerElixir + card.cost);
     }
+
+    // Daily quest progress — count every local player spawn (not P2P
+    // remote enemy units, not ice-cream auras placed by Barry — those
+    // aren't deck placements). Admin-only cards are also excluded so
+    // farming Libi / Barry doesn't trivialise the spawn quests.
+    if (team === 'player' && !isRemote &&
+        typstr_isCardSpawnable(typeStr) &&
+        typeof bumpQuestProgress === 'function') {
+        try { bumpQuestProgress('spawns', 1); } catch (e) {}
+    }
+}
+
+// Tiny helper kept private to this file — predicate for "does this spawn
+// count toward the daily 'place N units' quest?". Admin-only cards and the
+// internal 'icecream' aura don't.
+function typstr_isCardSpawnable(typeStr) {
+    if (!typeStr) return false;
+    const c = (typeof CARDS !== 'undefined') ? CARDS[typeStr] : null;
+    if (!c) return false;
+    if (c.adminOnly) return false;
+    return true;
 }
 window.spawnEntity = spawnEntity;
