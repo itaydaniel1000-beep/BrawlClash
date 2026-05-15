@@ -1,5 +1,30 @@
 // ui-admin.js - Admin Panel UI Logic
 
+// Verifies that `pw` matches the password the LOCAL user set at signup.
+// Used as a confirmation gate before sensitive actions (grant / revoke
+// admin).
+//
+// Migration: existing accounts created before this feature shipped don't
+// have a password on record. We auto-enrol them on first use — whatever
+// the user types becomes their saved password from then on. After that,
+// it has to match exactly.
+function _verifyMyPassword(pw) {
+    const name = (typeof playerStats !== 'undefined' && playerStats && playerStats.username) || '';
+    if (!name) return false;
+    if (!pw || pw.length < 4) return false;   // demand at least 4 chars
+    const key = 'brawlclash_pw_' + name.toLowerCase();
+    let saved = '';
+    try { saved = localStorage.getItem(key) || ''; } catch (e) { saved = ''; }
+    if (!saved) {
+        // Legacy account — first time after the feature ships. Treat the
+        // current input as the user's new password.
+        try { localStorage.setItem(key, pw); } catch (e) {}
+        return true;
+    }
+    return pw === saved;
+}
+window._verifyMyPassword = _verifyMyPassword;
+
 function openAdminMenu() {
     const isSuper = (typeof isSuperAdmin === 'function')
         ? isSuperAdmin(playerStats.username || '')
@@ -1043,11 +1068,24 @@ async function submitGrantAdmin() {
     const target = (document.getElementById('grant-admin-target').value || '').trim();
     const descEl = document.getElementById('grant-admin-desc');
     const desc = (descEl.value || '').trim();
+    const pwEl  = document.getElementById('grant-admin-password');
+    const pw    = pwEl ? pwEl.value : '';
     const result = document.getElementById('grant-admin-result');
     result.innerText = '';
 
     if (!target) { result.style.color = '#e74c3c'; result.innerText = 'חסר שם משתמש'; return; }
     if (!desc)   { result.style.color = '#e74c3c'; result.innerText = 'חסר תיאור של מה לתת לו'; return; }
+
+    // Password confirmation — must match the granter's saved password.
+    // Stops the open admin panel from being misused if a stranger picked
+    // up the device mid-session.
+    if (!_verifyMyPassword(pw)) {
+        result.style.color = '#e74c3c';
+        result.innerText = '🔒 סיסמא לא נכונה — לא ניתן להעניק אדמין';
+        return;
+    }
+    // Clear the password field so it doesn't sit around in the DOM.
+    if (pwEl) pwEl.value = '';
 
     // Push the user's message into the chat log immediately for responsiveness.
     _appendChatMsg('user', desc);
@@ -1218,12 +1256,21 @@ function submitRevokeAdmin() {
         return;
     }
     const target = (document.getElementById('revoke-admin-target').value || '').trim();
+    const pwEl   = document.getElementById('revoke-admin-password');
+    const pw     = pwEl ? pwEl.value : '';
     const result = document.getElementById('revoke-admin-result');
     if (!target) {
         result.style.color = '#e74c3c';
         result.innerText = 'חסר שם משתמש';
         return;
     }
+    // Same password gate as submitGrantAdmin — refuse if it doesn't match.
+    if (!_verifyMyPassword(pw)) {
+        result.style.color = '#e74c3c';
+        result.innerText = '🔒 סיסמא לא נכונה — לא ניתן למחוק אדמין';
+        return;
+    }
+    if (pwEl) pwEl.value = '';
 
     // Store a revoke "grant" so the target picks it up via the oracle channel.
     // Re-fetch a fresh copy under a NEW name so we don't clash with the

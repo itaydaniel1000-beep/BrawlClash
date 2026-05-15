@@ -653,10 +653,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function claimUsername() {
     const input = document.getElementById('username-input');
+    const pwInput = document.getElementById('username-password-input');
     const submitBtn = document.getElementById('username-submit-btn');
     const feedback = document.getElementById('username-feedback');
     const name = input ? input.value.trim() : null;
+    const password = pwInput ? pwInput.value : '';
     if (!name) return;
+
+    // First-time login OR rename → require a password to be set.
+    // Existing returning users (a password already saved for this name)
+    // must type the matching password to log in / rename.
+    const savedPw = (function () {
+        try { return localStorage.getItem('brawlclash_pw_' + name.toLowerCase()) || ''; }
+        catch (e) { return ''; }
+    })();
+    if (savedPw) {
+        if (!password) {
+            if (feedback) { feedback.style.color = '#ff7675'; feedback.innerText = '🔒 הזן את הסיסמא של "' + name + '"'; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+            return;
+        }
+        if (password !== savedPw) {
+            if (feedback) { feedback.style.color = '#ff7675'; feedback.innerText = '❌ סיסמא לא נכונה'; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+            return;
+        }
+    } else {
+        // No password on record → first-time signup. Force the user to choose one.
+        if (!password || password.length < 4) {
+            if (feedback) { feedback.style.color = '#ff7675'; feedback.innerText = '🔒 בחר סיסמא של 4 תווים לפחות'; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+            return;
+        }
+        try { localStorage.setItem('brawlclash_pw_' + name.toLowerCase(), password); } catch (e) {}
+    }
 
     if (feedback) { feedback.style.color = '#ffeaa7'; feedback.innerText = '⌛ בודק זמינות של השם…'; }
     if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.7'; }
