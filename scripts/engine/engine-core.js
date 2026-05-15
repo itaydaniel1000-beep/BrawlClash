@@ -272,21 +272,32 @@ function updateUI() {
         if (aliveCakes.length > 0) {
             cakeBlowBtn.style.display = 'block';
             cakeBlowBtn.style.backgroundColor = '#ff6b9d';
-            // Tripled from the previous 84 / 32 sizing per user request —
-            // the button now reads as a clear "ultimate" move and is hard
-            // to miss in the heat of a match. Border + shadow widths bump
-            // too so the chrome scales with the larger circle and the
-            // press-feel matches the visual weight.
-            cakeBlowBtn.style.width    = '252px';
-            cakeBlowBtn.style.height   = '252px';
-            cakeBlowBtn.style.fontSize = '96px';
-            cakeBlowBtn.style.border   = '8px solid #fff';
-            cakeBlowBtn.style.boxShadow = '0 14px #c0397f';
-            cakeBlowBtn.style.lineHeight = '1';
-            cakeBlowBtn.style.padding    = '0';
-            cakeBlowBtn.style.display    = 'flex';
-            cakeBlowBtn.style.alignItems = 'center';
-            cakeBlowBtn.style.justifyContent = 'center';
+            // Sized for visibility ("user still sees it small after the
+            // previous bump"). Using setProperty(..., 'important') so any
+            // earlier inline rule from _positionActionButtons (44×44 fixed
+            // on mobile) can no longer win the cascade. The button is now
+            // 320×320 — it's intentionally bigger than the deck cards
+            // because this is a once-per-match nuke. Anchor it to the
+            // bottom-right corner of the viewport with fixed positioning
+            // so it doesn't get clipped by #app's overflow:hidden on
+            // mobile and doesn't overlap the elixir bar at the bottom.
+            const cbStyle = cakeBlowBtn.style;
+            cbStyle.setProperty('width',  '320px', 'important');
+            cbStyle.setProperty('height', '320px', 'important');
+            cbStyle.setProperty('font-size', '140px', 'important');
+            cbStyle.setProperty('border', '10px solid #fff', 'important');
+            cbStyle.setProperty('box-shadow', '0 16px #c0397f', 'important');
+            cbStyle.setProperty('line-height', '1', 'important');
+            cbStyle.setProperty('padding', '0', 'important');
+            cbStyle.setProperty('display', 'flex', 'important');
+            cbStyle.setProperty('align-items', 'center', 'important');
+            cbStyle.setProperty('justify-content', 'center', 'important');
+            cbStyle.setProperty('position', 'fixed', 'important');
+            cbStyle.setProperty('right', '10px', 'important');
+            cbStyle.setProperty('bottom', '160px', 'important');
+            cbStyle.setProperty('top', 'auto', 'important');
+            cbStyle.setProperty('left', 'auto', 'important');
+            cbStyle.setProperty('z-index', '9999', 'important');
         } else {
             cakeBlowBtn.style.display = 'none';
         }
