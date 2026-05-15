@@ -94,6 +94,8 @@ NetworkManager.handleConnection = function(conn) {
             if (typeof handleRemoteBullDash === 'function') handleRemoteBullDash(data);
         } else if (data.type === 'BONNIE_MORPH') {
             if (typeof handleRemoteBonnieMorph === 'function') handleRemoteBonnieMorph(data);
+        } else if (data.type === 'CAKE_BLOW') {
+            if (typeof handleRemoteCakeBlow === 'function') handleRemoteCakeBlow(data);
         }
     });
 };

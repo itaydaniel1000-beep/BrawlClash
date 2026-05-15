@@ -5,9 +5,9 @@
 var _actionBtnOriginalParent = null;
 
 function _positionActionButtons() {
-    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn'];
-    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%'];
-    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db'];
+    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn', 'cake-blow-btn'];
+    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%', '92%'];
+    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db', '#ff6b9d'];
 
     var isMobile = ('ontouchstart' in window) ||
                    (navigator.maxTouchPoints > 0) ||
@@ -55,8 +55,8 @@ function _positionActionButtons() {
             btn.style.position  = 'absolute';
             btn.style.top       = 'auto';
             btn.style.left      = 'auto';
-            btn.style.right     = ['60px','130px','60px','200px','60px'][i];
-            btn.style.bottom    = ['70px','10px','10px','10px','140px'][i];
+            btn.style.right     = ['60px','130px','60px','200px','60px','130px'][i];
+            btn.style.bottom    = ['70px','10px','10px','10px','140px','140px'][i];
             btn.style.zIndex    = '100';
         }
     });
@@ -250,6 +250,23 @@ function updateUI() {
         } else {
             icecreamBtn.style.display = 'none';
             if (isSelectingIcecream) isSelectingIcecream = false;
+        }
+    }
+
+    // 🎂💥 Blow-out-candles button — visible whenever we have an alive
+    // player-team cake. One press calls `cake.takeDamage(Infinity)` which
+    // trips the cake-death wipe in entity-base.js (every opposing unit /
+    // building / aura on the field dies instantly). Hidden the moment the
+    // last cake dies (so the button can't be spam-pressed on a stale ref).
+    const cakeBlowBtn = document.getElementById('cake-blow-btn');
+    if (cakeBlowBtn) {
+        const aliveCakes = (typeof buildings !== 'undefined' ? buildings : [])
+            .filter(b => b && b.team === 'player' && b.type === 'cake' && !b.isDead);
+        if (aliveCakes.length > 0) {
+            cakeBlowBtn.style.display = 'block';
+            cakeBlowBtn.style.backgroundColor = '#ff6b9d';
+        } else {
+            cakeBlowBtn.style.display = 'none';
         }
     }
 

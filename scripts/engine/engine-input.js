@@ -572,6 +572,33 @@ function initGameListeners() {
         bonnieBtn.style.backgroundColor = isSelectingBonnieTransform ? '#e74c3c' : '#a29bfe';
     };
 
+    // 🎂💥 Blow-out-candles button — pops the player's cake on the spot.
+    // The cake's death in entity-base.js wipes every opposing unit /
+    // building / aura on the field. In P2P we also broadcast CAKE_BLOW so
+    // the opponent's mirror of the same cake (enemy-team on their screen)
+    // detonates at the same moment and wipes THEIR side's player-team
+    // entities — keeping both sims in sync. Confirm() before the kill so
+    // an accidental tap doesn't waste the strongest move in the deck.
+    const cakeBlowBtn = document.getElementById('cake-blow-btn');
+    if (cakeBlowBtn) cakeBlowBtn.onclick = (e) => {
+        e.stopPropagation();
+        const myCake = (typeof buildings !== 'undefined' ? buildings : [])
+            .find(b => b && b.team === 'player' && b.type === 'cake' && !b.isDead);
+        if (!myCake) return;
+        const ok = confirm('🎂💥 לפוצץ את העוגה? כל היחידות של היריב במגרש ימותו.');
+        if (!ok) return;
+        // Local detonation first (synchronous wipe inside takeDamage).
+        try { myCake.takeDamage(1e9); } catch (_) {
+            // Fallback if takeDamage somehow refuses — force the flag.
+            myCake.hp = 0; myCake.isDead = true;
+        }
+        // P2P mirror: tell the opponent to detonate THEIR enemy-team cake.
+        if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
+            window.NetworkManager && typeof window.NetworkManager.broadcastCakeBlow === 'function') {
+            try { window.NetworkManager.broadcastCakeBlow(myCake.x, myCake.y); } catch (_) {}
+        }
+    };
+
     // 🍦 Barry ice-cream button — toggles "next canvas click drops an
     // ice-cream aura anywhere on the map" mode. Will refuse to enter
     // selection mode when no Barry has a ready charge OR when the team

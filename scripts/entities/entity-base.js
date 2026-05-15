@@ -129,6 +129,36 @@ class Entity {
                 }
             }
 
+            // 🎂 Cake death-wipe — when the cake dies (HP drain OR the
+            // blow-out-candles button), every single entity on the OPPOSING
+            // team currently on the field is instantly killed. Units,
+            // buildings, auras — everything except the safe (the safe is
+            // the win-condition; wiping it would be an auto-win and feels
+            // wrong as a side-effect). Each victim also gets a tiny puff of
+            // particles so the wipe reads as a synchronised pop on screen
+            // instead of entities silently vanishing.
+            if (this.type === 'cake') {
+                const oppTeam = this.team === 'player' ? 'enemy' : 'player';
+                const everyone = (typeof units !== 'undefined' ? units : [])
+                    .concat(typeof buildings !== 'undefined' ? buildings : [])
+                    .concat(typeof auras !== 'undefined' ? auras : []);
+                everyone.forEach(e => {
+                    if (!e || e.isDead) return;
+                    if (e.team !== oppTeam) return;
+                    e.hp = 0;
+                    e.isDead = true;
+                    for (let i = 0; i < 6; i++) {
+                        try { particles.push(new Particle(e.x, e.y, e.color || '#ff6b9d')); } catch (_) {}
+                    }
+                });
+                // A small celebratory burst at the cake itself so the
+                // player sees the trigger point of the wipe.
+                const cakeColors = ['#ff6b9d', '#f1c40f', '#74b9ff', '#2ecc71', '#fff'];
+                for (let i = 0; i < 24; i++) {
+                    try { particles.push(new Particle(this.x, this.y, cakeColors[i % cakeColors.length])); } catch (_) {}
+                }
+            }
+
         }
     }
     drawHpBar(ctx, yOffset = 2) {

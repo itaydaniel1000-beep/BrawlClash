@@ -183,6 +183,42 @@ NetworkManager.broadcastBullDash = function(x, y) {
     });
 };
 
+// We just blew out our cake. Tell the opponent so their enemy-team cake
+// (the same cake from their POV) detonates at the matching position and
+// the wipe runs symmetrically on both screens. Coords are flipped into
+// the receiver's space the same way SYNC_SPAWN / SAFE_FIRE flip them.
+NetworkManager.broadcastCakeBlow = function(x, y) {
+    Object.values(this.connections).forEach(conn => {
+        if (conn.open) {
+            try {
+                conn.send({
+                    type: 'CAKE_BLOW',
+                    x: CONFIG.CANVAS_WIDTH  - x,
+                    y: CONFIG.CANVAS_HEIGHT - y
+                });
+            } catch (e) { /* ignore */ }
+        }
+    });
+};
+
+// Inverse of broadcastCakeBlow — opponent's cake just blew up. Find the
+// nearest matching enemy-team cake (small tolerance for the flipped coord
+// rounding) and call takeDamage on it so the death-wipe runs locally too.
+function handleRemoteCakeBlow(data) {
+    if (typeof buildings === 'undefined') return;
+    const cakes = buildings.filter(b => b && b.team === 'enemy' && b.type === 'cake' && !b.isDead);
+    if (!cakes.length) return;
+    let pick = cakes[0];
+    if (data && typeof data.x === 'number' && typeof data.y === 'number') {
+        cakes.sort((a, b) => Math.hypot(a.x - data.x, a.y - data.y) - Math.hypot(b.x - data.x, b.y - data.y));
+        pick = cakes[0];
+    }
+    try { pick.takeDamage(1e9); } catch (_) {
+        pick.hp = 0; pick.isDead = true;
+    }
+}
+window.handleRemoteCakeBlow = handleRemoteCakeBlow;
+
 // Tell the opponent to un-freeze the units WE just unfroze — same batch rule,
 // just on the other team's perspective.
 NetworkManager.broadcastReleaseFreeze = function() {
@@ -343,6 +379,8 @@ NetworkManager.joinRoom = function(roomCode) {
                 if (typeof handleRemoteBullDash === 'function') handleRemoteBullDash(data);
             } else if (data.type === 'BONNIE_MORPH') {
                 if (typeof handleRemoteBonnieMorph === 'function') handleRemoteBonnieMorph(data);
+            } else if (data.type === 'CAKE_BLOW') {
+                if (typeof handleRemoteCakeBlow === 'function') handleRemoteCakeBlow(data);
             }
         });
     });
