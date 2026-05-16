@@ -759,7 +759,7 @@ function parseAdminRequest(text) {
     const t = (text || '').toLowerCase();
     const grant = {
         infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
-        coins: 0, gems: 0, trophies: 0, maxLevels: false,
+        coins: 0, gems: 0, trophies: 0, credits: 0, pp: 0, maxLevels: false,
         // Numeric / parametric (0 = default)
         speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0,
         startingElixir: 0, maxElixir: 0,
@@ -829,6 +829,8 @@ function parseAdminRequest(text) {
         grant.coins     = 9999999;
         grant.gems      = 99999;
         grant.trophies  = 99999;
+        grant.credits   = 99999;
+        grant.pp        = 99999;
     }
 
     if (has('גוד מוד', 'גודמוד', 'חסין', 'אלמוות', 'אל-מוות', 'בלתי פגיע',
@@ -1007,6 +1009,15 @@ function parseAdminRequest(text) {
     if (gemsMatch) grant.gems = parseInt(gemsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
     const trophiesMatch = t.match(/(\d[\d,\.]*)\s*(?:גביעים|גביע|trophies|trophy)/i);
     if (trophiesMatch) grant.trophies = parseInt(trophiesMatch[1].replace(/[,\.]/g, ''), 10) || 0;
+    // Credits — the 🎟️ currency added with the rarity / unlock system.
+    // Hebrew "קרדיטים" / "קרדיט" / English "credits" / "credit".
+    const creditsMatch = t.match(/(\d[\d,\.]*)\s*(?:קרדיטים|קרדיט|credits?)/i);
+    if (creditsMatch) grant.credits = parseInt(creditsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
+    // Power-points (💪 חוזקה). Multiple natural phrasings — the user might
+    // type "כוח", "חוזקה", "נקודות כוח", "pp", "power points" all of which
+    // should resolve to the same playerStats.pp grant.
+    const ppMatch = t.match(/(\d[\d,\.]*)\s*(?:נקודות[- ]?כוח|חוזקה|כוח|power[- ]?points?|\bpp\b)/i);
+    if (ppMatch) grant.pp = parseInt(ppMatch[1].replace(/[,\.]/g, ''), 10) || 0;
 
     return grant;
 }

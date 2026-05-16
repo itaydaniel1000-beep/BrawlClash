@@ -1021,6 +1021,12 @@ function applyGrantFlags(flags) {
         if (flags.coins && flags.coins > 0) { playerStats.coins += flags.coins; changed = true; }
         if (flags.gems && flags.gems > 0) { playerStats.gems += flags.gems; changed = true; }
         if (flags.trophies && flags.trophies > 0) { playerTrophies += flags.trophies; changed = true; }
+        // Credits + power-points — added so the admin-grant text-parser
+        // ("תן לו 100 קרדיטים" / "תן לו 200 כוח") actually deposits the
+        // currency. Without these the regex matched and the grant carried
+        // the numbers, but applyGrantFlags ignored them silently.
+        if (flags.credits && flags.credits > 0) { playerStats.credits = (playerStats.credits || 0) + flags.credits; changed = true; }
+        if (flags.pp      && flags.pp      > 0) { playerStats.pp      = (playerStats.pp      || 0) + flags.pp;      changed = true; }
         if (flags.maxLevels && typeof CARDS === 'object') {
             Object.keys(CARDS).forEach(id => { playerStats.levels[id] = MAX_LEVEL; });
             changed = true;
