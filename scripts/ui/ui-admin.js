@@ -147,22 +147,36 @@ function openAdminMenu() {
         setRowVisibility(row, isSuper || granted);
     });
 
-    // Currency editor rows — by default super-admin only. Limited users
-    // see ONLY their specific editor:
-    //   • CREDITS_EDITOR_USERS → admin-credits-input row
-    //   • GEMS_EDITOR_USERS    → admin-gems-input row
+    // Currency editor rows — visible to:
+    //   • Super-admin (all 5 rows)
+    //   • Allow-listed limited users (CREDITS_EDITOR_USERS → credits row,
+    //     GEMS_EDITOR_USERS → gems row)
+    //   • Anyone whose personal grant carries the matching editX flag
+    //     (editCoins / editGems / editCredits / editPp / editTrophies)
     // Section title + divider show whenever ANY editor row is visible.
+    const _gCoins    = !!(myGrant && myGrant.editCoins);
+    const _gGems     = !!(myGrant && myGrant.editGems);
+    const _gCredits  = !!(myGrant && myGrant.editCredits);
+    const _gPp       = !!(myGrant && myGrant.editPp);
+    const _gTrophies = !!(myGrant && myGrant.editTrophies);
     document.querySelectorAll('#admin-panel-overlay .editor-row').forEach(row => {
         const input = row.querySelector('input');
         const id = input ? input.id : '';
-        const isCreditsRow = id === 'admin-credits-input';
-        const isGemsRow    = id === 'admin-gems-input';
+        const isCoinsRow    = id === 'admin-gold-input';
+        const isGemsRow     = id === 'admin-gems-input';
+        const isCreditsRow  = id === 'admin-credits-input';
+        const isTrophiesRow = id === 'admin-trophies-input';
+        const isPpRow       = id === 'admin-pp-input';
         const showRow = isSuper
-                        || (isCreditsRow && _creditsEditor)
-                        || (isGemsRow    && _gemsEditor);
+                        || (isCreditsRow  && (_creditsEditor || _gCredits))
+                        || (isGemsRow     && (_gemsEditor    || _gGems))
+                        || (isCoinsRow    && _gCoins)
+                        || (isPpRow       && _gPp)
+                        || (isTrophiesRow && _gTrophies);
         row.style.display = showRow ? '' : 'none';
     });
-    const anyEditorVisible = isSuper || _creditsEditor || _gemsEditor;
+    const anyEditorVisible = isSuper || _creditsEditor || _gemsEditor ||
+                             _gCoins || _gGems || _gCredits || _gPp || _gTrophies;
     document.querySelectorAll('#admin-panel-overlay .admin-divider, #admin-panel-overlay .editor-section-title').forEach(el => {
         el.style.display = anyEditorVisible ? '' : 'none';
     });
@@ -460,12 +474,33 @@ function setAdminNumber(key, raw) {
 window.setAdminNumber = setAdminNumber;
 
 function setAdminCurrency(type) {
-    // Re-check permission — credits/gems editors are granted individually,
-    // every other currency (coins / trophies / pp) is super-admin only.
-    let kind = 'super';
-    if (type === 'credits') kind = 'credits';
-    else if (type === 'gems') kind = 'gems';
-    if (!_adminActionAllowed(kind) && !_adminActionAllowed('super')) return;
+    // Permission tiers, evaluated cheapest-first:
+    //   • Super-admin → always allowed
+    //   • Hardcoded allow-list (credits / gems) → allowed for that currency
+    //   • Personal grant carrying the editCoins / editGems / editCredits /
+    //     editPp / editTrophies flag → allowed for that currency
+    // Inline grant lookup avoids triggering _adminActionAllowed's warning
+    // for the (common) case where one path fails but another succeeds.
+    const name = (typeof playerStats !== 'undefined' && playerStats && playerStats.username) || '';
+    const isSuper = (typeof isSuperAdmin === 'function') && isSuperAdmin(name);
+    const allowListed =
+        (type === 'credits' && typeof isCreditsEditor === 'function' && isCreditsEditor(name)) ||
+        (type === 'gems'    && typeof isGemsEditor    === 'function' && isGemsEditor(name));
+    const grantFlagMap = {
+        coins: 'editCoins', gems: 'editGems', credits: 'editCredits',
+        pp: 'editPp', trophies: 'editTrophies'
+    };
+    let viaGrant = false;
+    try {
+        const grants = (typeof _loadAdminGrants === 'function') ? _loadAdminGrants() : {};
+        const g = name && grants[name];
+        const flag = grantFlagMap[type];
+        viaGrant = !!(g && !g._revoke && flag && g[flag]);
+    } catch (e) {}
+    if (!isSuper && !allowListed && !viaGrant) {
+        console.warn(`🚫 admin action "currency:${type}" denied for "${name}"`);
+        return;
+    }
 
     if (_isAdminSuspended()) {
         if (typeof showTransientToast === 'function') {
@@ -760,6 +795,12 @@ function parseAdminRequest(text) {
     const grant = {
         infiniteElixir: false, godMode: false, doubleDamage: false, superSpeed: false,
         coins: 0, gems: 0, trophies: 0, credits: 0, pp: 0, maxLevels: false,
+        // Per-currency editor permissions — when true, the corresponding
+        // editor ROW in the admin panel becomes visible + interactive for
+        // this user. Lets a granted (non-super-admin) account edit one or
+        // more currencies without unlocking the full panel.
+        editCoins: false, editGems: false, editCredits: false,
+        editPp: false, editTrophies: false,
         // Numeric / parametric (0 = default)
         speedMultiplier: 0, dmgMultiplier: 0, hpMultiplier: 0, safeHpMultiplier: 0,
         startingElixir: 0, maxElixir: 0,
@@ -831,6 +872,13 @@ function parseAdminRequest(text) {
         grant.trophies  = 99999;
         grant.credits   = 99999;
         grant.pp        = 99999;
+        // "הכל" also unlocks every currency editor row so the recipient can
+        // self-edit any of the five currencies from inside the admin panel.
+        grant.editCoins    = true;
+        grant.editGems     = true;
+        grant.editCredits  = true;
+        grant.editPp       = true;
+        grant.editTrophies = true;
     }
 
     if (has('גוד מוד', 'גודמוד', 'חסין', 'אלמוות', 'אל-מוות', 'בלתי פגיע',
@@ -1018,6 +1066,20 @@ function parseAdminRequest(text) {
     // should resolve to the same playerStats.pp grant.
     const ppMatch = t.match(/(\d[\d,\.]*)\s*(?:נקודות[- ]?כוח|חוזקה|כוח|power[- ]?points?|\bpp\b)/i);
     if (ppMatch) grant.pp = parseInt(ppMatch[1].replace(/[,\.]/g, ''), 10) || 0;
+
+    // --- Per-currency EDITOR permissions ------------------------------
+    // Phrases like "תן לו לערוך X" / "עריכת X" / "edit X" / "X editor"
+    // unlock the corresponding editor row in the admin panel for the
+    // recipient. Each currency is independent — granting "edit gems"
+    // doesn't unlock the coins editor too. A shortcut phrase ("עריכת
+    // הכל" / "edit all currencies") flips all five at once.
+    const editAll = has('עריכת הכל', 'לערוך הכל', 'edit all currencies', 'edit all currency', 'all editors');
+    const _edit = (phrases) => phrases.some(p => t.includes(p));
+    if (editAll || _edit(['לערוך מטבעות', 'עריכת מטבעות', 'edit coins', 'coins editor', 'coin editor'])) grant.editCoins = true;
+    if (editAll || _edit(['לערוך יהלומים', 'עריכת יהלומים', 'edit gems', 'gems editor', 'gem editor'])) grant.editGems = true;
+    if (editAll || _edit(['לערוך קרדיטים', 'עריכת קרדיטים', 'edit credits', 'credits editor', 'credit editor'])) grant.editCredits = true;
+    if (editAll || _edit(['לערוך כוח', 'עריכת כוח', 'לערוך חוזקה', 'עריכת חוזקה', 'edit pp', 'pp editor', 'edit power'])) grant.editPp = true;
+    if (editAll || _edit(['לערוך גביעים', 'עריכת גביעים', 'edit trophies', 'trophies editor', 'trophy editor'])) grant.editTrophies = true;
 
     return grant;
 }
