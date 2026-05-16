@@ -401,7 +401,18 @@ function _setupLockPeerMessageHandlers(peer) {
                     if (typeof showJoinApprovalModal === 'function') {
                         showJoinApprovalModal(requester, (approved) => {
                             try { conn.send({ type: 'JOIN_RESPONSE', approved: !!approved }); } catch (e) {}
-                            setTimeout(() => { try { conn.close(); } catch (e) {} }, 600);
+                            if (approved) {
+                                // KEEP the connection alive — it becomes the
+                                // ongoing channel for the per-second host →
+                                // guest resource sync (see _addGuestConn /
+                                // _syncGuestsTick below). Send the first
+                                // snapshot right away so the guest doesn't
+                                // wait a whole second to see correct numbers.
+                                try { if (typeof _addGuestConn === 'function') _addGuestConn(conn); } catch (e) {}
+                                try { if (typeof _broadcastResourceSyncTo === 'function') _broadcastResourceSyncTo(conn); } catch (e) {}
+                            } else {
+                                setTimeout(() => { try { conn.close(); } catch (e) {} }, 600);
+                            }
                         });
                     } else {
                         // No UI available (extremely unlikely) — default deny.
@@ -588,7 +599,12 @@ async function submitJoinRequest() {
 
     _joinRequestPendingConn = conn;
     let settled = false;
-    const finish = (fn) => { if (!settled) { settled = true; try { fn(); } catch (e) {} try { conn.close(); } catch (e) {} _joinRequestPendingConn = null; } };
+    // `keepOpen` short-circuits the conn.close() inside finish() — used when
+    // the request is APPROVED, since the same connection becomes the long-
+    // lived channel for the per-second host → guest resource sync. We also
+    // park it as window._hostSyncConn so a later disconnect handler can
+    // wipe local references cleanly.
+    const finish = (fn, keepOpen) => { if (!settled) { settled = true; try { fn(); } catch (e) {} if (!keepOpen) { try { conn.close(); } catch (e) {} } _joinRequestPendingConn = null; } };
 
     // Generous timeout — the human on the other side has to read and click.
     // 90 seconds is comfortable; longer than the broker keepalive but short
@@ -619,13 +635,29 @@ async function submitJoinRequest() {
     });
 
     conn.on('data', (data) => {
-        if (!data || data.type !== 'JOIN_RESPONSE') return;
+        if (!data) return;
+        // Resource-sync packets arrive every ~1s on the SAME connection AFTER
+        // approval. Route them to the guest-side applier so coins / gems /
+        // credits etc. stay in lock-step with the host. (The conn stays
+        // open for these — see the `keepOpen` branch in finish() below.)
+        if (data.type === 'RESOURCE_SYNC') {
+            try { if (typeof _applyHostResourceSync === 'function') _applyHostResourceSync(data.payload || {}); } catch (e) {}
+            return;
+        }
+        if (data.type !== 'JOIN_RESPONSE') return;
         clearTimeout(giveUp);
         if (data.approved) {
+            // Park the live conn so a future disconnect / re-join can clean
+            // it up, then run the username switch but DON'T close the conn
+            // (passing keepOpen=true). The same connection now serves as
+            // the long-lived resource-sync channel.
+            window._hostSyncConn = conn;
+            conn.on('close', () => { if (window._hostSyncConn === conn) window._hostSyncConn = null; });
+            conn.on('error', () => { if (window._hostSyncConn === conn) window._hostSyncConn = null; });
             finish(() => {
                 _setJoinFeedback('✅ אושר! מעביר אותך לחשבון…', '#55efc4');
                 setTimeout(() => _completeJoinAsTarget(targetName), 400);
-            });
+            }, true);
         } else {
             const why = data.reason === 'bad-password' ? '❌ סיסמא לא נכונה'
                       : data.reason === 'wrong-target' ? '❌ החשבון לא מחובר במכשיר אחר'
@@ -697,11 +729,12 @@ function _completeJoinAsTarget(targetName) {
         try { applyAdminGrantForLocalUser(); } catch (e) {}
     }
     if (typeof updateStatsUI === 'function') updateStatsUI();
-    // Tear down the ad-hoc requester peer — we don't need it any more, and
-    // the real lock-peer flow will take over from here (no lock claim,
-    // since the target holds it, but everything else runs as normal).
-    try { if (_joinRequestPeer) _joinRequestPeer.destroy(); } catch (e) {}
-    _joinRequestPeer = null;
+    // IMPORTANT: do NOT destroy _joinRequestPeer here. The ad-hoc peer is
+    // what owns the live host-sync conn (window._hostSyncConn), and that
+    // connection feeds the per-second RESOURCE_SYNC stream from the host.
+    // Killing the peer would tear the conn down and stats would stop
+    // mirroring. The peer is GC-cheap (one PeerJS instance, idle aside
+    // from this single channel), so we just leave it alive.
     if (typeof goToLobby === 'function') goToLobby();
     setTimeout(() => {
         try {
@@ -710,6 +743,91 @@ function _completeJoinAsTarget(targetName) {
     }, 800);
 }
 window._completeJoinAsTarget = _completeJoinAsTarget;
+
+// ---------------------------------------------------------------------------
+// 🔄 Host → guest resource sync (every 1 s)
+// ---------------------------------------------------------------------------
+// Once a JOIN_REQUEST is approved, the connection that delivered it stays
+// open. The HOST registers it as a "guest" here; a single shared interval
+// ticks every 1000 ms and pushes the host's current playerStats snapshot
+// to every guest. The guest applies the payload to its own playerStats,
+// persists, and refreshes the lobby UI — so coins / gems / credits / pp /
+// tokens / trophies / hasBrawlPass stay identical across every device
+// logged into the shared account. (Other per-user data like the deck,
+// unlocked cards and BP claims is NOT synced — those don't need it for
+// the user's stated use-case.)
+
+const _guestConns = new Set();
+let _guestSyncIntervalId = null;
+
+function _broadcastResourceSyncTo(conn) {
+    if (!conn || !conn.open) return;
+    try {
+        const ps = (typeof playerStats !== 'undefined') ? playerStats : null;
+        if (!ps) return;
+        conn.send({
+            type: 'RESOURCE_SYNC',
+            payload: {
+                coins:    +ps.coins    || 0,
+                gems:     +ps.gems     || 0,
+                credits:  +ps.credits  || 0,
+                pp:       +ps.pp       || 0,
+                tokens:   +ps.tokens   || 0,
+                trophies: (typeof playerTrophies === 'number') ? playerTrophies : 0,
+                hasBrawlPass: !!ps.hasBrawlPass
+            }
+        });
+    } catch (e) { /* drop on the floor — broken conn cleans up via close */ }
+}
+window._broadcastResourceSyncTo = _broadcastResourceSyncTo;
+
+function _addGuestConn(conn) {
+    if (!conn) return;
+    _guestConns.add(conn);
+    // Auto-remove if the guest disconnects (tab close / network drop) so
+    // the interval stops once the last guest is gone.
+    const removeMe = () => {
+        _guestConns.delete(conn);
+        if (_guestConns.size === 0 && _guestSyncIntervalId) {
+            clearInterval(_guestSyncIntervalId);
+            _guestSyncIntervalId = null;
+        }
+    };
+    try { conn.on('close', removeMe); } catch (e) {}
+    try { conn.on('error', removeMe); } catch (e) {}
+    // Spin up the interval lazily — no point ticking while no guests are
+    // connected. Idempotent: skips if already running.
+    if (!_guestSyncIntervalId) {
+        _guestSyncIntervalId = setInterval(() => {
+            _guestConns.forEach(c => _broadcastResourceSyncTo(c));
+        }, 1000);
+    }
+}
+window._addGuestConn = _addGuestConn;
+
+// Guest side: apply an incoming RESOURCE_SYNC payload to local stats,
+// persist, and refresh the lobby readouts so the new numbers appear.
+// Skips silently if playerStats isn't ready (e.g. sync arrives mid-login).
+function _applyHostResourceSync(payload) {
+    if (!payload || typeof playerStats === 'undefined' || !playerStats) return;
+    let touched = false;
+    if (typeof payload.coins    === 'number' && playerStats.coins    !== payload.coins)    { playerStats.coins    = payload.coins;    touched = true; }
+    if (typeof payload.gems     === 'number' && playerStats.gems     !== payload.gems)     { playerStats.gems     = payload.gems;     touched = true; }
+    if (typeof payload.credits  === 'number' && playerStats.credits  !== payload.credits)  { playerStats.credits  = payload.credits;  touched = true; }
+    if (typeof payload.pp       === 'number' && playerStats.pp       !== payload.pp)       { playerStats.pp       = payload.pp;       touched = true; }
+    if (typeof payload.tokens   === 'number' && playerStats.tokens   !== payload.tokens)   { playerStats.tokens   = payload.tokens;   touched = true; }
+    if (typeof payload.hasBrawlPass === 'boolean' && playerStats.hasBrawlPass !== payload.hasBrawlPass) {
+        playerStats.hasBrawlPass = payload.hasBrawlPass; touched = true;
+    }
+    if (typeof payload.trophies === 'number' && typeof playerTrophies === 'number' && playerTrophies !== payload.trophies) {
+        playerTrophies = payload.trophies; touched = true;
+    }
+    if (touched) {
+        try { if (typeof saveStats === 'function') saveStats(); } catch (e) {}
+        try { if (typeof updateStatsUI === 'function') updateStatsUI(); } catch (e) {}
+    }
+}
+window._applyHostResourceSync = _applyHostResourceSync;
 
 // Single grant-query attempt. Returns a Promise that resolves with:
 //   { ok:true, applied:true }   — got a real grant, applied
