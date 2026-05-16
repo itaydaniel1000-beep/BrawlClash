@@ -275,9 +275,8 @@ function updateUI() {
             // Sized 4× smaller than the previous 320 px version per user
             // request. Still bigger than the standard 44×44 side-rail
             // buttons so it remains recognisable as the "ultimate", just
-            // not overwhelming. Anchored to the same fixed bottom-right
-            // slot via setProperty('important') so _positionActionButtons'
-            // 44 px default can't reclaim the cascade.
+            // not overwhelming. setProperty('important') so the cascade
+            // sticks regardless of what _positionActionButtons sets.
             const cbStyle = cakeBlowBtn.style;
             cbStyle.setProperty('width',  '80px', 'important');
             cbStyle.setProperty('height', '80px', 'important');
@@ -290,11 +289,31 @@ function updateUI() {
             cbStyle.setProperty('align-items', 'center', 'important');
             cbStyle.setProperty('justify-content', 'center', 'important');
             cbStyle.setProperty('position', 'fixed', 'important');
-            cbStyle.setProperty('right', '10px', 'important');
-            cbStyle.setProperty('bottom', '160px', 'important');
-            cbStyle.setProperty('top', 'auto', 'important');
-            cbStyle.setProperty('left', 'auto', 'important');
             cbStyle.setProperty('z-index', '9999', 'important');
+
+            // Placement: on PHONES the right-side rail is busy with the
+            // other action buttons (admin-delete / amber-path / bull-dash
+            // / bonnie-transform / icecream) AND the deck sits along the
+            // bottom — anchoring there overlaps gameplay. Move the cake
+            // button to the LEFT edge mid-screen on touch devices so it
+            // sits in the otherwise-empty left strip and is comfortable
+            // for a left-thumb tap. Desktop keeps the right-side slot.
+            const _isMobile = ('ontouchstart' in window) ||
+                              (navigator.maxTouchPoints > 0) ||
+                              (window.innerWidth <= 768);
+            if (_isMobile) {
+                cbStyle.setProperty('left',   '8px',  'important');
+                cbStyle.setProperty('right',  'auto', 'important');
+                cbStyle.setProperty('top',    '50%',  'important');
+                cbStyle.setProperty('bottom', 'auto', 'important');
+                cbStyle.setProperty('transform', 'translateY(-50%)', 'important');
+            } else {
+                cbStyle.setProperty('right',  '10px',  'important');
+                cbStyle.setProperty('bottom', '160px', 'important');
+                cbStyle.setProperty('left',   'auto',  'important');
+                cbStyle.setProperty('top',    'auto',  'important');
+                cbStyle.setProperty('transform', 'none', 'important');
+            }
         } else {
             cakeBlowBtn.style.display = 'none';
         }
