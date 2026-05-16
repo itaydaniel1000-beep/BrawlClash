@@ -288,12 +288,21 @@ function renderBrawlPass() {
     // ---- Header strip: status + buy button + legend --------------------------
     const header = document.createElement('div');
     header.style.cssText = 'flex: 0 0 auto; min-width: 170px; max-width: 200px; background: linear-gradient(160deg, rgba(241,196,15,0.25), rgba(155,89,182,0.25)); border: 2px solid #f1c40f; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 8px; scroll-snap-align: start;';
+    // Real-money price for the premium pass — sourced from the central
+    // product catalogue so changing it once (in ui-shop-premium.js) ripples
+    // here too. Falls back to the old gem-priced flow if the catalogue
+    // hasn't loaded yet (defensive — shouldn't happen at runtime).
+    const _passProduct = (typeof REAL_MONEY_PRODUCTS === 'object' && REAL_MONEY_PRODUCTS)
+        ? REAL_MONEY_PRODUCTS.premium_pass : null;
+    const _passPriceLabel = _passProduct ? `${_passProduct.currency}${_passProduct.price}` : `${BRAWL_PASS_PRICE_GEMS} 💎`;
+    const _passBuyAction  = _passProduct ? `openPurchaseFlow('premium_pass')` : `buyBrawlPass()`;
+
     header.innerHTML = `
         <div style="font-weight:bold; color:#f1c40f; font-size:0.95rem;">👑 BRAWL PASS</div>
-        <div style="font-size:0.75rem; color:#fff; text-align:center; opacity:0.85;">${hasBP ? 'מסלול פרימיום פעיל' : `פתח את הפרימיום ב-${BRAWL_PASS_PRICE_GEMS} 💎`}</div>
+        <div style="font-size:0.75rem; color:#fff; text-align:center; opacity:0.85;">${hasBP ? 'מסלול פרימיום פעיל' : `פתח את הפרימיום ב-${_passPriceLabel}`}</div>
         ${hasBP
             ? `<div style="background:#27ae60; color:#fff; font-weight:bold; padding:6px 14px; border-radius:8px; font-size:0.8rem;">✓ נרכש</div>`
-            : `<button onclick="buyBrawlPass()" class="bs-btn bs-btn-small" style="background:linear-gradient(180deg,#f1c40f,#e67e22); color:#000; font-weight:bold; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;">קנה Pass</button>`
+            : `<button onclick="${_passBuyAction}" class="bs-btn bs-btn-small" style="background:linear-gradient(180deg,#f1c40f,#e67e22); color:#000; font-weight:bold; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;">קנה ב-${_passPriceLabel}</button>`
         }
         <div style="margin-top:4px; font-size:0.65rem; color:#fff; opacity:0.8; line-height:1.3; text-align:center;">
             🆓 שורה תחתונה — חינם<br>
@@ -461,6 +470,41 @@ function renderShop() {
 
     addHeader(`💎 ➜ 🎟️  (יהלום = ${GEM_TO_CREDITS} קרדיטים)`);
     [1, 5, 25].forEach(g => addOffer(g, 'credits'));
+
+    // === Real-money section ================================================
+    // Premium products billed in ₪ (shekel). Opens the configured hosted
+    // checkout in a new tab; on return via the bc_purchase URL param the
+    // entitlement is granted locally. See ui-shop-premium.js.
+    if (typeof REAL_MONEY_PRODUCTS === 'object' && REAL_MONEY_PRODUCTS) {
+        addHeader('💰 חבילות פרימיום (₪)');
+        const addRealMoney = (productId) => {
+            const p = REAL_MONEY_PRODUCTS[productId];
+            if (!p) return;
+            const alreadyOwned = (typeof p.alreadyOwned === 'function') && p.alreadyOwned();
+            const item = document.createElement('div');
+            item.style.cssText = `grid-column: 1 / -1; background: linear-gradient(135deg, rgba(241,196,15,0.25), rgba(231,76,60,0.25)); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap:10px; border: 2px solid ${alreadyOwned ? '#27ae60' : '#f1c40f'};`;
+            item.innerHTML = `
+                <div style="text-align:right; flex: 1;">
+                    <div style="font-weight:bold; color:#fff; font-size:1rem;">${p.name}</div>
+                    <div style="font-size:0.78rem; color:#fff; opacity:0.8; margin-top:2px;">${p.desc || ''}</div>
+                </div>
+                <div style="flex: 0 0 auto;">
+                    ${alreadyOwned
+                        ? `<span style="background:#27ae60; color:#fff; padding:8px 14px; border-radius:8px; font-weight:bold; font-size:0.85rem;">✓ נרכש</span>`
+                        : `<button class="bs-btn bs-btn-small" style="background:linear-gradient(180deg,#f1c40f,#e67e22); color:#000; font-weight:bold; padding:8px 14px; border-radius:8px; border:none; cursor:pointer;">קנה ב-${p.currency}${p.price}</button>`}
+                </div>
+            `;
+            const buyBtn = item.querySelector('button');
+            if (buyBtn) buyBtn.onclick = () => openPurchaseFlow(productId);
+            container.appendChild(item);
+        };
+        addRealMoney('premium_pass');
+        addRealMoney('gems_100');
+        addRealMoney('gems_500');
+        addRealMoney('gems_1500');
+        addRealMoney('ad_free');
+    }
+
     if (typeof renderTwemojiOnScreen === 'function') renderTwemojiOnScreen('shop-screen');
 }
 

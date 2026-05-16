@@ -181,6 +181,15 @@ function update(dt, now) {
         const overMenu = document.getElementById('game-over-menu');
         if (overMenu) overMenu.classList.add('active');
 
+        // 📺 Post-match interstitial ad — pops 1.6 s after the game-over
+        // screen appears so the player has a moment to register the result
+        // before the overlay covers it. Skipped entirely for users who
+        // bought "remove ads forever" (playerStats.adFree).
+        if (typeof showInterstitialAd === 'function' &&
+            (typeof _isAdFree !== 'function' || !_isAdFree())) {
+            setTimeout(() => { try { showInterstitialAd(); } catch (e) {} }, 1600);
+        }
+
         // If ביטול אדמין suspended our hacks for this match, restore them now
         // that the battle has ended (safe destroyed on one side).
         if (typeof restoreSuspendedAdmin === 'function') restoreSuspendedAdmin();

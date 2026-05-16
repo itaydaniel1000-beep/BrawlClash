@@ -289,9 +289,13 @@ let playerStats = {
     // (replaces the previous trophy-based progression). Persists per user
     // like every other currency.
     tokens: parseInt(localStorage.getItem(_userKey('tokens'))) || 0,
-    // Premium Brawl Pass ownership. Bought with gems (or granted by an
-    // admin); unlocks the second reward column on every BP tier.
+    // Premium Brawl Pass ownership. Bought with real money (or granted by
+    // an admin); unlocks the second reward column on every BP tier.
     hasBrawlPass: localStorage.getItem(_userKey('hasBrawlPass')) === '1',
+    // "Remove ads forever" purchase. When true, the post-match interstitial
+    // ad is suppressed. Set by ui-shop-premium after a successful purchase
+    // or by an admin grant. Cannot be turned off once on (no UX for it).
+    adFree: localStorage.getItem(_userKey('adFree')) === '1',
     // Daily quests — 3 random missions drawn from QUEST_POOL (ui-quests.js).
     // Refreshed once per calendar day via refreshDailyQuestsIfNeeded().
     dailyQuests: JSON.parse(localStorage.getItem(_userKey('dailyQuests')) || 'null') || [],
@@ -427,6 +431,7 @@ function saveStats() {
     _safeSet(_userKey('pp'),               playerStats.pp || 0);
     _safeSet(_userKey('tokens'),           playerStats.tokens || 0);
     _safeSet(_userKey('hasBrawlPass'),     playerStats.hasBrawlPass ? '1' : '0');
+    _safeSet(_userKey('adFree'),           playerStats.adFree ? '1' : '0');
     _safeSet(_userKey('dailyQuests'),      JSON.stringify(playerStats.dailyQuests || []));
     _safeSet(_userKey('questsLastRefresh'), playerStats.questsLastRefresh || '');
     _safeSet(_userKey('claimed'),          JSON.stringify(playerStats.claimedTiers));
@@ -490,6 +495,7 @@ function reloadActiveUserState() {
     playerStats.pp           = parseInt(localStorage.getItem(_userKey('pp')))      || 0;
     playerStats.tokens       = parseInt(localStorage.getItem(_userKey('tokens')))  || 0;
     playerStats.hasBrawlPass = localStorage.getItem(_userKey('hasBrawlPass')) === '1';
+    playerStats.adFree       = localStorage.getItem(_userKey('adFree')) === '1';
     playerStats.dailyQuests = JSON.parse(localStorage.getItem(_userKey('dailyQuests')) || 'null') || [];
     playerStats.questsLastRefresh = localStorage.getItem(_userKey('questsLastRefresh')) || '';
     playerStats.claimedTiers = JSON.parse(localStorage.getItem(_userKey('claimed')) || 'null') || [];
