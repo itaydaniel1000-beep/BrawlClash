@@ -17,6 +17,46 @@ try {
     }
 } catch (e) { /* storage disabled — nothing we can do */ }
 
+// === Persistent-storage permission (mobile robustness) =====================
+// Mobile browsers (iOS Safari, Chrome on low-storage devices) are AGGRESSIVE
+// about evicting localStorage data — a user can return after a few days and
+// find their coins / gems / unlocks gone. The Storage API's persist() lets
+// us ask the browser to mark our origin as "do not evict"; on supported
+// browsers (Chrome, Edge, Firefox, recent iOS Safari) this dramatically
+// lowers the chance of data loss. Some browsers require an installed PWA
+// or a user gesture before granting; we just request and proceed regardless.
+(function _requestPersistentStorage() {
+    try {
+        if (navigator.storage && typeof navigator.storage.persist === 'function') {
+            navigator.storage.persist().then(granted => {
+                console.log('💾 navigator.storage.persist() →', granted ? 'GRANTED' : 'denied (browser may evict under storage pressure)');
+            }).catch(() => {});
+        }
+    } catch (e) { /* feature not available — silently skip */ }
+})();
+
+// === Safer localStorage writes ==============================================
+// localStorage.setItem can throw (QuotaExceededError on a full disk, or just
+// generally on iOS in private mode). The original saveStats() called
+// setItem inline a dozen times — if any single call threw, every subsequent
+// field on that save tick was silently lost. _safeSet wraps each write in
+// its own try/catch so a single failure doesn't take down the whole save,
+// and logs once per session so we notice in the field.
+let _safeSetWarned = false;
+function _safeSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        if (!_safeSetWarned) {
+            _safeSetWarned = true;
+            console.warn('💾 localStorage write failed for "' + key + '" — ' + (e && e.name || 'unknown error') + '. Future writes will keep trying.');
+        }
+        return false;
+    }
+}
+window._safeSet = _safeSet;
+
 // === Per-tab session + per-user namespacing ================================
 // Two browser tabs in the same window can hold DIFFERENT users at the same
 // time. The active username is stored per-tab in sessionStorage (which
@@ -378,25 +418,28 @@ Object.keys(CARDS).forEach(id => {
 });
 
 function saveStats() {
-    localStorage.setItem(_userKey('coins'), playerStats.coins);
-    localStorage.setItem(_userKey('gems'), playerStats.gems);
-    localStorage.setItem(_userKey('credits'), playerStats.credits || 0);
-    localStorage.setItem(_userKey('pp'), playerStats.pp || 0);
-    localStorage.setItem(_userKey('tokens'), playerStats.tokens || 0);
-    localStorage.setItem(_userKey('hasBrawlPass'), playerStats.hasBrawlPass ? '1' : '0');
-    localStorage.setItem(_userKey('dailyQuests'), JSON.stringify(playerStats.dailyQuests || []));
-    localStorage.setItem(_userKey('questsLastRefresh'), playerStats.questsLastRefresh || '');
-    localStorage.setItem(_userKey('claimed'), JSON.stringify(playerStats.claimedTiers));
-    localStorage.setItem(_userKey('claimedPremium'), JSON.stringify(playerStats.claimedPremiumTiers || []));
-    localStorage.setItem(_userKey('claimedTrophy'), JSON.stringify(playerStats.claimedTrophyTiers || []));
-    localStorage.setItem(_userKey('unlocked'),      JSON.stringify(playerStats.unlockedCards     || []));
-    localStorage.setItem(_userKey('trophies'), playerTrophies);
+    // Every write is wrapped in _safeSet so a single failing field (e.g.
+    // QuotaExceededError on a low-storage phone) doesn't abort the whole
+    // save and silently drop every later field. Each call is independent.
+    _safeSet(_userKey('coins'),            playerStats.coins);
+    _safeSet(_userKey('gems'),             playerStats.gems);
+    _safeSet(_userKey('credits'),          playerStats.credits || 0);
+    _safeSet(_userKey('pp'),               playerStats.pp || 0);
+    _safeSet(_userKey('tokens'),           playerStats.tokens || 0);
+    _safeSet(_userKey('hasBrawlPass'),     playerStats.hasBrawlPass ? '1' : '0');
+    _safeSet(_userKey('dailyQuests'),      JSON.stringify(playerStats.dailyQuests || []));
+    _safeSet(_userKey('questsLastRefresh'), playerStats.questsLastRefresh || '');
+    _safeSet(_userKey('claimed'),          JSON.stringify(playerStats.claimedTiers));
+    _safeSet(_userKey('claimedPremium'),   JSON.stringify(playerStats.claimedPremiumTiers || []));
+    _safeSet(_userKey('claimedTrophy'),    JSON.stringify(playerStats.claimedTrophyTiers || []));
+    _safeSet(_userKey('unlocked'),         JSON.stringify(playerStats.unlockedCards     || []));
+    _safeSet(_userKey('trophies'),         playerTrophies);
     // Username stays in BOTH sessionStorage (per-tab active) and localStorage
     // (last-seen fallback for fresh tabs). Use the dedicated setter so both
     // stay in sync.
     if (playerStats.username) _setActiveUsername(playerStats.username);
     Object.keys(playerStats.levels).forEach(id => {
-        localStorage.setItem(_userKey('level_' + id), playerStats.levels[id]);
+        _safeSet(_userKey('level_' + id), playerStats.levels[id]);
     });
 }
 
@@ -509,6 +552,47 @@ function reloadActiveUserState() {
     } catch (e) {}
 }
 window.reloadActiveUserState = reloadActiveUserState;
+
+// === Auto-save safety net (mobile-friendly) ================================
+// Mobile tabs are killed without warning when the user switches apps, the
+// browser is backgrounded, or the OS reclaims memory. We can't rely on
+// callsites remembering to saveStats() after every state mutation, so:
+//   1) periodic interval (every 4 s) flushes the latest playerStats to disk
+//   2) every page-leave signal (pagehide / visibilitychange:hidden /
+//      beforeunload) does a synchronous final save right before the tab
+//      goes away
+// Both run only when a username is active so we don't write garbage on the
+// pre-login welcome screen. The interval is idempotent — re-importing this
+// module wouldn't re-install (guarded by window._bcAutoSaveInstalled).
+(function _installAutoSave() {
+    if (window._bcAutoSaveInstalled) return;
+    window._bcAutoSaveInstalled = true;
+    const _flush = () => {
+        try {
+            if (typeof playerStats !== 'undefined' && playerStats && playerStats.username &&
+                typeof saveStats === 'function') {
+                saveStats();
+            }
+            if (typeof adminHacks !== 'undefined' && typeof saveAdminHacks === 'function') {
+                saveAdminHacks();
+            }
+        } catch (e) { /* best-effort */ }
+    };
+    // Periodic background save. 4 s is a balance — frequent enough to lose
+    // at most a few seconds of progress on a sudden tab-kill, infrequent
+    // enough to not thrash the storage subsystem on phones with slow disks.
+    setInterval(_flush, 4000);
+    // Page-leave hooks. pagehide is the most reliable on mobile (fires when
+    // the tab is bfcache-stashed by Safari / Chrome too). visibilitychange
+    // covers app-switching. beforeunload covers explicit close/refresh.
+    try { window.addEventListener('pagehide',          _flush, { capture: true }); } catch (e) {}
+    try { window.addEventListener('beforeunload',      _flush, { capture: true }); } catch (e) {}
+    try {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') _flush();
+        }, { capture: true });
+    } catch (e) {}
+})();
 
 function getLevelScale(id) {
     const level = playerStats.levels[id] || 1;
