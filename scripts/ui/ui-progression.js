@@ -1,15 +1,17 @@
 // ui-progression.js - Brawl Pass, Shop, and Leaderboard UI
 
-// Trophy-profile reward cycle (per user spec — "כל שלוש פרסים זה 1000
-// מטבעות ואחרי מטבעות יבוא 10 יהלום ואחר כך 100 קרדיטים"). Every tier
-// of the cycle awards exactly ONE currency:
-//   • Tier 1, 4, 7, … → 1000 🪙 coins
-//   • Tier 2, 5, 8, … →   10 💎 gems
-//   • Tier 3, 6, 9, … →  100 🎟️ credits  (new currency)
+// Trophy-profile reward cycle (4-tier cycle — coins → gems → credits → pp).
+// User-spec addition: after credits, a "200 חוזקה" (power-points) tier was
+// added so the cycle now repeats every 4 tiers instead of 3.
+//   • Tier 1, 5,  9, … → 1000 🪙 coins
+//   • Tier 2, 6, 10, … →   10 💎 gems
+//   • Tier 3, 7, 11, … →  100 🎟️ credits
+//   • Tier 4, 8, 12, … →  200 💪 power-points (חוזקה)
 // Range goes up to 100 000 trophies = 1000 tiers.
 const TROPHY_TIER_COINS   = 1000;
 const TROPHY_TIER_GEMS    = 10;
 const TROPHY_TIER_CREDITS = 100;
+const TROPHY_TIER_PP      = 200;
 const TROPHY_MAX_TIERS    = 1000;      // 1000 × 100 = 100 000 trophies cap
 
 // Highest tier the player has earned so far (1 tier per 100 trophies,
@@ -22,10 +24,11 @@ function _trophyTiersEarned() {
 // Reward for tier `i` (1-indexed). Returns the single currency this tier
 // pays out, plus its amount, plus the icon for UI rendering.
 function _trophyTierReward(i) {
-    const phase = ((i - 1) % 3);
+    const phase = ((i - 1) % 4);
     if (phase === 0) return { kind: 'coins',   amount: TROPHY_TIER_COINS,   icon: '🪙', color: '#f1c40f' };
     if (phase === 1) return { kind: 'gems',    amount: TROPHY_TIER_GEMS,    icon: '💎', color: '#74b9ff' };
-    return                  { kind: 'credits', amount: TROPHY_TIER_CREDITS, icon: '🎟️', color: '#9b59b6' };
+    if (phase === 2) return { kind: 'credits', amount: TROPHY_TIER_CREDITS, icon: '🎟️', color: '#9b59b6' };
+    return                  { kind: 'pp',      amount: TROPHY_TIER_PP,      icon: '💪', color: '#e84393' };
 }
 
 // True if at least one earned tier has not been claimed yet — used by the
@@ -114,6 +117,7 @@ function renderTrophyProfile() {
             if (r.kind === 'coins')   playerStats.coins   = (playerStats.coins   || 0) + r.amount;
             if (r.kind === 'gems')    playerStats.gems    = (playerStats.gems    || 0) + r.amount;
             if (r.kind === 'credits') playerStats.credits = (playerStats.credits || 0) + r.amount;
+            if (r.kind === 'pp')      playerStats.pp      = (playerStats.pp      || 0) + r.amount;
             playerStats.claimedTrophyTiers = claimedNow.concat([i]);
             saveStats();
             updateStatsUI();
