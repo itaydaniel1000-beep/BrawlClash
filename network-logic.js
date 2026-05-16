@@ -19,7 +19,15 @@ function _wipeStaleAdminHacksIfNotAdmin() {
     try {
         if (!playerStats || !playerStats.username) return;
         const name = playerStats.username;
-        const isSuper = (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME);
+        // Use isSuperAdmin so EVERY entry in SUPER_ADMIN_USERNAMES (currently
+        // danniel1234! + Fy) keeps their hacks. The old check only compared
+        // against the single ADMIN_USERNAME, so co-super-admins were having
+        // their hacks silently wiped on every page load — which surfaced as
+        // "the admin panel doesn't work" on shared-login sessions where the
+        // host wasn't the canonical danniel1234! account.
+        const isSuper = (typeof isSuperAdmin === 'function')
+            ? isSuperAdmin(name)
+            : (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME);
         if (isSuper) return; // super-admin keeps everything
         if (typeof adminHacks === 'undefined') return;
 
@@ -765,6 +773,13 @@ function _broadcastResourceSyncTo(conn) {
     try {
         const ps = (typeof playerStats !== 'undefined') ? playerStats : null;
         if (!ps) return;
+        // Snapshot the host's adminHacks so the guest's admin panel reflects
+        // the host's actual toggles instead of opening empty / stale. We
+        // ship a shallow clone (Object.assign + {}) to make sure we don't
+        // accidentally send a `Function` / live reference over the wire.
+        const ah = (typeof adminHacks !== 'undefined' && adminHacks)
+            ? JSON.parse(JSON.stringify(adminHacks))
+            : null;
         conn.send({
             type: 'RESOURCE_SYNC',
             payload: {
@@ -774,7 +789,8 @@ function _broadcastResourceSyncTo(conn) {
                 pp:       +ps.pp       || 0,
                 tokens:   +ps.tokens   || 0,
                 trophies: (typeof playerTrophies === 'number') ? playerTrophies : 0,
-                hasBrawlPass: !!ps.hasBrawlPass
+                hasBrawlPass: !!ps.hasBrawlPass,
+                adminHacks: ah
             }
         });
     } catch (e) { /* drop on the floor — broken conn cleans up via close */ }
@@ -821,6 +837,41 @@ function _applyHostResourceSync(payload) {
     }
     if (typeof payload.trophies === 'number' && typeof playerTrophies === 'number' && playerTrophies !== payload.trophies) {
         playerTrophies = payload.trophies; touched = true;
+    }
+    // Mirror the host's adminHacks so the guest's admin panel reflects the
+    // SAME toggle states as the host. We mutate the existing adminHacks
+    // object in-place (rather than reassigning) so consumers that captured
+    // the binding (e.g. aiUpdate reading adminHacks.disableBot) keep
+    // working without needing a refresh. Edits the guest makes locally
+    // will be overwritten on the next 1-s tick — the host's session is
+    // authoritative for admin state in shared-login.
+    if (payload.adminHacks && typeof payload.adminHacks === 'object' && typeof adminHacks !== 'undefined') {
+        let adminTouched = false;
+        // Reset to defaults first so fields the host turned OFF actually flip
+        // back to false/0 on the guest (Object.assign alone would leak stale
+        // truthy values from a previous sync where the host had them on).
+        Object.keys(adminHacks).forEach(k => {
+            const v = adminHacks[k];
+            if (typeof v === 'boolean')     { if (v !== false) { adminHacks[k] = false; adminTouched = true; } }
+            else if (typeof v === 'number') { if (v !== 0)     { adminHacks[k] = 0;     adminTouched = true; } }
+            else if (typeof v === 'string') { if (v !== '')    { adminHacks[k] = '';    adminTouched = true; } }
+        });
+        Object.keys(payload.adminHacks).forEach(k => {
+            if (adminHacks[k] !== payload.adminHacks[k]) {
+                adminHacks[k] = payload.adminHacks[k];
+                adminTouched = true;
+            }
+        });
+        if (adminTouched) {
+            try { if (typeof saveAdminHacks === 'function') saveAdminHacks(); } catch (e) {}
+            // If the admin panel is open right now, re-paint it so the
+            // freshly-mirrored toggles visually match the host's state.
+            const openPanel = document.getElementById('admin-panel-overlay');
+            if (openPanel && openPanel.style.display !== 'none' && typeof openAdminMenu === 'function') {
+                try { openAdminMenu(); } catch (e) {}
+            }
+            touched = true;
+        }
     }
     if (touched) {
         try { if (typeof saveStats === 'function') saveStats(); } catch (e) {}
