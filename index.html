@@ -731,6 +731,54 @@
                      "❌ השם תפוס במכשיר אחר" if the name is in use elsewhere. -->
                 <div id="username-feedback" style="min-height: 22px; color: #ffeaa7; font-size: 0.95rem; margin-bottom: 12px;"></div>
                 <button id="username-submit-btn" onclick="claimUsername()" class="bs-btn bs-btn-success" style="width: 100%; font-size: 1.5rem; padding: 15px;">התחל לשחק!</button>
+                <!-- 🔑 Request-login button — opens a modal where the user can
+                     ask an EXISTING account holder to approve a shared-login
+                     session. Stays here on the welcome overlay so a brand-new
+                     visitor can use it before picking their own name. -->
+                <button id="join-request-open-btn" onclick="openJoinRequestModal()" class="bs-btn" style="width: 100%; font-size: 1.05rem; padding: 12px; margin-top: 10px; background: #6c5ce7; color: #fff;">🔑 בקש כניסה לחשבון אחר</button>
+            </div>
+        </div>
+
+        <!-- 🔑 Join-request overlay — opens from the username screen via
+             the new button. Sends a JOIN_REQUEST over PeerJS to the lock-peer
+             of the target account. Target's session validates the password,
+             then shows the human "approve?" prompt; if they approve, we
+             remap the local username to the target name and skip the
+             uniqueness-lock (the target explicitly approved the share). -->
+        <div id="join-request-overlay" class="overlay" style="display:none; background: rgba(0,0,0,0.85); z-index: 10001; align-items: center; justify-content: center;">
+            <div class="menu-box" style="max-width: 420px; width: 90%; text-align: center; border: 5px solid #6c5ce7;">
+                <h2 style="color: #a29bfe; font-size: 1.8rem; margin-bottom: 8px;">🔑 בקשת כניסה לחשבון</h2>
+                <p style="color: #fff; font-size: 0.95rem; margin-bottom: 18px; line-height: 1.5;">
+                    הזן את שם החשבון שאליו אתה רוצה להיכנס ואת הסיסמא שלו.<br>
+                    בעל החשבון יקבל בקשה לאישור — רק אם הוא יאשר, תיכנס באותו שם.
+                </p>
+                <input type="text" id="join-target-name" placeholder="שם המשתמש המארח..." maxlength="32" style="width: 100%; padding: 13px; border-radius: 12px; border: 3px solid #34495e; font-size: 1.1rem; font-family: 'Assistant', sans-serif; text-align: center; margin-bottom: 10px; color: #000;">
+                <input type="password" id="join-target-password" placeholder="הסיסמא של החשבון..." maxlength="64" style="width: 100%; padding: 13px; border-radius: 12px; border: 3px solid #34495e; font-size: 1.1rem; font-family: 'Assistant', sans-serif; text-align: center; margin-bottom: 12px; color: #000;">
+                <div id="join-request-feedback" style="min-height: 22px; color: #ffeaa7; font-size: 0.95rem; margin-bottom: 12px;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="join-request-cancel-btn" onclick="closeJoinRequestModal()" class="bs-btn bs-btn-danger" style="flex: 1; padding: 12px;">ביטול</button>
+                    <button id="join-request-submit-btn" onclick="submitJoinRequest()" class="bs-btn bs-btn-success" style="flex: 2; padding: 12px;">שלח בקשה</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🔑 Join-approval overlay — pops up on the TARGET user's screen
+             when someone has sent them a valid JOIN_REQUEST. They approve or
+             decline; the answer goes back over the same PeerJS connection
+             that delivered the request (handled in network-logic.js). -->
+        <div id="join-approval-overlay" class="overlay" style="display:none; background: rgba(0,0,0,0.85); z-index: 10002; align-items: center; justify-content: center;">
+            <div class="menu-box" style="max-width: 420px; width: 90%; text-align: center; border: 5px solid #2ecc71;">
+                <h2 style="color: #55efc4; font-size: 1.8rem; margin-bottom: 8px;">🔑 בקשת כניסה לחשבון שלך</h2>
+                <p id="join-approval-text" style="color: #fff; font-size: 1.05rem; margin-bottom: 18px; line-height: 1.5;">
+                    מישהו מבקש להיכנס לחשבון שלך.
+                </p>
+                <p style="color: #ffeaa7; font-size: 0.85rem; margin-bottom: 18px;">
+                    ⚠️ אם תאשר — שניכם תהיו מחוברים לחשבון בו-זמנית.
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <button id="join-approval-deny-btn" class="bs-btn bs-btn-danger" style="flex: 1; padding: 12px;">דחה</button>
+                    <button id="join-approval-allow-btn" class="bs-btn bs-btn-success" style="flex: 1; padding: 12px;">אשר</button>
+                </div>
             </div>
         </div>
 
@@ -959,7 +1007,7 @@
     <script src="scripts/network/net-base.js?v=4.0"></script>
     <script src="scripts/network/net-social.js?v=14.5"></script>
     <script src="scripts/network/net-sync.js?v=14.6"></script>
-    <script src="network-logic.js?v=9.76"></script>
+    <script src="network-logic.js?v=9.77"></script>
 
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=14.3"></script>

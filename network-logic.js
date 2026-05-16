@@ -373,6 +373,46 @@ function _setupLockPeerMessageHandlers(peer) {
             // KICK_USER — for now we just trust any kick and rely on the
             // sender being a real admin in practice. (Future-proofing: add
             // a signed token in the message if abuse surfaces.)
+            // 🔑 Shared-login request — another device wants to log in
+            // as US. We validate the password they supplied against the
+            // password saved locally for our username, then either
+            // auto-deny (wrong password) or surface an approval modal to
+            // the human. The response goes back on the SAME connection so
+            // the requester can complete login on their side.
+            if (data.type === 'JOIN_REQUEST' && typeof data.username === 'string') {
+                try {
+                    const myName = (playerStats && playerStats.username) || '';
+                    if (!myName || data.username.toLowerCase() !== myName.toLowerCase()) {
+                        conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'wrong-target' });
+                        return;
+                    }
+                    // Cross-device password (stored under bare key, NOT user-scoped) —
+                    // matches the same key the join-request side reads from.
+                    const myPw = (function () {
+                        try { return localStorage.getItem('brawlclash_pw_' + myName.toLowerCase()) || ''; }
+                        catch (e) { return ''; }
+                    })();
+                    if (!myPw || data.password !== myPw) {
+                        conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'bad-password' });
+                        return;
+                    }
+                    const requester = (typeof data.requesterName === 'string' && data.requesterName.trim())
+                        ? data.requesterName.trim() : 'משתמש אחר';
+                    if (typeof showJoinApprovalModal === 'function') {
+                        showJoinApprovalModal(requester, (approved) => {
+                            try { conn.send({ type: 'JOIN_RESPONSE', approved: !!approved }); } catch (e) {}
+                            setTimeout(() => { try { conn.close(); } catch (e) {} }, 600);
+                        });
+                    } else {
+                        // No UI available (extremely unlikely) — default deny.
+                        try { conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'no-ui' }); } catch (e) {}
+                    }
+                } catch (e) {
+                    try { conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'error' }); } catch (_) {}
+                }
+                return;
+            }
+
             if (data.type === 'KICK_USER') {
                 try {
                     console.warn('🚪 kick-user: forcing logout (received KICK_USER over lock-peer)');
@@ -418,6 +458,258 @@ function broadcastKickUser(targetName) {
     } catch (e) { return false; }
 }
 window.broadcastKickUser = broadcastKickUser;
+
+// ---------------------------------------------------------------------------
+// 🔑 Shared-login join-request flow
+// ---------------------------------------------------------------------------
+// A brand-new visitor on the username screen can ask an EXISTING account
+// holder for permission to log in under that name. The flow:
+//   1. Visitor opens the join-request modal, enters target name + password
+//   2. submitJoinRequest() spins up an ad-hoc PeerJS peer (since the visitor
+//      may not have one yet), connects to the target's lock-peer at
+//      bc-lock-<hash(target)>, sends JOIN_REQUEST { username, password,
+//      requesterName }
+//   3. The target's lock-peer handler validates the password against its
+//      locally-stored copy of `brawlclash_pw_<target>`. If wrong → auto-deny.
+//      If right → surface an approval modal to the human.
+//   4. The human clicks approve / deny. The response (JOIN_RESPONSE { approved })
+//      flows back on the same connection.
+//   5. The requester applies the username switch WITHOUT going through the
+//      uniqueness-lock (the target explicitly approved the share, so two
+//      devices holding the same name simultaneously is the desired state).
+
+let _joinRequestPeer = null;          // ad-hoc PeerJS instance for the visitor
+let _joinRequestPendingConn = null;   // current outgoing request connection
+let _joinRequestApprovalCb = null;    // callback wired up by the approval modal
+
+function openJoinRequestModal() {
+    const ov = document.getElementById('join-request-overlay');
+    if (!ov) return;
+    const nm = document.getElementById('join-target-name');
+    const pw = document.getElementById('join-target-password');
+    const fb = document.getElementById('join-request-feedback');
+    const sb = document.getElementById('join-request-submit-btn');
+    if (nm) nm.value = '';
+    if (pw) pw.value = '';
+    if (fb) { fb.style.color = '#ffeaa7'; fb.innerText = ''; }
+    if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+    ov.style.display = 'flex';
+    ov.classList.add('active');
+}
+window.openJoinRequestModal = openJoinRequestModal;
+
+function closeJoinRequestModal() {
+    const ov = document.getElementById('join-request-overlay');
+    if (ov) { ov.style.display = 'none'; ov.classList.remove('active'); }
+    // Tear down any half-open request connection so the next attempt starts fresh.
+    if (_joinRequestPendingConn) {
+        try { _joinRequestPendingConn.close(); } catch (e) {}
+        _joinRequestPendingConn = null;
+    }
+}
+window.closeJoinRequestModal = closeJoinRequestModal;
+
+function _setJoinFeedback(msg, color) {
+    const fb = document.getElementById('join-request-feedback');
+    if (!fb) return;
+    fb.style.color = color || '#ffeaa7';
+    fb.innerText  = msg || '';
+}
+
+// Make sure we have a PeerJS instance to send the request from. Visitors on
+// the username screen don't have `_usernameLockPeer` yet (no name claimed),
+// so spin up an anonymous peer the first time and reuse it on retries.
+function _ensureJoinRequestPeer() {
+    return new Promise((resolve, reject) => {
+        if (!window.Peer) { reject(new Error('no-peerjs')); return; }
+        if (_joinRequestPeer && !_joinRequestPeer.disconnected && !_joinRequestPeer.destroyed && _joinRequestPeer.id) {
+            resolve(_joinRequestPeer);
+            return;
+        }
+        try { if (_joinRequestPeer) _joinRequestPeer.destroy(); } catch (e) {}
+        _joinRequestPeer = null;
+        const p = new Peer();   // anonymous — broker assigns an id
+        const timer = setTimeout(() => {
+            try { p.destroy(); } catch (e) {}
+            reject(new Error('peer-timeout'));
+        }, 7000);
+        p.on('open', () => {
+            clearTimeout(timer);
+            _joinRequestPeer = p;
+            resolve(p);
+        });
+        p.on('error', () => {
+            clearTimeout(timer);
+            reject(new Error('peer-error'));
+        });
+    });
+}
+
+async function submitJoinRequest() {
+    const nm = document.getElementById('join-target-name');
+    const pw = document.getElementById('join-target-password');
+    const sb = document.getElementById('join-request-submit-btn');
+    const targetName = (nm && nm.value || '').trim();
+    const password   = (pw && pw.value || '');
+    if (!targetName) { _setJoinFeedback('הזן שם משתמש', '#ff7675'); return; }
+    if (!password)   { _setJoinFeedback('הזן סיסמא',   '#ff7675'); return; }
+
+    if (sb) { sb.disabled = true; sb.style.opacity = '0.7'; }
+    _setJoinFeedback('⌛ מתחבר…', '#ffeaa7');
+
+    let peer;
+    try { peer = await _ensureJoinRequestPeer(); }
+    catch (e) {
+        _setJoinFeedback('❌ שגיאת רשת — נסה שוב', '#ff7675');
+        if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+        return;
+    }
+
+    // Use whatever name the visitor may have typed in the main username
+    // box so the target sees "X wants to join" instead of an opaque id.
+    const visitorName = (function () {
+        const el = document.getElementById('username-input');
+        return el && el.value ? el.value.trim() : '';
+    })();
+
+    let conn;
+    try {
+        conn = peer.connect(_peerIdForName(targetName), { reliable: true });
+    } catch (e) {
+        _setJoinFeedback('❌ לא הצלחנו לחבר — נסה שוב', '#ff7675');
+        if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+        return;
+    }
+    if (!conn) {
+        _setJoinFeedback('❌ לא הצלחנו לחבר — נסה שוב', '#ff7675');
+        if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+        return;
+    }
+
+    _joinRequestPendingConn = conn;
+    let settled = false;
+    const finish = (fn) => { if (!settled) { settled = true; try { fn(); } catch (e) {} try { conn.close(); } catch (e) {} _joinRequestPendingConn = null; } };
+
+    // Generous timeout — the human on the other side has to read and click.
+    // 90 seconds is comfortable; longer than the broker keepalive but short
+    // enough that a stale request doesn't sit forever.
+    const giveUp = setTimeout(() => {
+        finish(() => {
+            _setJoinFeedback('❌ אין מענה — נסה שוב מאוחר יותר', '#ff7675');
+            if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+        });
+    }, 90000);
+
+    conn.on('open', () => {
+        try {
+            conn.send({
+                type: 'JOIN_REQUEST',
+                username: targetName,
+                password: password,
+                requesterName: visitorName || 'אורח'
+            });
+            _setJoinFeedback('📨 בקשה נשלחה — ממתין לאישור…', '#ffeaa7');
+        } catch (e) {
+            clearTimeout(giveUp);
+            finish(() => {
+                _setJoinFeedback('❌ שגיאה בשליחה', '#ff7675');
+                if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+            });
+        }
+    });
+
+    conn.on('data', (data) => {
+        if (!data || data.type !== 'JOIN_RESPONSE') return;
+        clearTimeout(giveUp);
+        if (data.approved) {
+            finish(() => {
+                _setJoinFeedback('✅ אושר! מעביר אותך לחשבון…', '#55efc4');
+                setTimeout(() => _completeJoinAsTarget(targetName), 400);
+            });
+        } else {
+            const why = data.reason === 'bad-password' ? '❌ סיסמא לא נכונה'
+                      : data.reason === 'wrong-target' ? '❌ החשבון לא מחובר במכשיר אחר'
+                      : '❌ הבקשה נדחתה';
+            finish(() => {
+                _setJoinFeedback(why, '#ff7675');
+                if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+            });
+        }
+    });
+
+    conn.on('error', () => {
+        clearTimeout(giveUp);
+        finish(() => {
+            _setJoinFeedback('❌ הקישור נכשל — בדוק שהמשתמש מחובר', '#ff7675');
+            if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+        });
+    });
+}
+window.submitJoinRequest = submitJoinRequest;
+
+// Approval-modal helper used by the lock-peer message handler on the
+// TARGET user's side. Surfaces the question to the human and resolves
+// the supplied callback with true/false. Wires the buttons fresh each
+// call so multiple sequential requests don't fight over a stale handler.
+function showJoinApprovalModal(requesterName, cb) {
+    const ov = document.getElementById('join-approval-overlay');
+    const text = document.getElementById('join-approval-text');
+    const allow = document.getElementById('join-approval-allow-btn');
+    const deny  = document.getElementById('join-approval-deny-btn');
+    if (!ov || !allow || !deny) { try { cb(false); } catch (e) {} return; }
+    if (text) text.innerText = `המשתמש "${requesterName}" מבקש להיכנס לחשבון שלך.`;
+    _joinRequestApprovalCb = cb;
+    const closeAndAnswer = (ok) => {
+        ov.style.display = 'none';
+        ov.classList.remove('active');
+        const fn = _joinRequestApprovalCb;
+        _joinRequestApprovalCb = null;
+        try { fn(ok); } catch (e) {}
+    };
+    allow.onclick = () => closeAndAnswer(true);
+    deny.onclick  = () => closeAndAnswer(false);
+    ov.style.display = 'flex';
+    ov.classList.add('active');
+}
+window.showJoinApprovalModal = showJoinApprovalModal;
+
+// Apply the approved username on the requester's device. We deliberately
+// SKIP `tryClaimUsernameLock` and `verifyUsernameWithAdmin` because the
+// target already holds the lock — the whole point is two devices sharing
+// the same name. We still do the namespace switch + state reload so the
+// requester sees the target's per-user data on this device (initially
+// whatever's stored locally under that name — empty for a brand-new
+// device — but the live PeerJS-mediated grants will refill grants etc).
+function _completeJoinAsTarget(targetName) {
+    const overlay = document.getElementById('username-overlay');
+    const joinOv  = document.getElementById('join-request-overlay');
+    if (joinOv) { joinOv.style.display = 'none'; joinOv.classList.remove('active'); }
+    if (typeof _setActiveUsername === 'function') _setActiveUsername(targetName);
+    else { try { localStorage.setItem('brawlclash_username', targetName); } catch (e) {} }
+    if (typeof _migrateLegacyKeysToUser === 'function') _migrateLegacyKeysToUser(targetName);
+    if (typeof reloadActiveUserState === 'function') reloadActiveUserState();
+    if (typeof playerStats !== 'undefined' && playerStats) playerStats.username = targetName;
+    if (overlay) { overlay.style.display = 'none'; overlay.classList.remove('active'); }
+    if (typeof _wipeStaleAdminHacksIfNotAdmin === 'function') {
+        try { _wipeStaleAdminHacksIfNotAdmin(); } catch (e) {}
+    }
+    if (typeof applyAdminGrantForLocalUser === 'function') {
+        try { applyAdminGrantForLocalUser(); } catch (e) {}
+    }
+    if (typeof updateStatsUI === 'function') updateStatsUI();
+    // Tear down the ad-hoc requester peer — we don't need it any more, and
+    // the real lock-peer flow will take over from here (no lock claim,
+    // since the target holds it, but everything else runs as normal).
+    try { if (_joinRequestPeer) _joinRequestPeer.destroy(); } catch (e) {}
+    _joinRequestPeer = null;
+    if (typeof goToLobby === 'function') goToLobby();
+    setTimeout(() => {
+        try {
+            if (typeof queryAdminForGrant === 'function') queryAdminForGrant();
+        } catch (e) {}
+    }, 800);
+}
+window._completeJoinAsTarget = _completeJoinAsTarget;
 
 // Single grant-query attempt. Returns a Promise that resolves with:
 //   { ok:true, applied:true }   — got a real grant, applied
