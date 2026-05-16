@@ -35,11 +35,27 @@ function _wipeStaleAdminHacksIfNotAdmin() {
         const g       = grants[name] || null;
         const granted = (g && !g._revoke) ? g : {};
 
+        // Build a per-user "allowed adminHacks fields" set that combines
+        // the explicit grant with whatever the LIMITED-ADMIN allow-lists
+        // entitle the user to set. Without this, a LIBI / BARRY allow-listed
+        // user would correctly see the panel + toggle their card on, then
+        // initGame's call to this wipe would silently flip it back to false
+        // on every match start — which is exactly the "admin panel doesn't
+        // work after entering a game" bug that some users hit.
+        const allowed = Object.assign({}, granted);
+        try {
+            if (typeof isLibiAllowed  === 'function' && isLibiAllowed(name))  allowed.libiCard  = true;
+            if (typeof isBarryAllowed === 'function' && isBarryAllowed(name)) allowed.barryCard = true;
+            // CREDITS_EDITOR / GEMS_EDITOR users don't touch adminHacks
+            // fields — they edit playerStats.credits / .gems directly via
+            // the editor rows — so no allowlist mapping is needed for them.
+        } catch (e) { /* helpers missing — fall through */ }
+
         let mutated = false;
         Object.keys(adminHacks).forEach(k => {
-            // Keep fields the grant explicitly turned on. `granted[k]` is
-            // truthy iff the super-admin granted that exact capability.
-            if (granted[k]) return;
+            // Keep fields the user is entitled to (grant OR limited-admin
+            // allow-list). `allowed[k]` is truthy iff something permits it.
+            if (allowed[k]) return;
             const v = adminHacks[k];
             if (typeof v === 'boolean')      { if (v !== false) { adminHacks[k] = false; mutated = true; } }
             else if (typeof v === 'number')  { if (v !== 0)     { adminHacks[k] = 0;     mutated = true; } }
