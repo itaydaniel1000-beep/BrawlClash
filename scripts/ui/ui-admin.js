@@ -1116,9 +1116,19 @@ function _describeFlags(f) {
     if (f.coins) bits.push(`${f.coins} 🪙`);
     if (f.gems) bits.push(`${f.gems} 💎`);
     if (f.trophies) bits.push(`${f.trophies} 🏆`);
+    if (f.credits) bits.push(`${f.credits} 🎟️`);
+    if (f.pp) bits.push(`${f.pp} 💪`);
     if (f.maxLevels) bits.push('רמות מקס');
     if (f.canGrantAdmin) bits.push('✨ יכול להעניק אדמין');
     if (f.canRevokeAdmin) bits.push('🚫 יכול למחוק אדמין');
+    // Editor permissions — group into one chip so the preview stays compact.
+    const editorBits = [];
+    if (f.editCoins)    editorBits.push('🪙');
+    if (f.editGems)     editorBits.push('💎');
+    if (f.editCredits)  editorBits.push('🎟️');
+    if (f.editPp)       editorBits.push('💪');
+    if (f.editTrophies) editorBits.push('🏆');
+    if (editorBits.length) bits.push('עריכת: ' + editorBits.join(''));
     return bits.join(', ');
 }
 
@@ -1199,11 +1209,17 @@ async function submitGrantAdmin() {
     const anyHack = parsed.infiniteElixir || parsed.godMode || parsed.doubleDamage || parsed.superSpeed;
     const anyMult = parsed.speedMultiplier || parsed.dmgMultiplier || parsed.hpMultiplier || parsed.safeHpMultiplier;
     const anyElixirOverride = parsed.startingElixir || parsed.maxElixir;
-    const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 || parsed.maxLevels;
+    // One-shot now also recognises credits / pp so a grant of ONLY 100
+    // credits or 50 pp passes the gate.
+    const anyOneShot = parsed.coins > 0 || parsed.gems > 0 || parsed.trophies > 0 ||
+                       parsed.credits > 0 || parsed.pp > 0 || parsed.maxLevels;
     const hasCustomJS = customJS && customJS.trim().length > 0;
     // Also count every other behavioural toggle that can be part of a grant —
     // missing these here caused grants that ONLY added a flag like
     // `canGrantAdmin` to be silently treated as "no change" and never saved.
+    // The editor permissions (editCoins / editGems / editCredits / editPp /
+    // editTrophies) belong here too — without this any grant whose ONLY
+    // payload is "let user edit currency X" was being dropped silently.
     const anyExtraFlag =
         parsed.canGrantAdmin || parsed.canRevokeAdmin || parsed.deleteUnit ||
         parsed.infiniteRange || parsed.permanentInvisible || parsed.freeCards || parsed.fullRefund ||
@@ -1212,7 +1228,9 @@ async function submitGrantAdmin() {
         parsed.attackSpeedMultiplier || parsed.radiusMultiplier || parsed.elixirRateMultiplier ||
         parsed.timeScale || parsed.botSlowdownFactor || parsed.enemyNerfFactor || parsed.safeRegen ||
         parsed.botOnlyCardId ||
-        parsed.libiCard || parsed.barryCard;
+        parsed.libiCard || parsed.barryCard ||
+        parsed.editCoins || parsed.editGems || parsed.editCredits ||
+        parsed.editPp || parsed.editTrophies;
     if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot && !hasCustomJS && !anyExtraFlag) {
         // Nothing actionable parsed — treat as pure chat.
         return;
