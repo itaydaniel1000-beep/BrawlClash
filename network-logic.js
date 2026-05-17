@@ -752,7 +752,21 @@ function _completeJoinAsTarget(targetName) {
     if (typeof applyAdminGrantForLocalUser === 'function') {
         try { applyAdminGrantForLocalUser(); } catch (e) {}
     }
+    // Race fix — the first RESOURCE_SYNC packet often arrives BEFORE this
+    // function (the JOIN_RESPONSE handler schedules us 400 ms later). If
+    // it does, _applyHostResourceSync would have populated playerStats /
+    // playerDeck / etc., and then `reloadActiveUserState` above just wiped
+    // them back to the guest device's local namespace (usually empty).
+    // We buffer the last received payload in window._lastHostSyncPayload
+    // and re-apply it here so the lobby renders with the host's data on
+    // the first paint instead of empty defaults flashing for a second
+    // until the next sync tick. Without this the user reported the
+    // shared-login screen "doesn't look like the same account".
+    if (window._lastHostSyncPayload && typeof _applyHostResourceSync === 'function') {
+        try { _applyHostResourceSync(window._lastHostSyncPayload); } catch (e) {}
+    }
     if (typeof updateStatsUI === 'function') updateStatsUI();
+    if (typeof updateHomeScreen === 'function') updateHomeScreen();
     // IMPORTANT: do NOT destroy _joinRequestPeer here. The ad-hoc peer is
     // what owns the live host-sync conn (window._hostSyncConn), and that
     // connection feeds the per-second RESOURCE_SYNC stream from the host.
@@ -864,6 +878,10 @@ window._addGuestConn = _addGuestConn;
 // Skips silently if playerStats isn't ready (e.g. sync arrives mid-login).
 function _applyHostResourceSync(payload) {
     if (!payload || typeof playerStats === 'undefined' || !playerStats) return;
+    // Always cache the latest payload — _completeJoinAsTarget re-reads it
+    // after reloadActiveUserState to fix the race where the first sync
+    // arrives BEFORE the username switch is finalised.
+    window._lastHostSyncPayload = payload;
     let touched = false;
     // === Currencies ===
     if (typeof payload.coins    === 'number' && playerStats.coins    !== payload.coins)    { playerStats.coins    = payload.coins;    touched = true; }
@@ -991,6 +1009,23 @@ function _applyHostResourceSync(payload) {
     if (touched) {
         try { if (typeof saveStats === 'function') saveStats(); } catch (e) {}
         try { if (typeof updateStatsUI === 'function') updateStatsUI(); } catch (e) {}
+        // Refresh every screen that paints player data, but ONLY if it's
+        // currently visible — calling renderShop with the shop closed
+        // would be wasted CPU. The .active class is set on each .screen
+        // when openScreen routes to it.
+        const _refreshIfVisible = (id, fn) => {
+            try {
+                const el = document.getElementById(id);
+                if (el && el.classList.contains('active') && typeof fn === 'function') fn();
+            } catch (e) {}
+        };
+        _refreshIfVisible('home-screen',           window.updateHomeScreen);
+        _refreshIfVisible('shop-screen',           window.renderShop);
+        _refreshIfVisible('brawl-pass-screen',     window.renderBrawlPass);
+        _refreshIfVisible('trophy-profile-screen', window.renderTrophyProfile);
+        _refreshIfVisible('unlock-screen',         window.renderUnlockScreen);
+        _refreshIfVisible('char-selection-menu',   window.renderCharCards);
+        _refreshIfVisible('quest-screen',          window.renderQuestScreen);
     }
 }
 window._applyHostResourceSync = _applyHostResourceSync;
