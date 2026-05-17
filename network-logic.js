@@ -902,13 +902,15 @@ function _applyHostResourceSync(payload) {
     // after reloadActiveUserState to fix the race where the first sync
     // arrives BEFORE the username switch is finalised.
     window._lastHostSyncPayload = payload;
-    // Mirror to localStorage under a special per-user key so a page reload
-    // / fresh tab can re-apply the most recent host snapshot immediately,
-    // before any new conn even establishes. Bounds the worst-case "shows
-    // empty defaults" window to ~1 reload.
+    // Mirror to localStorage ONLY when we're an active guest (have a live
+    // host-sync conn). Saving the snapshot when we're the original user
+    // ourselves would seed the replay-on-load with our own data — pointless
+    // at best, dangerous at worst if local data gets briefly wiped (e.g.
+    // mid-storage-quota error) and we then "restore" from the cache.
     try {
+        const isActiveGuest = !!(window._hostSyncConn && window._hostSyncConn.open);
         const name = (playerStats && playerStats.username) || '';
-        if (name) {
+        if (isActiveGuest && name) {
             const key = 'brawlclash_hostsnap_' + name.toLowerCase();
             localStorage.setItem(key, JSON.stringify({ at: Date.now(), payload }));
         }
@@ -1064,15 +1066,29 @@ function _applyHostResourceSync(payload) {
 window._applyHostResourceSync = _applyHostResourceSync;
 
 // === Page-load snapshot replay ============================================
-// If we have a cached host snapshot for the active username, apply it
-// IMMEDIATELY on load so the lobby paints with the host's data before any
-// PeerJS conn is even attempted. The next real sync overwrites this. The
-// snapshot is timestamped — if it's older than 24 hours we throw it away
-// since the host's numbers may have moved a lot since then.
+// If we have a cached host snapshot AND the local user has no real data of
+// their own, apply the snapshot IMMEDIATELY on load so a fresh-device
+// guest sees the host's numbers before any new conn even establishes.
+//
+// CRITICAL GUARD — we only apply the snapshot when local data is EMPTY.
+// Without this, an original user (host) who'd previously visited a friend's
+// account via join-request would have their own data overwritten by the
+// stale cached snapshot on every page load. The check looks at coins /
+// gems / trophies as a proxy for "this user has played here before". If
+// any of them are non-zero, this is the original-user device and we skip
+// the replay entirely.
 (function _replayCachedHostSnapshotOnLoad() {
     try {
         const name = (typeof playerStats !== 'undefined' && playerStats && playerStats.username) || '';
         if (!name) return;
+        // Local-data check first — bail before even reading the snapshot
+        // if there's any real progression stored for this username here.
+        const k = (suffix) => 'brawlclash_user_' + name + '_' + suffix;
+        const localCoins    = parseInt(localStorage.getItem(k('coins')))    || 0;
+        const localGems     = parseInt(localStorage.getItem(k('gems')))     || 0;
+        const localTrophies = parseInt(localStorage.getItem(k('trophies'))) || 0;
+        if (localCoins > 0 || localGems > 0 || localTrophies > 0) return;
+
         const key = 'brawlclash_hostsnap_' + name.toLowerCase();
         const raw = localStorage.getItem(key);
         if (!raw) return;
