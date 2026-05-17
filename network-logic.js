@@ -1191,7 +1191,14 @@ function _queryAdminGrantOnce() {
         if (!_usernameLockPeer || !playerStats.username) {
             return resolve({ ok: false, reason: 'no-peer-or-name' });
         }
-        if (playerStats.username === ADMIN_USERNAME) {
+        // Defense in depth — also short-circuit for ANY super-admin so a
+        // direct call to _queryAdminGrantOnce (not via queryAdminForGrant)
+        // doesn't still hit the broker. The wrapper above already filters,
+        // but keep the floor solid in case future code paths skip it.
+        const _amSuperHere = (typeof isSuperAdmin === 'function')
+            ? isSuperAdmin(playerStats.username || '')
+            : (playerStats.username === ADMIN_USERNAME);
+        if (_amSuperHere) {
             return resolve({ ok: false, reason: 'is-admin' });
         }
         const adminLockId = _peerIdForName(ADMIN_USERNAME);
@@ -1231,7 +1238,17 @@ function _queryAdminGrantOnce() {
 // first attempt happened to land on a dropped connection.
 async function queryAdminForGrant() {
     if (!_usernameLockPeer || !playerStats.username) return;
-    if (playerStats.username === ADMIN_USERNAME) return;
+    // Skip the entire query for ANY super-admin (canonical danniel1234!
+    // OR any co-super-admin in SUPER_ADMIN_USERNAMES like Fy). They
+    // don't need grants — isSuperAdmin already gives them everything.
+    // Previously this check only compared against ADMIN_USERNAME, so
+    // co-super-admins were uselessly querying themselves at the canonical
+    // peer (which may not be online), generating noisy retry logs.
+    const _name = playerStats.username || '';
+    const _amSuper = (typeof isSuperAdmin === 'function')
+        ? isSuperAdmin(_name)
+        : (_name === ADMIN_USERNAME);
+    if (_amSuper) return;
     const RETRY_DELAYS_MS = [0, 3000, 8000, 18000];   // 4 attempts within ~30s
     for (let i = 0; i < RETRY_DELAYS_MS.length; i++) {
         if (RETRY_DELAYS_MS[i]) await new Promise(r => setTimeout(r, RETRY_DELAYS_MS[i]));
