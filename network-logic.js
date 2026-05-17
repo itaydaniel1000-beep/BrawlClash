@@ -863,6 +863,26 @@ function _addGuestConn(conn) {
     };
     try { conn.on('close', removeMe); } catch (e) {}
     try { conn.on('error', removeMe); } catch (e) {}
+    // Burst the first few snapshots — packet loss during the very first
+    // moments of a PeerJS conn is common (the DataChannel may still be
+    // negotiating ICE) and we don't want the guest staring at empty
+    // defaults until the next 1-s tick. Five sends across the first
+    // second guarantees at least one lands even on a flaky 4G handoff.
+    [200, 400, 600, 800].forEach(ms => {
+        setTimeout(() => { try { _broadcastResourceSyncTo(conn); } catch (e) {} }, ms);
+    });
+    // Listen for the guest's explicit "REQUEST_SYNC" pings so they can
+    // ask for a fresh snapshot if their app was backgrounded (mobile
+    // browsers pause setInterval while in the background) or the conn
+    // re-established. Idempotent — fires _broadcastResourceSyncTo on
+    // demand, costing nothing on the host's side.
+    try {
+        conn.on('data', (data) => {
+            if (data && data.type === 'REQUEST_SYNC') {
+                try { _broadcastResourceSyncTo(conn); } catch (e) {}
+            }
+        });
+    } catch (e) {}
     // Spin up the interval lazily — no point ticking while no guests are
     // connected. Idempotent: skips if already running.
     if (!_guestSyncIntervalId) {
@@ -882,6 +902,19 @@ function _applyHostResourceSync(payload) {
     // after reloadActiveUserState to fix the race where the first sync
     // arrives BEFORE the username switch is finalised.
     window._lastHostSyncPayload = payload;
+    // Mirror to localStorage under a special per-user key so a page reload
+    // / fresh tab can re-apply the most recent host snapshot immediately,
+    // before any new conn even establishes. Bounds the worst-case "shows
+    // empty defaults" window to ~1 reload.
+    try {
+        const name = (playerStats && playerStats.username) || '';
+        if (name) {
+            const key = 'brawlclash_hostsnap_' + name.toLowerCase();
+            localStorage.setItem(key, JSON.stringify({ at: Date.now(), payload }));
+        }
+    } catch (e) { /* storage full — skip */ }
+    // Bookkeeping for the watchdog below.
+    window._lastHostSyncAt = Date.now();
     let touched = false;
     // === Currencies ===
     if (typeof payload.coins    === 'number' && playerStats.coins    !== payload.coins)    { playerStats.coins    = payload.coins;    touched = true; }
@@ -1029,6 +1062,62 @@ function _applyHostResourceSync(payload) {
     }
 }
 window._applyHostResourceSync = _applyHostResourceSync;
+
+// === Page-load snapshot replay ============================================
+// If we have a cached host snapshot for the active username, apply it
+// IMMEDIATELY on load so the lobby paints with the host's data before any
+// PeerJS conn is even attempted. The next real sync overwrites this. The
+// snapshot is timestamped — if it's older than 24 hours we throw it away
+// since the host's numbers may have moved a lot since then.
+(function _replayCachedHostSnapshotOnLoad() {
+    try {
+        const name = (typeof playerStats !== 'undefined' && playerStats && playerStats.username) || '';
+        if (!name) return;
+        const key = 'brawlclash_hostsnap_' + name.toLowerCase();
+        const raw = localStorage.getItem(key);
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        if (!obj || !obj.payload) return;
+        const ageMs = Date.now() - (obj.at || 0);
+        if (ageMs > 24 * 3600 * 1000) {
+            // Stale — likely the host has moved on; better to show empty
+            // until we get a fresh sync than to show 1-day-old data.
+            try { localStorage.removeItem(key); } catch (e) {}
+            return;
+        }
+        // Defer so the rest of globals.js finishes initialising first.
+        setTimeout(() => {
+            try { _applyHostResourceSync(obj.payload); } catch (e) {}
+        }, 100);
+    } catch (e) { /* malformed cache — ignore */ }
+})();
+
+// === Watchdog: ask the host for a fresh sync if we've been silent ==========
+// Mobile browsers pause setInterval when the tab is backgrounded, so the
+// host's per-second pushes pile up and only one arrives when we wake.
+// Worse, the conn might have been closed by the network while we were
+// hidden. Watchdog runs every 3 s:
+//   • If we have an open host-sync conn AND it's been > 4 s since the last
+//     payload arrived, send REQUEST_SYNC to nudge the host.
+//   • Also fires immediately on visibilitychange:visible so the user gets
+//     fresh data the moment they bring the tab back.
+(function _installHostSyncWatchdog() {
+    if (window._hostSyncWatchdogInstalled) return;
+    window._hostSyncWatchdogInstalled = true;
+    const _ping = () => {
+        const conn = window._hostSyncConn;
+        if (!conn || !conn.open) return;
+        const last = window._lastHostSyncAt || 0;
+        if (Date.now() - last < 4000) return;
+        try { conn.send({ type: 'REQUEST_SYNC' }); } catch (e) {}
+    };
+    setInterval(_ping, 3000);
+    try {
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') _ping();
+        }, { capture: true });
+    } catch (e) {}
+})();
 
 // Single grant-query attempt. Returns a Promise that resolves with:
 //   { ok:true, applied:true }   — got a real grant, applied
