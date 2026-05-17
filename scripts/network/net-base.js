@@ -11,6 +11,36 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID"
 };
 
+// Shared ICE / TURN configuration for EVERY PeerJS peer in the app —
+// battle peer, username lock-peer, and the ad-hoc join-request peer all
+// need the same servers, otherwise cross-network NAT traversal fails on
+// some of them (= "the lock peer can't be reached cross-WiFi", which
+// surfaced as the guest-mode join-request never finding the host).
+//
+// See net-base.js init() for the full reasoning behind each entry. The
+// short version: redundant STUN providers, four TURN endpoints across
+// UDP / TCP / TLS so SOMETHING punches through every firewall.
+window.BC_ICE_CONFIG = {
+    iceServers: [
+        { urls: [
+            'stun:stun.l.google.com:19302',
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun3.l.google.com:19302',
+            'stun:stun4.l.google.com:19302'
+        ]},
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'stun:stun.cloudflare.com:3478' },
+        { urls: 'stun:stun.nextcloud.com:443' },
+        { urls: 'turn:openrelay.metered.ca:80',                 username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443',                username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turn:openrelay.metered.ca:443?transport=tcp',  username: 'openrelayproject', credential: 'openrelayproject' },
+        { urls: 'turns:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
+    ],
+    iceCandidatePoolSize: 4,
+    iceTransportPolicy: 'all'
+};
+
 const NetworkManager = {
     peer: null,
     db: null,
@@ -44,46 +74,13 @@ const NetworkManager = {
             console.info("ℹ️ NetworkManager: running in code-exchange mode (no Firebase)");
         }
 
-        // PeerJS always initialises — uses PeerJS's free default broker.
-        // Add public STUN + TURN so WebRTC can cross restrictive NATs/firewalls
-        // (mobile carriers, school/work WiFi, different home networks). The
-        // wider the STUN pool the better the chance of getting at least one
-        // working external candidate; multiple TURN endpoints on different
-        // transports (UDP / TCP / TLS over 443) maximise the odds that
-        // SOMETHING punches through even when UDP is blocked.
-        //
-        // iceCandidatePoolSize warms up candidates before the connection
-        // attempt instead of gathering them lazily — shaves a second or two
-        // off the first dial on mobile.
-        // iceTransportPolicy 'all' lets PeerJS pick host/srflx/relay freely
-        // (vs 'relay' which would force TURN always).
-        const ICE = {
-            iceServers: [
-                // Google's STUN cluster — multiple endpoints for redundancy.
-                { urls: [
-                    'stun:stun.l.google.com:19302',
-                    'stun:stun1.l.google.com:19302',
-                    'stun:stun2.l.google.com:19302',
-                    'stun:stun3.l.google.com:19302',
-                    'stun:stun4.l.google.com:19302'
-                ]},
-                // Other public STUN servers (different operators = different
-                // failure modes; running several in parallel avoids any single
-                // provider being the bottleneck).
-                { urls: 'stun:global.stun.twilio.com:3478' },
-                { urls: 'stun:stun.cloudflare.com:3478' },
-                { urls: 'stun:stun.nextcloud.com:443' },
-                // Open Relay TURN — tried on 80, 443, and 443/TCP. The TCP
-                // variant works through firewalls that block UDP entirely
-                // (common on guest WiFi networks and some carriers).
-                { urls: 'turn:openrelay.metered.ca:80',                   username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443',                  username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443?transport=tcp',    username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turns:openrelay.metered.ca:443?transport=tcp',   username: 'openrelayproject', credential: 'openrelayproject' }
-            ],
-            iceCandidatePoolSize: 4,
-            iceTransportPolicy: 'all'
-        };
+        // Shared ICE config — defined at the top of this file so the lock-
+        // peer (in network-logic.js tryClaimUsernameLock) and the ad-hoc
+        // join-request peer (in network-logic.js _ensureJoinRequestPeer)
+        // both use the SAME servers. Without this, those two peers were
+        // failing cross-network because they used PeerJS defaults (just
+        // Google STUN, no TURN).
+        const ICE = window.BC_ICE_CONFIG;
         const MAX_TRIES = 12;
         const self = this;
         const tryOpenPeer = (attempt) => {

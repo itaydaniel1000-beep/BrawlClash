@@ -151,14 +151,21 @@ function tryClaimUsernameLock(name) {
         try { if (_usernameLockPeer) _usernameLockPeer.destroy(); } catch (e) {}
         _usernameLockPeer = null;
 
-        const p = new Peer(wantedId);
+        // Pass the shared ICE config so the lock-peer can be REACHED
+        // cross-network. Without TURN servers attached here, a guest on a
+        // different WiFi network can't open a DataConnection to our lock-
+        // peer to send JOIN_REQUEST — which surfaced as "guest mode
+        // can't connect to another user".
+        const p = new Peer(wantedId, window.BC_ICE_CONFIG ? { config: window.BC_ICE_CONFIG } : undefined);
         // Fail-CLOSED on timeout: the user asked for cross-device uniqueness,
         // so if we can't get a definitive "yes" from the broker we refuse to
         // accept the name instead of silently letting two devices share it.
+        // Bumped 7 → 15 s so a slow mobile broker hand-shake doesn't kill
+        // legitimate logins.
         const timer = setTimeout(() => {
             try { p.destroy(); } catch (e) {}
             reject(new Error('broker-timeout'));
-        }, 7000);
+        }, 15000);
         p.on('open', () => {
             clearTimeout(timer);
             _usernameLockPeer = p;
@@ -563,11 +570,15 @@ function _ensureJoinRequestPeer() {
         }
         try { if (_joinRequestPeer) _joinRequestPeer.destroy(); } catch (e) {}
         _joinRequestPeer = null;
-        const p = new Peer();   // anonymous — broker assigns an id
+        // Anonymous peer (broker assigns the id) WITH the shared ICE
+        // config — needs TURN to reach a host's lock-peer when the two
+        // devices are on different networks. Bumped timeout to 15 s for
+        // slow mobile broker hand-shakes.
+        const p = new Peer(undefined, window.BC_ICE_CONFIG ? { config: window.BC_ICE_CONFIG } : undefined);
         const timer = setTimeout(() => {
             try { p.destroy(); } catch (e) {}
             reject(new Error('peer-timeout'));
-        }, 7000);
+        }, 15000);
         p.on('open', () => {
             clearTimeout(timer);
             _joinRequestPeer = p;
@@ -623,12 +634,26 @@ async function submitJoinRequest() {
 
     _joinRequestPendingConn = conn;
     let settled = false;
+    // Quick "conn never opened" watchdog — separate from the human-approval
+    // timeout below. If the underlying DataConnection can't even establish
+    // (ICE failure, host offline), we don't want to wait 90 s for the
+    // bigger timer; surface the failure within 20 s so the user can retry
+    // or know the host is unreachable.
+    const openWatch = setTimeout(() => {
+        if (!conn.open && !settled) {
+            try { conn.close(); } catch (e) {}
+            _joinRequestPendingConn = null;
+            settled = true;
+            _setJoinFeedback('❌ לא הצלחנו להתחבר למארח — בדוק שהוא פתח את האפליקציה', '#ff7675');
+            if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+        }
+    }, 20000);
     // `keepOpen` short-circuits the conn.close() inside finish() — used when
     // the request is APPROVED, since the same connection becomes the long-
     // lived channel for the per-second host → guest resource sync. We also
     // park it as window._hostSyncConn so a later disconnect handler can
     // wipe local references cleanly.
-    const finish = (fn, keepOpen) => { if (!settled) { settled = true; try { fn(); } catch (e) {} if (!keepOpen) { try { conn.close(); } catch (e) {} } _joinRequestPendingConn = null; } };
+    const finish = (fn, keepOpen) => { if (!settled) { settled = true; clearTimeout(openWatch); try { fn(); } catch (e) {} if (!keepOpen) { try { conn.close(); } catch (e) {} } _joinRequestPendingConn = null; } };
 
     // Generous timeout — the human on the other side has to read and click.
     // 90 seconds is comfortable; longer than the broker keepalive but short
