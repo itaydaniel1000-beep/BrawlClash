@@ -769,17 +769,22 @@ function _completeJoinAsTarget(targetName) {
 window._completeJoinAsTarget = _completeJoinAsTarget;
 
 // ---------------------------------------------------------------------------
-// 🔄 Host → guest resource sync (every 1 s)
+// 🔄 Host → guest full-profile sync (every 1 s)
 // ---------------------------------------------------------------------------
 // Once a JOIN_REQUEST is approved, the connection that delivered it stays
 // open. The HOST registers it as a "guest" here; a single shared interval
-// ticks every 1000 ms and pushes the host's current playerStats snapshot
-// to every guest. The guest applies the payload to its own playerStats,
-// persists, and refreshes the lobby UI — so coins / gems / credits / pp /
-// tokens / trophies / hasBrawlPass stay identical across every device
-// logged into the shared account. (Other per-user data like the deck,
-// unlocked cards and BP claims is NOT synced — those don't need it for
-// the user's stated use-case.)
+// ticks every 1000 ms and pushes the host's FULL profile snapshot to every
+// guest so the two devices show identical state. Synced now:
+//   • currencies — coins / gems / credits / pp / tokens / trophies
+//   • flags      — hasBrawlPass, adFree
+//   • adminHacks — so the admin panel mirrors the host's toggles
+//   • collection — playerDeck (current 8-card battle deck), unlockedCards
+//   • progress   — card levels, claimed BP/trophy tier arrays, dailyQuests +
+//                  questsLastRefresh, favoriteBrawler, playerStarPowers
+// The host's session is AUTHORITATIVE — anything the guest mutates locally
+// will be overwritten on the next 1-s tick. That matches the user's stated
+// intent ("when I log into my friend's account it should LOOK like the
+// same account, not just share the name").
 
 const _guestConns = new Set();
 let _guestSyncIntervalId = null;
@@ -789,24 +794,41 @@ function _broadcastResourceSyncTo(conn) {
     try {
         const ps = (typeof playerStats !== 'undefined') ? playerStats : null;
         if (!ps) return;
-        // Snapshot the host's adminHacks so the guest's admin panel reflects
-        // the host's actual toggles instead of opening empty / stale. We
-        // ship a shallow clone (Object.assign + {}) to make sure we don't
-        // accidentally send a `Function` / live reference over the wire.
-        const ah = (typeof adminHacks !== 'undefined' && adminHacks)
-            ? JSON.parse(JSON.stringify(adminHacks))
-            : null;
+        // Deep-clone everything via JSON round-trip so we don't accidentally
+        // send a live reference over the wire (PeerJS serialises, but cloning
+        // upfront also strips Functions / prototypes).
+        const clone = (v) => { try { return v == null ? v : JSON.parse(JSON.stringify(v)); } catch (e) { return null; } };
         conn.send({
             type: 'RESOURCE_SYNC',
             payload: {
+                // === Currencies ===
                 coins:    +ps.coins    || 0,
                 gems:     +ps.gems     || 0,
                 credits:  +ps.credits  || 0,
                 pp:       +ps.pp       || 0,
                 tokens:   +ps.tokens   || 0,
                 trophies: (typeof playerTrophies === 'number') ? playerTrophies : 0,
+                // === Flags ===
                 hasBrawlPass: !!ps.hasBrawlPass,
-                adminHacks: ah
+                adFree:       !!ps.adFree,
+                // === Admin state ===
+                adminHacks: (typeof adminHacks !== 'undefined' && adminHacks) ? clone(adminHacks) : null,
+                // === Collection + progression ===
+                // levels: { [cardId]: level } — every card the host has at any
+                // power. Empty cards get omitted client-side anyway.
+                levels:               clone(ps.levels || {}),
+                unlockedCards:        clone(ps.unlockedCards || []),
+                claimedTiers:         clone(ps.claimedTiers || []),
+                claimedPremiumTiers:  clone(ps.claimedPremiumTiers || []),
+                claimedTrophyTiers:   clone(ps.claimedTrophyTiers || []),
+                dailyQuests:          clone(ps.dailyQuests || []),
+                questsLastRefresh:    ps.questsLastRefresh || '',
+                // Deck + star powers + favourite live OUTSIDE playerStats as
+                // their own globals. We read them through window.* so this
+                // module doesn't crash if one of them isn't defined yet.
+                deck:                 clone(typeof window !== 'undefined' ? (window.playerDeck || []) : []),
+                starPowers:           clone(typeof window !== 'undefined' ? (window.playerStarPowers || {}) : {}),
+                favoriteBrawler:      (typeof window !== 'undefined') ? (window.favoriteBrawler || null) : null
             }
         });
     } catch (e) { /* drop on the floor — broken conn cleans up via close */ }
@@ -843,16 +865,93 @@ window._addGuestConn = _addGuestConn;
 function _applyHostResourceSync(payload) {
     if (!payload || typeof playerStats === 'undefined' || !playerStats) return;
     let touched = false;
+    // === Currencies ===
     if (typeof payload.coins    === 'number' && playerStats.coins    !== payload.coins)    { playerStats.coins    = payload.coins;    touched = true; }
     if (typeof payload.gems     === 'number' && playerStats.gems     !== payload.gems)     { playerStats.gems     = payload.gems;     touched = true; }
     if (typeof payload.credits  === 'number' && playerStats.credits  !== payload.credits)  { playerStats.credits  = payload.credits;  touched = true; }
     if (typeof payload.pp       === 'number' && playerStats.pp       !== payload.pp)       { playerStats.pp       = payload.pp;       touched = true; }
     if (typeof payload.tokens   === 'number' && playerStats.tokens   !== payload.tokens)   { playerStats.tokens   = payload.tokens;   touched = true; }
+    // === Flags ===
     if (typeof payload.hasBrawlPass === 'boolean' && playerStats.hasBrawlPass !== payload.hasBrawlPass) {
         playerStats.hasBrawlPass = payload.hasBrawlPass; touched = true;
     }
+    if (typeof payload.adFree === 'boolean' && playerStats.adFree !== payload.adFree) {
+        playerStats.adFree = payload.adFree; touched = true;
+    }
     if (typeof payload.trophies === 'number' && typeof playerTrophies === 'number' && playerTrophies !== payload.trophies) {
         playerTrophies = payload.trophies; touched = true;
+    }
+    // === Collection / progression ===
+    // Card LEVELS — overwrite the per-card power level map. Skip nothing:
+    // if the host has a level for a card we don't, copy it in. If we have
+    // a card the host doesn't, leave ours alone (rare case — the host might
+    // have an older card list). Most installs ship the same CARDS so this
+    // converges quickly.
+    if (payload.levels && typeof payload.levels === 'object') {
+        playerStats.levels = playerStats.levels || {};
+        let levelsChanged = false;
+        Object.keys(payload.levels).forEach(id => {
+            if (playerStats.levels[id] !== payload.levels[id]) {
+                playerStats.levels[id] = payload.levels[id];
+                levelsChanged = true;
+            }
+        });
+        if (levelsChanged) touched = true;
+    }
+    // UNLOCKED CARDS — full replace (host is authoritative). Compare via
+    // JSON so we don't repaint UI when nothing changed.
+    if (Array.isArray(payload.unlockedCards)) {
+        const cur = JSON.stringify(playerStats.unlockedCards || []);
+        const next = JSON.stringify(payload.unlockedCards);
+        if (cur !== next) { playerStats.unlockedCards = payload.unlockedCards.slice(); touched = true; }
+    }
+    // CLAIMED TIER ARRAYS — same pattern (full replace, JSON-equal skip).
+    const _syncArrayField = (field) => {
+        if (!Array.isArray(payload[field])) return;
+        const cur = JSON.stringify(playerStats[field] || []);
+        const next = JSON.stringify(payload[field]);
+        if (cur !== next) { playerStats[field] = payload[field].slice(); touched = true; }
+    };
+    _syncArrayField('claimedTiers');
+    _syncArrayField('claimedPremiumTiers');
+    _syncArrayField('claimedTrophyTiers');
+    _syncArrayField('dailyQuests');
+    if (typeof payload.questsLastRefresh === 'string' && playerStats.questsLastRefresh !== payload.questsLastRefresh) {
+        playerStats.questsLastRefresh = payload.questsLastRefresh; touched = true;
+    }
+    // DECK — mutate the existing array in place (rather than reassigning)
+    // so any module that captured a reference to playerDeck stays live.
+    if (Array.isArray(payload.deck) && typeof playerDeck !== 'undefined') {
+        const cur = JSON.stringify(playerDeck);
+        const next = JSON.stringify(payload.deck);
+        if (cur !== next) {
+            playerDeck.length = 0;
+            payload.deck.forEach(c => playerDeck.push(c));
+            try { if (typeof localStorage !== 'undefined') localStorage.setItem(_userKey('deck'), JSON.stringify(playerDeck)); } catch (e) {}
+            touched = true;
+        }
+    }
+    // STAR POWERS — full replace (host's selection wins).
+    if (payload.starPowers && typeof payload.starPowers === 'object' && typeof playerStarPowers !== 'undefined') {
+        const cur = JSON.stringify(playerStarPowers);
+        const next = JSON.stringify(payload.starPowers);
+        if (cur !== next) {
+            // Clear then re-add in place to keep object identity for any consumer.
+            Object.keys(playerStarPowers).forEach(k => delete playerStarPowers[k]);
+            Object.assign(playerStarPowers, payload.starPowers);
+            try { localStorage.setItem(_userKey('sp'), JSON.stringify(playerStarPowers)); } catch (e) {}
+            touched = true;
+        }
+    }
+    // FAVOURITE BRAWLER.
+    if ((typeof payload.favoriteBrawler === 'string' || payload.favoriteBrawler === null) &&
+        typeof window !== 'undefined' && window.favoriteBrawler !== payload.favoriteBrawler) {
+        window.favoriteBrawler = payload.favoriteBrawler;
+        try {
+            if (payload.favoriteBrawler) localStorage.setItem(_userKey('favorite'), payload.favoriteBrawler);
+            else localStorage.removeItem(_userKey('favorite'));
+        } catch (e) {}
+        touched = true;
     }
     // Mirror the host's adminHacks so the guest's admin panel reflects the
     // SAME toggle states as the host. We mutate the existing adminHacks
