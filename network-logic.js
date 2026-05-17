@@ -1612,6 +1612,33 @@ async function claimUsername() {
     // the other and the surviving peer never fires 'open'.
     goToLobby();
 
+    // ☁️ Cloud auto-restore — if this device's local data for the user
+    // looks empty AND Firebase is configured, fetch the latest snapshot
+    // from the cloud and apply it. This is the killer feature that makes
+    // logging in on a new device "just work" without the other device
+    // having to be online — the encrypted profile blob lives in Firebase
+    // and survives across devices independently. AES-GCM with a key
+    // derived from the user's password means only someone who can type
+    // the password can decrypt it.
+    const _localEmptyNow =
+        (playerStats.coins || 0) === 0 &&
+        (playerStats.gems  || 0) === 0 &&
+        ((typeof playerTrophies === 'number') ? playerTrophies : 0) === 0;
+    if (_localEmptyNow && typeof cloudLoadAndApply === 'function' &&
+        window.NetworkManager && NetworkManager.hasFirebase && NetworkManager.hasFirebase()) {
+        // Wait briefly so NetworkManager.init's Firebase setup (which
+        // happens inside goToLobby → initNetworkListeners) has time to
+        // attach the .db handle. 600 ms is plenty in practice.
+        setTimeout(async () => {
+            try {
+                const ok = await cloudLoadAndApply(name, password);
+                if (ok && typeof showTransientToast === 'function') {
+                    showTransientToast('☁️ הדאטה שלך שוחזרה מהענן');
+                }
+            } catch (e) {}
+        }, 600);
+    }
+
     // Empty-data hint — if this account looks fresh on THIS device (zero
     // coins / gems / trophies) AND it's not a brand-new account (password
     // already existed before this login, i.e. user has played somewhere
@@ -1619,6 +1646,8 @@ async function claimUsername() {
     // join-request flow to pull data from their other device. localStorage
     // can't travel across devices on its own — without this, the user
     // sees an empty lobby and assumes "my data was erased".
+    // Wait long enough that the cloud restore above (600 ms + network
+    // round-trip) has time to complete before we decide whether to nag.
     setTimeout(() => {
         try {
             const isEmpty =
@@ -1661,7 +1690,7 @@ async function claimUsername() {
                 if (dismiss) dismiss.onclick = close;
             }
         } catch (e) {}
-    }, 600);
+    }, 2500);
 
     // First-time-user tutorial: kick it off only AFTER the player picked a
     // name and pressed 'התחל לשחק'. The tutorial module itself guards on the
