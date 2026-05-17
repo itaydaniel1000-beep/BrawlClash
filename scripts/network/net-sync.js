@@ -328,14 +328,20 @@ NetworkManager.joinRoom = function(roomCode) {
     console.log("📡 Attempting to connect to " + targetId);
     const conn = this.peer.connect(targetId, { reliable: true });
 
+    // Mobile WebRTC needs more time than desktop — cellular carriers and
+    // strict NATs can take 10-15 s of ICE candidate gathering + TURN
+    // relay setup before the channel actually opens. The old 6 s window
+    // was timing out on perfectly-recoverable connections (especially
+    // phone-vs-phone on different WiFi networks where TURN is required).
+    // 20 s gives even the slowest paths a fair shot.
     const failTimer = setTimeout(() => {
         if (!conn.open) {
             try { conn.close(); } catch (e) {}
             if (typeof showTransientToast === 'function') {
-                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId);
+                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId + " — נסה שוב או בדוק שהמשתמש השני פתח 'PLAY VS PLAYER'");
             }
         }
-    }, 6000);
+    }, 20000);
 
     conn.on('open', () => {
         clearTimeout(failTimer);

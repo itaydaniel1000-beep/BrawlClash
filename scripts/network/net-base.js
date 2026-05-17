@@ -45,17 +45,44 @@ const NetworkManager = {
         }
 
         // PeerJS always initialises — uses PeerJS's free default broker.
-        // Add public STUN + TURN (Open Relay) so WebRTC can cross restrictive NATs/firewalls.
-        // 3-digit numeric battle codes (user-facing shorter than the old 4-char alnum).
-        // With only 1000 possible IDs collisions will happen, so we retry on
-        // 'unavailable-id' with a freshly-rolled code (up to MAX_TRIES).
+        // Add public STUN + TURN so WebRTC can cross restrictive NATs/firewalls
+        // (mobile carriers, school/work WiFi, different home networks). The
+        // wider the STUN pool the better the chance of getting at least one
+        // working external candidate; multiple TURN endpoints on different
+        // transports (UDP / TCP / TLS over 443) maximise the odds that
+        // SOMETHING punches through even when UDP is blocked.
+        //
+        // iceCandidatePoolSize warms up candidates before the connection
+        // attempt instead of gathering them lazily — shaves a second or two
+        // off the first dial on mobile.
+        // iceTransportPolicy 'all' lets PeerJS pick host/srflx/relay freely
+        // (vs 'relay' which would force TURN always).
         const ICE = {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
+                // Google's STUN cluster — multiple endpoints for redundancy.
+                { urls: [
+                    'stun:stun.l.google.com:19302',
+                    'stun:stun1.l.google.com:19302',
+                    'stun:stun2.l.google.com:19302',
+                    'stun:stun3.l.google.com:19302',
+                    'stun:stun4.l.google.com:19302'
+                ]},
+                // Other public STUN servers (different operators = different
+                // failure modes; running several in parallel avoids any single
+                // provider being the bottleneck).
                 { urls: 'stun:global.stun.twilio.com:3478' },
-                { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-                { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
-            ]
+                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:stun.nextcloud.com:443' },
+                // Open Relay TURN — tried on 80, 443, and 443/TCP. The TCP
+                // variant works through firewalls that block UDP entirely
+                // (common on guest WiFi networks and some carriers).
+                { urls: 'turn:openrelay.metered.ca:80',                   username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443',                  username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turn:openrelay.metered.ca:443?transport=tcp',    username: 'openrelayproject', credential: 'openrelayproject' },
+                { urls: 'turns:openrelay.metered.ca:443?transport=tcp',   username: 'openrelayproject', credential: 'openrelayproject' }
+            ],
+            iceCandidatePoolSize: 4,
+            iceTransportPolicy: 'all'
         };
         const MAX_TRIES = 12;
         const self = this;
