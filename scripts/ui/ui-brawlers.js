@@ -226,8 +226,25 @@ function openUpgradeModal(id) {
 
     const selectBtn = document.getElementById('upgrade-select-btn');
     const isInDeck = playerDeck.includes(id);
-    selectBtn.innerText = isInDeck ? "הסר מהדק" : "בחר לדק";
+    // Lock-state check — the upgrade modal was missing the same unlock
+    // gate that toggleCardInDeck has, so a player could open the upgrade
+    // modal for a locked card and click "בחר לדק" to add an unowned card
+    // to their deck. Now the button is visually disabled + refuses the
+    // click with a toast for any card the user doesn't own. Admin bypass
+    // is implicit because isCardUnlocked already short-circuits true for
+    // super-admins via the same path used everywhere else.
+    const _isLocked = (typeof isCardUnlocked === 'function') && !isCardUnlocked(id);
+    selectBtn.innerText = _isLocked ? "🔒 נעול" : (isInDeck ? "הסר מהדק" : "בחר לדק");
+    selectBtn.disabled = _isLocked && !isInDeck;
+    selectBtn.style.opacity = (_isLocked && !isInDeck) ? '0.55' : '1';
+    selectBtn.style.cursor  = (_isLocked && !isInDeck) ? 'not-allowed' : 'pointer';
     selectBtn.onclick = () => {
+        // Defense in depth — even if the disabled attribute is bypassed
+        // (DevTools / stale render), the handler refuses outright.
+        if (_isLocked && !isInDeck) {
+            if (typeof showTransientToast === 'function') showTransientToast('🔒 הדמות הזו עדיין נעולה');
+            return;
+        }
         if (isInDeck) {
             playerDeck = playerDeck.filter(cid => cid !== id);
         } else {
@@ -241,9 +258,9 @@ function openUpgradeModal(id) {
             }
         }
         localStorage.setItem(_userKey('deck'), JSON.stringify(playerDeck));
-        openUpgradeModal(id); 
+        openUpgradeModal(id);
         renderCharCards();
     };
-    
+
     document.getElementById('upgrade-modal').style.display = 'flex';
 }
