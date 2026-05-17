@@ -42,6 +42,32 @@ function _aiFirstAffordable(list) {
 function _aiReactiveStep(dt, now, cooldownMs) {
     if (now - lastAIActionTime < cooldownMs) return;
 
+    // 0) MR-P PUNISH 🔥 — when the player has 5+ Mr-P spawners on the
+    //    field they're playing a heavy spawner-turtle game. Amber is the
+    //    perfect counter: she walks a straight line from OUR safe to
+    //    THEIR safe leaving a fire trail that fries the spawner cluster +
+    //    every porter it produces. One Amber per 10-second window so the
+    //    bot doesn't burn its entire elixir bar repeatedly on the same
+    //    state. Costs 7 elixir, so it only fires when the bot can
+    //    actually afford it.
+    if (!window._aiLastAmberAt) window._aiLastAmberAt = 0;
+    const playerMrPCount = buildings.filter(b => b.team === 'player' && b.type === 'mr-p' && !b.isDead).length;
+    const amberCost = (CARDS && CARDS.amber && CARDS.amber.cost) || 7;
+    if (playerMrPCount >= 5 && (now - window._aiLastAmberAt) > 10000 && enemyElixir >= amberCost) {
+        const startX = CONFIG.CANVAS_WIDTH / 2;
+        const startY = 90;                                // just below the enemy safe
+        const endX   = CONFIG.CANVAS_WIDTH / 2;
+        const endY   = CONFIG.CANVAS_HEIGHT - 100;        // just above the player safe
+        // spawnEntity sig: (x, y, team, type, isFrozen, isRemote, remoteBuffs, remoteLevel, waypoints)
+        spawnEntity(startX, startY, 'enemy', 'amber', false, false, null, 0, [
+            { x: startX, y: startY },
+            { x: endX,   y: endY   }
+        ]);
+        window._aiLastAmberAt = now;
+        lastAIActionTime = now;
+        return;
+    }
+
     // 1) DEFENSIVE COUNTER — anything in the upper 40% (our half) is an
     //    immediate threat. Prefer AoE if there are multiple incoming threats,
     //    else a single bruiser (bull → bruce → leon).

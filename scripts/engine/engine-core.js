@@ -115,6 +115,10 @@ function initGame() {
         // Fresh match → reset the cake's once-per-match lock for both teams.
         // (Set in battle-spawn.js, read at the start of every spawn attempt.)
         window._cakeUsedThisMatch = { player: false, enemy: false };
+        // Fresh match → reset the bot's "Amber-vs-Mr-P-spam" cooldown so a
+        // late-match trigger from the previous battle doesn't gate the
+        // first reaction in this new one. See ai-strategies.js step 0.
+        window._aiLastAmberAt = 0;
         // Admin-granted overrides: startingElixir / maxElixir (0 = use default).
         const startE = (typeof adminHacks !== 'undefined' && adminHacks.startingElixir) ? adminHacks.startingElixir : 5;
         const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;
