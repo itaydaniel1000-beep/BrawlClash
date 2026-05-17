@@ -898,6 +898,28 @@ window._addGuestConn = _addGuestConn;
 // Skips silently if playerStats isn't ready (e.g. sync arrives mid-login).
 function _applyHostResourceSync(payload) {
     if (!payload || typeof playerStats === 'undefined' || !playerStats) return;
+    // Empty-payload guard — if WE have real local data but the incoming
+    // payload looks empty (all currencies 0), DON'T overwrite. This
+    // protects against the case where the "host" we connected to is
+    // actually a fresh device that just happens to hold the lock for our
+    // username (e.g. our other phone that has zero progress). Without
+    // this guard, accepting their empty payload would erase OUR real
+    // data. Empty → empty is a no-op anyway, so blocking is safe.
+    const localHasData =
+        (playerStats.coins    || 0) > 0 ||
+        (playerStats.gems     || 0) > 0 ||
+        (playerStats.credits  || 0) > 0 ||
+        (playerStats.pp       || 0) > 0 ||
+        (playerStats.tokens   || 0) > 0 ||
+        ((typeof playerTrophies === 'number') ? playerTrophies : 0) > 0;
+    const payloadEmpty =
+        (+payload.coins    || 0) === 0 &&
+        (+payload.gems     || 0) === 0 &&
+        (+payload.credits  || 0) === 0 &&
+        (+payload.pp       || 0) === 0 &&
+        (+payload.tokens   || 0) === 0 &&
+        (+payload.trophies || 0) === 0;
+    if (localHasData && payloadEmpty) return;
     // Always cache the latest payload — _completeJoinAsTarget re-reads it
     // after reloadActiveUserState to fix the race where the first sync
     // arrives BEFORE the username switch is finalised.
@@ -1491,7 +1513,31 @@ async function claimUsername() {
                 // persistent registry says so), refuse. The user must close
                 // the other tab / device first, wait ~30 s for the broker
                 // lock to drop, and try again.
-                feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. סגור את הטאב/האפליקציה שם וחכה כ-30 שניות, ואז נסה שוב.';
+                // Name-taken means another device is currently holding this
+                // username's lock. Instead of just telling the user to wait,
+                // auto-pivot into the JOIN-REQUEST flow: pre-fill the modal
+                // with the same name + password they just typed and submit
+                // immediately. If the holder approves they end up logged in
+                // as a guest with the host's data live-mirrored — exactly
+                // what the user wanted in the first place ("show my data
+                // from the other device").
+                feedback.innerText = '👥 החשבון פעיל במכשיר אחר — שולח בקשת שיתוף…';
+                feedback.style.color = '#ffeaa7';
+                try {
+                    const targetEl = document.getElementById('join-target-name');
+                    const pwEl     = document.getElementById('join-target-password');
+                    if (targetEl) targetEl.value = name;
+                    if (pwEl)     pwEl.value     = password;
+                    if (typeof openJoinRequestModal === 'function') openJoinRequestModal();
+                    if (typeof submitJoinRequest === 'function') {
+                        setTimeout(() => { try { submitJoinRequest(); } catch (_) {} }, 100);
+                    }
+                } catch (e2) {
+                    feedback.style.color = '#ff7675';
+                    feedback.innerText = '❌ השם כבר בשימוש במכשיר אחר. סגור את הטאב/האפליקציה שם וחכה כ-30 שניות, ואז נסה שוב.';
+                }
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.style.opacity = '1'; }
+                return;
             } else if (e && e.message === 'broker-timeout') {
                 feedback.innerText = '❌ לא הצלחנו לבדוק זמינות (הרשת איטית). נסה שוב.';
             } else {
@@ -1565,6 +1611,57 @@ async function claimUsername() {
     // Don't call it here too — starting two PeerJS instances means one overrides
     // the other and the surviving peer never fires 'open'.
     goToLobby();
+
+    // Empty-data hint — if this account looks fresh on THIS device (zero
+    // coins / gems / trophies) AND it's not a brand-new account (password
+    // already existed before this login, i.e. user has played somewhere
+    // before), surface a one-shot prompt nudging the user toward the
+    // join-request flow to pull data from their other device. localStorage
+    // can't travel across devices on its own — without this, the user
+    // sees an empty lobby and assumes "my data was erased".
+    setTimeout(() => {
+        try {
+            const isEmpty =
+                (playerStats.coins  || 0) === 0 &&
+                (playerStats.gems   || 0) === 0 &&
+                ((typeof playerTrophies === 'number') ? playerTrophies : 0) === 0;
+            const hadPriorPassword = !wasFirstTimeUser;  // they typed an existing password = account existed before
+            if (isEmpty && hadPriorPassword && !document.getElementById('cross-device-hint-overlay')) {
+                const ov = document.createElement('div');
+                ov.id = 'cross-device-hint-overlay';
+                ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:10500; display:flex; align-items:center; justify-content:center; padding:18px; font-family:"Assistant",sans-serif;';
+                ov.innerHTML = `
+                    <div style="background:linear-gradient(160deg,#2c3e50,#34495e); border:4px solid #f1c40f; border-radius:14px; padding:20px; max-width:380px; text-align:center; color:#fff;">
+                        <div style="font-size:2.5rem; margin-bottom:8px;">👀</div>
+                        <div style="font-size:1.2rem; font-weight:bold; color:#f1c40f; margin-bottom:10px;">החשבון נראה ריק במכשיר הזה</div>
+                        <div style="font-size:0.95rem; line-height:1.5; margin-bottom:16px;">
+                            הדאטה שלך (מטבעות, יהלומים, גביעים, חפיסה…) שמורה <b>מקומית</b> על המכשיר שבו שיחקת.
+                            כדי לראות אותה כאן, צריך שהמכשיר השני יהיה פתוח ותאשר שם בקשת שיתוף.
+                        </div>
+                        <div style="display:flex; gap:10px; flex-direction:column;">
+                            <button id="cross-device-hint-join" class="bs-btn bs-btn-success" style="padding:12px;">🔑 בקש שיתוף ממכשיר אחר</button>
+                            <button id="cross-device-hint-dismiss" class="bs-btn" style="padding:10px; background:#7f8c8d;">המשך עם חשבון ריק</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(ov);
+                const join = document.getElementById('cross-device-hint-join');
+                const dismiss = document.getElementById('cross-device-hint-dismiss');
+                const close = () => { try { ov.remove(); } catch (e) {} };
+                if (join) join.onclick = () => {
+                    close();
+                    try {
+                        const targetEl = document.getElementById('join-target-name');
+                        const pwEl     = document.getElementById('join-target-password');
+                        if (targetEl) targetEl.value = name;
+                        if (pwEl)     pwEl.value     = password;
+                        if (typeof openJoinRequestModal === 'function') openJoinRequestModal();
+                    } catch (e) {}
+                };
+                if (dismiss) dismiss.onclick = close;
+            }
+        } catch (e) {}
+    }, 600);
 
     // First-time-user tutorial: kick it off only AFTER the player picked a
     // name and pressed 'התחל לשחק'. The tutorial module itself guards on the
