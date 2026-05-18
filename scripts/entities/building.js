@@ -67,19 +67,21 @@ class Building extends Entity {
             this.lumiR1 = 22;
             this.lumiR2 = 44;
             this.lumiR3 = 88;
-            // Per-ring Y offsets — each ring now stacks ABOVE the one
-            // below it (no longer all concentric). X stays at Lumi.x for
-            // every ring so the column is vertical.
+            // Per-ring Y offsets — each ring stacks ABOVE the one below
+            // it as a vertical tower. X stays at Lumi.x for every ring
+            // so the column is straight upward (no horizontal spread).
             //   Inner ring  bottom edge sits on Lumi's top edge
             //     → centre dy = -(r1 + spriteRadius) = -(22 + 22) = -44
             //   Middle ring bottom edge sits on inner ring's top edge
             //     → inner top = lumiR1Dy - r1 = -44 - 22 = -66
-            //     → middle centre dy = -66 - r2 = -66 - 44 = -110
-            //   Outer ring is still concentric with the inner ring (its
-            //     position will be moved separately if the user asks).
+            //     → middle centre dy = -66 - r2 = -110
+            //   Outer ring  bottom edge sits on middle ring's top edge
+            //     → middle top = lumiR2Dy - r2 = -110 - 44 = -154
+            //     → outer centre dy = -154 - r3 = -242
+            // Total tower extends from y-22 (Lumi top) to y-330 (outer top).
             this.lumiR1Dy = -(this.lumiR1 + 22);                            //  -44
             this.lumiR2Dy = this.lumiR1Dy - this.lumiR1 - this.lumiR2;      // -110
-            this.lumiR3Dy = this.lumiR1Dy;                                  //  -44 (unchanged)
+            this.lumiR3Dy = this.lumiR2Dy - this.lumiR2 - this.lumiR3;      // -242
             this.lumiDmgInner = 500;
             this.lumiDmgMid   = 1000;
             this.lumiDmgOuter = 1000;
