@@ -60,9 +60,15 @@ class Building extends Entity {
             this.maxHp = 2000; this.hp = 2000;
             this.color = '#8e44ad';
             this.attackRange = 0;       // no separate projectile attack
-            this.lumiR1 = 70;
-            this.lumiR2 = 140;
-            this.lumiR3 = 280;
+            // Innermost ring sits EXACTLY on Lumi's visible sprite edge
+            // (the standard building-circle draw at radius 22). r2 and r3
+            // keep the ×2 / ×4 scaling the user asked for originally:
+            //   r1 = 22  → edge of inner ring on Lumi's outline
+            //   r2 = 44  = 2 × r1
+            //   r3 = 88  = 4 × r1 (also 2 × r2)
+            this.lumiR1 = 22;
+            this.lumiR2 = 44;
+            this.lumiR3 = 88;
             this.lumiDmgInner = 500;
             this.lumiDmgMid   = 1000;
             this.lumiDmgOuter = 1000;
