@@ -62,24 +62,42 @@ class Building extends Entity {
             this._lumiSpawnTime = performance.now();
             this._lumiLifetimeMs = 1000;
             // Placement-time mass IMMOBILIZE — per user spec, NOT a full
-            // freeze. Frozen entities are invisible to the opponent and
-            // can't attack OR move; we just want them to stop WALKING for
-            // 2 s. Implementation: zero their `speed` (saved + restored
-            // after 2 s). Buildings / auras don't have speed so they're
-            // unaffected — they don't move anyway. Units keep attacking
-            // from wherever they happen to be standing, they just can't
-            // step closer.
+            // freeze. We want enemies that can't move AND can't attack,
+            // but stay VISIBLE (full freeze would also hide them from
+            // the player per the existing "hide frozen enemy" feature).
+            //
+            // Implementation: zero both `speed` (= no walking) and
+            // `attackDamage` (= attacks may still tick but deal 0 dmg).
+            // The originals are stashed in the immobile[] array and put
+            // back after 2 s. We only restore each field if it's still
+            // 0 at restoration time — that way another buff that
+            // legitimately changes the value mid-window doesn't get
+            // clobbered when our timer fires.
+            //
+            // Both units AND buildings are targeted (buildings have
+            // attackDamage too — Penny, Scrappy, Cake all attack).
+            // Auras don't have attackDamage in the standard sense so
+            // they're left alone.
             const oppTeam = team === 'player' ? 'enemy' : 'player';
             const _self = this;
             Promise.resolve().then(() => {
                 try {
-                    const targets = (typeof units !== 'undefined' ? units : []);
-                    const immobile = [];   // { entity, prevSpeed }
+                    const targets = (typeof units !== 'undefined' ? units : [])
+                        .concat(typeof buildings !== 'undefined' ? buildings : []);
+                    const immobile = [];   // { entity, prevSpeed?, prevAttackDamage? }
                     targets.forEach(e => {
-                        if (e && e !== _self && e.team === oppTeam && !e.isDead &&
-                            typeof e.speed === 'number' && e.speed > 0) {
-                            immobile.push({ entity: e, prevSpeed: e.speed });
+                        if (!e || e === _self || e.team !== oppTeam || e.isDead) return;
+                        const saved = { entity: e };
+                        if (typeof e.speed === 'number' && e.speed > 0) {
+                            saved.prevSpeed = e.speed;
                             e.speed = 0;
+                        }
+                        if (typeof e.attackDamage === 'number' && e.attackDamage > 0) {
+                            saved.prevAttackDamage = e.attackDamage;
+                            e.attackDamage = 0;
+                        }
+                        if (saved.prevSpeed !== undefined || saved.prevAttackDamage !== undefined) {
+                            immobile.push(saved);
                         }
                     });
                     // Visual sparkle at Lumi's spot to mark the world-stop.
@@ -90,13 +108,13 @@ class Building extends Entity {
                         }
                     }
                     setTimeout(() => {
-                        immobile.forEach(({ entity, prevSpeed }) => {
-                            if (entity && !entity.isDead && entity.speed === 0) {
-                                // Only restore if STILL 0 (= we're the ones
-                                // who set it; nothing else changed it mid-
-                                // window). If another effect bumped speed
-                                // in the meantime, leave that value alone.
+                        immobile.forEach(({ entity, prevSpeed, prevAttackDamage }) => {
+                            if (!entity || entity.isDead) return;
+                            if (typeof prevSpeed === 'number' && entity.speed === 0) {
                                 entity.speed = prevSpeed;
+                            }
+                            if (typeof prevAttackDamage === 'number' && entity.attackDamage === 0) {
+                                entity.attackDamage = prevAttackDamage;
                             }
                         });
                     }, 2000);
