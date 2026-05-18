@@ -137,6 +137,34 @@ class Building extends Entity {
                             immobile.push(saved);
                         }
                     });
+                    // One-shot ring damage — each enemy in a ring takes
+                    // that ring's damage value ONCE (not per-second). Runs
+                    // here at placement so the hit fires instantly with
+                    // the freeze trigger. INNER → MIDDLE → OUTER priority
+                    // for enemies that fit multiple rings (no stacking).
+                    try {
+                        const cxAll = _self.x;
+                        const cy1 = _self.y + (_self.lumiR1Dy || 0);
+                        const cy2 = _self.y + (_self.lumiR2Dy || 0);
+                        const cy3 = _self.y + (_self.lumiR3Dy || 0);
+                        const damageTargets = (typeof units !== 'undefined' ? units : [])
+                            .concat(typeof buildings !== 'undefined' ? buildings : [])
+                            .concat(typeof auras !== 'undefined' ? auras : [])
+                            .concat([typeof playerSafe !== 'undefined' ? playerSafe : null,
+                                     typeof enemySafe  !== 'undefined' ? enemySafe  : null].filter(s => s));
+                        damageTargets.forEach(e => {
+                            if (!e || e === _self || e.team !== oppTeam || e.isDead) return;
+                            if (typeof isAmberOrTrail === 'function' && isAmberOrTrail(e)) return;
+                            const ex = e.x || 0, ey = e.y || 0;
+                            let dmg = 0;
+                            if      (Math.hypot(ex - cxAll, ey - cy1) <= _self.lumiR1) dmg = _self.lumiDmgInner;
+                            else if (Math.hypot(ex - cxAll, ey - cy2) <= _self.lumiR2) dmg = _self.lumiDmgMid;
+                            else if (Math.hypot(ex - cxAll, ey - cy3) <= _self.lumiR3) dmg = _self.lumiDmgOuter;
+                            if (dmg > 0 && typeof e.takeDamage === 'function') {
+                                e.takeDamage(dmg);
+                            }
+                        });
+                    } catch (_) {}
                     // Visual sparkle at Lumi's spot to mark the world-stop.
                     if (typeof particles !== 'undefined') {
                         const colors = ['#8e44ad', '#9b59b6', '#bb8fce', '#fff', '#f1c40f'];
@@ -195,40 +223,13 @@ class Building extends Entity {
         // so the per-second numbers (500 / 1000 / 1000) come out right
         // regardless of frame rate. Safe is also damaged (it's a target).
         if (this.type === 'lumi') {
-            // 1-second lifetime — Lumi disappears after one second.
-            // Self-destruct guard runs BEFORE the damage tick so the
-            // dying frame doesn't sneak in one last hit.
+            // 1-second lifetime self-destruct. Ring damage already fired
+            // once at placement (see constructor) — no per-frame tick.
             if (this._lumiSpawnTime && (now - this._lumiSpawnTime) >= (this._lumiLifetimeMs || 1000)) {
                 this.hp = 0;
                 this.isDead = true;
                 return;
             }
-            // Per-band damage tick — enemies inside each ring take that
-            // band's rate × dt seconds. INNER → MIDDLE → OUTER priority
-            // so an enemy that happens to fit multiple rings pays only
-            // the innermost band's rate (no stacking). The frozen
-            // immobilize from placement also zeros their attackDamage /
-            // range, but their HP is still mutable so this damage lands.
-            const cxAll = this.x;
-            const cy1 = this.y + (this.lumiR1Dy || 0);
-            const cy2 = this.y + (this.lumiR2Dy || 0);
-            const cy3 = this.y + (this.lumiR3Dy || 0);
-            const enemies = units.concat(buildings, auras)
-                .concat([playerSafe, enemySafe].filter(s => s))
-                .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible && !e.isFrozen &&
-                             (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
-            const dtSec = (dt || 0) / 1000;
-            enemies.forEach(e => {
-                const ex = e.x || 0, ey = e.y || 0;
-                let dmgRate = 0;
-                if      (Math.hypot(ex - cxAll, ey - cy1) <= this.lumiR1) dmgRate = this.lumiDmgInner;
-                else if (Math.hypot(ex - cxAll, ey - cy2) <= this.lumiR2) dmgRate = this.lumiDmgMid;
-                else if (Math.hypot(ex - cxAll, ey - cy3) <= this.lumiR3) dmgRate = this.lumiDmgOuter;
-                else return;
-                if (dmgRate > 0 && typeof e.takeDamage === 'function') {
-                    e.takeDamage(dmgRate * dtSec * damageMult);
-                }
-            });
         }
 
         // 🎂 Cake — every 2 s, fire a flaming-candle projectile at the
