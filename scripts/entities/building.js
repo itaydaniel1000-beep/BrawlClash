@@ -96,7 +96,20 @@ class Building extends Entity {
                             saved.prevAttackDamage = e.attackDamage;
                             e.attackDamage = 0;
                         }
-                        if (saved.prevSpeed !== undefined || saved.prevAttackDamage !== undefined) {
+                        // ALSO zero attackRange — without this the turret
+                        // logic still fires (it gates on attackSpeed +
+                        // attackRange > 0, not on attackDamage). With
+                        // range = 0, the targeting filter finds zero
+                        // candidates so no projectile spawns. This is
+                        // what visually stops Penny / Scrappy / Cake /
+                        // any unit attack from emitting bullets.
+                        if (typeof e.attackRange === 'number' && e.attackRange > 0) {
+                            saved.prevAttackRange = e.attackRange;
+                            e.attackRange = 0;
+                        }
+                        if (saved.prevSpeed !== undefined ||
+                            saved.prevAttackDamage !== undefined ||
+                            saved.prevAttackRange !== undefined) {
                             immobile.push(saved);
                         }
                     });
@@ -108,13 +121,16 @@ class Building extends Entity {
                         }
                     }
                     setTimeout(() => {
-                        immobile.forEach(({ entity, prevSpeed, prevAttackDamage }) => {
+                        immobile.forEach(({ entity, prevSpeed, prevAttackDamage, prevAttackRange }) => {
                             if (!entity || entity.isDead) return;
                             if (typeof prevSpeed === 'number' && entity.speed === 0) {
                                 entity.speed = prevSpeed;
                             }
                             if (typeof prevAttackDamage === 'number' && entity.attackDamage === 0) {
                                 entity.attackDamage = prevAttackDamage;
+                            }
+                            if (typeof prevAttackRange === 'number' && entity.attackRange === 0) {
+                                entity.attackRange = prevAttackRange;
                             }
                         });
                     }, 2000);
