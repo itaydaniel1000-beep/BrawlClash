@@ -45,52 +45,22 @@ class Building extends Entity {
             this.attackRange = 200;
             this.lastAttackTime = 0;
         } else if (type === 'lumi') {
-            // 🌟 Lumi — admin-only "danger-zone" tower. Three concentric
-            // damage rings + a 2-second mass-freeze on placement.
-            //   • r1 (innermost, 70 px):  500 HP/sec to anyone inside
-            //   • r2 (middle, 140 px = 2× r1): 1000 HP/sec to anyone in
-            //     the r1→r2 ring
-            //   • r3 (outer, 280 px = 4× r1): 1000 HP/sec to anyone in
-            //     the r2→r3 ring
-            //   Damage does NOT stack — each enemy takes only the rate
-            //   of whichever band they're standing in (user spec).
-            // On placement, every enemy unit / building / aura on the
-            // map is frozen for 2 seconds — a one-time "world stop" so
-            // the damage zones get an uninterrupted opening burst.
+            // 🌟 Lumi — admin-only "freeze grenade". On placement, every
+            // enemy unit / building / aura on the map is frozen for 2
+            // seconds (set up below). NO DAMAGE — earlier versions had
+            // three concentric damage rings, but the high per-second
+            // rates were killing enemies in the first frame which the
+            // user (correctly) described as "instantly deleting" them.
+            // Lumi is now PURELY a tactical 2-second world-stop.
             this.maxHp = 2000; this.hp = 2000;
             this.color = '#8e44ad';
-            this.attackRange = 0;       // no separate projectile attack
-            // Ring radii. ×2 nesting per the original spec.
-            //   r1 = 22  → matches Lumi's sprite radius
-            //   r2 = 44  = 2 × r1
-            //   r3 = 88  = 4 × r1 (also 2 × r2)
-            this.lumiR1 = 22;
-            this.lumiR2 = 44;
-            this.lumiR3 = 88;
-            // Per-ring Y offsets — each ring stacks ABOVE the one below
-            // it as a vertical tower. X stays at Lumi.x for every ring
-            // so the column is straight upward (no horizontal spread).
-            //   Inner ring  bottom edge sits on Lumi's top edge
-            //     → centre dy = -(r1 + spriteRadius) = -(22 + 22) = -44
-            //   Middle ring bottom edge sits on inner ring's top edge
-            //     → inner top = lumiR1Dy - r1 = -44 - 22 = -66
-            //     → middle centre dy = -66 - r2 = -110
-            //   Outer ring  bottom edge sits on middle ring's top edge
-            //     → middle top = lumiR2Dy - r2 = -110 - 44 = -154
-            //     → outer centre dy = -154 - r3 = -242
-            // Total tower extends from y-22 (Lumi top) to y-330 (outer top).
-            this.lumiR1Dy = -(this.lumiR1 + 22);                            //  -44
-            this.lumiR2Dy = this.lumiR1Dy - this.lumiR1 - this.lumiR2;      // -110
-            this.lumiR3Dy = this.lumiR2Dy - this.lumiR2 - this.lumiR3;      // -242
-            // Self-destruct timer — Lumi only lives for 1 second after
-            // placement. The damage zones do their burst, then Lumi
-            // disappears. The placement freeze (2 s) continues independently
-            // via its own setTimeout above, so the world-stop outlives Lumi.
+            this.attackRange = 0;       // no projectile / no damage tick
+            // Self-destruct timer — Lumi disappears 1 second after
+            // placement. The placement freeze (2 s) continues independently
+            // via its own setTimeout below, so the world-stop outlives
+            // Lumi by an extra second.
             this._lumiSpawnTime = performance.now();
             this._lumiLifetimeMs = 1000;
-            this.lumiDmgInner = 500;
-            this.lumiDmgMid   = 1000;
-            this.lumiDmgOuter = 1000;
             // Placement-time mass freeze. Deferred via Promise.resolve()
             // so the constructor finishes before we mutate the global
             // entity lists (otherwise the freeze loop could see THIS
@@ -156,41 +126,16 @@ class Building extends Entity {
         // so the per-second numbers (500 / 1000 / 1000) come out right
         // regardless of frame rate. Safe is also damaged (it's a target).
         if (this.type === 'lumi') {
-            // Self-destruct after _lumiLifetimeMs (1 s) — Lumi is a burst
-            // weapon, not a persistent tower. Mark dead and exit before
-            // running the damage tick so the dying frame doesn't deal one
-            // last hit.
+            // 1-second lifetime — Lumi is a one-shot freeze grenade and
+            // disappears after the freeze begins. The freeze itself
+            // (started in the constructor via setTimeout) keeps running
+            // for its full 2 s independently of Lumi's lifetime. No
+            // damage tick — see constructor comment for why.
             if (this._lumiSpawnTime && (now - this._lumiSpawnTime) >= (this._lumiLifetimeMs || 1000)) {
                 this.hp = 0;
                 this.isDead = true;
                 return;
             }
-            // Each ring now has its own centre (see constructor — they
-            // stack vertically rather than being concentric). Damage uses
-            // INNER → MIDDLE → OUTER priority so an enemy that happens to
-            // overlap with multiple rings still pays only the rate of the
-            // innermost band that contains them (matches the user's "no
-            // stacking, smallest wins" rule).
-            const cxAll = this.x;   // x is the same for all rings
-            const cy1 = this.y + (this.lumiR1Dy || 0);
-            const cy2 = this.y + (this.lumiR2Dy || 0);
-            const cy3 = this.y + (this.lumiR3Dy || 0);
-            const enemies = units.concat(buildings, auras)
-                .concat([playerSafe, enemySafe].filter(s => s))
-                .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible && !e.isFrozen &&
-                             (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
-            const dtSec = (dt || 0) / 1000;
-            enemies.forEach(e => {
-                const ex = e.x || 0, ey = e.y || 0;
-                let dmgRate = 0;
-                if      (Math.hypot(ex - cxAll, ey - cy1) <= this.lumiR1) dmgRate = this.lumiDmgInner;
-                else if (Math.hypot(ex - cxAll, ey - cy2) <= this.lumiR2) dmgRate = this.lumiDmgMid;
-                else if (Math.hypot(ex - cxAll, ey - cy3) <= this.lumiR3) dmgRate = this.lumiDmgOuter;
-                else return;
-                if (dmgRate > 0 && typeof e.takeDamage === 'function') {
-                    e.takeDamage(dmgRate * dtSec * damageMult);
-                }
-            });
         }
 
         // 🎂 Cake — every 2 s, fire a flaming-candle projectile at the
@@ -255,29 +200,10 @@ class Building extends Entity {
         // damage band starts and ends. Colour gets hotter (purple →
         // magenta → red-orange) as you go further out to match the
         // damage gradient.
-        if (this.type === 'lumi') {
-            // Per-ring centres — matches the damage check in update() so
-            // visuals and hitboxes stay locked. X is the same for all
-            // rings; Y is offset per ring (see constructor).
-            const cxAll = this.x;
-            const drawRing = (cy, radius, fill, rim) => {
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(cxAll, cy, radius, 0, Math.PI * 2);
-                ctx.fillStyle   = fill;
-                ctx.fill();
-                ctx.lineWidth   = 3;
-                ctx.strokeStyle = rim;
-                ctx.stroke();
-                ctx.restore();
-            };
-            // Paint OUTER first so the smaller rings sit on top — gives
-            // them the visual priority that matches their damage priority
-            // in the update() check.
-            drawRing(this.y + (this.lumiR3Dy || 0), this.lumiR3, 'rgba(231,76,60,0.12)',  'rgba(231,76,60,0.55)');   // red-orange
-            drawRing(this.y + (this.lumiR2Dy || 0), this.lumiR2, 'rgba(155,89,182,0.16)', 'rgba(155,89,182,0.65)');  // magenta
-            drawRing(this.y + (this.lumiR1Dy || 0), this.lumiR1, 'rgba(142,68,173,0.30)', 'rgba(142,68,173,0.85)');  // deep purple
-        }
+        // Lumi no longer draws damage rings — she's a freeze-only tool
+        // now, so the standard building chrome (circle + 🌟 emoji) is
+        // all the visual needed. The placement sparkle burst in the
+        // constructor handles the "something happened!" feedback.
         // Custom pixel-art sprite (e.g. scrappy's dog face). Replaces the
         // standard "circle + emoji" rendering when the building's type is
         // registered in _CUSTOM_SPRITES. HP bar still draws below for
