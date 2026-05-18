@@ -61,6 +61,22 @@ class Building extends Entity {
             // Lumi by an extra second.
             this._lumiSpawnTime = performance.now();
             this._lumiLifetimeMs = 1000;
+            // Decorative ring geometry. PURELY VISUAL — there's no damage
+            // tick associated. Ring radii (×2 nesting):
+            //   r1 = 22  → matches Lumi's sprite radius
+            //   r2 = 44  = 2 × r1
+            //   r3 = 88  = 4 × r1
+            // Per-ring Y offsets stack the three above Lumi as a vertical
+            // tower (each ring's bottom touches the previous ring's top):
+            //   r1 centre dy = -(r1 + spriteRadius) = -44
+            //   r2 centre dy = lumiR1Dy - r1 - r2   = -110
+            //   r3 centre dy = lumiR2Dy - r2 - r3   = -242
+            this.lumiR1 = 22;
+            this.lumiR2 = 44;
+            this.lumiR3 = 88;
+            this.lumiR1Dy = -(this.lumiR1 + 22);
+            this.lumiR2Dy = this.lumiR1Dy - this.lumiR1 - this.lumiR2;
+            this.lumiR3Dy = this.lumiR2Dy - this.lumiR2 - this.lumiR3;
             // Placement-time mass IMMOBILIZE — per user spec, NOT a full
             // freeze. We want enemies that can't move AND can't attack,
             // but stay VISIBLE (full freeze would also hide them from
@@ -245,10 +261,28 @@ class Building extends Entity {
         // damage band starts and ends. Colour gets hotter (purple →
         // magenta → red-orange) as you go further out to match the
         // damage gradient.
-        // Lumi no longer draws damage rings — she's a freeze-only tool
-        // now, so the standard building chrome (circle + 🌟 emoji) is
-        // all the visual needed. The placement sparkle burst in the
-        // constructor handles the "something happened!" feedback.
+        // 🌟 Lumi — decorative concentric rings stacked above her as a
+        // vertical tower. PURELY VISUAL — no damage is tied to these;
+        // they exist just to show Lumi's signature aesthetic. Rings are
+        // static (no pulse) so the player sees stable shapes.
+        if (this.type === 'lumi') {
+            const cxAll = this.x;
+            const drawRing = (cy, radius, fill, rim) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cxAll, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle   = fill;
+                ctx.fill();
+                ctx.lineWidth   = 3;
+                ctx.strokeStyle = rim;
+                ctx.stroke();
+                ctx.restore();
+            };
+            // Paint OUTER first so smaller rings sit visually on top.
+            drawRing(this.y + (this.lumiR3Dy || 0), this.lumiR3, 'rgba(231,76,60,0.12)',  'rgba(231,76,60,0.55)');
+            drawRing(this.y + (this.lumiR2Dy || 0), this.lumiR2, 'rgba(155,89,182,0.16)', 'rgba(155,89,182,0.65)');
+            drawRing(this.y + (this.lumiR1Dy || 0), this.lumiR1, 'rgba(142,68,173,0.30)', 'rgba(142,68,173,0.85)');
+        }
         // Custom pixel-art sprite (e.g. scrappy's dog face). Replaces the
         // standard "circle + emoji" rendering when the building's type is
         // registered in _CUSTOM_SPRITES. HP bar still draws below for
