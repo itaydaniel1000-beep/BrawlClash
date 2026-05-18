@@ -82,6 +82,12 @@ class Building extends Entity {
             this.lumiR1Dy = -(this.lumiR1 + 22);                            //  -44
             this.lumiR2Dy = this.lumiR1Dy - this.lumiR1 - this.lumiR2;      // -110
             this.lumiR3Dy = this.lumiR2Dy - this.lumiR2 - this.lumiR3;      // -242
+            // Self-destruct timer — Lumi only lives for 1 second after
+            // placement. The damage zones do their burst, then Lumi
+            // disappears. The placement freeze (2 s) continues independently
+            // via its own setTimeout above, so the world-stop outlives Lumi.
+            this._lumiSpawnTime = performance.now();
+            this._lumiLifetimeMs = 1000;
             this.lumiDmgInner = 500;
             this.lumiDmgMid   = 1000;
             this.lumiDmgOuter = 1000;
@@ -150,6 +156,15 @@ class Building extends Entity {
         // so the per-second numbers (500 / 1000 / 1000) come out right
         // regardless of frame rate. Safe is also damaged (it's a target).
         if (this.type === 'lumi') {
+            // Self-destruct after _lumiLifetimeMs (1 s) — Lumi is a burst
+            // weapon, not a persistent tower. Mark dead and exit before
+            // running the damage tick so the dying frame doesn't deal one
+            // last hit.
+            if (this._lumiSpawnTime && (now - this._lumiSpawnTime) >= (this._lumiLifetimeMs || 1000)) {
+                this.hp = 0;
+                this.isDead = true;
+                return;
+            }
             // Each ring now has its own centre (see constructor — they
             // stack vertically rather than being concentric). Damage uses
             // INNER → MIDDLE → OUTER priority so an enemy that happens to
