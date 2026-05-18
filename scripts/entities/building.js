@@ -77,6 +77,14 @@ class Building extends Entity {
             this.lumiR1Dy = -(this.lumiR1 + 22);
             this.lumiR2Dy = this.lumiR1Dy - this.lumiR1 - this.lumiR2;
             this.lumiR3Dy = this.lumiR2Dy - this.lumiR2 - this.lumiR3;
+            // Per-band damage rates (HP per second). Applied to enemies
+            // standing inside the corresponding ring during Lumi's 1-second
+            // lifetime. NOT stacking — INNER → MIDDLE → OUTER priority
+            // (smallest ring wins for overlap). User can adjust these if
+            // the rings feel too lethal again.
+            this.lumiDmgInner = 500;
+            this.lumiDmgMid   = 1000;
+            this.lumiDmgOuter = 1000;
             // Placement-time mass IMMOBILIZE — per user spec, NOT a full
             // freeze. We want enemies that can't move AND can't attack,
             // but stay VISIBLE (full freeze would also hide them from
@@ -187,16 +195,40 @@ class Building extends Entity {
         // so the per-second numbers (500 / 1000 / 1000) come out right
         // regardless of frame rate. Safe is also damaged (it's a target).
         if (this.type === 'lumi') {
-            // 1-second lifetime — Lumi is a one-shot freeze grenade and
-            // disappears after the freeze begins. The freeze itself
-            // (started in the constructor via setTimeout) keeps running
-            // for its full 2 s independently of Lumi's lifetime. No
-            // damage tick — see constructor comment for why.
+            // 1-second lifetime — Lumi disappears after one second.
+            // Self-destruct guard runs BEFORE the damage tick so the
+            // dying frame doesn't sneak in one last hit.
             if (this._lumiSpawnTime && (now - this._lumiSpawnTime) >= (this._lumiLifetimeMs || 1000)) {
                 this.hp = 0;
                 this.isDead = true;
                 return;
             }
+            // Per-band damage tick — enemies inside each ring take that
+            // band's rate × dt seconds. INNER → MIDDLE → OUTER priority
+            // so an enemy that happens to fit multiple rings pays only
+            // the innermost band's rate (no stacking). The frozen
+            // immobilize from placement also zeros their attackDamage /
+            // range, but their HP is still mutable so this damage lands.
+            const cxAll = this.x;
+            const cy1 = this.y + (this.lumiR1Dy || 0);
+            const cy2 = this.y + (this.lumiR2Dy || 0);
+            const cy3 = this.y + (this.lumiR3Dy || 0);
+            const enemies = units.concat(buildings, auras)
+                .concat([playerSafe, enemySafe].filter(s => s))
+                .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible && !e.isFrozen &&
+                             (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
+            const dtSec = (dt || 0) / 1000;
+            enemies.forEach(e => {
+                const ex = e.x || 0, ey = e.y || 0;
+                let dmgRate = 0;
+                if      (Math.hypot(ex - cxAll, ey - cy1) <= this.lumiR1) dmgRate = this.lumiDmgInner;
+                else if (Math.hypot(ex - cxAll, ey - cy2) <= this.lumiR2) dmgRate = this.lumiDmgMid;
+                else if (Math.hypot(ex - cxAll, ey - cy3) <= this.lumiR3) dmgRate = this.lumiDmgOuter;
+                else return;
+                if (dmgRate > 0 && typeof e.takeDamage === 'function') {
+                    e.takeDamage(dmgRate * dtSec * damageMult);
+                }
+            });
         }
 
         // 🎂 Cake — every 2 s, fire a flaming-candle projectile at the
