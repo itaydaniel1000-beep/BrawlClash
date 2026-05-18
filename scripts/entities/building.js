@@ -61,22 +61,25 @@ class Building extends Entity {
             // Lumi by an extra second.
             this._lumiSpawnTime = performance.now();
             this._lumiLifetimeMs = 1000;
-            // Placement-time mass freeze. Deferred via Promise.resolve()
-            // so the constructor finishes before we mutate the global
-            // entity lists (otherwise the freeze loop could see THIS
-            // building mid-init and trip a different code path).
+            // Placement-time mass IMMOBILIZE — per user spec, NOT a full
+            // freeze. Frozen entities are invisible to the opponent and
+            // can't attack OR move; we just want them to stop WALKING for
+            // 2 s. Implementation: zero their `speed` (saved + restored
+            // after 2 s). Buildings / auras don't have speed so they're
+            // unaffected — they don't move anyway. Units keep attacking
+            // from wherever they happen to be standing, they just can't
+            // step closer.
             const oppTeam = team === 'player' ? 'enemy' : 'player';
             const _self = this;
             Promise.resolve().then(() => {
                 try {
-                    const targets = (typeof units !== 'undefined' ? units : [])
-                        .concat(typeof buildings !== 'undefined' ? buildings : [])
-                        .concat(typeof auras !== 'undefined' ? auras : []);
-                    const frozen = [];
+                    const targets = (typeof units !== 'undefined' ? units : []);
+                    const immobile = [];   // { entity, prevSpeed }
                     targets.forEach(e => {
-                        if (e && e !== _self && e.team === oppTeam && !e.isDead && !e.isFrozen) {
-                            e.isFrozen = true;
-                            frozen.push(e);
+                        if (e && e !== _self && e.team === oppTeam && !e.isDead &&
+                            typeof e.speed === 'number' && e.speed > 0) {
+                            immobile.push({ entity: e, prevSpeed: e.speed });
+                            e.speed = 0;
                         }
                     });
                     // Visual sparkle at Lumi's spot to mark the world-stop.
@@ -87,7 +90,15 @@ class Building extends Entity {
                         }
                     }
                     setTimeout(() => {
-                        frozen.forEach(e => { if (e && !e.isDead) e.isFrozen = false; });
+                        immobile.forEach(({ entity, prevSpeed }) => {
+                            if (entity && !entity.isDead && entity.speed === 0) {
+                                // Only restore if STILL 0 (= we're the ones
+                                // who set it; nothing else changed it mid-
+                                // window). If another effect bumped speed
+                                // in the meantime, leave that value alone.
+                                entity.speed = prevSpeed;
+                            }
+                        });
                     }, 2000);
                 } catch (_) {}
             });
