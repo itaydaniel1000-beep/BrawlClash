@@ -60,15 +60,25 @@ class Building extends Entity {
             this.maxHp = 2000; this.hp = 2000;
             this.color = '#8e44ad';
             this.attackRange = 0;       // no separate projectile attack
-            // Innermost ring sits EXACTLY on Lumi's visible sprite edge
-            // (the standard building-circle draw at radius 22). r2 and r3
-            // keep the ×2 / ×4 scaling the user asked for originally:
-            //   r1 = 22  → edge of inner ring on Lumi's outline
+            // Ring radii. ×2 nesting per the original spec.
+            //   r1 = 22  → matches Lumi's sprite radius
             //   r2 = 44  = 2 × r1
             //   r3 = 88  = 4 × r1 (also 2 × r2)
             this.lumiR1 = 22;
             this.lumiR2 = 44;
             this.lumiR3 = 88;
+            // Ring CENTER offset — all three rings share one centre that
+            // sits directly ABOVE Lumi. The Y shift puts the bottom edge
+            // of the innermost ring exactly on Lumi's top edge:
+            //   Lumi sprite radius (visual): 22 px
+            //   shift = r1 + sprite radius  = 22 + 22 = 44 px upward
+            //   inner ring centre y = this.y - 44
+            //   inner ring bottom   = (this.y - 44) + 22 = this.y - 22  ← Lumi's top
+            // Outer rings inherit the same centre so the three remain
+            // concentric — the whole damage stack shifts up as a group,
+            // not just the innermost.
+            this.lumiCenterDx = 0;
+            this.lumiCenterDy = -(this.lumiR1 + 22);
             this.lumiDmgInner = 500;
             this.lumiDmgMid   = 1000;
             this.lumiDmgOuter = 1000;
@@ -137,13 +147,19 @@ class Building extends Entity {
         // so the per-second numbers (500 / 1000 / 1000) come out right
         // regardless of frame rate. Safe is also damaged (it's a target).
         if (this.type === 'lumi') {
+            // Ring centre is offset from Lumi's body (see constructor —
+            // lumiCenterDy shifts the whole stack up so r1's bottom edge
+            // sits on Lumi's top edge). Damage detection uses this same
+            // shifted centre so the in-game range matches the drawn rings.
+            const cx = this.x + (this.lumiCenterDx || 0);
+            const cy = this.y + (this.lumiCenterDy || 0);
             const enemies = units.concat(buildings, auras)
                 .concat([playerSafe, enemySafe].filter(s => s))
                 .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible && !e.isFrozen &&
                              (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
             const dtSec = (dt || 0) / 1000;
             enemies.forEach(e => {
-                const d = Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y);
+                const d = Math.hypot((e.x || 0) - cx, (e.y || 0) - cy);
                 let dmgRate = 0;
                 if      (d <= this.lumiR1) dmgRate = this.lumiDmgInner;
                 else if (d <= this.lumiR2) dmgRate = this.lumiDmgMid;
@@ -218,10 +234,14 @@ class Building extends Entity {
         // magenta → red-orange) as you go further out to match the
         // damage gradient.
         if (this.type === 'lumi') {
+            // Same centre offset as the damage check in update() — keeps
+            // visuals and hitboxes in lock-step.
+            const cx = this.x + (this.lumiCenterDx || 0);
+            const cy = this.y + (this.lumiCenterDy || 0);
             const drawRing = (radius, fill, rim) => {
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                 ctx.fillStyle   = fill;
                 ctx.fill();
                 ctx.lineWidth   = 3;
