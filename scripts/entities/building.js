@@ -206,17 +206,16 @@ class Building extends Entity {
 
         // 🌟 Lumi — render the 3 concentric danger zones BEFORE the
         // building chrome so the rings sit under the sprite. Each ring
-        // is a translucent fill + a brighter rim; pulses very gently
-        // with time so the player can see they're alive. Colour gets
-        // hotter (purple → magenta → red-orange) as you go further out
-        // to match the damage gradient.
+        // is a translucent fill + a brighter rim. Rings are STATIC —
+        // no pulse animation — so the player sees exactly where each
+        // damage band starts and ends. Colour gets hotter (purple →
+        // magenta → red-orange) as you go further out to match the
+        // damage gradient.
         if (this.type === 'lumi') {
-            const now = performance.now();
-            const pulse = 0.85 + 0.15 * Math.sin(now / 400);
             const drawRing = (radius, fill, rim) => {
                 ctx.save();
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, radius * pulse, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
                 ctx.fillStyle   = fill;
                 ctx.fill();
                 ctx.lineWidth   = 3;
