@@ -666,4 +666,30 @@ function drawGhost(ctx) {
         ctx.stroke();
     }
     ctx.restore();
+
+    // 🌟 Lumi placement preview — draw the 3 stacked rings exactly where
+    // they'll appear after release. Same geometry as the constructor:
+    //   r1 = 22, dy = -44     (inner ring bottom on sprite top)
+    //   r2 = 44, dy = -110    (middle bottom on inner top)
+    //   r3 = 88, dy = -242    (outer  bottom on middle top)
+    // Faded fills + dashed rims to read as a preview vs the real rings.
+    if (cardKey === 'lumi' && valid) {
+        ctx.save();
+        ctx.setLineDash([6, 4]);
+        ctx.lineWidth = 2;
+        const drawPreviewRing = (cy, radius, fill, rim) => {
+            ctx.beginPath();
+            ctx.arc(mouseX, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle   = fill;
+            ctx.fill();
+            ctx.strokeStyle = rim;
+            ctx.stroke();
+        };
+        // OUTER first so inner rings paint on top — same paint order as
+        // the actual building.js draw().
+        drawPreviewRing(mouseY - 242, 88, 'rgba(231,76,60,0.08)',  'rgba(231,76,60,0.5)');
+        drawPreviewRing(mouseY - 110, 44, 'rgba(155,89,182,0.10)', 'rgba(155,89,182,0.55)');
+        drawPreviewRing(mouseY -  44, 22, 'rgba(142,68,173,0.18)', 'rgba(142,68,173,0.75)');
+        ctx.restore();
+    }
 }
