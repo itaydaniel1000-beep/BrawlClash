@@ -35,19 +35,10 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
         }
     }
 
-    // 🌟 Lumi cap — exactly ONE Lumi per team on the field at any time.
-    // Unlike the cake (which is once-per-match), Lumi just enforces a
-    // CURRENT-FIELD cap: when the active one dies you can place another.
-    // Stops the player from carpet-bombing the map with overlapping
-    // danger zones for a quick instakill setup.
-    if (!isRemote && typeStr === 'lumi') {
-        const onField = buildings.filter(b => b.team === team && b.type === 'lumi' && !b.isDead).length;
-        if (onField >= 1) {
-            if (team === 'player' && typeof showTransientToast === 'function')
-                showTransientToast(`⛔ לומי אחת בלבד במגרש בו-זמנית`);
-            return null;
-        }
-    }
+    // (Lumi has NO cap — earlier version had 1-per-team-on-field, but
+    // since Lumi only lives 1 second and is purely a freeze grenade,
+    // capping it created an awkward 1-second placement lockout. User
+    // can now stack as many Lumis as they have elixir for.)
 
     // Cake cap — exactly ONE 🎂 cake per team PER MATCH. Once a cake has
     // been placed it can never be placed again by that team this match,
