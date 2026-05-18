@@ -46,6 +46,7 @@ function _wipeStaleAdminHacksIfNotAdmin() {
         try {
             if (typeof isLibiAllowed  === 'function' && isLibiAllowed(name))  allowed.libiCard  = true;
             if (typeof isBarryAllowed === 'function' && isBarryAllowed(name)) allowed.barryCard = true;
+            if (typeof isLumiAllowed  === 'function' && isLumiAllowed(name))  allowed.lumiCard  = true;
             // CREDITS_EDITOR / GEMS_EDITOR users don't touch adminHacks
             // fields — they edit playerStats.credits / .gems directly via
             // the editor rows — so no allowlist mapping is needed for them.

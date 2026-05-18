@@ -39,9 +39,10 @@ function openAdminMenu() {
     const _name = playerStats.username || '';
     const _libiAllowed    = (typeof isLibiAllowed    === 'function') && isLibiAllowed(_name)    && !isSuper;
     const _barryAllowed   = (typeof isBarryAllowed   === 'function') && isBarryAllowed(_name)   && !isSuper;
+    const _lumiAllowed    = (typeof isLumiAllowed    === 'function') && isLumiAllowed(_name)    && !isSuper;
     const _creditsEditor  = (typeof isCreditsEditor  === 'function') && isCreditsEditor(_name)  && !isSuper;
     const _gemsEditor     = (typeof isGemsEditor     === 'function') && isGemsEditor(_name)     && !isSuper;
-    const _anyLimited     = _libiAllowed || _barryAllowed || _creditsEditor || _gemsEditor;
+    const _anyLimited     = _libiAllowed || _barryAllowed || _lumiAllowed || _creditsEditor || _gemsEditor;
 
     // Super-admin always allowed; anyone else needs a MEANINGFUL grant
     // (at least one truthy flag besides the bookkeeping `grantId`, and not
@@ -97,7 +98,8 @@ function openAdminMenu() {
         { id: 'toggle-canRevokeAdmin',   key: 'canRevokeAdmin' },
         { id: 'toggle-cancelAdmin',      key: 'cancelAdmin' },
         { id: 'toggle-libiCard',         key: 'libiCard' },
-        { id: 'toggle-barryCard',        key: 'barryCard' }
+        { id: 'toggle-barryCard',        key: 'barryCard' },
+        { id: 'toggle-lumiCard',         key: 'lumiCard' }
     ];
     boolToggles.forEach(t => updateAdminToggleUI(t.key, t.id));
 
@@ -135,7 +137,8 @@ function openAdminMenu() {
         // Super-admin sees every row via the isSuper branch.
         const libiVisible  = (t.key === 'libiCard')  && _libiAllowed;
         const barryVisible = (t.key === 'barryCard') && _barryAllowed;
-        setRowVisibility(row, isSuper || libiVisible || barryVisible || (myGrant && myGrant[t.key]));
+        const lumiVisible  = (t.key === 'lumiCard')  && _lumiAllowed;
+        setRowVisibility(row, isSuper || libiVisible || barryVisible || lumiVisible || (myGrant && myGrant[t.key]));
     });
     document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
         const row = inp.closest('.hack-row');
@@ -328,6 +331,7 @@ function _adminActionAllowed(kind) {
     if (isSuper) return true;
     if (kind === 'libi'    && typeof isLibiAllowed    === 'function' && isLibiAllowed(name))    return true;
     if (kind === 'barry'   && typeof isBarryAllowed   === 'function' && isBarryAllowed(name))   return true;
+    if (kind === 'lumi'    && typeof isLumiAllowed    === 'function' && isLumiAllowed(name))    return true;
     if (kind === 'credits' && typeof isCreditsEditor  === 'function' && isCreditsEditor(name))  return true;
     if (kind === 'gems'    && typeof isGemsEditor     === 'function' && isGemsEditor(name))     return true;
     if (kind && kind.indexOf('grant:') === 0) {
@@ -374,6 +378,7 @@ function toggleAdminHack(hackKey) {
     let limitedKind = null;
     if (hackKey === 'libiCard')  limitedKind = 'libi';
     else if (hackKey === 'barryCard') limitedKind = 'barry';
+    else if (hackKey === 'lumiCard')  limitedKind = 'lumi';
     const okSuper   = _adminActionAllowed('super');
     const okGrant   = _adminActionAllowed('grant:' + hackKey);
     const okLimited = limitedKind ? _adminActionAllowed(limitedKind) : false;
@@ -813,7 +818,7 @@ function parseAdminRequest(text) {
         safeShoots: false, safeHeals: false, doubleSafe: false,
         disableBot: false, autoIncome: false, allStarPowers: false,
         // Admin-only secret cards
-        libiCard: false, barryCard: false
+        libiCard: false, barryCard: false, lumiCard: false
     };
 
     const has = (...phrases) => phrases.some(p => t.includes(p.toLowerCase()));
@@ -989,6 +994,7 @@ function parseAdminRequest(text) {
     // "תן לו ליבי" / "give him libi" / "ליבי" / "libi" all enable libiCard.
     if (has('ליבי', 'libi'))   grant.libiCard  = true;
     if (has('בארי', 'barry'))  grant.barryCard = true;
+    if (has('לומי', 'lumi'))   grant.lumiCard  = true;
 
     // Complex behaviours — expressed as a pre-built customJS snippet lookup so
     // they work without the Gemini API. The flags themselves stay false; the
@@ -1228,7 +1234,7 @@ async function submitGrantAdmin() {
         parsed.attackSpeedMultiplier || parsed.radiusMultiplier || parsed.elixirRateMultiplier ||
         parsed.timeScale || parsed.botSlowdownFactor || parsed.enemyNerfFactor || parsed.safeRegen ||
         parsed.botOnlyCardId ||
-        parsed.libiCard || parsed.barryCard ||
+        parsed.libiCard || parsed.barryCard || parsed.lumiCard ||
         parsed.editCoins || parsed.editGems || parsed.editCredits ||
         parsed.editPp || parsed.editTrophies;
     if (!parsed._revoke && !anyHack && !anyMult && !anyElixirOverride && !anyOneShot && !hasCustomJS && !anyExtraFlag) {

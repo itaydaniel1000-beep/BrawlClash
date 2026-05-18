@@ -60,9 +60,12 @@ function buildDeck() {
                       (_isSuper || (typeof isLibiAllowed  === 'function' && isLibiAllowed(_username)));
     const _barryOn  = !!(adminHacks && adminHacks.barryCard) &&
                       (_isSuper || (typeof isBarryAllowed === 'function' && isBarryAllowed(_username)));
+    const _lumiOn   = !!(adminHacks && adminHacks.lumiCard) &&
+                      (_isSuper || (typeof isLumiAllowed  === 'function' && isLumiAllowed(_username)));
     let _effectiveDeck = playerDeck.slice();
     if (_libiOn  && CARDS['libi']  && !_effectiveDeck.includes('libi'))  _effectiveDeck.push('libi');
     if (_barryOn && CARDS['barry'] && !_effectiveDeck.includes('barry')) _effectiveDeck.push('barry');
+    if (_lumiOn  && CARDS['lumi']  && !_effectiveDeck.includes('lumi'))  _effectiveDeck.push('lumi');
     // 🎂 Birthday cake — auto-injects into every player's deck during the
     // event's "active" week (May 21 → 27). Not saved to the persisted
     // playerDeck so it vanishes the moment the window closes.

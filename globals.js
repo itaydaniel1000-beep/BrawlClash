@@ -385,7 +385,10 @@ var adminHacks = (function loadAdminHacks() {
         // a 🍦 Barry card is injected into the in-battle deck for the
         // super-admin only. Barry must be placed in the enemy half and
         // generates ice-cream area auras over time.
-        barryCard: false
+        barryCard: false,
+        // Secret "Lumi" admin building — 3-concentric-zone damage tower +
+        // 2-second placement freeze on all enemies. Gated by LUMI_ALLOWED_USERS.
+        lumiCard: false
     };
     try {
         const raw = localStorage.getItem(_userKey('admin_hacks'));

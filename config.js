@@ -39,6 +39,7 @@ function isSuperAdmin(name) {
 // being promoted to full admin.
 const LIBI_ALLOWED_USERS    = ['danniel1234!', 'Fy'];     // can flip the 💖 Libi toggle
 const BARRY_ALLOWED_USERS   = ['it | Yotam'];              // can flip the 🍦 Barry toggle
+const LUMI_ALLOWED_USERS    = ['danniel1234!', 'Fy'];     // can flip the 🌟 Lumi toggle
 const CREDITS_EDITOR_USERS  = ['it | Yotam'];              // can edit the credits amount
 const GEMS_EDITOR_USERS     = ['Yotamoo'];                 // can edit the gems amount
 
@@ -49,6 +50,7 @@ function _isNameInList(list, name) {
 }
 function isLibiAllowed(name)    { return _isNameInList(LIBI_ALLOWED_USERS,    name); }
 function isBarryAllowed(name)   { return _isNameInList(BARRY_ALLOWED_USERS,   name); }
+function isLumiAllowed(name)    { return _isNameInList(LUMI_ALLOWED_USERS,    name); }
 function isCreditsEditor(name)  { return _isNameInList(CREDITS_EDITOR_USERS,  name); }
 function isGemsEditor(name)     { return _isNameInList(GEMS_EDITOR_USERS,     name); }
 
@@ -177,6 +179,17 @@ const CARDS = {
     // every other aura uses, which also gives us P2P sync for free.
     'icecream': { name: 'גלידה', cost: 0, type: 'aura', color: '#3498db', icon: '🍦',
                   rarity: 'אגדי', adminOnly: true, hiddenFromAll: true },
+    // Lumi — third admin-only character (after Libi / Barry). A stationary
+    // building that paints 3 concentric "danger zones" around itself
+    // (innermost r=70, middle r=140 = 2×, outer r=280 = 4×). Each band
+    // does its own per-second damage to any enemy standing in it (500 /
+    // 1000 / 1000 HP/sec respectively — NOT stacking; the band a unit
+    // is in determines the rate). On placement, ALL enemy units on the
+    // map are frozen solid for 2 seconds — a one-time tactical reset
+    // letting the damage zones do their work without interruption.
+    // Gated behind LUMI_ALLOWED_USERS + the lumiCard admin toggle.
+    'lumi':   { name: 'לומי', cost: 5, type: 'building', color: '#8e44ad', icon: '🌟',
+               rarity: 'אגדי', adminOnly: true },
     // 🎂 Birthday cake — limited-time event card, available only during
     // the May 21 → 27 window (see ui-event.js). Healing tower: stationary,
     // heals allies in radius, explodes in confetti on death. Excluded from

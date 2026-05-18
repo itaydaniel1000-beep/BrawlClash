@@ -44,6 +44,58 @@ class Building extends Entity {
             this.attackSpeed = 2000;      // ms between shots
             this.attackRange = 200;
             this.lastAttackTime = 0;
+        } else if (type === 'lumi') {
+            // 🌟 Lumi — admin-only "danger-zone" tower. Three concentric
+            // damage rings + a 2-second mass-freeze on placement.
+            //   • r1 (innermost, 70 px):  500 HP/sec to anyone inside
+            //   • r2 (middle, 140 px = 2× r1): 1000 HP/sec to anyone in
+            //     the r1→r2 ring
+            //   • r3 (outer, 280 px = 4× r1): 1000 HP/sec to anyone in
+            //     the r2→r3 ring
+            //   Damage does NOT stack — each enemy takes only the rate
+            //   of whichever band they're standing in (user spec).
+            // On placement, every enemy unit / building / aura on the
+            // map is frozen for 2 seconds — a one-time "world stop" so
+            // the damage zones get an uninterrupted opening burst.
+            this.maxHp = 2000; this.hp = 2000;
+            this.color = '#8e44ad';
+            this.attackRange = 0;       // no separate projectile attack
+            this.lumiR1 = 70;
+            this.lumiR2 = 140;
+            this.lumiR3 = 280;
+            this.lumiDmgInner = 500;
+            this.lumiDmgMid   = 1000;
+            this.lumiDmgOuter = 1000;
+            // Placement-time mass freeze. Deferred via Promise.resolve()
+            // so the constructor finishes before we mutate the global
+            // entity lists (otherwise the freeze loop could see THIS
+            // building mid-init and trip a different code path).
+            const oppTeam = team === 'player' ? 'enemy' : 'player';
+            const _self = this;
+            Promise.resolve().then(() => {
+                try {
+                    const targets = (typeof units !== 'undefined' ? units : [])
+                        .concat(typeof buildings !== 'undefined' ? buildings : [])
+                        .concat(typeof auras !== 'undefined' ? auras : []);
+                    const frozen = [];
+                    targets.forEach(e => {
+                        if (e && e !== _self && e.team === oppTeam && !e.isDead && !e.isFrozen) {
+                            e.isFrozen = true;
+                            frozen.push(e);
+                        }
+                    });
+                    // Visual sparkle at Lumi's spot to mark the world-stop.
+                    if (typeof particles !== 'undefined') {
+                        const colors = ['#8e44ad', '#9b59b6', '#bb8fce', '#fff', '#f1c40f'];
+                        for (let i = 0; i < 24; i++) {
+                            try { particles.push(new Particle(_self.x, _self.y, colors[i % colors.length])); } catch (_) {}
+                        }
+                    }
+                    setTimeout(() => {
+                        frozen.forEach(e => { if (e && !e.isDead) e.isFrozen = false; });
+                    }, 2000);
+                } catch (_) {}
+            });
         }
 
         // Level scaling removed — matches unit-core.js. Every building uses
@@ -71,6 +123,30 @@ class Building extends Entity {
                 this.hp = Math.min(this.maxHp, this.hp + 50);
                 this.lastHealTime = now;
             }
+        }
+
+        // 🌟 Lumi — per-frame damage tick to every enemy inside any of
+        // the 3 concentric rings. Damage rate depends on WHICH band the
+        // enemy is in (no stacking — user spec). Multiplies by dt/1000
+        // so the per-second numbers (500 / 1000 / 1000) come out right
+        // regardless of frame rate. Safe is also damaged (it's a target).
+        if (this.type === 'lumi') {
+            const enemies = units.concat(buildings, auras)
+                .concat([playerSafe, enemySafe].filter(s => s))
+                .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible && !e.isFrozen &&
+                             (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
+            const dtSec = (dt || 0) / 1000;
+            enemies.forEach(e => {
+                const d = Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y);
+                let dmgRate = 0;
+                if      (d <= this.lumiR1) dmgRate = this.lumiDmgInner;
+                else if (d <= this.lumiR2) dmgRate = this.lumiDmgMid;
+                else if (d <= this.lumiR3) dmgRate = this.lumiDmgOuter;
+                else return;
+                if (dmgRate > 0 && typeof e.takeDamage === 'function') {
+                    e.takeDamage(dmgRate * dtSec * damageMult);
+                }
+            });
         }
 
         // 🎂 Cake — every 2 s, fire a flaming-candle projectile at the
@@ -127,6 +203,33 @@ class Building extends Entity {
         // the opponent's side and only become visible when the opponent
         // releases their freeze.
         if (this.isFrozen && this.team === 'enemy') return;
+
+        // 🌟 Lumi — render the 3 concentric danger zones BEFORE the
+        // building chrome so the rings sit under the sprite. Each ring
+        // is a translucent fill + a brighter rim; pulses very gently
+        // with time so the player can see they're alive. Colour gets
+        // hotter (purple → magenta → red-orange) as you go further out
+        // to match the damage gradient.
+        if (this.type === 'lumi') {
+            const now = performance.now();
+            const pulse = 0.85 + 0.15 * Math.sin(now / 400);
+            const drawRing = (radius, fill, rim) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius * pulse, 0, Math.PI * 2);
+                ctx.fillStyle   = fill;
+                ctx.fill();
+                ctx.lineWidth   = 3;
+                ctx.strokeStyle = rim;
+                ctx.stroke();
+                ctx.restore();
+            };
+            // Order: OUTER first so inner rings paint on top (more
+            // visually dominant near the centre, matching the damage).
+            drawRing(this.lumiR3, 'rgba(231,76,60,0.12)',  'rgba(231,76,60,0.55)');   // red-orange
+            drawRing(this.lumiR2, 'rgba(155,89,182,0.16)', 'rgba(155,89,182,0.65)');  // magenta
+            drawRing(this.lumiR1, 'rgba(142,68,173,0.30)', 'rgba(142,68,173,0.85)');  // deep purple
+        }
         // Custom pixel-art sprite (e.g. scrappy's dog face). Replaces the
         // standard "circle + emoji" rendering when the building's type is
         // registered in _CUSTOM_SPRITES. HP bar still draws below for
