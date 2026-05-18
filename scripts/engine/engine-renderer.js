@@ -147,6 +147,7 @@ function draw(ctx) {
                 if (!t) continue;
                 const card = (typeof CARDS !== 'undefined') ? CARDS[t] : null;
                 if (!card || card.type === 'spell') continue; // not copyable
+                if (t === 'bruce') continue;                   // bruce is explicitly un-cloneable (user spec)
                 const r = (e.radius || 18) + 6;
                 ctx.beginPath();
                 ctx.arc(e.x || 0, e.y || 0, r, 0, Math.PI * 2);

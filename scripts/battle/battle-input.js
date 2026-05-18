@@ -59,6 +59,13 @@ function _placeAtInternal(x, y, shiftHeld) {
             if (typeof showTransientToast === 'function') showTransientToast('⚠️ אי אפשר לשכפל את הדמות הזו');
             return { placed: false };
         }
+        // Bruce is explicitly blocked from being cloned (user spec) — too
+        // strong as a double-cost copy ladder; cloning a Bruce for cost+1
+        // would let the player overrun the field with tanks for cheap.
+        if (enemyType === 'bruce') {
+            if (typeof showTransientToast === 'function') showTransientToast('⚠️ אי אפשר לשכפל את ברוס');
+            return { placed: false };
+        }
         const totalCost = (enemyCard.cost || 0) + 1;
         const canAffordCopy = playerElixir >= (totalCost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
         if (!canAffordCopy) {
