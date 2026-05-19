@@ -181,26 +181,25 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     // === Normal AI cycle — gated by cooldown ===============================
     if (now - lastAIActionTime < cooldownMs) return;
 
-    // 1) REACTIVE MIRROR COUNTER — per user spec, the bot's main job is
-    //    to MATCH whatever the player sends. For every unit type the
-    //    player has on the field, the bot tries to keep an equal count
-    //    of the SAME type on its own side, so any threat the player
-    //    sends gets a 1:1 counter that can actually win the fight.
+    // 1) REACTIVE MIRROR COUNTER — for every player unit IN THE BOT'S
+    //    HALF (= an actual threat advancing on us), the bot tries to
+    //    keep an equal count of the SAME type on its own side.
     //
-    //    Algorithm:
-    //      • Count the player's units by type, the bot's by type
-    //      • Walk the player's units and pick the type with the largest
-    //        deficit (player_count > bot_count). Skip un-spawnable cards
-    //        (no CARDS entry, admin-only, event-only).
-    //      • Spawn the matching type at the same x lane as the threat,
-    //        just below the bot's safe (y=100), if affordable.
+    //    Per user — "no wasted Bruces on nothing". We only mirror units
+    //    that have crossed past CANVAS_HEIGHT/2 into the bot's half;
+    //    units sitting on the player's own side aren't a threat yet
+    //    and don't deserve a response.
     //
-    //    Auras / buildings / specials are excluded from the mirror —
-    //    they can't be physically countered with a same-type spawn.
-    //    The fall-through cases (defensive AoE, push, etc.) still run
-    //    below for those scenarios.
+    //    Algorithm (when an in-half threat exists):
+    //      • Count threats by type (player units in our half)
+    //      • Count our matching units (anywhere) by type
+    //      • Walk the threats and pick the type with the largest
+    //        deficit (threat_count > bot_count). Skip un-spawnable
+    //        cards (no CARDS entry, not 'unit', admin/event-only).
+    //      • Spawn the matching type at the threat's x lane, y=100.
     const playerUnits = units.filter(u => u && u.team === 'player' && !u.isDead &&
-                                          !u.isInvisible && !u.isFrozen);
+                                          !u.isInvisible && !u.isFrozen &&
+                                          u.y < CONFIG.CANVAS_HEIGHT / 2);
     if (playerUnits.length > 0) {
         const myUnitCounts = {};
         units.forEach(u => {
@@ -255,35 +254,15 @@ function _aiReactiveStep(dt, now, cooldownMs) {
         }
     }
 
-    // 2) PLAYER BUILDINGS — turrets / portals on the player's side are
-    //    persistent threats. Send a high-HP brawler at them.
-    const playerBuildings = buildings.filter(b => b.team === 'player' && !b.isDead);
-    if (playerBuildings.length > 0) {
-        const target = playerBuildings[0];
-        const choice = _aiFirstAffordable(['bull', 'bruce']);
-        if (choice && aiSpawn(target.x, 100, choice)) {
-            lastAIActionTime = now;
-            return;
-        }
-    }
+    // (Offensive steps removed per user spec — "stop wasting Bruces
+    // and various things for no reason". No more spawning units to
+    // attack player buildings, rebuild dead units, or push to the
+    // player's safe. The bot ONLY spawns units when there's an actual
+    // threat in our half — see step 1 above.)
 
-    // 3) REBUILD RECENT LOSSES — if one of our units died in the last 10s,
-    //    re-summon the same type at the spot it died (50% chance so the bot
-    //    doesn't get stuck in an infinite re-spawn loop on the same lane).
-    const recent = aiDeaths.filter(d => now - d.time < 10000);
-    if (recent.length > 0 && Math.random() > 0.5) {
-        const toRebuild = recent[0];
-        const choice = _aiAffordable(toRebuild.type);
-        if (choice && aiSpawn(toRebuild.x, 100, choice)) {
-            aiDeaths = aiDeaths.filter(d => d !== toRebuild);
-            lastAIActionTime = now;
-            return;
-        }
-    }
-
-    // 4) DEFENSIVE BUILDINGS — if we have a lot of elixir and not enough
-    //    turrets on the field, drop one. Picks the first turret type we
-    //    don't currently have out.
+    // 2) DEFENSIVE TURRET BUILD-UP — if we have spare elixir (≥ 6) and
+    //    we're missing one of the standard turret types, drop it.
+    //    Picks the first turret type we don't currently have out.
     const buildOptions = ['scrappy', 'penny', 'mr-p'];
     const currentTurrets = buildings.filter(b => b.team === 'enemy').map(b => b.type);
     const buildChoice = buildOptions.find(o => !currentTurrets.includes(o) && _aiAffordable(o));
@@ -294,11 +273,10 @@ function _aiReactiveStep(dt, now, cooldownMs) {
         }
     }
 
-    // 4.5) IDLE → PAM ON SAFE — per user spec: any time the bot has
-    //      nothing better to do with its elixir, drop a Pam directly on
-    //      the bot's safe so the heal aura stacks up. Capped at 3 Pams
-    //      on the safe so the bot doesn't bottomless-pit its elixir
-    //      into a self-heal-only loop. Costs the full 8 elixir.
+    // 3) IDLE → PAM ON SAFE — any time the bot has nothing better to
+    //    do with its elixir, drop a Pam directly on the safe so the
+    //    heal aura stacks up. Capped at 3 Pams on the safe so the bot
+    //    doesn't bottomless-pit its elixir into self-heal-only.
     if (_aiAffordable('pam')) {
         const myPams = (typeof auras !== 'undefined' ? auras : [])
             .filter(a => a && a.team === 'enemy' && a.type === 'pam' && !a.isDead).length;
@@ -309,19 +287,9 @@ function _aiReactiveStep(dt, now, cooldownMs) {
             }
         }
     }
-
-    // 5) AGGRESSIVE PUSH — if elixir is full enough and nothing else needed
-    //    handling, push a unit toward the player's safe. Prefer a tank.
-    if (enemyElixir >= 4) {
-        const choice = _aiFirstAffordable(['bull', 'bruce', 'leon', 'porter']);
-        if (choice) {
-            const x = Math.random() * 400 + 100;
-            if (aiSpawn(x, 100, choice)) {
-                lastAIActionTime = now;
-                return;
-            }
-        }
-    }
+    // No further action — the bot HOLDS elixir rather than spending
+    // it on a fruitless push. If a threat arrives, the next tick
+    // will catch it via step 1 with a topped-up elixir bank.
 }
 
 // ----- difficulty wrappers ------------------------------------------------------
