@@ -173,16 +173,16 @@ class Building extends Entity {
                         }
                     }
 
-                    // 🌟 Star-shower — one homing golden star flies from
-                    // Lumi to EVERY enemy on the map. The star's update is
-                    // replaced with target-following logic; once it reaches
-                    // the original enemy position (or 1.5 s timeout) it
-                    // dies. The visual underlines what just happened — the
-                    // user can trace which enemy each star hit.
+                    // 🌟 Star-shower — one homing mini-Lumi flies from
+                    // the placed Lumi to every enemy that gets the
+                    // immobilize effect (= units + buildings on the
+                    // opposing team). Auras are excluded — they don't
+                    // move or directly attack, so they don't get frozen
+                    // by Lumi, so they don't need a star. Stars are
+                    // visual-only; they don't deal damage themselves.
                     if (typeof particles !== 'undefined') {
                         const flightTargets = (typeof units !== 'undefined' ? units : [])
-                            .concat(typeof buildings !== 'undefined' ? buildings : [])
-                            .concat(typeof auras !== 'undefined' ? auras : []);
+                            .concat(typeof buildings !== 'undefined' ? buildings : []);
                         flightTargets.forEach(e => {
                             if (!e || e === _self || e.team !== oppTeam || e.isDead) return;
                             if (typeof isAmberOrTrail === 'function' && isAmberOrTrail(e)) return;
