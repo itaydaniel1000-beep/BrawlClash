@@ -164,10 +164,18 @@ function initGame() {
             const sx = enemySafe.x;
             const sy = enemySafe.y;
             window._botFortressQueue = [
-                { x: sx, y: sy,        type: 'scrappy' },   // Layer 1 — Sparky ON the safe (per user)
-                { x: sx, y: sy +  82,  type: 'scrappy' },   // Layer 2 — Sparky at original Pam-aura-edge offset
-                { x: sx, y: sy + 112,  type: 'pam'     },   // Layer 3 — Pam just behind layer-2 Sparky
-                { x: sx, y: sy + 194,  type: 'scrappy' }    // Layer 4 — Sparky at front edge of layer-3 Pam aura
+                // Opening — 4 Sparkies in a horizontal row at safe level
+                // (centred on sx, 100-px spacing). Forms a wall of
+                // turrets in front of the bot's safe before any Pam
+                // healing layer goes up.
+                { x: sx - 150, y: sy, type: 'scrappy' },
+                { x: sx -  50, y: sy, type: 'scrappy' },
+                { x: sx +  50, y: sy, type: 'scrappy' },
+                { x: sx + 150, y: sy, type: 'scrappy' },
+                // Then a Pam slightly behind the row + a final Sparky
+                // at the front edge of that Pam's heal aura.
+                { x: sx, y: sy + 112, type: 'pam'     },
+                { x: sx, y: sy + 194, type: 'scrappy' }
             ];
         } else {
             window._botFortressQueue = [];
