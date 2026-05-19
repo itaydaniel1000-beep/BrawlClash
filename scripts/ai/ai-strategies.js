@@ -92,51 +92,53 @@ function _aiReactiveStep(dt, now, cooldownMs) {
             const spawnX = botSafeX;
             const spawnY = botSafeY + 40;
 
-            // Build the path: spawn point → outer → middle → inner ring,
-            // all centred on the BOT's safe — THEN the same sequence
-            // again, so each ring is walked twice for 6 laps total.
+            // 4 Ambers spawn at the same instant, each starting 90° apart
+            // around the outer ring. They all walk the same 6-lap sequence
+            // (outer/middle/inner ×2) so the formation stays in lock-step:
+            // at any frame, four Ambers sit on opposite sides of whichever
+            // ring they're on, painting fire-trails in parallel. Coverage
+            // builds 4× faster than with a single Amber.
+            //
             // 12 waypoints per ring + 1 closing waypoint = 13 per pass.
-            const waypoints = [{ x: spawnX, y: spawnY }];
             const RINGS = [150, 100, 50, 150, 100, 50];
-            RINGS.forEach((r, ringIdx) => {
-                // First ring starts at the top of the circle (12-o'clock).
-                // Subsequent rings start from the closest angle to the
-                // previous ring's end to minimize the visible "jump".
-                const startAngle = ringIdx === 0 ? -Math.PI / 2 : 0;
-                for (let i = 0; i <= 12; i++) {
-                    const angle = startAngle + (i / 12) * Math.PI * 2;
-                    waypoints.push({
-                        x: botSafeX + r * Math.cos(angle),
-                        y: botSafeY + r * Math.sin(angle)
-                    });
+            const OFFSETS = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];   // 12-o'clock, 3, 6, 9
+            let spawned = 0;
+            OFFSETS.forEach(baseOffset => {
+                const waypoints = [{ x: spawnX, y: spawnY }];
+                RINGS.forEach((r) => {
+                    // Each Amber's starting angle is the SAME `baseOffset`
+                    // for every ring — keeps the 4 of them quartered
+                    // around the safe through every revolution.
+                    for (let i = 0; i <= 12; i++) {
+                        const angle = baseOffset + (i / 12) * Math.PI * 2;
+                        waypoints.push({
+                            x: botSafeX + r * Math.cos(angle),
+                            y: botSafeY + r * Math.sin(angle)
+                        });
+                    }
+                });
+                try {
+                    const rOut = spawnEntity(spawnX, spawnY, 'enemy', 'amber', false, false, null, 0, waypoints);
+                    if (rOut !== null && rOut !== undefined) {
+                        spawned++;
+                        // Boost speed for the long orbit path. 400 px/s
+                        // finishes the full tour (~3800 px) in ~10 s.
+                        const justSpawned = (typeof units !== 'undefined' && units.length)
+                                          ? units[units.length - 1] : null;
+                        if (justSpawned && justSpawned.type === 'amber' &&
+                            justSpawned.team === 'enemy') {
+                            justSpawned.speed = 400;
+                        }
+                    } else {
+                        console.warn(`   ↳ Amber #${spawned + 1} spawnEntity returned null (blocked by a cap?)`);
+                    }
+                } catch (e) {
+                    console.warn(`   ↳ Amber #${spawned + 1} spawnEntity threw`, e);
                 }
             });
-
-            let spawned = 0;
-            try {
-                const r = spawnEntity(spawnX, spawnY, 'enemy', 'amber', false, false, null, 0, waypoints);
-                if (r !== null && r !== undefined) {
-                    spawned = 1;
-                    // Boost Amber's speed for this special path — the
-                    // doubled 6-ring tour is ~3800 px. At base 75 px/s
-                    // she'd take ~50 s; 400 px/s finishes in ~10 s,
-                    // keeping the punish responsive without dragging
-                    // the match.
-                    const justSpawned = (typeof units !== 'undefined' && units.length)
-                                      ? units[units.length - 1] : null;
-                    if (justSpawned && justSpawned.type === 'amber' &&
-                        justSpawned.team === 'enemy') {
-                        justSpawned.speed = 400;
-                    }
-                } else {
-                    console.warn(`   ↳ Amber spawnEntity returned null (blocked by a cap?)`);
-                }
-            } catch (e) {
-                console.warn(`   ↳ Amber spawnEntity threw`, e);
-            }
-            console.log(`🔥 AI Amber-orbit FIRED: ${playerMrPs.length} Mr-Ps → 1 Amber, ${RINGS.length} laps around BOT safe (r=${RINGS.join('/')})`);
+            console.log(`🔥 AI Amber-orbit FIRED: ${playerMrPs.length} Mr-Ps → ${spawned} Ambers, ${RINGS.length} laps × ${OFFSETS.length} quartered (r=${RINGS.join('/')})`);
             if (typeof showTransientToast === 'function') {
-                showTransientToast(`🔥 הבוט שולח אמבר להגן על הכספת שלו!`);
+                showTransientToast(`🔥 הבוט שולח ${spawned} אמברות סביב הכספת שלו!`);
             }
             window._aiLastAmberAt = now;
             lastAIActionTime = now;
