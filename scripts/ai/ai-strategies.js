@@ -46,42 +46,47 @@ function _aiReactiveStep(dt, now, cooldownMs) {
 
     // 🔥 MR-P PUNISH — when the player has 5+ Mr-P spawners on the field
     // they're playing a heavy spawner-turtle game. Amber is the perfect
-    // counter: she walks a straight line from OUR safe to THEIR safe
-    // leaving a fire trail that fries the spawner cluster + every porter
-    // it produces. One Amber per 10-second window so the bot doesn't
-    // burn its entire elixir bar repeatedly on the same state. Costs 7
-    // elixir, so it only fires when the bot can actually afford it.
+    // counter: she walks a straight vertical line from our safe to the
+    // player's safe leaving a fire trail that fries the spawner cluster.
     //
-    // We check this BEFORE the cooldown gate so the bot reacts instantly
-    // when the player crosses the 5-Mr-P threshold instead of waiting
-    // its turn in the AI cycle. Diagnostic console.log fires once per
-    // 5-second window so we can see what's blocking when it doesn't fire.
-    if (!window._aiLastAmberAt) window._aiLastAmberAt = 0;
+    // The bot now spawns ONE Amber PER PLAYER MR-P, each on the same x
+    // column as its target. If the player clustered all their Mr-Ps on
+    // the left edge, the column of Ambers also sweeps the left edge,
+    // covering exactly the strip the spawners occupy. Spread-out Mr-Ps
+    // get a spread-out Amber response too — wherever the player builds,
+    // the punish lands directly on top.
+    //
+    // 10-second cooldown stops the bot from chaining this every AI tick.
+    // The check sits ABOVE the standard cooldown gate so it triggers
+    // immediately on the threshold cross. ELIXIR COST IS BYPASSED for
+    // this special punish — the cooldown is the only throttle. Otherwise
+    // a player who keeps the bot's elixir drained could spawn-camp 5
+    // Mr-Ps forever and the punish would never fire.
+    if (!window._aiLastAmberAt)  window._aiLastAmberAt  = 0;
     if (!window._aiLastAmberLog) window._aiLastAmberLog = 0;
-    const playerMrPCount = buildings.filter(b => b.team === 'player' && b.type === 'mr-p' && !b.isDead).length;
-    const amberCost = (CARDS && CARDS.amber && CARDS.amber.cost) || 7;
-    if (playerMrPCount >= 5) {
+    const playerMrPs = buildings.filter(b => b.team === 'player' && b.type === 'mr-p' && !b.isDead);
+    if (playerMrPs.length >= 5) {
         const cooldownLeft = 10000 - (now - window._aiLastAmberAt);
-        const haveElixir   = enemyElixir >= amberCost;
-        if (cooldownLeft <= 0 && haveElixir) {
-            const startX = CONFIG.CANVAS_WIDTH / 2;
+        if (cooldownLeft <= 0) {
             const startY = 90;                                // just below the enemy safe
-            const endX   = CONFIG.CANVAS_WIDTH / 2;
             const endY   = CONFIG.CANVAS_HEIGHT - 100;        // just above the player safe
-            // spawnEntity sig: (x, y, team, type, isFrozen, isRemote, remoteBuffs, remoteLevel, waypoints)
-            const result = spawnEntity(startX, startY, 'enemy', 'amber', false, false, null, 0, [
-                { x: startX, y: startY },
-                { x: endX,   y: endY   }
-            ]);
-            console.log(`🔥 AI Amber-sweep fired: player has ${playerMrPCount} Mr-P, bot elixir ${enemyElixir.toFixed(1)}, spawn result:`, result);
+            // ONE Amber per Mr-P, vertical column aligned with the spawner's x.
+            playerMrPs.forEach(mrp => {
+                const lane = mrp.x;
+                try {
+                    spawnEntity(lane, startY, 'enemy', 'amber', false, false, null, 0, [
+                        { x: lane, y: startY },
+                        { x: lane, y: endY   }
+                    ]);
+                } catch (e) {}
+            });
+            console.log(`🔥 AI Amber-sweep fired: ${playerMrPs.length} Mr-Ps → ${playerMrPs.length} Ambers, bot elixir ${enemyElixir.toFixed(1)}`);
             window._aiLastAmberAt = now;
             lastAIActionTime = now;
             return;
         } else if (now - window._aiLastAmberLog > 5000) {
-            // Why it's blocked — surface to console so the player can see.
-            console.log(`🔥 AI Amber-sweep BLOCKED: player has ${playerMrPCount} Mr-P, ` +
-                `bot elixir ${enemyElixir.toFixed(1)}/${amberCost} ${haveElixir ? '✓' : '✗'}, ` +
-                `cooldown ${cooldownLeft > 0 ? Math.ceil(cooldownLeft/1000)+'s left' : 'ready ✓'}`);
+            console.log(`🔥 AI Amber-sweep BLOCKED: ${playerMrPs.length} Mr-Ps, ` +
+                `cooldown ${Math.ceil(cooldownLeft/1000)}s left`);
             window._aiLastAmberLog = now;
         }
     }
