@@ -172,6 +172,62 @@ class Building extends Entity {
                             try { particles.push(new Particle(_self.x, _self.y, colors[i % colors.length])); } catch (_) {}
                         }
                     }
+
+                    // 🌟 Star-shower — one homing golden star flies from
+                    // Lumi to EVERY enemy on the map. The star's update is
+                    // replaced with target-following logic; once it reaches
+                    // the original enemy position (or 1.5 s timeout) it
+                    // dies. The visual underlines what just happened — the
+                    // user can trace which enemy each star hit.
+                    if (typeof particles !== 'undefined') {
+                        const flightTargets = (typeof units !== 'undefined' ? units : [])
+                            .concat(typeof buildings !== 'undefined' ? buildings : [])
+                            .concat(typeof auras !== 'undefined' ? auras : []);
+                        flightTargets.forEach(e => {
+                            if (!e || e === _self || e.team !== oppTeam || e.isDead) return;
+                            if (typeof isAmberOrTrail === 'function' && isAmberOrTrail(e)) return;
+                            try {
+                                const p = new Particle(_self.x, _self.y, '#f1c40f');
+                                // Snapshot the enemy's spot at trigger time.
+                                // The enemy is frozen-in-place for the next
+                                // 2 s, so the snapshot is also the spot
+                                // they'll be when the star arrives.
+                                p._lumiTargetX = e.x || 0;
+                                p._lumiTargetY = e.y || 0;
+                                p._lumiSpeed   = 800;     // px / sec
+                                p.age = 0;
+                                p.isDead = false;
+                                p.update = function (dt) {
+                                    const dx = this._lumiTargetX - this.x;
+                                    const dy = this._lumiTargetY - this.y;
+                                    const d  = Math.hypot(dx, dy);
+                                    if (d < 8) { this.isDead = true; return; }
+                                    const step = this._lumiSpeed * dt / 1000;
+                                    this.x += (dx / d) * step;
+                                    this.y += (dy / d) * step;
+                                    this.age += dt;
+                                    if (this.age > 1500) this.isDead = true;
+                                };
+                                p.draw = function (ctx) {
+                                    ctx.save();
+                                    // Subtle pulse so the star looks alive
+                                    // mid-flight rather than a static glyph.
+                                    const pulse = 1 + 0.12 * Math.sin(performance.now() / 80);
+                                    ctx.translate(this.x, this.y);
+                                    ctx.scale(pulse, pulse);
+                                    ctx.shadowBlur  = 14;
+                                    ctx.shadowColor = '#fff7c0';
+                                    ctx.fillStyle   = '#f1c40f';
+                                    ctx.font        = 'bold 22px Arial';
+                                    ctx.textAlign   = 'center';
+                                    ctx.textBaseline = 'middle';
+                                    ctx.fillText('🌟', 0, 0);
+                                    ctx.restore();
+                                };
+                                particles.push(p);
+                            } catch (_) {}
+                        });
+                    }
                     setTimeout(() => {
                         immobile.forEach(({ entity, prevSpeed, prevAttackDamage, prevAttackRange }) => {
                             if (!entity || entity.isDead) return;
