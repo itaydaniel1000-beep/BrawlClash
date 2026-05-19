@@ -152,38 +152,25 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
-        // 🛡️ Bot defensive fortress — only in vs-bot (skip P2P). A
-        // minimal 4-building line in front of the bot's safe (1 of each
-        // type, not multiples):
-        //   Layer 1 — 1 Pam ON the safe (heal source)
-        //   Layer 2 — 1 Sparky at the front edge of the Pam aura
-        //   Layer 3 — 1 Pam slightly behind that Sparky
-        //   Layer 4 — 1 Sparky at the front edge of the layer-3 Pam aura
-        //
-        // All on the safe's centre x, stacked along +y toward the player.
-        // Elixir bypass: enemyElixir clamps to 0 during the build, then
-        // resets to 5 so the bot has its normal starting bank afterwards.
-        if (!currentBattleRoom) {
-            try {
-                const sx = enemySafe.x;
-                const sy = enemySafe.y;
-                const place = (x, y, type) => {
-                    try { spawnEntity(x, y, 'enemy', type); } catch (_) {}
-                };
-                // Layer 1 — 1 Pam ON the safe.
-                place(sx, sy, 'pam');
-                // Layer 2 — 1 Sparky at the front edge of the Pam aura
-                // (Pam radius = 82 px, so y = sy + 82).
-                place(sx, sy + 82, 'scrappy');
-                // Layer 3 — 1 Pam slightly behind the Sparky (+30 buffer).
-                place(sx, sy + 112, 'pam');
-                // Layer 4 — 1 Sparky at the front edge of the layer-3
-                // Pam aura (sy + 112 + 82 = sy + 194).
-                place(sx, sy + 194, 'scrappy');
-                // Restore the bot's elixir so it has the usual 5 to start
-                // offensive plays from. The fortress was free.
-                enemyElixir = 5;
-            } catch (e) { /* fortress build is best-effort — don't break the match if a spawn fails */ }
+        // 🛡️ Bot defensive fortress QUEUE — only in vs-bot (skip P2P).
+        // The bot wants to put up a 4-building line in front of its
+        // safe (Pam → Sparky → Pam → Sparky, each at the front edge of
+        // the previous Pam aura). Per user request the buildings are
+        // NOT placed all at once at match start — instead the queue
+        // sits here and the AI (see ai-strategies.js step 0.5) builds
+        // the NEXT item whenever it has enough elixir to afford it.
+        // Bot pays the full cost like any other play; no elixir bypass.
+        if (!currentBattleRoom && enemySafe) {
+            const sx = enemySafe.x;
+            const sy = enemySafe.y;
+            window._botFortressQueue = [
+                { x: sx, y: sy,        type: 'pam'     },   // Layer 1 — on the safe
+                { x: sx, y: sy +  82,  type: 'scrappy' },   // Layer 2 — front edge of layer-1 Pam aura
+                { x: sx, y: sy + 112,  type: 'pam'     },   // Layer 3 — just behind layer-2 Sparky
+                { x: sx, y: sy + 194,  type: 'scrappy' }    // Layer 4 — front edge of layer-3 Pam aura
+            ];
+        } else {
+            window._botFortressQueue = [];
         }
 
         buildDeck();

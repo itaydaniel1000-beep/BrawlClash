@@ -44,6 +44,26 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     // as soon as conditions are met, regardless of when the bot last
     // acted on a generic strategy. ============================================
 
+    // 🛡️ DEFENSIVE-FORTRESS BUILD QUEUE — see engine-core.js initGame.
+    // The queue holds the next-up entry of a 4-building line in front
+    // of the bot's safe. Each tick, if the bot can afford the next
+    // item, it places it and pops the queue. Once empty (= the
+    // fortress is fully built), the check is a no-op.
+    const fortressQ = window._botFortressQueue;
+    if (fortressQ && fortressQ.length > 0) {
+        const next = fortressQ[0];
+        const card = (typeof CARDS === 'object' && CARDS[next.type]) ? CARDS[next.type] : null;
+        const cost = (card && typeof card.cost === 'number') ? card.cost : 0;
+        if (enemyElixir >= cost) {
+            try {
+                spawnEntity(next.x, next.y, 'enemy', next.type);
+                fortressQ.shift();
+                lastAIActionTime = now;
+                return;
+            } catch (e) { /* if spawn fails, leave the queue alone and try next tick */ }
+        }
+    }
+
     // 🔥 MR-P PUNISH — when the player has 3+ Mr-P spawners on the field
     // they're playing a heavy spawner-turtle game. Amber is the perfect
     // counter: she walks a straight vertical line from our safe to the
