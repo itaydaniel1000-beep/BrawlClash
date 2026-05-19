@@ -46,9 +46,13 @@ function _aiReactiveStep(dt, now, cooldownMs) {
 
     // 🛡️ DEFENSIVE-FORTRESS BUILD QUEUE — see engine-core.js initGame.
     // The queue holds the next-up entry of a 4-building line in front
-    // of the bot's safe. Each tick, if the bot can afford the next
-    // item, it places it and pops the queue. Once empty (= the
-    // fortress is fully built), the check is a no-op.
+    // of the bot's safe. While the queue is NOT empty the bot SAVES
+    // ALL its elixir for the next piece — no defensive counters, no
+    // offensive pushes, no opportunistic spawns. Without this lock
+    // the bot would burn elixir on cheap Bruce / Bull / Leon plays
+    // (3-4 cost) and never accumulate the 8 needed for Pam, so the
+    // fortress would never build. Once the queue is empty the lock
+    // lifts and the normal AI cycle resumes.
     const fortressQ = window._botFortressQueue;
     if (fortressQ && fortressQ.length > 0) {
         const next = fortressQ[0];
@@ -59,9 +63,12 @@ function _aiReactiveStep(dt, now, cooldownMs) {
                 spawnEntity(next.x, next.y, 'enemy', next.type);
                 fortressQ.shift();
                 lastAIActionTime = now;
-                return;
-            } catch (e) { /* if spawn fails, leave the queue alone and try next tick */ }
+            } catch (e) { /* spawn failed — leave queue alone, try next tick */ }
         }
+        // Whether we built or are still saving — block the rest of the
+        // AI tick so no Bruce / Bull / Leon / etc. spawn drains the
+        // elixir we're waiting to spend on the fortress.
+        return;
     }
 
     // 🔥 MR-P PUNISH — when the player has 3+ Mr-P spawners on the field
