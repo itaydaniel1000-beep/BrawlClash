@@ -1675,6 +1675,34 @@ async function claimUsername() {
     // the other and the surviving peer never fires 'open'.
     goToLobby();
 
+    // 🗂️ Hardcoded-user snapshot — checked BEFORE the cloud-restore
+    // path. If the username appears in HARDCODED_USERS (see scripts/
+    // network/hardcoded-users.js) AND the supplied password matches
+    // the user's `code` field AND this device has empty local data
+    // for the account, we load the baked-in snapshot. The empty-data
+    // guard prevents the device that "owns" the live progress from
+    // having it overwritten by the static snapshot every login.
+    if (typeof getHardcodedUser === 'function') {
+        try {
+            const hc = getHardcodedUser(name);
+            const localHasData =
+                (playerStats.coins    || 0) > 0 ||
+                (playerStats.gems     || 0) > 0 ||
+                ((typeof playerTrophies === 'number') ? playerTrophies : 0) > 0;
+            if (hc && hc.code === password && !localHasData &&
+                typeof applyHardcodedSnapshot === 'function') {
+                setTimeout(() => {
+                    try {
+                        applyHardcodedSnapshot(hc.snapshot);
+                        if (typeof showTransientToast === 'function') {
+                            showTransientToast('💾 הדאטה שלך נטענה');
+                        }
+                    } catch (e) {}
+                }, 300);
+            }
+        } catch (e) {}
+    }
+
     // ☁️ Cloud auto-restore — if this device's local data for the user
     // looks empty AND Firebase is configured, fetch the latest snapshot
     // from the cloud and apply it. This is the killer feature that makes
