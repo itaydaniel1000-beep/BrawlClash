@@ -152,70 +152,49 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
-        // 🛡️ ULTIMATE bot fortress — only in vs-bot (skip P2P). Per
-        // user spec: "the best defence I can build, so nothing gets
-        // through". Five layered rings of buildings + auras placed
-        // INSTANTLY at match start, elixir cost bypassed:
+        // 🛡️ Bot fortress build QUEUE — only in vs-bot (skip P2P).
+        // Per user: "not too excessive, build it slowly from most to
+        // least important." 8-entry queue, ordered by tactical
+        // priority. Bot saves its real elixir for the next piece
+        // (save-lock in ai-strategies.js); each entry costs the
+        // normal CARDS[type].cost.
         //
-        //   Ring 1 (y = sy)        — 4 Pam clustered around the safe
-        //                            (max heal density on the safe itself)
-        //   Ring 2 (y = sy + 50)   — 6 Sparky in a horizontal wall +
-        //                            2 Max auras buffing their atk-speed
-        //   Ring 3 (y = sy + 110)  — 4 Bonnie (450 range cross-map snipers) +
-        //                            2 8bit auras buffing their damage
-        //   Ring 4 (y = sy + 170)  — 4 Penny (long-range turrets) +
-        //                            2 Mr-P (porter spawners for pressure)
-        //   Ring 5 (y = sy + 230)  — 4 Sparky forward wall (the layer
-        //                            attackers hit first)
+        // Priority rationale:
+        //   1. Pam ON safe       — heal source is the single most
+        //                          impactful defensive building
+        //   2. Sparky in front   — first turret protecting the safe
+        //   3. Bonnie (sniper)   — 450-range coverage of the whole
+        //                          map; one of these alone changes the
+        //                          enemy approach calculus
+        //   4. Max (atk-speed)   — doubles the firepower of nearby
+        //                          Sparkies for very low cost (4)
+        //   5. Sparky advance    — second-ring turret, hardens the
+        //                          flank that Bonnie doesn't cover
+        //   6. Pam #2            — extra heal layer for the forward
+        //                          turrets
+        //   7. Sparky #3         — forward wall on the player's
+        //                          natural rush lane
+        //   8. Mr-P              — porter spawner, applies counter-
+        //                          pressure once the safe is secured
         //
-        // Total: 28 entities. Elixir is bypassed during the build
-        // (spawnEntity's Math.max(0, ...) clamps the deduction), then
-        // reset to 5 so the bot still has its starting bank for
-        // anything the normal AI cycle wants to do afterwards.
-        //
-        // The build queue from the previous iteration is cleared so
-        // the save-lock in ai-strategies.js doesn't gate the bot.
-        window._botFortressQueue = [];
+        // Total cost: 8+4+6+4+4+8+4+4 = 42 elixir → ~120 s in normal
+        // economy. Save-lock holds the bot's elixir until each piece
+        // can be afforded, so no Bruce-spam drain.
         if (!currentBattleRoom && enemySafe) {
-            try {
-                const sx = enemySafe.x;
-                const sy = enemySafe.y;
-                const place = (x, y, type) => {
-                    try { spawnEntity(x, y, 'enemy', type); } catch (_) {}
-                };
-                const W = CONFIG.CANVAS_WIDTH;
-                // Helper — N evenly-spread x positions across the full width.
-                const xs = (count, margin) => {
-                    if (count <= 1) return [W / 2];
-                    const span = W - 2 * margin;
-                    const step = span / (count - 1);
-                    const out = [];
-                    for (let i = 0; i < count; i++) out.push(margin + step * i);
-                    return out;
-                };
-                // === Ring 1 — 4 Pam huddled around the safe (max heal density) ===
-                place(sx - 30, sy,      'pam');
-                place(sx + 30, sy,      'pam');
-                place(sx,      sy + 25, 'pam');
-                place(sx,      sy - 5,  'pam');
-                // === Ring 2 — 6 Sparky wall + 2 Max attack-speed buffs ===
-                xs(6, 50).forEach(x => place(x, sy + 50, 'scrappy'));
-                place(sx - 120, sy + 50, 'max');
-                place(sx + 120, sy + 50, 'max');
-                // === Ring 3 — 4 Bonnie cross-map snipers + 2 8bit dmg buffs ===
-                xs(4, 100).forEach(x => place(x, sy + 110, 'bonnie'));
-                place(sx - 100, sy + 110, '8bit');
-                place(sx + 100, sy + 110, '8bit');
-                // === Ring 4 — 4 Penny long-range turrets + 2 Mr-P porter spawners ===
-                xs(4, 80).forEach(x => place(x, sy + 170, 'penny'));
-                place(sx - 150, sy + 170, 'mr-p');
-                place(sx + 150, sy + 170, 'mr-p');
-                // === Ring 5 — 4 Sparky forward wall (first to engage attackers) ===
-                xs(4, 80).forEach(x => place(x, sy + 230, 'scrappy'));
-                // Bot's elixir is whatever it dropped to during the
-                // bypass build — reset to a normal bank.
-                enemyElixir = 5;
-            } catch (e) { /* fortress build is best-effort */ }
+            const sx = enemySafe.x;
+            const sy = enemySafe.y;
+            window._botFortressQueue = [
+                { x: sx,        y: sy,        type: 'pam'     },   // #1 — heal on safe
+                { x: sx,        y: sy +  82,  type: 'scrappy' },   // #2 — front turret
+                { x: sx,        y: sy + 130,  type: 'bonnie'  },   // #3 — sniper centre
+                { x: sx,        y: sy +  60,  type: 'max'     },   // #4 — atk-speed buff (covers front Sparky)
+                { x: sx -  90,  y: sy + 110,  type: 'scrappy' },   // #5 — left advance
+                { x: sx,        y: sy + 200,  type: 'pam'     },   // #6 — forward heal
+                { x: sx +  90,  y: sy + 110,  type: 'scrappy' },   // #7 — right advance
+                { x: sx,        y: sy + 170,  type: 'mr-p'    }    // #8 — porter pressure
+            ];
+        } else {
+            window._botFortressQueue = [];
         }
 
         buildDeck();
