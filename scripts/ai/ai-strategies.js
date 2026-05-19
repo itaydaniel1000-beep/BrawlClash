@@ -44,7 +44,7 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     // as soon as conditions are met, regardless of when the bot last
     // acted on a generic strategy. ============================================
 
-    // 🔥 MR-P PUNISH — when the player has 5+ Mr-P spawners on the field
+    // 🔥 MR-P PUNISH — when the player has 3+ Mr-P spawners on the field
     // they're playing a heavy spawner-turtle game. Amber is the perfect
     // counter: she walks a straight vertical line from our safe to the
     // player's safe leaving a fire trail that fries the spawner cluster.
@@ -75,7 +75,7 @@ function _aiReactiveStep(dt, now, cooldownMs) {
         window._aiLastAmberCount = playerMrPs.length;
     }
 
-    if (playerMrPs.length >= 5) {
+    if (playerMrPs.length >= 3) {
         const cooldownLeft = 10000 - (now - window._aiLastAmberAt);
         if (cooldownLeft <= 0) {
             // Single Amber spawning next to the BOT's safe and immediately
