@@ -380,6 +380,18 @@
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #ff6b9d; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #c0397f; transition: background-color 0.2s;"
                         title="פוצץ את העוגה — כל היחידות של היריב מתות">🎂💥</button>
 
+                    <!-- 🐧💥 Mr-P self-destruct button — visible whenever
+                         the player has at least one alive Mr-P spawner.
+                         Clicking instantly kills every Mr-P the player
+                         owns; a small puff of particles at each spot
+                         makes the wipe read on screen. Useful for
+                         clearing a turret-heavy lane fast (e.g. to
+                         pre-empt the bot's 5+ Mr-P punish, or to
+                         repurpose elixir for a different push). -->
+                    <button id="mrp-kill-btn"
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #54a0ff; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #2473a6; transition: background-color 0.2s;"
+                        title="הרוס את כל מיסטר פי שלך">🐧💥</button>
+
                     <!-- Admin: Delete-Enemy-Unit button — stacks above bull-dash
                          on the bottom-right of the map while adminHacks.deleteUnit
                          is on. -->
@@ -1041,10 +1053,10 @@
     <script src="scripts/battle/battle-deck.js?v=15.7"></script>
 
     <!-- Engine Module -->
-    <script src="scripts/engine/engine-core.js?v=16.2"></script>
+    <script src="scripts/engine/engine-core.js?v=16.3"></script>
     <script src="scripts/engine/engine-physics.js?v=13.6"></script>
     <script src="scripts/engine/engine-renderer.js?v=14.1"></script>
-    <script src="scripts/engine/engine-input.js?v=14.9"></script>
+    <script src="scripts/engine/engine-input.js?v=15.0"></script>
 </body>
 
 </html>

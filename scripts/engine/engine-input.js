@@ -572,6 +572,31 @@ function initGameListeners() {
         bonnieBtn.style.backgroundColor = isSelectingBonnieTransform ? '#e74c3c' : '#a29bfe';
     };
 
+    // 🐧💥 Mr-P self-destruct — kills every alive player-team Mr-P in
+    // one click. Tiny sparkle puff at each spot so the wipe reads on
+    // screen. No confirm prompt (matches the cake-blow UX) — easy to
+    // re-place if pressed by accident, costs nothing.
+    const mrpKillBtn = document.getElementById('mrp-kill-btn');
+    if (mrpKillBtn) mrpKillBtn.onclick = (e) => {
+        e.stopPropagation();
+        const myMrPs = (typeof buildings !== 'undefined' ? buildings : [])
+            .filter(b => b && b.team === 'player' && b.type === 'mr-p' && !b.isDead);
+        if (!myMrPs.length) return;
+        myMrPs.forEach(mrp => {
+            try { mrp.hp = 0; mrp.isDead = true; } catch (_) {}
+            // Visible "thump" so the player sees each one die — 6 blue
+            // particles per Mr-P. Cheap and reads clearly on screen.
+            if (typeof particles !== 'undefined' && typeof Particle === 'function') {
+                for (let i = 0; i < 6; i++) {
+                    try { particles.push(new Particle(mrp.x, mrp.y, '#54a0ff')); } catch (_) {}
+                }
+            }
+        });
+        if (typeof showTransientToast === 'function') {
+            showTransientToast(`🐧 ${myMrPs.length} מיסטר-פי הושמדו`);
+        }
+    };
+
     // 🎂💥 Blow-out-candles button — pops the player's cake on the spot.
     // The cake's death in entity-base.js wipes every opposing unit /
     // building / aura on the field. In P2P we also broadcast CAKE_BLOW so

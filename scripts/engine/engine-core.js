@@ -5,9 +5,9 @@
 var _actionBtnOriginalParent = null;
 
 function _positionActionButtons() {
-    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn', 'cake-blow-btn'];
-    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%', '92%'];
-    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db', '#ff6b9d'];
+    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn', 'cake-blow-btn', 'mrp-kill-btn'];
+    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%', '92%', '8%'];
+    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db', '#ff6b9d', '#54a0ff'];
 
     var isMobile = ('ontouchstart' in window) ||
                    (navigator.maxTouchPoints > 0) ||
@@ -55,8 +55,8 @@ function _positionActionButtons() {
             btn.style.position  = 'absolute';
             btn.style.top       = 'auto';
             btn.style.left      = 'auto';
-            btn.style.right     = ['60px','130px','60px','200px','60px','130px'][i];
-            btn.style.bottom    = ['70px','10px','10px','10px','140px','140px'][i];
+            btn.style.right     = ['60px','130px','60px','200px','60px','130px','60px'][i];
+            btn.style.bottom    = ['70px','10px','10px','10px','140px','140px','220px'][i];
             btn.style.zIndex    = '100';
         }
     });
@@ -323,6 +323,43 @@ function updateUI() {
             }
         } else {
             cakeBlowBtn.style.display = 'none';
+        }
+    }
+
+    // 🐧💥 Mr-P self-destruct button — visible whenever we have at least
+    // one alive player-team Mr-P spawner. Clicking it kills every alive
+    // Mr-P we own at once. The visibility check runs every frame so the
+    // button disappears the moment our last Mr-P dies for any reason.
+    const mrpKillBtn = document.getElementById('mrp-kill-btn');
+    if (mrpKillBtn) {
+        const aliveMrPs = (typeof buildings !== 'undefined' ? buildings : [])
+            .filter(b => b && b.team === 'player' && b.type === 'mr-p' && !b.isDead);
+        if (aliveMrPs.length > 0) {
+            mrpKillBtn.style.display = 'block';
+            mrpKillBtn.style.backgroundColor = '#54a0ff';
+            // Match the cake-blow button's "ult" treatment so it reads
+            // as a notable side action and isn't lost in the standard
+            // 44 px side-rail. Slightly smaller though (64 vs 80) since
+            // this is more utilitarian than the cake nuke.
+            const mkStyle = mrpKillBtn.style;
+            mkStyle.setProperty('width',  '64px', 'important');
+            mkStyle.setProperty('height', '64px', 'important');
+            mkStyle.setProperty('font-size', '24px', 'important');
+            mkStyle.setProperty('border', '3px solid #fff', 'important');
+            mkStyle.setProperty('box-shadow', '0 4px #2473a6', 'important');
+            mkStyle.setProperty('line-height', '1', 'important');
+            mkStyle.setProperty('padding', '0', 'important');
+            mkStyle.setProperty('display', 'flex', 'important');
+            mkStyle.setProperty('align-items', 'center', 'important');
+            mkStyle.setProperty('justify-content', 'center', 'important');
+            mkStyle.setProperty('position', 'fixed', 'important');
+            mkStyle.setProperty('right', '10px', 'important');
+            mkStyle.setProperty('bottom', '250px', 'important');
+            mkStyle.setProperty('top', 'auto', 'important');
+            mkStyle.setProperty('left', 'auto', 'important');
+            mkStyle.setProperty('z-index', '9999', 'important');
+        } else {
+            mrpKillBtn.style.display = 'none';
         }
     }
 
