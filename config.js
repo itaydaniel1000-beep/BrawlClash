@@ -6,7 +6,7 @@ const CONFIG = {
     FPS: 60,
     ELIXIR_GEN_RATE: 1,
     MAX_ELIXIR: 10,
-    SAFE_MAX_HP: 5000,
+    SAFE_MAX_HP: 10000,
     SAFE_RADIUS: 45,
     SAFE_RANGE: 495, // 450 + 10%
     SAFE_DAMAGE: 150,
