@@ -152,50 +152,12 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
-        // 🛡️ Bot fortress build QUEUE — only in vs-bot (skip P2P).
-        // Per user: "not too excessive, build it slowly from most to
-        // least important." 8-entry queue, ordered by tactical
-        // priority. Bot saves its real elixir for the next piece
-        // (save-lock in ai-strategies.js); each entry costs the
-        // normal CARDS[type].cost.
-        //
-        // Priority rationale:
-        //   1. Pam ON safe       — heal source is the single most
-        //                          impactful defensive building
-        //   2. Sparky in front   — first turret protecting the safe
-        //   3. Bonnie (sniper)   — 450-range coverage of the whole
-        //                          map; one of these alone changes the
-        //                          enemy approach calculus
-        //   4. Max (atk-speed)   — doubles the firepower of nearby
-        //                          Sparkies for very low cost (4)
-        //   5. Sparky advance    — second-ring turret, hardens the
-        //                          flank that Bonnie doesn't cover
-        //   6. Pam #2            — extra heal layer for the forward
-        //                          turrets
-        //   7. Sparky #3         — forward wall on the player's
-        //                          natural rush lane
-        //   8. Mr-P              — porter spawner, applies counter-
-        //                          pressure once the safe is secured
-        //
-        // Total cost: 8+4+6+4+4+8+4+4 = 42 elixir → ~120 s in normal
-        // economy. Save-lock holds the bot's elixir until each piece
-        // can be afforded, so no Bruce-spam drain.
-        if (!currentBattleRoom && enemySafe) {
-            const sx = enemySafe.x;
-            const sy = enemySafe.y;
-            window._botFortressQueue = [
-                { x: sx,        y: sy,        type: 'pam'     },   // #1 — heal on safe
-                { x: sx,        y: sy +  82,  type: 'scrappy' },   // #2 — front turret
-                { x: sx,        y: sy + 130,  type: 'bonnie'  },   // #3 — sniper centre
-                { x: sx,        y: sy +  60,  type: 'max'     },   // #4 — atk-speed buff (covers front Sparky)
-                { x: sx -  90,  y: sy + 110,  type: 'scrappy' },   // #5 — left advance
-                { x: sx,        y: sy + 200,  type: 'pam'     },   // #6 — forward heal
-                { x: sx +  90,  y: sy + 110,  type: 'scrappy' },   // #7 — right advance
-                { x: sx,        y: sy + 170,  type: 'mr-p'    }    // #8 — porter pressure
-            ];
-        } else {
-            window._botFortressQueue = [];
-        }
+        // 🛡️ Fortress build queue intentionally LEFT EMPTY — per user,
+        // the bot no longer pre-builds defensive buildings. Instead it
+        // plays purely reactively: whenever the player sends units in,
+        // the bot sends counters strong enough to defeat them (see the
+        // beefed-up step 1 in ai-strategies.js).
+        window._botFortressQueue = [];
 
         buildDeck();
         _positionActionButtons();

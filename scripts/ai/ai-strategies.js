@@ -181,9 +181,68 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     // === Normal AI cycle — gated by cooldown ===============================
     if (now - lastAIActionTime < cooldownMs) return;
 
-    // 1) DEFENSIVE COUNTER — anything in the upper 40% (our half) is an
-    //    immediate threat. Prefer AoE if there are multiple incoming threats,
-    //    else a single bruiser (bull → bruce → leon).
+    // 1) REACTIVE MIRROR COUNTER — per user spec, the bot's main job is
+    //    to MATCH whatever the player sends. For every unit type the
+    //    player has on the field, the bot tries to keep an equal count
+    //    of the SAME type on its own side, so any threat the player
+    //    sends gets a 1:1 counter that can actually win the fight.
+    //
+    //    Algorithm:
+    //      • Count the player's units by type, the bot's by type
+    //      • Walk the player's units and pick the type with the largest
+    //        deficit (player_count > bot_count). Skip un-spawnable cards
+    //        (no CARDS entry, admin-only, event-only).
+    //      • Spawn the matching type at the same x lane as the threat,
+    //        just below the bot's safe (y=100), if affordable.
+    //
+    //    Auras / buildings / specials are excluded from the mirror —
+    //    they can't be physically countered with a same-type spawn.
+    //    The fall-through cases (defensive AoE, push, etc.) still run
+    //    below for those scenarios.
+    const playerUnits = units.filter(u => u && u.team === 'player' && !u.isDead &&
+                                          !u.isInvisible && !u.isFrozen);
+    if (playerUnits.length > 0) {
+        const myUnitCounts = {};
+        units.forEach(u => {
+            if (u && u.team === 'enemy' && !u.isDead) {
+                myUnitCounts[u.type] = (myUnitCounts[u.type] || 0) + 1;
+            }
+        });
+        const playerByType = {};
+        playerUnits.forEach(u => {
+            playerByType[u.type] = (playerByType[u.type] || 0) + 1;
+        });
+
+        // Find the type with the largest deficit we can actually spawn.
+        let bestType = null, bestDeficit = 0, bestTarget = null;
+        for (const u of playerUnits) {
+            const type = u.type;
+            const card = CARDS[type];
+            if (!card) continue;
+            // Skip non-mirrorable: spells, auras (Pam/Max etc. don't
+            // walk and can't "counter" anything mid-field), porters
+            // (admin-only spawn).
+            if (card.type !== 'unit') continue;
+            if (card.adminOnly || card.eventOnly) continue;
+            const deficit = (playerByType[type] || 0) - (myUnitCounts[type] || 0);
+            if (deficit > bestDeficit && _aiAffordable(type)) {
+                bestType = type;
+                bestDeficit = deficit;
+                bestTarget = u;
+            }
+        }
+
+        if (bestType && bestTarget) {
+            if (aiSpawn(bestTarget.x, 100, bestType)) {
+                lastAIActionTime = now;
+                return;
+            }
+        }
+    }
+
+    // 1b) FALLBACK DEFENSIVE COUNTER — if the player has units we can't
+    //     mirror (Amber, Libi, Barry, etc.) BUT they've crossed into our
+    //     half, send a bruiser/AoE answer the old-school way.
     const incoming = units.filter(u => u.team === 'player' && u.y < CONFIG.CANVAS_HEIGHT * 0.4);
     if (incoming.length > 0) {
         const target = incoming[0];
