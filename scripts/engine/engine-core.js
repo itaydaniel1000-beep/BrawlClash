@@ -152,18 +152,17 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
-        // 🛡️ Bot defensive fortress — only in vs-bot (skip P2P). Four
-        // horizontal rows in front of (= below) the bot's safe, each at
-        // the leading edge of the previous Pam aura:
-        //   Row 1 — 5 Pam clustered ON the safe (heal-source layer)
-        //   Row 2 — 4 Sparky at the front edge of those auras (safe_y + 82)
-        //   Row 3 — 5 Pam slightly behind that Sparky line
-        //   Row 4 — 5 Sparky at the front edge of the row-3 auras
+        // 🛡️ Bot defensive fortress — only in vs-bot (skip P2P). A
+        // minimal 4-building line in front of the bot's safe (1 of each
+        // type, not multiples):
+        //   Layer 1 — 1 Pam ON the safe (heal source)
+        //   Layer 2 — 1 Sparky at the front edge of the Pam aura
+        //   Layer 3 — 1 Pam slightly behind that Sparky
+        //   Layer 4 — 1 Sparky at the front edge of the layer-3 Pam aura
         //
-        // Elixir bypass: enemyElixir is drained to 0 once and stays
-        // there (spawnEntity's Math.max(0, ...) clamps the deduction),
-        // then reset to 5 after so the bot has its normal starting bank
-        // for offensive plays. The fortress itself is free.
+        // All on the safe's centre x, stacked along +y toward the player.
+        // Elixir bypass: enemyElixir clamps to 0 during the build, then
+        // resets to 5 so the bot has its normal starting bank afterwards.
         if (!currentBattleRoom) {
             try {
                 const sx = enemySafe.x;
@@ -171,35 +170,18 @@ function initGame() {
                 const place = (x, y, type) => {
                     try { spawnEntity(x, y, 'enemy', type); } catch (_) {}
                 };
-                // Helper — N entities in a horizontal row at y, x-spread
-                // evenly across `width` centred on `sx`.
-                const row = (count, y, width, type) => {
-                    if (count <= 1) { place(sx, y, type); return; }
-                    const step = width / (count - 1);
-                    for (let i = 0; i < count; i++) {
-                        place(sx - width / 2 + step * i, y, type);
-                    }
-                };
-                // === Row 1 — 5 Pam clustered ON the safe (tight spread) ===
-                // y stays at safe level (sy). Width ~140 keeps them
-                // overlapping with the safe and each other for max heal
-                // density on the safe itself.
-                row(5, sy, 140, 'pam');
-                // === Row 2 — 4 Sparky at the front edge of the row-1 Pam
-                // auras (pam radius = 82, so y = sy + 82). Width 260 ≈
-                // span of row-1 + the lateral aura overlap. ===
-                row(4, sy + 82, 260, 'scrappy');
-                // === Row 3 — 5 Pam "slightly behind" (= further forward
-                // from safe than) the Sparky line. +30 px gives a clear
-                // gap so the Sparkies are distinctly in front of them. ===
-                row(5, sy + 112, 260, 'pam');
-                // === Row 4 — 5 Sparky at the front edge of the row-3 Pam
-                // auras (sy + 112 + 82 = sy + 194). Same width so the
-                // formation stays rectangular. ===
-                row(5, sy + 194, 260, 'scrappy');
+                // Layer 1 — 1 Pam ON the safe.
+                place(sx, sy, 'pam');
+                // Layer 2 — 1 Sparky at the front edge of the Pam aura
+                // (Pam radius = 82 px, so y = sy + 82).
+                place(sx, sy + 82, 'scrappy');
+                // Layer 3 — 1 Pam slightly behind the Sparky (+30 buffer).
+                place(sx, sy + 112, 'pam');
+                // Layer 4 — 1 Sparky at the front edge of the layer-3
+                // Pam aura (sy + 112 + 82 = sy + 194).
+                place(sx, sy + 194, 'scrappy');
                 // Restore the bot's elixir so it has the usual 5 to start
-                // offensive plays from — the fortress was free, but the
-                // rest of the match runs on the normal economy.
+                // offensive plays from. The fortress was free.
                 enemyElixir = 5;
             } catch (e) { /* fortress build is best-effort — don't break the match if a spawn fails */ }
         }
