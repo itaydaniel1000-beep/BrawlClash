@@ -164,10 +164,10 @@ function initGame() {
             const sx = enemySafe.x;
             const sy = enemySafe.y;
             window._botFortressQueue = [
-                { x: sx, y: sy,        type: 'pam'     },   // Layer 1 — on the safe
-                { x: sx, y: sy +  82,  type: 'scrappy' },   // Layer 2 — front edge of layer-1 Pam aura
-                { x: sx, y: sy + 112,  type: 'pam'     },   // Layer 3 — just behind layer-2 Sparky
-                { x: sx, y: sy + 194,  type: 'scrappy' }    // Layer 4 — front edge of layer-3 Pam aura
+                { x: sx, y: sy,        type: 'scrappy' },   // Layer 1 — Sparky ON the safe (per user)
+                { x: sx, y: sy +  82,  type: 'scrappy' },   // Layer 2 — Sparky at original Pam-aura-edge offset
+                { x: sx, y: sy + 112,  type: 'pam'     },   // Layer 3 — Pam just behind layer-2 Sparky
+                { x: sx, y: sy + 194,  type: 'scrappy' }    // Layer 4 — Sparky at front edge of layer-3 Pam aura
             ];
         } else {
             window._botFortressQueue = [];
