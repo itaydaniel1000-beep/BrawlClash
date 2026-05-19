@@ -152,6 +152,55 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
+        // 🛡️ Bot defensive fortress — only in vs-bot (skip P2P). The bot
+        // starts every match with a 4-layer ring of buildings around its
+        // safe: 5 Pam (heal) clustered ON the safe, 4 Sparky at the edge
+        // of those auras, 5 more Pam slightly behind, then 5 Sparky at
+        // the outermost edge. Lets the bot weather early porter rushes.
+        //
+        // Elixir bypass: enemyElixir is drained to 0 once and stays
+        // there (spawnEntity's Math.max(0, ...) clamps the deduction),
+        // then reset to 5 after so the bot has its normal starting bank
+        // for offensive plays. This is a structural setup, not a play.
+        if (!currentBattleRoom) {
+            try {
+                const sx = enemySafe.x;
+                const sy = enemySafe.y;
+                const place = (x, y, type) => {
+                    try { spawnEntity(x, y, 'enemy', type); } catch (_) {}
+                };
+                // Layer 1 — 5 Pam clustered ON the safe (slight spread so
+                // they don't all stack at one pixel).
+                [[ sx,      sy + 15],
+                 [ sx - 25, sy + 25],
+                 [ sx + 25, sy + 25],
+                 [ sx - 20, sy +  5],
+                 [ sx + 20, sy +  5]].forEach(p => place(p[0], p[1], 'pam'));
+                // Layer 2 — 4 Sparky at r≈95 (just past Pam aura edge,
+                // ~82 px), arc 30°→150° below the safe.
+                [30, 70, 110, 150].forEach(deg => {
+                    const a = deg * Math.PI / 180;
+                    place(sx + 95 * Math.cos(a), sy + 95 * Math.sin(a), 'scrappy');
+                });
+                // Layer 3 — 5 Pam at r≈140 (a bit behind the Sparky line),
+                // arc 20°→160° spread to cover the bottom hemisphere.
+                [20, 55, 90, 125, 160].forEach(deg => {
+                    const a = deg * Math.PI / 180;
+                    place(sx + 140 * Math.cos(a), sy + 140 * Math.sin(a), 'pam');
+                });
+                // Layer 4 — 5 Sparky at r≈220 (at the OUTER Pam aura
+                // edge, 140 + 82 = 222), same angle pattern.
+                [20, 55, 90, 125, 160].forEach(deg => {
+                    const a = deg * Math.PI / 180;
+                    place(sx + 220 * Math.cos(a), sy + 220 * Math.sin(a), 'scrappy');
+                });
+                // Restore the bot's elixir so it has the usual 5 to start
+                // offensive plays from — the fortress was free, but the
+                // rest of the match runs on the normal economy.
+                enemyElixir = 5;
+            } catch (e) { /* fortress build is best-effort — don't break the match if a spawn fails */ }
+        }
+
         buildDeck();
         _positionActionButtons();
         updateUI();
