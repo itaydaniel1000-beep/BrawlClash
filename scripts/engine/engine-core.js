@@ -119,6 +119,9 @@ function initGame() {
         // late-match trigger from the previous battle doesn't gate the
         // first reaction in this new one. See ai-strategies.js step 0.
         window._aiLastAmberAt = 0;
+        // Reset the "already applied forfeit-loss" guard so quitting THIS
+        // match counts the trophy deduction once (and only once).
+        window._bcForfeitAppliedThisMatch = false;
         // Admin-granted overrides: startingElixir / maxElixir (0 = use default).
         const startE = (typeof adminHacks !== 'undefined' && adminHacks.startingElixir) ? adminHacks.startingElixir : 5;
         const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;

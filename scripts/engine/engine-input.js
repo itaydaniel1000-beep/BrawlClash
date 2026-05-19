@@ -626,12 +626,54 @@ function initGameListeners() {
 
     const quitBtn = document.getElementById('quit-btn');
     if (quitBtn) quitBtn.onclick = () => {
-        // In P2P battles, tell the opponent we forfeited so they get a proper
-        // victory screen instead of being silently stranded in the battle.
-        if (currentBattleRoom && window.NetworkManager && typeof window.NetworkManager.notifyForfeit === 'function') {
-            try { window.NetworkManager.notifyForfeit(); } catch (e) {}
-            currentBattleRoom = null;
+        // Quitting mid-battle = LOSS. Apply the same trophy / quest /
+        // P2P-result side-effects that engine-physics.js fires when the
+        // player's safe dies, so a player can't escape a bad match by
+        // pressing "main menu" without paying the loss cost.
+        //
+        // Only fires if the game was actively in a match (we're paused
+        // and the engine was running). Once-only guard via
+        // _bcForfeitAppliedThisMatch prevents double-application if the
+        // quit handler somehow runs twice in the same match.
+        const wasMidBattle = gameLoopRunning ||
+            (typeof currentState !== 'undefined' &&
+             typeof GAME_STATE !== 'undefined' &&
+             (currentState === GAME_STATE.PLAYING || currentState === GAME_STATE.PAUSED));
+        if (wasMidBattle && !window._bcForfeitAppliedThisMatch) {
+            window._bcForfeitAppliedThisMatch = true;
+            try {
+                // Trophy deduction — same magnitude as a normal loss (3,
+                // clamped at 0). Persist to localStorage so the lobby
+                // header reflects the new total immediately.
+                let trophyDelta = 0;
+                if (typeof playerTrophies === 'number') {
+                    trophyDelta = -Math.min(3, playerTrophies);
+                    playerTrophies = Math.max(0, playerTrophies - 3);
+                    try { localStorage.setItem(_userKey('trophies'), playerTrophies); } catch (e) {}
+                }
+                // Daily-quest tracking — counts as a "battle played" but
+                // NOT a win and not a positive trophy gain. Matches what
+                // a real loss does in engine-physics.js.
+                if (typeof bumpQuestProgress === 'function') {
+                    try { bumpQuestProgress('battles', 1); } catch (e) {}
+                }
+                // P2P: tell the opponent we forfeited so they get a real
+                // win + their +8 trophies via the standard win path.
+                if (currentBattleRoom && window.NetworkManager) {
+                    if (typeof window.NetworkManager.updateBattleResult === 'function') {
+                        try { window.NetworkManager.updateBattleResult(currentBattleRoom, false, 'forfeit'); } catch (e) {}
+                    }
+                    if (typeof window.NetworkManager.notifyForfeit === 'function') {
+                        try { window.NetworkManager.notifyForfeit(); } catch (e) {}
+                    }
+                }
+                if (typeof showTransientToast === 'function') {
+                    showTransientToast(`🏳️ נטשת את הקרב — נפסלת (${trophyDelta} 🏆)`);
+                }
+                if (typeof updateStatsUI === 'function') updateStatsUI();
+            } catch (e) { /* best-effort — don't block the quit on an error */ }
         }
+        currentBattleRoom = null;
         // If ביטול אדמין suspended our hacks for this match, bring them back.
         if (typeof restoreSuspendedAdmin === 'function') restoreSuspendedAdmin();
         gameLoopRunning = false;
