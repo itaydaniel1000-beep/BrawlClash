@@ -294,6 +294,22 @@ function _aiReactiveStep(dt, now, cooldownMs) {
         }
     }
 
+    // 4.5) IDLE → PAM ON SAFE — per user spec: any time the bot has
+    //      nothing better to do with its elixir, drop a Pam directly on
+    //      the bot's safe so the heal aura stacks up. Capped at 3 Pams
+    //      on the safe so the bot doesn't bottomless-pit its elixir
+    //      into a self-heal-only loop. Costs the full 8 elixir.
+    if (_aiAffordable('pam')) {
+        const myPams = (typeof auras !== 'undefined' ? auras : [])
+            .filter(a => a && a.team === 'enemy' && a.type === 'pam' && !a.isDead).length;
+        if (myPams < 3 && enemySafe) {
+            if (aiSpawn(enemySafe.x, enemySafe.y, 'pam')) {
+                lastAIActionTime = now;
+                return;
+            }
+        }
+    }
+
     // 5) AGGRESSIVE PUSH — if elixir is full enough and nothing else needed
     //    handling, push a unit toward the player's safe. Prefer a tank.
     if (enemyElixir >= 4) {
