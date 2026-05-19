@@ -428,28 +428,22 @@ function _setupLockPeerMessageHandlers(peer) {
                         conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'bad-password' });
                         return;
                     }
+                    // Auto-approve — per user spec, password validity is
+                    // the sole gate. If the password matched the saved
+                    // one for this username, accept immediately without
+                    // a human-approval popup, so the visitor lands in
+                    // guest mode straight away. Notify locally with a
+                    // toast so the host knows someone joined.
                     const requester = (typeof data.requesterName === 'string' && data.requesterName.trim())
                         ? data.requesterName.trim() : 'משתמש אחר';
-                    if (typeof showJoinApprovalModal === 'function') {
-                        showJoinApprovalModal(requester, (approved) => {
-                            try { conn.send({ type: 'JOIN_RESPONSE', approved: !!approved }); } catch (e) {}
-                            if (approved) {
-                                // KEEP the connection alive — it becomes the
-                                // ongoing channel for the per-second host →
-                                // guest resource sync (see _addGuestConn /
-                                // _syncGuestsTick below). Send the first
-                                // snapshot right away so the guest doesn't
-                                // wait a whole second to see correct numbers.
-                                try { if (typeof _addGuestConn === 'function') _addGuestConn(conn); } catch (e) {}
-                                try { if (typeof _broadcastResourceSyncTo === 'function') _broadcastResourceSyncTo(conn); } catch (e) {}
-                            } else {
-                                setTimeout(() => { try { conn.close(); } catch (e) {} }, 600);
-                            }
-                        });
-                    } else {
-                        // No UI available (extremely unlikely) — default deny.
-                        try { conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'no-ui' }); } catch (e) {}
-                    }
+                    try { conn.send({ type: 'JOIN_RESPONSE', approved: true }); } catch (e) {}
+                    try { if (typeof _addGuestConn === 'function') _addGuestConn(conn); } catch (e) {}
+                    try { if (typeof _broadcastResourceSyncTo === 'function') _broadcastResourceSyncTo(conn); } catch (e) {}
+                    try {
+                        if (typeof showTransientToast === 'function') {
+                            showTransientToast(`👥 "${requester}" התחבר לחשבון שלך`);
+                        }
+                    } catch (e) {}
                 } catch (e) {
                     try { conn.send({ type: 'JOIN_RESPONSE', approved: false, reason: 'error' }); } catch (_) {}
                 }
