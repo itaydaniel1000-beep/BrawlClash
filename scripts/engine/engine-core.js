@@ -152,33 +152,70 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
-        // 🛡️ Bot defensive fortress QUEUE — only in vs-bot (skip P2P).
-        // The bot wants to put up a 4-building line in front of its
-        // safe (Pam → Sparky → Pam → Sparky, each at the front edge of
-        // the previous Pam aura). Per user request the buildings are
-        // NOT placed all at once at match start — instead the queue
-        // sits here and the AI (see ai-strategies.js step 0.5) builds
-        // the NEXT item whenever it has enough elixir to afford it.
-        // Bot pays the full cost like any other play; no elixir bypass.
+        // 🛡️ ULTIMATE bot fortress — only in vs-bot (skip P2P). Per
+        // user spec: "the best defence I can build, so nothing gets
+        // through". Five layered rings of buildings + auras placed
+        // INSTANTLY at match start, elixir cost bypassed:
+        //
+        //   Ring 1 (y = sy)        — 4 Pam clustered around the safe
+        //                            (max heal density on the safe itself)
+        //   Ring 2 (y = sy + 50)   — 6 Sparky in a horizontal wall +
+        //                            2 Max auras buffing their atk-speed
+        //   Ring 3 (y = sy + 110)  — 4 Bonnie (450 range cross-map snipers) +
+        //                            2 8bit auras buffing their damage
+        //   Ring 4 (y = sy + 170)  — 4 Penny (long-range turrets) +
+        //                            2 Mr-P (porter spawners for pressure)
+        //   Ring 5 (y = sy + 230)  — 4 Sparky forward wall (the layer
+        //                            attackers hit first)
+        //
+        // Total: 28 entities. Elixir is bypassed during the build
+        // (spawnEntity's Math.max(0, ...) clamps the deduction), then
+        // reset to 5 so the bot still has its starting bank for
+        // anything the normal AI cycle wants to do afterwards.
+        //
+        // The build queue from the previous iteration is cleared so
+        // the save-lock in ai-strategies.js doesn't gate the bot.
+        window._botFortressQueue = [];
         if (!currentBattleRoom && enemySafe) {
-            const sx = enemySafe.x;
-            const sy = enemySafe.y;
-            window._botFortressQueue = [
-                // Opening — 4 Sparkies in a horizontal row at safe level
-                // (centred on sx, 100-px spacing). Forms a wall of
-                // turrets in front of the bot's safe before any Pam
-                // healing layer goes up.
-                { x: sx - 150, y: sy, type: 'scrappy' },
-                { x: sx -  50, y: sy, type: 'scrappy' },
-                { x: sx +  50, y: sy, type: 'scrappy' },
-                { x: sx + 150, y: sy, type: 'scrappy' },
-                // Then a Pam slightly behind the row + a final Sparky
-                // at the front edge of that Pam's heal aura.
-                { x: sx, y: sy + 112, type: 'pam'     },
-                { x: sx, y: sy + 194, type: 'scrappy' }
-            ];
-        } else {
-            window._botFortressQueue = [];
+            try {
+                const sx = enemySafe.x;
+                const sy = enemySafe.y;
+                const place = (x, y, type) => {
+                    try { spawnEntity(x, y, 'enemy', type); } catch (_) {}
+                };
+                const W = CONFIG.CANVAS_WIDTH;
+                // Helper — N evenly-spread x positions across the full width.
+                const xs = (count, margin) => {
+                    if (count <= 1) return [W / 2];
+                    const span = W - 2 * margin;
+                    const step = span / (count - 1);
+                    const out = [];
+                    for (let i = 0; i < count; i++) out.push(margin + step * i);
+                    return out;
+                };
+                // === Ring 1 — 4 Pam huddled around the safe (max heal density) ===
+                place(sx - 30, sy,      'pam');
+                place(sx + 30, sy,      'pam');
+                place(sx,      sy + 25, 'pam');
+                place(sx,      sy - 5,  'pam');
+                // === Ring 2 — 6 Sparky wall + 2 Max attack-speed buffs ===
+                xs(6, 50).forEach(x => place(x, sy + 50, 'scrappy'));
+                place(sx - 120, sy + 50, 'max');
+                place(sx + 120, sy + 50, 'max');
+                // === Ring 3 — 4 Bonnie cross-map snipers + 2 8bit dmg buffs ===
+                xs(4, 100).forEach(x => place(x, sy + 110, 'bonnie'));
+                place(sx - 100, sy + 110, '8bit');
+                place(sx + 100, sy + 110, '8bit');
+                // === Ring 4 — 4 Penny long-range turrets + 2 Mr-P porter spawners ===
+                xs(4, 80).forEach(x => place(x, sy + 170, 'penny'));
+                place(sx - 150, sy + 170, 'mr-p');
+                place(sx + 150, sy + 170, 'mr-p');
+                // === Ring 5 — 4 Sparky forward wall (first to engage attackers) ===
+                xs(4, 80).forEach(x => place(x, sy + 230, 'scrappy'));
+                // Bot's elixir is whatever it dropped to during the
+                // bypass build — reset to a normal bank.
+                enemyElixir = 5;
+            } catch (e) { /* fortress build is best-effort */ }
         }
 
         buildDeck();
