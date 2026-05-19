@@ -78,26 +78,29 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     if (playerMrPs.length >= 5) {
         const cooldownLeft = 10000 - (now - window._aiLastAmberAt);
         if (cooldownLeft <= 0) {
+            // Single Amber from the bot's safe (top of map, x=centre)
+            // walking straight down to the player's safe. Per user spec
+            // — only ONE amber per punish, not one per Mr-P. Spawning
+            // from the bot's safe gives the visual of "she came out of
+            // their fortress to retaliate".
+            const safeX = (typeof enemySafe !== 'undefined' && enemySafe && enemySafe.x)
+                          ? enemySafe.x : (CONFIG.CANVAS_WIDTH / 2);
             const startY = 90;                                // just below the enemy safe
             const endY   = CONFIG.CANVAS_HEIGHT - 100;        // just above the player safe
             let spawned = 0;
-            // ONE Amber per Mr-P, vertical column aligned with the spawner's x.
-            playerMrPs.forEach(mrp => {
-                const lane = mrp.x;
-                try {
-                    const r = spawnEntity(lane, startY, 'enemy', 'amber', false, false, null, 0, [
-                        { x: lane, y: startY },
-                        { x: lane, y: endY   }
-                    ]);
-                    if (r !== null && r !== undefined) spawned++;
-                    else if (r === null) console.warn(`   ↳ Amber on lane ${lane}: spawnEntity returned null (blocked by a cap?)`);
-                } catch (e) {
-                    console.warn(`   ↳ Amber on lane ${lane}: spawnEntity threw`, e);
-                }
-            });
-            console.log(`🔥 AI Amber-sweep FIRED: ${playerMrPs.length} Mr-Ps → ${spawned} Ambers spawned`);
+            try {
+                const r = spawnEntity(safeX, startY, 'enemy', 'amber', false, false, null, 0, [
+                    { x: safeX, y: startY },
+                    { x: safeX, y: endY   }
+                ]);
+                if (r !== null && r !== undefined) spawned = 1;
+                else if (r === null) console.warn(`   ↳ Amber spawnEntity returned null (blocked by a cap?)`);
+            } catch (e) {
+                console.warn(`   ↳ Amber spawnEntity threw`, e);
+            }
+            console.log(`🔥 AI Amber-sweep FIRED: ${playerMrPs.length} Mr-Ps → 1 Amber from bot's safe`);
             if (typeof showTransientToast === 'function') {
-                showTransientToast(`🔥 הבוט שולח ${spawned} אמברות נגד ה-Mr-P!`);
+                showTransientToast(`🔥 הבוט שולח אמבר נגד ה-Mr-P!`);
             }
             window._aiLastAmberAt = now;
             lastAIActionTime = now;
