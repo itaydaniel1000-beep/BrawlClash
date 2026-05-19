@@ -78,22 +78,24 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     if (playerMrPs.length >= 5) {
         const cooldownLeft = 10000 - (now - window._aiLastAmberAt);
         if (cooldownLeft <= 0) {
-            // Single Amber spawning at the BOT's safe. After a brief
-            // transit toward the player's half, she walks 3 concentric
-            // circles around the PLAYER's safe, outer-to-inner, leaving
-            // her fire trail along each ring — three orbits of damage
-            // surrounding the safe.
+            // Single Amber spawning next to the BOT's safe and immediately
+            // walking 3 concentric rings around THAT safe (the bot's own).
+            // Defensive perimeter pattern — every porter that the player's
+            // Mr-P cluster pushes toward the bot's safe has to cross her
+            // fire trail to reach it.
             const botSafeX  = (typeof enemySafe !== 'undefined' && enemySafe && enemySafe.x)
                               ? enemySafe.x  : (CONFIG.CANVAS_WIDTH  / 2);
-            const startY    = 90;                                // just below the bot's safe
-            const pSafeX    = (typeof playerSafe !== 'undefined' && playerSafe && playerSafe.x)
-                              ? playerSafe.x : (CONFIG.CANVAS_WIDTH  / 2);
-            const pSafeY    = (typeof playerSafe !== 'undefined' && playerSafe && playerSafe.y)
-                              ? playerSafe.y : (CONFIG.CANVAS_HEIGHT - 60);
+            const botSafeY  = (typeof enemySafe !== 'undefined' && enemySafe && enemySafe.y)
+                              ? enemySafe.y  : 60;
+            // Spawn point — slightly below the safe so the first move is
+            // out onto the outer ring instead of through the safe sprite.
+            const spawnX = botSafeX;
+            const spawnY = botSafeY + 40;
 
-            // Build the path: bot-safe → outer ring → middle ring → inner ring.
-            // 12 waypoints per ring + 1 closing waypoint = 13 → full revolution.
-            const waypoints = [{ x: botSafeX, y: startY }];
+            // Build the path: spawn point → outer → middle → inner ring,
+            // all centred on the BOT's safe. 12 waypoints per ring + 1
+            // closing waypoint = 13 → full revolution.
+            const waypoints = [{ x: spawnX, y: spawnY }];
             const RINGS = [150, 100, 50];
             RINGS.forEach((r, ringIdx) => {
                 // First ring starts at the top of the circle (12-o'clock).
@@ -103,22 +105,22 @@ function _aiReactiveStep(dt, now, cooldownMs) {
                 for (let i = 0; i <= 12; i++) {
                     const angle = startAngle + (i / 12) * Math.PI * 2;
                     waypoints.push({
-                        x: pSafeX + r * Math.cos(angle),
-                        y: pSafeY + r * Math.sin(angle)
+                        x: botSafeX + r * Math.cos(angle),
+                        y: botSafeY + r * Math.sin(angle)
                     });
                 }
             });
 
             let spawned = 0;
             try {
-                const r = spawnEntity(botSafeX, startY, 'enemy', 'amber', false, false, null, 0, waypoints);
+                const r = spawnEntity(spawnX, spawnY, 'enemy', 'amber', false, false, null, 0, waypoints);
                 if (r !== null && r !== undefined) {
                     spawned = 1;
                     // Boost Amber's speed for this special path — the full
-                    // tour (transit + 3 rings ≈ 2500 px) would take ~33 s
-                    // at her base 75 px/s. 250 px/s finishes in ~10 s,
-                    // which keeps the punish feeling responsive without
-                    // turning the whole match into "wait for Amber".
+                    // 3-ring tour (~1900 px) would take ~25 s at her base
+                    // 75 px/s. 250 px/s finishes in ~8 s, keeping the
+                    // punish responsive without turning the match into
+                    // "wait for Amber".
                     const justSpawned = (typeof units !== 'undefined' && units.length)
                                       ? units[units.length - 1] : null;
                     if (justSpawned && justSpawned.type === 'amber' &&
@@ -131,9 +133,9 @@ function _aiReactiveStep(dt, now, cooldownMs) {
             } catch (e) {
                 console.warn(`   ↳ Amber spawnEntity threw`, e);
             }
-            console.log(`🔥 AI Amber-orbit FIRED: ${playerMrPs.length} Mr-Ps → 1 Amber, 3 rings (r=${RINGS.join('/')})`);
+            console.log(`🔥 AI Amber-orbit FIRED: ${playerMrPs.length} Mr-Ps → 1 Amber, 3 rings around BOT safe (r=${RINGS.join('/')})`);
             if (typeof showTransientToast === 'function') {
-                showTransientToast(`🔥 הבוט שולח אמבר שתקיף את הכספת שלך!`);
+                showTransientToast(`🔥 הבוט שולח אמבר להגן על הכספת שלו!`);
             }
             window._aiLastAmberAt = now;
             lastAIActionTime = now;
