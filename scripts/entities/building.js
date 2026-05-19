@@ -106,37 +106,11 @@ class Building extends Entity {
             const _self = this;
             Promise.resolve().then(() => {
                 try {
-                    const targets = (typeof units !== 'undefined' ? units : [])
-                        .concat(typeof buildings !== 'undefined' ? buildings : []);
-                    const immobile = [];   // { entity, prevSpeed?, prevAttackDamage? }
-                    targets.forEach(e => {
-                        if (!e || e === _self || e.team !== oppTeam || e.isDead) return;
-                        const saved = { entity: e };
-                        if (typeof e.speed === 'number' && e.speed > 0) {
-                            saved.prevSpeed = e.speed;
-                            e.speed = 0;
-                        }
-                        if (typeof e.attackDamage === 'number' && e.attackDamage > 0) {
-                            saved.prevAttackDamage = e.attackDamage;
-                            e.attackDamage = 0;
-                        }
-                        // ALSO zero attackRange — without this the turret
-                        // logic still fires (it gates on attackSpeed +
-                        // attackRange > 0, not on attackDamage). With
-                        // range = 0, the targeting filter finds zero
-                        // candidates so no projectile spawns. This is
-                        // what visually stops Penny / Scrappy / Cake /
-                        // any unit attack from emitting bullets.
-                        if (typeof e.attackRange === 'number' && e.attackRange > 0) {
-                            saved.prevAttackRange = e.attackRange;
-                            e.attackRange = 0;
-                        }
-                        if (saved.prevSpeed !== undefined ||
-                            saved.prevAttackDamage !== undefined ||
-                            saved.prevAttackRange !== undefined) {
-                            immobile.push(saved);
-                        }
-                    });
+                    // Per-enemy immobilize is now DEFERRED to the moment
+                    // each enemy's star arrives (see the star update()
+                    // below). Nothing happens to the enemies here at
+                    // placement time — they keep walking and attacking
+                    // until their star catches them.
                     // One-shot ring damage — each enemy in a ring takes
                     // that ring's damage value ONCE (not per-second). Runs
                     // here at placement so the hit fires instantly with
@@ -188,25 +162,69 @@ class Building extends Entity {
                             if (typeof isAmberOrTrail === 'function' && isAmberOrTrail(e)) return;
                             try {
                                 const p = new Particle(_self.x, _self.y, '#f1c40f');
-                                // Snapshot the enemy's spot at trigger time.
-                                // The enemy is frozen-in-place for the next
-                                // 2 s, so the snapshot is also the spot
-                                // they'll be when the star arrives.
+                                // Live target tracking — keep the entity
+                                // reference so the star follows the enemy
+                                // if they move (they're NOT yet immobilized
+                                // — that happens on impact). Fallback to
+                                // the snapshot position if the entity dies
+                                // before the star arrives, so the star
+                                // visibly finishes its arc instead of
+                                // teleporting somewhere weird.
+                                p._lumiTargetEntity = e;
                                 p._lumiTargetX = e.x || 0;
                                 p._lumiTargetY = e.y || 0;
-                                p._lumiSpeed   = 800;     // px / sec
+                                p._lumiSpeed   = 400;     // px / sec — halved from 800 per user request
                                 p.age = 0;
                                 p.isDead = false;
                                 p.update = function (dt) {
-                                    const dx = this._lumiTargetX - this.x;
-                                    const dy = this._lumiTargetY - this.y;
+                                    const live = this._lumiTargetEntity;
+                                    const tx = (live && !live.isDead) ? (live.x || 0) : this._lumiTargetX;
+                                    const ty = (live && !live.isDead) ? (live.y || 0) : this._lumiTargetY;
+                                    const dx = tx - this.x;
+                                    const dy = ty - this.y;
                                     const d  = Math.hypot(dx, dy);
-                                    if (d < 8) { this.isDead = true; return; }
+                                    if (d < 10) {
+                                        // IMPACT — now freeze THIS enemy
+                                        // (speed / attackDamage / attackRange
+                                        // saved + zeroed) and schedule a 2-s
+                                        // restoration for it independently.
+                                        // Other enemies stay free until their
+                                        // own stars land on them.
+                                        if (live && !live.isDead) {
+                                            const saved = {};
+                                            if (typeof live.speed === 'number' && live.speed > 0) {
+                                                saved.prevSpeed = live.speed;
+                                                live.speed = 0;
+                                            }
+                                            if (typeof live.attackDamage === 'number' && live.attackDamage > 0) {
+                                                saved.prevAttackDamage = live.attackDamage;
+                                                live.attackDamage = 0;
+                                            }
+                                            if (typeof live.attackRange === 'number' && live.attackRange > 0) {
+                                                saved.prevAttackRange = live.attackRange;
+                                                live.attackRange = 0;
+                                            }
+                                            setTimeout(() => {
+                                                if (!live || live.isDead) return;
+                                                if (typeof saved.prevSpeed === 'number' && live.speed === 0)
+                                                    live.speed = saved.prevSpeed;
+                                                if (typeof saved.prevAttackDamage === 'number' && live.attackDamage === 0)
+                                                    live.attackDamage = saved.prevAttackDamage;
+                                                if (typeof saved.prevAttackRange === 'number' && live.attackRange === 0)
+                                                    live.attackRange = saved.prevAttackRange;
+                                            }, 2000);
+                                        }
+                                        this.isDead = true;
+                                        return;
+                                    }
                                     const step = this._lumiSpeed * dt / 1000;
                                     this.x += (dx / d) * step;
                                     this.y += (dy / d) * step;
                                     this.age += dt;
-                                    if (this.age > 1500) this.isDead = true;
+                                    // Longer max-life since speed halved —
+                                    // 3 s is enough to cross the whole canvas
+                                    // diagonally at 400 px/s.
+                                    if (this.age > 3000) this.isDead = true;
                                 };
                                 p.draw = function (ctx) {
                                     ctx.save();
@@ -245,20 +263,10 @@ class Building extends Entity {
                             } catch (_) {}
                         });
                     }
-                    setTimeout(() => {
-                        immobile.forEach(({ entity, prevSpeed, prevAttackDamage, prevAttackRange }) => {
-                            if (!entity || entity.isDead) return;
-                            if (typeof prevSpeed === 'number' && entity.speed === 0) {
-                                entity.speed = prevSpeed;
-                            }
-                            if (typeof prevAttackDamage === 'number' && entity.attackDamage === 0) {
-                                entity.attackDamage = prevAttackDamage;
-                            }
-                            if (typeof prevAttackRange === 'number' && entity.attackRange === 0) {
-                                entity.attackRange = prevAttackRange;
-                            }
-                        });
-                    }, 2000);
+                    // Per-enemy restoration is now scheduled INSIDE each
+                    // star's impact handler (see update() above). No
+                    // global timer here — each enemy gets exactly 2 s
+                    // of freeze counted from their own star's arrival.
                 } catch (_) {}
             });
         }
