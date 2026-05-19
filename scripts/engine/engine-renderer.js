@@ -77,9 +77,19 @@ function draw(ctx) {
         if (typeof buildings !== 'undefined') drawables = drawables.concat(buildings);
         if (typeof units !== 'undefined') drawables = drawables.concat(units);
         if (typeof projectiles !== 'undefined') drawables = drawables.concat(projectiles);
-        
+
         if (typeof playerSafe !== 'undefined' && playerSafe) drawables.push(playerSafe);
         if (typeof enemySafe !== 'undefined' && enemySafe) drawables.push(enemySafe);
+
+        // Particles + floating texts — these were missing from the
+        // draw list entirely, which meant death sparks, cake confetti,
+        // Lumi homing-star animation, and floating damage numbers
+        // were ALL invisible despite being correctly created and
+        // updated. Drawn AFTER the main entity pass so they overlay
+        // on top of units/buildings, which is what you want for
+        // sparkle / damage-number feedback.
+        if (typeof particles !== 'undefined') drawables = drawables.concat(particles);
+        if (typeof floatingTexts !== 'undefined') drawables = drawables.concat(floatingTexts);
     } catch(e) {}
 
     drawables.forEach(e => {
