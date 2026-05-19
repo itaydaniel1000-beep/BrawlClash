@@ -62,31 +62,50 @@ function _aiReactiveStep(dt, now, cooldownMs) {
     // this special punish — the cooldown is the only throttle. Otherwise
     // a player who keeps the bot's elixir drained could spawn-camp 5
     // Mr-Ps forever and the punish would never fire.
-    if (!window._aiLastAmberAt)  window._aiLastAmberAt  = 0;
-    if (!window._aiLastAmberLog) window._aiLastAmberLog = 0;
+    if (!window._aiLastAmberAt)    window._aiLastAmberAt    = 0;
+    if (!window._aiLastAmberLog)   window._aiLastAmberLog   = 0;
+    if (!window._aiLastAmberCount) window._aiLastAmberCount = 0;
     const playerMrPs = buildings.filter(b => b.team === 'player' && b.type === 'mr-p' && !b.isDead);
+
+    // Watcher log — fires once every 2 s whenever the player has ANY
+    // Mr-P. Lets the user see in console exactly when their count
+    // crosses the 5 threshold without needing to count visually.
+    if (playerMrPs.length !== window._aiLastAmberCount) {
+        console.log(`📊 player Mr-P count: ${playerMrPs.length}`);
+        window._aiLastAmberCount = playerMrPs.length;
+    }
+
     if (playerMrPs.length >= 5) {
         const cooldownLeft = 10000 - (now - window._aiLastAmberAt);
         if (cooldownLeft <= 0) {
             const startY = 90;                                // just below the enemy safe
             const endY   = CONFIG.CANVAS_HEIGHT - 100;        // just above the player safe
+            let spawned = 0;
             // ONE Amber per Mr-P, vertical column aligned with the spawner's x.
             playerMrPs.forEach(mrp => {
                 const lane = mrp.x;
                 try {
-                    spawnEntity(lane, startY, 'enemy', 'amber', false, false, null, 0, [
+                    const r = spawnEntity(lane, startY, 'enemy', 'amber', false, false, null, 0, [
                         { x: lane, y: startY },
                         { x: lane, y: endY   }
                     ]);
-                } catch (e) {}
+                    if (r !== null && r !== undefined) spawned++;
+                    else if (r === null) console.warn(`   ↳ Amber on lane ${lane}: spawnEntity returned null (blocked by a cap?)`);
+                } catch (e) {
+                    console.warn(`   ↳ Amber on lane ${lane}: spawnEntity threw`, e);
+                }
             });
-            console.log(`🔥 AI Amber-sweep fired: ${playerMrPs.length} Mr-Ps → ${playerMrPs.length} Ambers, bot elixir ${enemyElixir.toFixed(1)}`);
+            console.log(`🔥 AI Amber-sweep FIRED: ${playerMrPs.length} Mr-Ps → ${spawned} Ambers spawned`);
+            if (typeof showTransientToast === 'function') {
+                showTransientToast(`🔥 הבוט שולח ${spawned} אמברות נגד ה-Mr-P!`);
+            }
             window._aiLastAmberAt = now;
             lastAIActionTime = now;
             return;
-        } else if (now - window._aiLastAmberLog > 5000) {
-            console.log(`🔥 AI Amber-sweep BLOCKED: ${playerMrPs.length} Mr-Ps, ` +
-                `cooldown ${Math.ceil(cooldownLeft/1000)}s left`);
+        } else if (now - window._aiLastAmberLog > 3000) {
+            console.warn(`🔥 AI Amber-sweep BLOCKED: ${playerMrPs.length} Mr-Ps, ` +
+                `cooldown ${Math.ceil(cooldownLeft/1000)}s left ` +
+                `(disableBot=${!!(typeof adminHacks !== 'undefined' && adminHacks.disableBot)})`);
             window._aiLastAmberLog = now;
         }
     }
