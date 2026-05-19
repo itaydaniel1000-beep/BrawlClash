@@ -720,6 +720,32 @@ async function submitJoinRequest() {
             if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
         });
     });
+
+    // PeerJS reports "peer-unavailable" (= the target lock-peer doesn't
+    // exist on the broker = the user isn't online with that name) by
+    // firing the `error` event on the PEER object, NOT on the conn.
+    // Without this listener the conn just hangs at the "מתחבר…" stage
+    // until the openWatch times out 20 s later. Catch it here and fail
+    // fast with a clear message.
+    const peerErrHandler = (err) => {
+        if (!err) return;
+        const isUnavail = err.type === 'peer-unavailable' ||
+                          /peer-unavailable|could not connect/i.test(err.message || '');
+        // Only handle errors that are relevant to OUR conn (compare
+        // the target id mentioned in the error message, if available).
+        const targetLockId = _peerIdForName(targetName);
+        const mentionsTarget = !err.message || err.message.indexOf(targetLockId) !== -1;
+        if (isUnavail && mentionsTarget) {
+            clearTimeout(giveUp);
+            clearTimeout(openWatch);
+            try { peer.off('error', peerErrHandler); } catch (e) {}
+            finish(() => {
+                _setJoinFeedback('❌ המשתמש "' + targetName + '" לא מחובר כרגע — בקש ממנו לפתוח את האפליקציה ונסה שוב', '#ff7675');
+                if (sb) { sb.disabled = false; sb.style.opacity = '1'; }
+            });
+        }
+    };
+    try { peer.on('error', peerErrHandler); } catch (e) {}
 }
 window.submitJoinRequest = submitJoinRequest;
 
