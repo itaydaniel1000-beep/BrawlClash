@@ -210,17 +210,34 @@ class Building extends Entity {
                                 };
                                 p.draw = function (ctx) {
                                     ctx.save();
-                                    // Subtle pulse so the star looks alive
-                                    // mid-flight rather than a static glyph.
-                                    const pulse = 1 + 0.12 * Math.sin(performance.now() / 80);
+                                    // Render as a miniature Lumi — same
+                                    // structure as Building.draw() for type
+                                    // lumi: purple circle background + 🌟
+                                    // emoji on top. Scaled to ~60% of full
+                                    // Lumi (r=13 vs r=22) so the swarm of
+                                    // homing minions reads as flying
+                                    // mini-Lumis and not full-size copies.
+                                    const pulse = 1 + 0.10 * Math.sin(performance.now() / 80);
                                     ctx.translate(this.x, this.y);
                                     ctx.scale(pulse, pulse);
-                                    ctx.shadowBlur  = 14;
-                                    ctx.shadowColor = '#fff7c0';
-                                    ctx.fillStyle   = '#f1c40f';
-                                    ctx.font        = 'bold 22px Arial';
+                                    // Purple chrome circle.
+                                    ctx.shadowBlur  = 12;
+                                    ctx.shadowColor = '#bb8fce';
+                                    ctx.beginPath();
+                                    ctx.arc(0, 0, 13, 0, Math.PI * 2);
+                                    ctx.fillStyle   = '#8e44ad';
+                                    ctx.fill();
+                                    // Thin white rim — same outlined look
+                                    // a real Lumi has.
+                                    ctx.lineWidth   = 2;
+                                    ctx.strokeStyle = '#fff';
+                                    ctx.stroke();
+                                    // 🌟 glyph centred on top of the circle.
+                                    ctx.shadowBlur  = 0;
+                                    ctx.font        = 'bold 18px Arial';
                                     ctx.textAlign   = 'center';
                                     ctx.textBaseline = 'middle';
+                                    ctx.fillStyle   = '#fff';
                                     ctx.fillText('🌟', 0, 0);
                                     ctx.restore();
                                 };
