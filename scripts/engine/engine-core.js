@@ -152,16 +152,18 @@ function initGame() {
         // Both safes otherwise keep the flat 5000 HP from CONFIG.SAFE_MAX_HP — no
         // per-difficulty bonus for the enemy safe.
 
-        // 🛡️ Bot defensive fortress — only in vs-bot (skip P2P). The bot
-        // starts every match with a 4-layer ring of buildings around its
-        // safe: 5 Pam (heal) clustered ON the safe, 4 Sparky at the edge
-        // of those auras, 5 more Pam slightly behind, then 5 Sparky at
-        // the outermost edge. Lets the bot weather early porter rushes.
+        // 🛡️ Bot defensive fortress — only in vs-bot (skip P2P). Four
+        // horizontal rows in front of (= below) the bot's safe, each at
+        // the leading edge of the previous Pam aura:
+        //   Row 1 — 5 Pam clustered ON the safe (heal-source layer)
+        //   Row 2 — 4 Sparky at the front edge of those auras (safe_y + 82)
+        //   Row 3 — 5 Pam slightly behind that Sparky line
+        //   Row 4 — 5 Sparky at the front edge of the row-3 auras
         //
         // Elixir bypass: enemyElixir is drained to 0 once and stays
         // there (spawnEntity's Math.max(0, ...) clamps the deduction),
         // then reset to 5 after so the bot has its normal starting bank
-        // for offensive plays. This is a structural setup, not a play.
+        // for offensive plays. The fortress itself is free.
         if (!currentBattleRoom) {
             try {
                 const sx = enemySafe.x;
@@ -169,31 +171,32 @@ function initGame() {
                 const place = (x, y, type) => {
                     try { spawnEntity(x, y, 'enemy', type); } catch (_) {}
                 };
-                // Layer 1 — 5 Pam clustered ON the safe (slight spread so
-                // they don't all stack at one pixel).
-                [[ sx,      sy + 15],
-                 [ sx - 25, sy + 25],
-                 [ sx + 25, sy + 25],
-                 [ sx - 20, sy +  5],
-                 [ sx + 20, sy +  5]].forEach(p => place(p[0], p[1], 'pam'));
-                // Layer 2 — 4 Sparky at r≈95 (just past Pam aura edge,
-                // ~82 px), arc 30°→150° below the safe.
-                [30, 70, 110, 150].forEach(deg => {
-                    const a = deg * Math.PI / 180;
-                    place(sx + 95 * Math.cos(a), sy + 95 * Math.sin(a), 'scrappy');
-                });
-                // Layer 3 — 5 Pam at r≈140 (a bit behind the Sparky line),
-                // arc 20°→160° spread to cover the bottom hemisphere.
-                [20, 55, 90, 125, 160].forEach(deg => {
-                    const a = deg * Math.PI / 180;
-                    place(sx + 140 * Math.cos(a), sy + 140 * Math.sin(a), 'pam');
-                });
-                // Layer 4 — 5 Sparky at r≈220 (at the OUTER Pam aura
-                // edge, 140 + 82 = 222), same angle pattern.
-                [20, 55, 90, 125, 160].forEach(deg => {
-                    const a = deg * Math.PI / 180;
-                    place(sx + 220 * Math.cos(a), sy + 220 * Math.sin(a), 'scrappy');
-                });
+                // Helper — N entities in a horizontal row at y, x-spread
+                // evenly across `width` centred on `sx`.
+                const row = (count, y, width, type) => {
+                    if (count <= 1) { place(sx, y, type); return; }
+                    const step = width / (count - 1);
+                    for (let i = 0; i < count; i++) {
+                        place(sx - width / 2 + step * i, y, type);
+                    }
+                };
+                // === Row 1 — 5 Pam clustered ON the safe (tight spread) ===
+                // y stays at safe level (sy). Width ~140 keeps them
+                // overlapping with the safe and each other for max heal
+                // density on the safe itself.
+                row(5, sy, 140, 'pam');
+                // === Row 2 — 4 Sparky at the front edge of the row-1 Pam
+                // auras (pam radius = 82, so y = sy + 82). Width 260 ≈
+                // span of row-1 + the lateral aura overlap. ===
+                row(4, sy + 82, 260, 'scrappy');
+                // === Row 3 — 5 Pam "slightly behind" (= further forward
+                // from safe than) the Sparky line. +30 px gives a clear
+                // gap so the Sparkies are distinctly in front of them. ===
+                row(5, sy + 112, 260, 'pam');
+                // === Row 4 — 5 Sparky at the front edge of the row-3 Pam
+                // auras (sy + 112 + 82 = sy + 194). Same width so the
+                // formation stays rectangular. ===
+                row(5, sy + 194, 260, 'scrappy');
                 // Restore the bot's elixir so it has the usual 5 to start
                 // offensive plays from — the fortress was free, but the
                 // rest of the match runs on the normal economy.
