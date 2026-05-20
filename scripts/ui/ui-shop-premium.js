@@ -168,12 +168,11 @@ function showInterstitialAd() {
         ov.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:10500; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; gap:14px; font-family:"Assistant",sans-serif;';
         ov.innerHTML = `
             <div style="color:#bdc3c7; font-size:0.9rem; font-weight:bold;">פרסומת</div>
-            <div id="interstitial-ad-slot" style="background:linear-gradient(135deg,#3498db,#9b59b6); width:90%; max-width:360px; aspect-ratio:1/1; border-radius:14px; display:flex; align-items:center; justify-content:center; color:#fff; text-align:center; padding:18px; font-size:1.1rem; line-height:1.5; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
-                <div>
-                    <div style="font-size:3rem; margin-bottom:10px;">📺</div>
-                    <div style="font-weight:bold; margin-bottom:6px;">פרסומת לדוגמא</div>
-                    <div style="font-size:0.85rem; opacity:0.85;">כאן יוצג קישור הפרסומת בפועל לאחר חיבור רשת הפרסום</div>
-                </div>
+            <div id="interstitial-ad-slot" style="width:90%; max-width:360px; border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.5); background:#1a1a2e;">
+                <img src="assets/ads/hilel-effects.jpg"
+                     alt="הלל אפקות"
+                     style="display:block; width:100%; height:auto; object-fit:cover;"
+                     onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=&quot;color:#fff; text-align:center; padding:40px 18px;&quot;><div style=&quot;font-size:3rem; margin-bottom:10px;&quot;>📺</div><div style=&quot;font-weight:bold; margin-bottom:6px;&quot;>פרסומת לדוגמא</div><div style=&quot;font-size:0.85rem; opacity:0.85;&quot;>חסר את הקובץ assets/ads/hilel-effects.jpg</div></div>';">
             </div>
             <button id="interstitial-ad-close" disabled style="background:#7f8c8d; color:#fff; border:none; border-radius:10px; padding:10px 22px; font-size:1rem; font-weight:bold; opacity:0.6; cursor:not-allowed;">
                 <span id="interstitial-ad-countdown">דלג בעוד ${_AD_SKIP_SECONDS}…</span>
