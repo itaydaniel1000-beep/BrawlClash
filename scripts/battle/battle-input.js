@@ -194,9 +194,12 @@ function _placeAtInternal(x, y, shiftHeld) {
             } catch (e) { /* ignore — local morph already happened */ }
             // Stay armed if there are more Bonnies — let the player chain-
             // transform; otherwise drop the mode + reset the button colour.
+            // Shift / long-press FORCES the mode to stay armed regardless,
+            // mirroring the card placement behaviour (per user spec —
+            // "every button should work like a card").
             const moreBonnies = (typeof buildings !== 'undefined' ? buildings : [])
                 .some(b => b && b.team === 'player' && b.type === 'bonnie' && !b.isDead);
-            if (!moreBonnies) {
+            if (!shiftHeld && !moreBonnies) {
                 isSelectingBonnieTransform = false;
                 const btn = document.getElementById('bonnie-transform-btn');
                 if (btn) btn.style.backgroundColor = '#a29bfe';
@@ -236,9 +239,16 @@ function _placeAtInternal(x, y, shiftHeld) {
             }
             if (typeof showTransientToast === 'function') showTransientToast('🩰✨ גיגי שוגרה');
         }
-        isSelectingGigiTeleport = false;
-        const btn = document.getElementById('gigi-teleport-btn');
-        if (btn) btn.style.backgroundColor = '#e91e63';
+        // Shift / long-press AND there's still an eligible Gigi left →
+        // keep the mode armed for chain-teleporting (matches the card
+        // shift-spam behaviour). Otherwise exit cleanly.
+        const moreEligible = units.some(u => u && u.team === 'player' && u.type === 'gigi' &&
+                                             !u.isDead && !u._gigiTeleported);
+        if (!shiftHeld || !moreEligible) {
+            isSelectingGigiTeleport = false;
+            const btn = document.getElementById('gigi-teleport-btn');
+            if (btn) btn.style.backgroundColor = '#e91e63';
+        }
         return { placed: false };
     }
 
@@ -251,7 +261,9 @@ function _placeAtInternal(x, y, shiftHeld) {
         const myBarry = units.find(u => u.team === 'player' && u.type === 'barry' &&
                                         !u.isDead && (u._icecreamReady || 0) > 0);
         const onField = auras.filter(a => a.team === 'player' && a.type === 'icecream' && !a.isDead).length;
+        let placedThisClick = false;
         if (!myBarry) {
+            // No more ready charges → always exit mode (nothing to repeat).
             isSelectingIcecream = false;
         } else if (onField >= 4) {
             if (typeof showTransientToast === 'function') showTransientToast('🍦 כבר 4 גלידות במגרש');
@@ -259,10 +271,22 @@ function _placeAtInternal(x, y, shiftHeld) {
         } else {
             myBarry._icecreamReady = Math.max(0, (myBarry._icecreamReady || 0) - 1);
             spawnEntity(x, y, 'player', 'icecream');
-            isSelectingIcecream = false;
+            placedThisClick = true;
+        }
+        // Shift / long-press AND we successfully placed AND there's
+        // still a ready charge AND the field cap isn't reached → keep
+        // the mode armed so the next click drops another. Matches the
+        // card chain-spawn behaviour.
+        if (placedThisClick) {
+            const stillReady = units.some(u => u.team === 'player' && u.type === 'barry' &&
+                                               !u.isDead && (u._icecreamReady || 0) > 0);
+            const cone = auras.filter(a => a.team === 'player' && a.type === 'icecream' && !a.isDead).length;
+            if (!shiftHeld || !stillReady || cone >= 4) {
+                isSelectingIcecream = false;
+            }
         }
         const btn = document.getElementById('icecream-btn');
-        if (btn) btn.style.backgroundColor = '#3498db';
+        if (btn) btn.style.backgroundColor = isSelectingIcecream ? '#e74c3c' : '#3498db';
         return { placed: false };
     }
 
@@ -278,8 +302,11 @@ function _placeAtInternal(x, y, shiftHeld) {
                     window.NetworkManager.broadcastBullDash(clickedBull.x, clickedBull.y);
                 }
             } catch (e) { /* ignore — local dash already fired */ }
+            // Shift / long-press FORCES the mode to stay armed regardless,
+            // matching the card-spam pattern. Otherwise: stay armed only
+            // if there's another Bull left to dash.
             const moreBullsAvailable = units.some(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed);
-            if (!moreBullsAvailable) {
+            if (!shiftHeld && !moreBullsAvailable) {
                 isSelectingBullDash = false;
                 const dashBtn = document.getElementById('bull-dash-btn');
                 if (dashBtn) dashBtn.style.backgroundColor = '#8c7ae6';
