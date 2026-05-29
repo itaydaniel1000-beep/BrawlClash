@@ -143,6 +143,14 @@ function buildDeck() {
                 const bnBtn = document.getElementById('bonnie-transform-btn');
                 if (bnBtn) bnBtn.style.backgroundColor = '#a29bfe';
             }
+            // ...and the Gigi teleport-select mode (per user spec —
+            // picking any other deck card cancels Gigi's pending
+            // teleport choice).
+            if (typeof isSelectingGigiTeleport !== 'undefined' && isSelectingGigiTeleport) {
+                isSelectingGigiTeleport = false;
+                const gtBtn = document.getElementById('gigi-teleport-btn');
+                if (gtBtn) gtBtn.style.backgroundColor = '#e91e63';
+            }
 
             if (selectedCardId === cardId) {
                 selectedCardId = null;

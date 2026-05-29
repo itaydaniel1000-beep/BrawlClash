@@ -117,6 +117,16 @@ const CARDS = {
     // she walks to the nearest enemy and vanishes on contact.
     'amber': { name: 'אמבר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥',
                rarity: 'מדהים' },
+    // Gigi — ballerina. Walks toward the nearest enemy (uses the
+    // bull/porter/libi targeting branch in unit-logic.js). Heavy hitter:
+    // 2500 HP / 250 dmg / 6 elixir. Signature ability: ONE-SHOT
+    // teleport. After placement, a side-rail button (gigi-teleport-btn)
+    // shows a circular range around each alive un-teleported Gigi.
+    // Clicking inside the range moves that Gigi to the click point and
+    // marks her as having used her teleport. Click the button again to
+    // hide the range; click another card / action button to cancel.
+    'gigi': { name: 'גיגי', cost: 6, type: 'unit', color: '#e91e63', icon: '🩰',
+              rarity: 'מדהים' },
     // Bubble — slingshot gum bubble. 3 elixir. Untargetable, invulnerable,
     // bounces off walls, deals 100 contact damage once per enemy, dies after
     // 18 "steps" (× 50 px = 900 px max travel). Long-press on the map to

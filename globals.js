@@ -176,6 +176,14 @@ let isSelectingBonnieTransform = false;
 // charge from the first Barry that has one.
 let isSelectingIcecream = false;
 
+// Gigi's one-shot teleport mode — toggled by the 🩰✨ side button when at
+// least one alive player-team Gigi hasn't used her teleport yet. While
+// true, every eligible Gigi gets a dashed range circle drawn around her,
+// and the next canvas click inside one of those circles moves THAT Gigi
+// to the click point. Each Gigi can only teleport once (per-instance
+// _gigiTeleported flag).
+let isSelectingGigiTeleport = false;
+
 // Admin "delete next click" mode — toggled by the admin-delete button, consumed
 // by the next canvas click that lands on an enemy unit.
 var isSelectingDeleteTarget = false;

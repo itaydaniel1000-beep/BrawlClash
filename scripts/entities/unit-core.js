@@ -129,6 +129,22 @@ class Unit extends Entity {
             this.color = '#ff69b4';
             this.isInvulnerable = true;       // takeDamage no-op (entity-base.js)
             this.isHealthHidden = true;       // skip HP bar — always full
+        } else if (type === 'gigi') {
+            // Gigi — ballerina bruiser. Targets the nearest enemy (the
+            // unit-logic.js `bull/porter/libi/barry` branch handles her
+            // — see the type list there). One-shot teleport: each
+            // Gigi instance can be teleported within a 200-px radius
+            // ONCE during her lifetime; the side-rail button drives
+            // the selection UI. `_gigiTeleported` flips to true on
+            // teleport; the button visibility check filters it.
+            this.maxHp = 2500; this.hp = 2500;
+            this.attackDamage = 250;
+            this.speed = 50;
+            this.attackRange = 60;       // melee — Bruce-like reach
+            this.attackSpeed = 1000;
+            this.color = '#e91e63';
+            this._gigiTeleported = false;
+            this._gigiTeleportRange = 200;
         } else if (type === 'amber') {
             // Pacifist fire-walker. attackDamage = 0 + isPacifist flag tells
             // unit-logic.js to skip the attack code-path entirely (otherwise

@@ -380,6 +380,20 @@
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #ff6b9d; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #c0397f; transition: background-color 0.2s;"
                         title="פוצץ את העוגה — כל היחידות של היריב מתות">🎂💥</button>
 
+                    <!-- 🩰✨ Gigi teleport button — visible whenever the
+                         player has at least one alive Gigi that hasn't
+                         used her one-shot teleport yet. Clicking enters
+                         "pick a teleport destination" mode (range circle
+                         drawn by engine-renderer.js around each eligible
+                         Gigi). Next map click inside the range moves the
+                         matching Gigi to that spot. Clicking the button
+                         again exits the mode without teleporting.
+                         Selecting a different deck card / action button
+                         also exits (per user spec). -->
+                    <button id="gigi-teleport-btn"
+                        style="display:none; font-family: 'Fredoka One', cursive; background-color: #e91e63; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #ad1457; transition: background-color 0.2s;"
+                        title="שגר את גיגי">🩰✨</button>
+
                     <!-- 🐧💥 Mr-P self-destruct button — visible whenever
                          the player has at least one alive Mr-P spawner.
                          Clicking instantly kills every Mr-P the player
@@ -1013,8 +1027,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=16.4"></script>
-    <script src="globals.js?v=16.3"></script>
+    <script src="config.js?v=16.5"></script>
+    <script src="globals.js?v=16.4"></script>
     <script src="audio.js?v=3.8"></script>
     
     <!-- Network Module -->
@@ -1028,8 +1042,8 @@
     <!-- Entities Module -->
     <script src="scripts/entities/entity-base.js?v=14.3"></script>
     <script src="scripts/entities/effects.js"></script>
-    <script src="scripts/entities/unit-core.js?v=13.7"></script>
-    <script src="scripts/entities/unit-logic.js?v=15.0"></script>
+    <script src="scripts/entities/unit-core.js?v=13.8"></script>
+    <script src="scripts/entities/unit-logic.js?v=15.1"></script>
     <script src="scripts/entities/building.js?v=16.5"></script>
     <script src="scripts/entities/aura.js?v=14.7"></script>
     <script src="scripts/entities/projectile.js?v=9.82"></script>
@@ -1050,14 +1064,14 @@
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
     <script src="scripts/ai/ai-strategies.js?v=5.2"></script>
     <script src="scripts/battle/battle-spawn.js?v=10.8"></script>
-    <script src="scripts/battle/battle-input.js?v=14.9"></script>
-    <script src="scripts/battle/battle-deck.js?v=15.7"></script>
+    <script src="scripts/battle/battle-input.js?v=15.0"></script>
+    <script src="scripts/battle/battle-deck.js?v=15.8"></script>
 
     <!-- Engine Module -->
-    <script src="scripts/engine/engine-core.js?v=17.2"></script>
+    <script src="scripts/engine/engine-core.js?v=17.3"></script>
     <script src="scripts/engine/engine-physics.js?v=13.6"></script>
-    <script src="scripts/engine/engine-renderer.js?v=14.1"></script>
-    <script src="scripts/engine/engine-input.js?v=15.0"></script>
+    <script src="scripts/engine/engine-renderer.js?v=14.2"></script>
+    <script src="scripts/engine/engine-input.js?v=15.1"></script>
 </body>
 
 </html>

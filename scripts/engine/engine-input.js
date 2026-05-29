@@ -553,6 +553,12 @@ function initGameListeners() {
             const bullsAvailable = units.some(u => u.team === 'player' && u.type === 'bull' && !u.hasDashed);
             if (!bullsAvailable) return;
         }
+        // Picking another mode cancels Gigi teleport selection.
+        if (typeof isSelectingGigiTeleport !== 'undefined' && isSelectingGigiTeleport) {
+            isSelectingGigiTeleport = false;
+            const gtBtn = document.getElementById('gigi-teleport-btn');
+            if (gtBtn) gtBtn.style.backgroundColor = '#e91e63';
+        }
         isSelectingBullDash = !isSelectingBullDash;
         bullDashBtn.style.backgroundColor = isSelectingBullDash ? '#e74c3c' : '#8c7ae6';
     };
@@ -568,8 +574,41 @@ function initGameListeners() {
                 .some(b => b && b.team === 'player' && b.type === 'bonnie' && !b.isDead);
             if (!bonniesAvailable) return;
         }
+        // Picking another mode cancels Gigi teleport selection.
+        if (typeof isSelectingGigiTeleport !== 'undefined' && isSelectingGigiTeleport) {
+            isSelectingGigiTeleport = false;
+            const gtBtn = document.getElementById('gigi-teleport-btn');
+            if (gtBtn) gtBtn.style.backgroundColor = '#e91e63';
+        }
         isSelectingBonnieTransform = !isSelectingBonnieTransform;
         bonnieBtn.style.backgroundColor = isSelectingBonnieTransform ? '#e74c3c' : '#a29bfe';
+    };
+
+    // 🩰✨ Gigi teleport — toggles "next map-click teleports a Gigi"
+    // mode. While on, engine-renderer.js draws a dashed pink range
+    // circle around each eligible Gigi (alive + un-teleported), and
+    // the map-click handler in battle-input.js consumes the next click
+    // to move the matching Gigi. Pressing the button again exits the
+    // mode without teleporting (per user spec).
+    const gigiTeleBtn = document.getElementById('gigi-teleport-btn');
+    if (gigiTeleBtn) gigiTeleBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (!isSelectingGigiTeleport) {
+            const anyEligible = (typeof units !== 'undefined' ? units : [])
+                .some(u => u && u.team === 'player' && u.type === 'gigi' && !u.isDead && !u._gigiTeleported);
+            if (!anyEligible) return;
+            // Clear any conflicting selection state when entering Gigi
+            // mode — per user spec, picking another card / button drops
+            // this state, and vice versa.
+            selectedCardId = null;
+            selectedFreezeCardId = null;
+            isSelectingBullDash = false;
+            isSelectingBonnieTransform = false;
+            isSelectingIcecream = false;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        }
+        isSelectingGigiTeleport = !isSelectingGigiTeleport;
+        gigiTeleBtn.style.backgroundColor = isSelectingGigiTeleport ? '#ff4757' : '#e91e63';
     };
 
     // 🐧💥 Mr-P self-destruct — kills every alive player-team Mr-P in
@@ -639,6 +678,12 @@ function initGameListeners() {
                     showTransientToast('🍦 כבר 4 גלידות במגרש');
                 return;
             }
+        }
+        // Picking another mode cancels Gigi teleport selection.
+        if (typeof isSelectingGigiTeleport !== 'undefined' && isSelectingGigiTeleport) {
+            isSelectingGigiTeleport = false;
+            const gtBtn = document.getElementById('gigi-teleport-btn');
+            if (gtBtn) gtBtn.style.backgroundColor = '#e91e63';
         }
         isSelectingIcecream = !isSelectingIcecream;
         icecreamBtn.style.backgroundColor = isSelectingIcecream ? '#e74c3c' : '#3498db';

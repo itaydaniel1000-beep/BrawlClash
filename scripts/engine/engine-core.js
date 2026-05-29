@@ -5,9 +5,9 @@
 var _actionBtnOriginalParent = null;
 
 function _positionActionButtons() {
-    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn', 'cake-blow-btn', 'mrp-kill-btn'];
-    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%', '92%', '8%'];
-    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db', '#ff6b9d', '#54a0ff'];
+    var IDS         = ['admin-delete-btn', 'amber-path-btn', 'bull-dash-btn', 'bonnie-transform-btn', 'icecream-btn', 'cake-blow-btn', 'mrp-kill-btn', 'gigi-teleport-btn'];
+    var MOBILE_TOPS = ['22%', '36%', '50%', '64%', '78%', '92%', '8%', '15%'];
+    var BG_COLORS   = ['#c0392b', '#e67e22', '#8c7ae6', '#a29bfe', '#3498db', '#ff6b9d', '#54a0ff', '#e91e63'];
 
     var isMobile = ('ontouchstart' in window) ||
                    (navigator.maxTouchPoints > 0) ||
@@ -55,8 +55,8 @@ function _positionActionButtons() {
             btn.style.position  = 'absolute';
             btn.style.top       = 'auto';
             btn.style.left      = 'auto';
-            btn.style.right     = ['60px','130px','60px','200px','60px','130px','60px'][i];
-            btn.style.bottom    = ['70px','10px','10px','10px','140px','140px','220px'][i];
+            btn.style.right     = ['60px','130px','60px','200px','60px','130px','60px','60px'][i];
+            btn.style.bottom    = ['70px','10px','10px','10px','140px','140px','220px','310px'][i];
             btn.style.zIndex    = '100';
         }
     });
@@ -127,7 +127,7 @@ function initGame() {
         const maxE   = (typeof adminHacks !== 'undefined' && adminHacks.maxElixir) ? adminHacks.maxElixir : 10;
         playerElixir = startE; enemyElixir = 5; aiDeaths = []; pendingRebuilds = [];
         playerMaxElixir = maxE; playerKills = 0;
-        selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false; isSelectingBonnieTransform = false; isSelectingIcecream = false;
+        selectedCardId = null; selectedFreezeCardId = null; isSelectingBullDash = false; isSelectingBonnieTransform = false; isSelectingIcecream = false; isSelectingGigiTeleport = false;
 
         hardAIState = 0; aiDelayTimer = 0; hardAIAttackY = 250; hardAIEmzPlaced = false;
         aiWavePreparation = false;
@@ -330,6 +330,41 @@ function updateUI() {
             }
         } else {
             cakeBlowBtn.style.display = 'none';
+        }
+    }
+
+    // 🩰✨ Gigi teleport button — visible whenever we have at least one
+    // alive player-team Gigi that hasn't used her one-shot teleport.
+    // Hidden the moment the last eligible Gigi dies / teleports.
+    // Backgrounded red while isSelectingGigiTeleport is on so the user
+    // sees the mode is engaged (matches the bonnie-transform pattern).
+    const gigiTeleBtn = document.getElementById('gigi-teleport-btn');
+    if (gigiTeleBtn) {
+        const eligibleGigis = (typeof units !== 'undefined' ? units : [])
+            .filter(u => u && u.team === 'player' && u.type === 'gigi' && !u.isDead && !u._gigiTeleported);
+        if (eligibleGigis.length > 0) {
+            gigiTeleBtn.style.display = 'block';
+            gigiTeleBtn.style.backgroundColor = isSelectingGigiTeleport ? '#ff4757' : '#e91e63';
+            const gtStyle = gigiTeleBtn.style;
+            gtStyle.setProperty('width',  '64px', 'important');
+            gtStyle.setProperty('height', '64px', 'important');
+            gtStyle.setProperty('font-size', '22px', 'important');
+            gtStyle.setProperty('border', '3px solid #fff', 'important');
+            gtStyle.setProperty('box-shadow', '0 4px #ad1457', 'important');
+            gtStyle.setProperty('line-height', '1', 'important');
+            gtStyle.setProperty('padding', '0', 'important');
+            gtStyle.setProperty('display', 'flex', 'important');
+            gtStyle.setProperty('align-items', 'center', 'important');
+            gtStyle.setProperty('justify-content', 'center', 'important');
+            gtStyle.setProperty('position', 'fixed', 'important');
+            gtStyle.setProperty('right', '10px', 'important');
+            gtStyle.setProperty('bottom', '340px', 'important');
+            gtStyle.setProperty('top', 'auto', 'important');
+            gtStyle.setProperty('left', 'auto', 'important');
+            gtStyle.setProperty('z-index', '9999', 'important');
+        } else {
+            gigiTeleBtn.style.display = 'none';
+            if (isSelectingGigiTeleport) isSelectingGigiTeleport = false;
         }
     }
 

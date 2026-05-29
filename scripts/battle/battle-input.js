@@ -205,6 +205,43 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: false };
     }
 
+    // 🩰✨ Gigi teleport target — handled BEFORE the icecream block so
+    // a Gigi-mode click never accidentally falls through to other
+    // modes. If the click lands inside ANY eligible Gigi's teleport
+    // range circle, move that Gigi to the click point, mark her
+    // _gigiTeleported = true, exit mode. If outside every range, just
+    // exit mode silently (per user spec: clicking outside cancels).
+    if (typeof isSelectingGigiTeleport !== 'undefined' && isSelectingGigiTeleport) {
+        const eligibleGigis = units.filter(u => u && u.team === 'player' && u.type === 'gigi' &&
+                                                !u.isDead && !u._gigiTeleported);
+        // Pick the Gigi whose circle the click lands in. If multiple
+        // overlap (uncommon), prefer the one closest to the click —
+        // most intuitive when ranges overlap.
+        let target = null, bestDist = Infinity;
+        for (const g of eligibleGigis) {
+            const d = Math.hypot(g.x - x, g.y - y);
+            const range = g._gigiTeleportRange || 200;
+            if (d <= range && d < bestDist) { target = g; bestDist = d; }
+        }
+        if (target) {
+            target.x = x;
+            target.y = y;
+            target._gigiTeleported = true;
+            // Sparkle puff at both ends so the teleport reads on screen.
+            if (typeof particles !== 'undefined' && typeof Particle === 'function') {
+                const colors = ['#e91e63', '#f48fb1', '#fff', '#9c27b0'];
+                for (let i = 0; i < 12; i++) {
+                    try { particles.push(new Particle(x, y, colors[i % colors.length])); } catch (_) {}
+                }
+            }
+            if (typeof showTransientToast === 'function') showTransientToast('🩰✨ גיגי שוגרה');
+        }
+        isSelectingGigiTeleport = false;
+        const btn = document.getElementById('gigi-teleport-btn');
+        if (btn) btn.style.backgroundColor = '#e91e63';
+        return { placed: false };
+    }
+
     // 🍦 Barry ice-cream placement — anywhere on the map (no half / EMZ
     // restriction). Consumes one charge from the first Barry that has
     // one. Capped at 4 ice creams per team on the field. We route the

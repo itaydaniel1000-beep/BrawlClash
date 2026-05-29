@@ -176,6 +176,35 @@ function draw(ctx) {
             ctx.restore();
         }
 
+        // 🩰✨ Gigi teleport range preview — dashed pink circle around
+        // every eligible Gigi (alive + un-teleported) while the player
+        // has the teleport button armed. The next map click inside a
+        // circle moves THAT Gigi to the click point. Single ring per
+        // Gigi; pulses gently so the indicator reads as "live, waiting
+        // for your click".
+        if (typeof isSelectingGigiTeleport !== 'undefined' && isSelectingGigiTeleport &&
+            typeof units !== 'undefined') {
+            const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 220);
+            ctx.save();
+            ctx.setLineDash([10, 6]);
+            ctx.lineWidth = 3;
+            for (const u of units) {
+                if (!u || u.isDead || u.team !== 'player' || u.type !== 'gigi') continue;
+                if (u._gigiTeleported) continue;
+                const r = u._gigiTeleportRange || 200;
+                ctx.beginPath();
+                ctx.arc(u.x, u.y, r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(233, 30, 99, ${(0.55 + 0.35 * pulse).toFixed(3)})`;
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(u.x, u.y, r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(233, 30, 99, ${(0.07 + 0.05 * pulse).toFixed(3)})`;
+                ctx.fill();
+            }
+            ctx.setLineDash([]);
+            ctx.restore();
+        }
+
         // Bubble drag-aim sling preview — pink dashed line from anchor to
         // pointer + a faded bubble preview at the anchor + a red arrow
         // head at the pointer end so the player can see exactly which
