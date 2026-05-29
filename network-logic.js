@@ -235,6 +235,41 @@ function _saveUsernameRegistry(reg) {
     catch (e) {}
 }
 
+// Lightweight non-cryptographic hash for passwords. Same djb2-style as
+// _peerIdForName but with a second pass for spread. We can't use
+// crypto.subtle.digest reliably here because the game also runs from
+// file:// during local testing, where secure-context APIs are blocked.
+// This is fine for our purpose — the registry is not a real auth
+// system, just a "did you know the password" matcher.
+function _bcHashPw(s) {
+    if (!s) return '';
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+    for (let i = 0; i < s.length; i++) h = ((h * 17) ^ s.charCodeAt(i) ^ (h >> 8)) >>> 0;
+    return h.toString(36);
+}
+
+// Read the locally-saved password for a username (set by claimUsername
+// at signup / login time). Returns '' if unknown. Used to derive the
+// hash we send alongside REGISTER_USERNAME for cross-device override.
+function _bcLocalPasswordHashFor(name) {
+    if (!name) return '';
+    try {
+        const pw = localStorage.getItem('brawlclash_pw_' + name.toLowerCase()) || '';
+        return pw ? _bcHashPw(pw) : '';
+    } catch (e) { return ''; }
+}
+
+// Read a registry entry tolerating BOTH formats:
+//   • legacy: reg[name] === 'deviceId-string'
+//   • new:    reg[name] === { deviceId, passwordHash }
+function _bcRegEntry(reg, lower) {
+    const v = reg[lower];
+    if (!v) return null;
+    if (typeof v === 'string') return { deviceId: v, passwordHash: '' };
+    return { deviceId: v.deviceId || '', passwordHash: v.passwordHash || '' };
+}
+
 // Talk to the super-admin's lock-peer to register/verify the name. Returns
 // a Promise<{ ok, reason?, mode }>. Fails-OPEN on every error path EXCEPT
 // an explicit { ok: false, reason: 'taken' } from the super-admin — without
@@ -244,14 +279,21 @@ function verifyUsernameWithAdmin(name) {
         if (!name) { resolve({ ok: true, mode: 'no-name' }); return; }
         if (!_usernameLockPeer) { resolve({ ok: true, mode: 'no-peer' }); return; }
 
-        // Super-admin claiming their own name → write directly to local registry.
+        const pwHash = _bcLocalPasswordHashFor(name);
+
+        // Super-admin claiming their own name → write directly to local
+        // registry. New format: { deviceId, passwordHash }. Tolerates a
+        // pre-existing legacy string entry by converting it on the spot.
         if (playerStats.username === ADMIN_USERNAME ||
             (typeof ADMIN_USERNAME !== 'undefined' && name === ADMIN_USERNAME)) {
             const reg = _loadUsernameRegistry();
             const lower = name.toLowerCase();
             const dev = getDeviceId();
-            if (!reg[lower] || reg[lower] === dev) {
-                reg[lower] = dev;
+            const entry = _bcRegEntry(reg, lower);
+            const canOverride = !entry || entry.deviceId === dev ||
+                                (entry.passwordHash && entry.passwordHash === pwHash);
+            if (canOverride) {
+                reg[lower] = { deviceId: dev, passwordHash: pwHash || entry?.passwordHash || '' };
                 _saveUsernameRegistry(reg);
                 resolve({ ok: true, mode: 'self' });
             } else {
@@ -271,8 +313,14 @@ function verifyUsernameWithAdmin(name) {
 
         const giveUp = setTimeout(() => settle({ ok: true, mode: 'timeout' }), 5000);
         conn.on('open', () => {
-            try { conn.send({ type: 'REGISTER_USERNAME', username: name, deviceId: getDeviceId() }); }
-            catch (e) { clearTimeout(giveUp); settle({ ok: true, mode: 'send-error' }); }
+            try {
+                conn.send({
+                    type: 'REGISTER_USERNAME',
+                    username: name,
+                    deviceId: getDeviceId(),
+                    passwordHash: pwHash
+                });
+            } catch (e) { clearTimeout(giveUp); settle({ ok: true, mode: 'send-error' }); }
         });
         conn.on('data', (data) => {
             clearTimeout(giveUp);
@@ -376,8 +424,39 @@ function _setupLockPeerMessageHandlers(peer) {
                 }
                 const reg = _loadUsernameRegistry();
                 const lower = data.username.toLowerCase();
-                if (!reg[lower] || reg[lower] === data.deviceId) {
-                    reg[lower] = data.deviceId;
+                const incomingPwHash = (typeof data.passwordHash === 'string') ? data.passwordHash : '';
+                const entry = _bcRegEntry(reg, lower);
+
+                // Decision tree — accept the register if ANY of these hold:
+                //   (a) no prior entry — first claim ever
+                //   (b) same deviceId — same device re-registering
+                //   (c) entry has a passwordHash AND the incoming hash
+                //       matches — legitimate device-switch by the real
+                //       account owner (THIS is the new path that fixes
+                //       the "logout on A, try to log in on B" bug)
+                // Anything else = reject with 'taken'. We DO migrate
+                // legacy entries (no stored hash) up to the new format
+                // on the very first successful re-register — the new
+                // hash becomes the source of truth from then on.
+                let accept = false;
+                if (!entry) {
+                    accept = true;
+                } else if (entry.deviceId === data.deviceId) {
+                    accept = true;
+                } else if (entry.passwordHash && entry.passwordHash === incomingPwHash) {
+                    accept = true;   // password match → legitimate override
+                } else if (!entry.passwordHash && incomingPwHash) {
+                    // Legacy entry from before this feature shipped —
+                    // adopt the first hash we see so future overrides
+                    // require it to match.
+                    accept = true;
+                }
+
+                if (accept) {
+                    reg[lower] = {
+                        deviceId: data.deviceId,
+                        passwordHash: incomingPwHash || (entry && entry.passwordHash) || ''
+                    };
                     _saveUsernameRegistry(reg);
                     try { conn.send({ type: 'REGISTER_RESPONSE', ok: true, mode: 'registered' }); } catch (e) {}
                 } else {
@@ -389,8 +468,11 @@ function _setupLockPeerMessageHandlers(peer) {
                 if (playerStats.username !== ADMIN_USERNAME) return;
                 const reg = _loadUsernameRegistry();
                 const lower = data.username.toLowerCase();
-                // Only the device that owns the registration can release it.
-                if (reg[lower] === data.deviceId) {
+                // Only the device that owns the registration can release
+                // it. Tolerates both legacy (string) and new (object)
+                // registry entry shapes.
+                const entry = _bcRegEntry(reg, lower);
+                if (entry && entry.deviceId === data.deviceId) {
                     delete reg[lower];
                     _saveUsernameRegistry(reg);
                 }
