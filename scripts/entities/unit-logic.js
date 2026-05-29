@@ -493,44 +493,48 @@ const _AMBER_FROZEN_SUBS = {
     C:'b', c:'b'
 };
 
-// === Bruce — angry red bear face ==========================================
+// === Bruce — orange-trapezoid silhouette ==================================
+//
+// Per user request, Bruce's sprite was replaced wholesale with the
+// pixel-art shape Gemini drew on a denser ASCII grid: an orange
+// parallelogram-leaning-trapezoid (wider at top, tapering to a point
+// toward the bottom-right) with a hard black outline. The original
+// red-bear-face design is gone.
 //
 // Color legend:
-//   R = bright red bear body       r = darker red shadow on edges
-//   H = red highlight (top of head)
-//   N = black nose                 E = black eye
-//   W = white fang
+//   O = orange fill                K = hard black outline
 //   '.' = transparent
 //
 // Frozen variants:
-//   I = ice blue main              i = darker ice blue
+//   I = ice blue (replaces orange fill when frozen)
+//   K stays K — the outline remains black even when frozen.
 const _BRUCE_PALETTE = {
-    R: '#BF1F26', r: '#8E1418', H: '#DD3036',
-    N: '#1A1A1A', E: '#1A1A1A',
-    W: '#F5F5F5',
-    I: '#9DD3FF', i: '#74B9FF'
+    O: '#FB8C00',
+    K: '#1A1A1A',
+    I: '#9DD3FF'
 };
 
-// 16 columns × 14 rows. Round face with two ears, eyes, nose, and two fangs
-// hanging at the bottom. Mirrored / centered on column 7.5.
+// 16 columns × 14 rows. Wide horizontal top, leaning-right body, tapering
+// to a short bottom edge at the right. Captures the silhouette of the
+// Gemini render at the resolution the in-battle sprite engine can show.
 const _BRUCE_GRID = [
-    '..RR........RR..',  //  0  ear tops
-    '.RRRR......RRRR.',  //  1  ear bodies
-    '.RRRR......RRRR.',  //  2
-    'RRRRRRRRRRRRRRRR',  //  3  top of face (full width)
-    'RHHRRRRRRRRRRHHR',  //  4  highlights (top corners)
-    'rRRREE....EERRRr',  //  5  small black eyes (cols 4-5, 10-11)
-    'rRRRRRRRRRRRRRRr',  //  6
-    'rRRRRRNNNNRRRRRr',  //  7  nose top (4 wide)
-    'rRRRRNNNNNNRRRRr',  //  8  nose middle (6 wide)
-    'rRRRRNNNNNNRRRRr',  //  9
-    'rrRRRRNNNNRRRRrr',  // 10  nose narrows
-    '.rRRRWW..WWRRRr.',  // 11  fangs visible
-    '..rrWW....WWrr..',  // 12  fang tips
-    '.....W....W.....'   // 13  fang very tips
+    'KKKKKKKKKKKKK...',  //  0  top edge (full-width-ish)
+    'KOOOOOOOOOOOK...',  //  1  upper-left interior
+    'KOOOOOOOOOOOOK..',  //  2  body widens right
+    'KOOOOOOOOOOOOOK.',  //  3  full extension
+    'KOOOOOOOOOOOOOK.',  //  4
+    '.KOOOOOOOOOOOOK.',  //  5  left edge tapers in
+    '..KOOOOOOOOOOOK.',  //  6
+    '...KOOOOOOOOOOK.',  //  7
+    '....KOOOOOOOOOK.',  //  8  right edge starts sloping in
+    '.....KOOOOOOOOK.',  //  9
+    '......KOOOOOOOK.',  // 10
+    '.......KOOOOOOK.',  // 11
+    '........KOOOOK..',  // 12  bottom taper
+    '.........KKKK...'   // 13  bottom edge
 ];
 
-const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
+const _BRUCE_FROZEN_SUBS = { O:'I' };
 
 // === Scrappy — golden-retriever dog face ==================================
 //
