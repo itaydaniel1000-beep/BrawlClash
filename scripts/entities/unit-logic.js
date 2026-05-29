@@ -514,24 +514,116 @@ const _BRUCE_PALETTE = {
     I: '#9DD3FF'
 };
 
-// 16 columns × 14 rows. Wide horizontal top, leaning-right body, tapering
-// to a short bottom edge at the right. Captures the silhouette of the
-// Gemini render at the resolution the in-battle sprite engine can show.
+// 160 columns × 104 rows — Gemini's full-resolution grid verbatim. This is
+// far larger than the in-battle PIX=2 cell renderer can show at unit-size,
+// so the sprite engine routes large grids (cols > 32) through a separate
+// drawImage path that scales the cached PNG down to a fixed pixel width
+// configured by `targetWidthPx` on the sprite def.
 const _BRUCE_GRID = [
-    'KKKKKKKKKKKKK...',  //  0  top edge (full-width-ish)
-    'KOOOOOOOOOOOK...',  //  1  upper-left interior
-    'KOOOOOOOOOOOOK..',  //  2  body widens right
-    'KOOOOOOOOOOOOOK.',  //  3  full extension
-    'KOOOOOOOOOOOOOK.',  //  4
-    '.KOOOOOOOOOOOOK.',  //  5  left edge tapers in
-    '..KOOOOOOOOOOOK.',  //  6
-    '...KOOOOOOOOOOK.',  //  7
-    '....KOOOOOOOOOK.',  //  8  right edge starts sloping in
-    '.....KOOOOOOOOK.',  //  9
-    '......KOOOOOOOK.',  // 10
-    '.......KOOOOOOK.',  // 11
-    '........KOOOOK..',  // 12  bottom taper
-    '.........KKKK...'   // 13  bottom edge
+    '................................................................KKKKKKKK........................................................................................',  //  0
+    '............................................................KKKKOOOOOOOOKKK.....................................................................................',  //  1
+    '..........................................................KKKKOOOOOOOOOOOOOKKK..................................................................................',  //  2
+    '........................................................KKKKOOOOOOOOOOOOOOOOOOKKK...............................................................................',  //  3
+    '......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOKKK............................................................................',  //  4
+    '....................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..........................................................................',  //  5
+    '..................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK........................................................................',  //  6
+    '................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK......................................................................',  //  7
+    '..............................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................................................................',  //  8
+    '............................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..................................................................',  //  9
+    '..........................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK................................................................',  // 10
+    '........................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..............................................................',  // 11
+    '......................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK............................................................',  // 12
+    '....................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..........................................................',  // 13
+    '..................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK........................................................',  // 14
+    '................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK......................................................',  // 15
+    '..............................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................................................',  // 16
+    '............................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..................................................',  // 17
+    '..........................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK................................................',  // 18
+    '........................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..............................................',  // 19
+    '......................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK............................................',  // 20
+    '....................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..........................................',  // 21
+    '..................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK........................................',  // 22
+    '................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK......................................',  // 23
+    '..............KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................................',  // 24
+    '............KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..................................',  // 25
+    '..........KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK................................',  // 26
+    '........KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..............................',  // 27
+    '......KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK............................',  // 28
+    '....KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..........................',  // 29
+    '..KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK........................',  // 30
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK......................',  // 31
+    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.....................',  // 32
+    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.....................',  // 33
+    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.....................',  // 34
+    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.....................',  // 35
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 36
+    '..KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 37
+    '....KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 38
+    '......KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 39
+    '........KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 40
+    '..........KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 41
+    '............KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 42
+    '..............KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 43
+    '................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 44
+    '..................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 45
+    '....................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 46
+    '......................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 47
+    '........................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 48
+    '..........................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 49
+    '............................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 50
+    '..............................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 51
+    '................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 52
+    '..................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 53
+    '....................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 54
+    '......................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 55
+    '........................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 56
+    '..........................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 57
+    '............................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 58
+    '..............................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 59
+    '................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 60
+    '..................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 61
+    '....................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 62
+    '......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 63
+    '........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 64
+    '..........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 65
+    '............................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 66
+    '..............................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 67
+    '................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 68
+    '..................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 69
+    '....................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 70
+    '......................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 71
+    '........................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 72
+    '..........................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 73
+    '............................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 74
+    '..............................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 75
+    '................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 76
+    '..................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 77
+    '....................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 78
+    '......................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK...................',  // 79
+    '........................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 80
+    '..........................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 81
+    '............................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 82
+    '..............................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK...................',  // 83
+    '................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 84
+    '..................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 85
+    '....................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 86
+    '......................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK...................',  // 87
+    '........................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 88
+    '..........................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK...................',  // 89
+    '............................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOKKK....................',  // 90
+    '..............................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOKKK...................',  // 91
+    '................................................................................................................KKKKOOOOOOOOOOOOOOOOOOOOKKK....................',  // 92
+    '..................................................................................................................KKKKOOOOOOOOOOOOOOOOOOOKKK...................',  // 93
+    '....................................................................................................................KKKKOOOOOOOOOOOOOOOOKKK....................',  // 94
+    '......................................................................................................................KKKKOOOOOOOOOOOOOOOKKK...................',  // 95
+    '........................................................................................................................KKKKOOOOOOOOOOOOKKK....................',  // 96
+    '..........................................................................................................................KKKKOOOOOOOOOOOKKK...................',  // 97
+    '............................................................................................................................KKKKOOOOOOOOKKK....................',  // 98
+    '..............................................................................................................................KKKKOOOOOOOKKK...................',  // 99
+    '................................................................................................................................KKKKOOOOKKK....................',  // 100
+    '..................................................................................................................................KKKKOOOKKK...................',  // 101
+    '....................................................................................................................................KKKKOOKKK..................',  // 102
+    '......................................................................................................................................KKKKKKK..................'   // 103
 ];
 
 const _BRUCE_FROZEN_SUBS = { O:'I' };
@@ -1103,10 +1195,19 @@ const _CUSTOM_SPRITES = {
         grid:        _BRUCE_GRID,
         palette:     _BRUCE_PALETTE,
         frozenSubs:  _BRUCE_FROZEN_SUBS,
-        cols:        16,
-        anchorRow:   6.5,
+        cols:        160,
+        // Grid is 104 rows tall; anchorRow keeps the unit's hitbox centred
+        // ~60% down the figure so it sits where the original bear's chin
+        // used to (just below visual centre).
+        anchorRow:   62,
         flickerRows: 0,
-        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
+        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 },
+        // The grid is 160 cols — way too big for PIX=2 cell rendering
+        // (would draw a 320-px-wide unit). `targetWidthPx` routes through
+        // a separate drawImage path that scales the cached PNG to this
+        // exact on-canvas width, keeping the unit visually similar in size
+        // to the original 16×14 design (~32 px) regardless of grid res.
+        targetWidthPx: 40
     },
     scrappy: {
         grid:        _SCRAPPY_GRID,
@@ -1277,15 +1378,67 @@ function _drawCustomSprite(ctx, type, cx, cy, team, isFrozen, isInvisible) {
     ctx.save();
     if (isInvisible) ctx.globalAlpha = 0.5;
 
+    const cols = def.cols;
+    const rows = def.grid.length;
+    const anchorRow = def.anchorRow;
+
+    // ---- targetWidthPx path -----------------------------------------------
+    // For sprites whose ASCII grid is too large for the cell-by-cell PIX=2
+    // renderer (e.g. Bruce at 160 cols), draw the cached PNG via drawImage
+    // scaled to a fixed on-canvas width. This keeps very high-resolution
+    // pixel art looking like a normal-sized unit instead of covering half
+    // the board. Frozen state is supported by lazily caching a second PNG
+    // built from the frozenSubs-substituted grid.
+    if (def.targetWidthPx) {
+        const w = def.targetWidthPx;
+        const h = w * (rows / cols);
+
+        // Team-color glow (drawn first, behind sprite). Same formula as the
+        // cell renderer but the y-offset is expressed in scaled-pixel units.
+        if (def.teamGlow) {
+            const ringColor = team === 'player'
+                ? 'rgba(0, 168, 255, 0.55)'
+                : 'rgba(232, 65, 24, 0.55)';
+            const tg = def.teamGlow;
+            const baseY = cy + (rows - anchorRow) * (h / rows) + (tg.y || 0);
+            ctx.beginPath();
+            ctx.ellipse(cx + (tg.x || 0), baseY, tg.rx, tg.ry, 0, 0, Math.PI * 2);
+            ctx.fillStyle = ringColor;
+            ctx.fill();
+        }
+
+        // Build the per-state cached <Image>. Two keys: 'normal' and 'frozen'.
+        const key = (isFrozen && def.frozenSubs) ? 'frozen' : 'normal';
+        def._imgCache = def._imgCache || {};
+        if (!def._imgCache[key]) {
+            const url = (key === 'frozen')
+                ? _buildFrozenSpriteDataUrl(def)
+                : _getCustomSpriteDataUrl(type);
+            if (url) {
+                const im = new Image();
+                im.src = url;
+                def._imgCache[key] = im;
+            }
+        }
+        const img = def._imgCache[key];
+        if (img && img.complete && img.naturalWidth > 0) {
+            ctx.drawImage(
+                img,
+                Math.round(cx - w / 2),
+                Math.round(cy - anchorRow * (h / rows)),
+                w, h
+            );
+        }
+        ctx.restore();
+        return true;
+    }
+
+    // ---- Standard cell-by-cell path (PIX=2) -------------------------------
     const now = performance.now();
     const flick = (def.flickerRows > 0)
         ? Math.floor(Math.sin(now / 130 + cx + cy) * 1.5)
         : 0;
-
     const PIX = 2;
-    const cols = def.cols;
-    const rows = def.grid.length;
-    const anchorRow = def.anchorRow;
 
     // Team-color glow under the sprite (drawn FIRST so the sprite sits on top).
     if (def.teamGlow) {
@@ -1321,6 +1474,37 @@ function _drawCustomSprite(ctx, type, cx, cy, team, isFrozen, isInvisible) {
     }
     ctx.restore();
     return true;
+}
+
+// Build a PNG data URL of a sprite where every char that has a frozenSubs
+// mapping has been swapped to its frozen variant first. Used by the
+// targetWidthPx render path so a frozen Bruce can be drawn via drawImage
+// from a pre-rendered image instead of re-iterating the 160×104 grid each
+// frame.
+function _buildFrozenSpriteDataUrl(def) {
+    try {
+        const subs = def.frozenSubs || {};
+        const PIX = 4;
+        const COLS = def.cols;
+        const ROWS = def.grid.length;
+        const off = document.createElement('canvas');
+        off.width  = COLS * PIX;
+        off.height = ROWS * PIX;
+        const ictx = off.getContext('2d');
+        for (let r = 0; r < ROWS; r++) {
+            const line = def.grid[r];
+            for (let c = 0; c < COLS; c++) {
+                let ch = line && line[c];
+                if (!ch || ch === '.' || ch === ' ') continue;
+                if (subs[ch]) ch = subs[ch];
+                const color = def.palette[ch];
+                if (!color) continue;
+                ictx.fillStyle = color;
+                ictx.fillRect(c * PIX, r * PIX, PIX, PIX);
+            }
+        }
+        return off.toDataURL('image/png');
+    } catch (e) { return null; }
 }
 window._drawCustomSprite = _drawCustomSprite;
 // Backwards-compat alias for the amber-only helper used by drawGhost.
