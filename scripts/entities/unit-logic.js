@@ -293,7 +293,7 @@ Unit.prototype.update = function(dt, now) {
         return;
     }
 
-    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi' || this.type === 'barry' || this.type === 'gigi') {
+    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi' || this.type === 'barry' || this.type === 'gigi' || this.type === 'frank') {
         let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
 
@@ -375,8 +375,48 @@ Unit.prototype.update = function(dt, now) {
                     this.hasAmbush = false; 
                 }
 
-                this.target.takeDamage(dmg);
-                this.lastAttackTime = now;
+                // === Frank — pyramid-cone hammer swing =====================
+                // Frank's hit isn't a single-target swing; it's a wide cone
+                // (tip at Frank, base far in front of him) that damages
+                // EVERY enemy entity caught inside it. Every SECOND swing
+                // also stuns each hit enemy for 2 s (isFrozen pulse via
+                // setTimeout). The swing leaves a CrackEffect on the
+                // ground that lingers 2 s for visual feedback.
+                if (this.type === 'frank') {
+                    const swingAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+                    const CONE_LENGTH     = 150;
+                    const CONE_HALF_ANGLE = Math.PI / 5;    // 36° each side ≈ 72° total
+                    this._frankSwingCount = (this._frankSwingCount || 0) + 1;
+                    const isStunSwing = (this._frankSwingCount % 2 === 0);
+                    const victims = units.concat(buildings, auras)
+                        .concat([playerSafe, enemySafe].filter(s => s))
+                        .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible &&
+                                     (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
+                    for (const v of victims) {
+                        const dx = (v.x || 0) - this.x;
+                        const dy = (v.y || 0) - this.y;
+                        const d  = Math.hypot(dx, dy);
+                        if (d > CONE_LENGTH + (v.radius || 15)) continue;
+                        // Angular distance from cone axis. Normalised to [0, π].
+                        const va = Math.atan2(dy, dx);
+                        const diff = Math.abs(((va - swingAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
+                        if (diff > CONE_HALF_ANGLE) continue;
+                        if (typeof v.takeDamage === 'function') v.takeDamage(dmg);
+                        if (isStunSwing && !v.isInvulnerable) {
+                            v.isFrozen = true;
+                            const _victim = v;
+                            setTimeout(() => { if (_victim) _victim.isFrozen = false; }, 2000);
+                        }
+                    }
+                    // Ground cracks — fade over 2 s.
+                    if (typeof CrackEffect === 'function' && typeof projectiles !== 'undefined') {
+                        projectiles.push(new CrackEffect(this.x, this.y, swingAngle, CONE_LENGTH, CONE_HALF_ANGLE));
+                    }
+                    this.lastAttackTime = now;
+                } else {
+                    this.target.takeDamage(dmg);
+                    this.lastAttackTime = now;
+                }
 
                 // Bull's dash ends as soon as the dashed-to target dies; he should not auto-dash to the next enemy
                 if (this.type === 'bull' && this.target.isDead && this.dashEndTime) {
@@ -388,7 +428,7 @@ Unit.prototype.update = function(dt, now) {
                     setTimeout(() => { if (this.target) this.target.isFrozen = false; }, 1000);
                 }
 
-                if (typeof MeleeEffect === 'function') projectiles.push(new MeleeEffect(this.x + (this.target.x - this.x) * 0.5, this.y + (this.target.y - this.y) * 0.5));
+                if (this.type !== 'frank' && typeof MeleeEffect === 'function') projectiles.push(new MeleeEffect(this.x + (this.target.x - this.x) * 0.5, this.y + (this.target.y - this.y) * 0.5));
             }
         } else {
             let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);

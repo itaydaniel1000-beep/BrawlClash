@@ -129,6 +129,20 @@ class Unit extends Entity {
             this.color = '#ff69b4';
             this.isInvulnerable = true;       // takeDamage no-op (entity-base.js)
             this.isHealthHidden = true;       // skip HP bar — always full
+        } else if (type === 'frank') {
+            // Frank — heavy front-line mauler. 3000 HP / 400 dmg per swing,
+            // Bruce-pace movement. Targets the nearest enemy entity (incl.
+            // the safe) like Bull/Gigi. attackRange a touch wider than
+            // Bruce so the cone reaches without him climbing into the
+            // enemy. Attack cadence 1500ms gives the cone room to breathe
+            // between every-other-swing stun bursts.
+            this.maxHp = 3000; this.hp = 3000;
+            this.attackDamage = 400;
+            this.speed = 50;                  // Bruce baseline
+            this.attackRange = 70;            // a hair longer than Bruce (55)
+            this.attackSpeed = 1500;          // 1 swing every 1.5 s
+            this.color = '#16a085';
+            this._frankSwingCount = 0;        // counts swings; every 2nd stuns
         } else if (type === 'gigi') {
             // Gigi — ballerina bruiser. Targets the nearest enemy (the
             // unit-logic.js `bull/porter/libi/barry` branch handles her

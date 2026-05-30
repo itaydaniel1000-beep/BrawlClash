@@ -125,7 +125,7 @@ const CARDS = {
     // Clicking inside the range moves that Gigi to the click point and
     // marks her as having used her teleport. Click the button again to
     // hide the range; click another card / action button to cancel.
-    'gigi': { name: 'גיגי', cost: 6, type: 'unit', color: '#e91e63', icon: '🩰',
+    'gigi': { name: 'גיגי', cost: 7, type: 'unit', color: '#e91e63', icon: '🩰',
               rarity: 'מדהים' },
     // Bubble — slingshot gum bubble. 3 elixir. Untargetable, invulnerable,
     // bounces off walls, deals 100 contact damage once per enemy, dies after
@@ -206,6 +206,15 @@ const CARDS = {
     // every "all cards" list by the `eventOnly` flag.
     'cake':   { name: 'עוגה', cost: 5, type: 'building', color: '#ff6b9d', icon: '🎂',
                rarity: 'אגדי', eventOnly: true },
+    // Frank — front-line mauler, 7 elixir. Heavy melee unit (3000 HP,
+    // 400 dmg/swing) that targets the nearest enemy unit OR the safe.
+    // His attack is a wide cone (pyramid) projecting forward from him —
+    // every enemy inside the cone takes the full hit, and the swing
+    // leaves dark cracks on the ground that linger 2 s. Every SECOND
+    // swing also stuns every enemy it hits for 2 s (sets isFrozen
+    // briefly), so the cadence is hit → stun-hit → hit → stun-hit →…
+    'frank':  { name: 'פרנק', cost: 7, type: 'unit', color: '#16a085', icon: '🔨',
+                rarity: 'אגדי' },
     // Raps — stealth bomber. 5 elixir. Tapping any point on the map
     // detonates an 8-bomb hex cluster centred at the click. Each bomb has
     // Spike's radius (55px) and the cluster is packed so adjacent circles
