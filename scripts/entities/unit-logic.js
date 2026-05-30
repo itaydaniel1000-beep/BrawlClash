@@ -570,70 +570,319 @@ const _BRUCE_PALETTE = {
 // to a fixed on-canvas width, preserving in-battle scale regardless of
 // how dense the source grid is.
 const _BRUCE_GRID = [
-    '................................................................................................................................................................',  //   0
-    '................................................................................................................................................................',  //   1
-    '................................................................................................................................................................',  //   2
-    '.................................................................KKKKKKKKKKKKKK.................................................................................',  //   3
-    '.............................................................KKKKCCCCCCCCCCHHCKKKK..............................................................................',  //   4
-    '...........................................................KKKCHHHHHHHHHHHHHHHHHHCKKK...........................................................................',  //   5
-    '..........................................................KKCHHHHHHHHHHHHHHHHHHHHHHCKK..........................................................................',  //   6
-    '.........................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHKK.........................................................................',  //   7
-    '........................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK........................................................................',  //   8
-    '.......................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK.......................................................................',  //   9
-    '.......................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK.......................................................................',  //  10
-    '.......................................................KKKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKKK.......................................................................',  //  11
-    '........................................................KKKCHHHHHHHHHHHHHHHHHHHHHHHHCKK.........................................................................',  //  12
-    '..........................................................KKKKCCCCCCCCCCCCCCCCCCCCKKKK..........................................................................',  //  13
-    '..............................................................KKKKKKKKKKKKKKKKKKKK..............................................................................',  //  14
-    '....................................................................OOOOOOOO....................................................................................',  //  15
-    '..................................................................OOOOOOOOOOOO..................................................................................',  //  16
-    '................................................................OOOOOOOOOOOOOOOO................................................................................',  //  17
-    '..............................................................OOOOOOOOOOOOOOOOOOOO..............................................................................',  //  18
-    '............................................................OOOOOOOOOOOOOOOOOOOOOOOO............................................................................',  //  19
-    '................KKKKKKKKKKKKKK............................OOOOOOOOOOOOOOOOOOOOOOOOOOOO............................KKKKKKKKKKKKKK................................',  //  20
-    '............KKKKOOOOOOOOOOOOOOKKKK......................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO......................KKKKOOOOOOOOOOOOOOKKKK............................',  //  21
-    '..........KKKOOOOOOOOOOOOOOOOOOOOKKK..................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..................KKKOOOOOOOOOOOOOOOOOOOOKKK..........................',  //  22
-    '........KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK..............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..............KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK........................',  //  23
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO............KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..............................',  //  24
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............................',  //  25
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  26
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.......KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............................',  //  27
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.....OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.....KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK......................',  //  28
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO...KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................',  //  29
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................',  //  30
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  31
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  32
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  33
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  34
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  35
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  36
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  37
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  38
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  39
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...................',  //  40
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................',  //  41
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.....................',  //  42
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  43
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWKKKKKKKKKKKKKKWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  44
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWKKKKKKKKKKWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.............................',  //  45
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWWWKKKKKKWWWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................',  //  46
-    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKWWWWWWWWWWWWWWWWKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.................................',  //  47
-    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKWWWWWWWWWWWWKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................................',  //  48
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKWWWWWKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK........................................',  //  49
-    'KKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKK...............................................',  //  50
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................',  //  51
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................',  //  52
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................',  //  53
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................................',  //  54
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................................',  //  55
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................................................',  //  56
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................................................',  //  57
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................................................................',  //  58
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................................................................',  //  59
-    'KKKKOOOOOOOOOOOOOOOOOKKKK.......................................................................................................................................',  //  60
-    'KKKKOOOOOOOOOKKKK...............................................................................................................................................',  //  61
-    'KKKKOOOKKKK.....................................................................................................................................................',  //  62
-    'KKK.............................................................................................................................................................'   //  63
+    '......................................................................................................................................................................',  //   0
+    '......................................................................................................................................................................',  //   1
+    '......................................................................................................................................................................',  //   2
+    '.................................................................KKKKKKKKKKKKKK.......................................................................................',  //   3
+    '.............................................................KKKKCCCCCCCCCCHHCKKKK....................................................................................',  //   4
+    '...........................................................KKKCHHHHHHHHHHHHHHHHHHCKKK.................................................................................',  //   5
+    '..........................................................KKCHHHHHHHHHHHHHHHHHHHHHHCKK................................................................................',  //   6
+    '.........................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHKK...............................................................................',  //   7
+    '........................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK..............................................................................',  //   8
+    '.......................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK.............................................................................',  //   9
+    '.......................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK.............................................................................',  //  10
+    '.......................................................KKKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKKK.............................................................................',  //  11
+    '........................................................KKKCHHHHHHHHHHHHHHHHHHHHHHHHCKK...............................................................................',  //  12
+    '..........................................................KKKKCCCCCCCCCCCCCCCCCCCCKKKK................................................................................',  //  13
+    '..............................................................KKKKKKKKKKKKKKKKKKKK....................................................................................',  //  14
+    '....................................................................OOOOOOOO..........................................................................................',  //  15
+    '..................................................................OOOOOOOOOOOO........................................................................................',  //  16
+    '................................................................OOOOOOOOOOOOOOOO......................................................................................',  //  17
+    '..............................................................OOOOOOOOOOOOOOOOOOOO....................................................................................',  //  18
+    '............................................................OOOOOOOOOOOOOOOOOOOOOOOO..................................................................................',  //  19
+    '................KKKKKKKKKKKKKK............................OOOOOOOOOOOOOOOOOOOOOOOOOOOO............................KKKKKKKKKKKKKK......................................',  //  20
+    '............KKKKOOOOOOOOOOOOOOKKKK......................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO......................KKKKOOOOOOOOOOOOOOKKKK..................................',  //  21
+    '..........KKKOOOOOOOOOOOOOOOOOOOOKKK..................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..................KKKOOOOOOOOOOOOOOOOOOOOKKK................................',  //  22
+    '........KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK..............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..............KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK..............................',  //  23
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO............KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................................',  //  24
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..................................',  //  25
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................',  //  26
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.......KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..................................',  //  27
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.....OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.....KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............................',  //  28
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO...KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  29
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  30
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  31
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  32
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  33
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  34
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  35
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  36
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  37
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  38
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  39
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.........................',  //  40
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  41
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...........................',  //  42
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.............................',  //  43
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWKKKKKKKKKKKKKKWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................',  //  44
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWKKKKKKKKKKWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...................................',  //  45
+    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWWWKKKKKKWWWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK......................................',  //  46
+    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKWWWWWWWWWWWWWWWWKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.......................................',  //  47
+    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKWWWWWWWWWWWWKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..........................................',  //  48
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKWWWWWKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK..............................................',  //  49
+    'KKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKK.....................................................',  //  50
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................',  //  51
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................',  //  52
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................',  //  53
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................................',  //  54
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................................',  //  55
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................................................',  //  56
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................................................',  //  57
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................................................................',  //  58
+    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................................................................',  //  59
+    'KKKKOOOOOOOOOOOOOOOOOKKKK.............................................................................................................................................',  //  60
+    'KKKKOOOOOOOOOKKKK.....................................................................................................................................................',  //  61
+    'KKKKOOOKKKK...........................................................................................................................................................',  //  62
+    'KKK...................................................................................................................................................................',  //  63
+    '......................................................................SSSSSS..........................................................................................',  //  64
+    '....................................................................SSSSSSSSSS........................................................................................',  //  65
+    '..................................................................SSSSSSSSSSSSSS......................................................................................',  //  66
+    '................................................................SSSSSSSSSSSSSSSSSS....................................................................................',  //  67
+    '..............................................................SSSSSSSSSSSSSSSSSSSSSS..................................................................................',  //  68
+    '............................................................SSSSSSSSSSSSSSSSSSSSSSSSSS................................................................................',  //  69
+    '..........................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................................................................',  //  70
+    '................................................--------SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS----------------------------------------------------------------------......',  //  71
+    '......................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................................................................',  //  72
+    '....................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................................................................',  //  73
+    '..................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................................................................',  //  74
+    '................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................................................................',  //  75
+    '..............................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..................................................................',  //  76
+    '............................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS................................................................',  //  77
+    '..........................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................................................',  //  78
+    '........................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................................................',  //  79
+    '......................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................................................',  //  80
+    '....................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................................................',  //  81
+    '..................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................................................',  //  82
+    '................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................................................',  //  83
+    '..............................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..................................................',  //  84
+    '............................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS................................................',  //  85
+    '..........................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................................',  //  86
+    '........................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................................',  //  87
+    '......................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................................',  //  88
+    '....................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................................',  //  89
+    '..................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................................',  //  90
+    '................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................................',  //  91
+    '--------------SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS----------------------------......',  //  92
+    '............SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS................................',  //  93
+    '..........SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................',  //  94
+    '........SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................',  //  95
+    '......SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................',  //  96
+    '....SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................',  //  97
+    '..SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................',  //  98
+    'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................',  //  99
+    'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................',  // 100
+    'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................',  // 101
+    'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................',  // 102
+    'SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................',  // 103
+    '..SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................',  // 104
+    '....SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................',  // 105
+    '......SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................',  // 106
+    '........SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................',  // 107
+    '..........SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................',  // 108
+    '............SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS................................',  // 109
+    '..............SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..................................',  // 110
+    '................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................................',  // 111
+    '..................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................................',  // 112
+    '....................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................................',  // 113
+    '......................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................................',  // 114
+    '........................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................................',  // 115
+    '..........................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................................',  // 116
+    '............................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS.................................................',  // 117
+    '..............................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..................................................',  // 118
+    '................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................................................',  // 119
+    '..................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................................................',  // 120
+    '....................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................................................',  // 121
+    '......................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................................................',  // 122
+    '........................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................................................',  // 123
+    '..........................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................................................',  // 124
+    '............................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS................................................................',  // 125
+    '..............................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..................................................................',  // 126
+    '................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS....................................................................',  // 127
+    '..................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS......................................................................',  // 128
+    '....................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS........................................................................',  // 129
+    '......................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..........................................................................',  // 130
+    '........................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS............................................................................',  // 131
+    '..........................................................SSSSSSSSSSSSSSSSSSSSSSSSSSSSSS..............................................................................',  // 132
+    '............................................................SSSSSSSSSSSSSSSSSSSSSSSSSS................................................................................',  // 133
+    '..............................................................SSSSSSSSSSSSSSSSSSSSSS..................................................................................',  // 134
+    '................................................................SSSSSSSSSSSSSSSSSS....................................................................................',  // 135
+    '..................................................................SSSSSSSSSSSSSS......................................................................................',  // 136
+    '....................................................................SSSSSSSSSS........................................................................................',  // 137
+    '......................................................................SSSSSS..........................................................................................',  // 138
+    '......................................................................................................................................................................',  // 139
+    '......................................................................................................................................................................',  // 140
+    '......................................................................................................................................................................',  // 141
+    '..................................................................KKKKKKKKKKKK..................KKKKKKKKKKKK..........................................................',  // 142
+    '................................................................KKKKOOOOOOOOKKK...............KKKKOOOOOOOOKKK.........................................................',  // 143
+    '...............................................................KKKKOOOOOOOOOOOKKK.............KKKKOOOOOOOOOOOKKK......................................................',  // 144
+    '..............................................................KKKKOOOOOOOOOOOOOKKK...........KKKKOOOOOOOOOOOOOKKK.....................................................',  // 145
+    '.............................................................KKKKOOOOOOOOOOOOOOOKKK.........KKKKOOOOOOOOOOOOOOOKKK....................................................',  // 146
+    '............................................................KKKKOOOOOOOOOOOOOOOOOKKK.......KKKKOOOOOOOOOOOOOOOOOKKK...................................................',  // 147
+    '...........................................................KKKKOOOOOOOOOOOOOOOOOOOKKK.....KKKKOOOOOOOOOOOOOOOOOOOKKK..................................................',  // 148
+    '..........................................................KKKKOOOOOOOOOOOOOOOOOOOOOKKK...KKKKOOOOOOOOOOOOOOOOOOOOOKKK.................................................',  // 149
+    '.........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOKKK.KKKKOOOOOOOOOOOOOOOOOOOOOOOKKK................................................',  // 150
+    '........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOKKK...............................................',  // 151
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..............................................',  // 152
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 153
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 154
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 155
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 156
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 157
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 158
+    '.......................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.............................................',  // 159
+    '........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.............................................',  // 160
+    '.........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..............................................',  // 161
+    '..........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...............................................',  // 162
+    '...........................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...............................................',  // 163
+    '............................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................................',  // 164
+    '.............................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................................',  // 165
+    '..............................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................................',  // 166
+    '...............................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK.................................................',  // 167
+    '................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK..................................................',  // 168
+    '.................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK..................................................',  // 169
+    '..................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK..................................................',  // 170
+    '...................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK...................................................',  // 171
+    '....................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK....................................................',  // 172
+    '.....................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK.....................................................',  // 173
+    '......................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK......................................................',  // 174
+    '.......................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK.......................................................',  // 175
+    '........................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK........................................................',  // 176
+    '.........................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK.........................................................',  // 177
+    '..........................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOK.........................................................',  // 178
+    '...........................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOK..........................................................',  // 179
+    '............................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOK..........................................................',  // 180
+    '.............................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOK...........................................................',  // 181
+    '..............................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOOOK..........................................................',  // 182
+    '...............................................................................KKKKOOOOOOOOOOOOOOOOOOOOOOOK...........................................................',  // 183
+    '................................................................................KKKKOOOOOOOOOOOOOOOOOOOOOK............................................................',  // 184
+    '.................................................................................KKKKOOOOOOOOOOOOOOOOOOOOK............................................................',  // 185
+    '..................................................................................KKKKOOOOOOOOOOOOOOOOOOOK............................................................',  // 186
+    '...................................................................................KKKKOOOOOOOOOOOOOOOOOK.............................................................',  // 187
+    '....................................................................................KKKKOOOOOOOOOOOOOOOOOK............................................................',  // 188
+    '.....................................................................................KKKKOOOOOOOOOOOOOOOK.............................................................',  // 189
+    '......................................................................................KKKKOOOOOOOOOOOOOOOK............................................................',  // 190
+    '.......................................................................................KKKKOOOOOOOOOOOOOK.............................................................',  // 191
+    '........................................................................................KKKKOOOOOOOOOOOOOK............................................................',  // 192
+    '.........................................................................................KKKKOOOOOOOOOOOK.............................................................',  // 193
+    '..........................................................................................KKKKOOOOOOOOOOOK............................................................',  // 194
+    '...........................................................................................KKKKOOOOOOOOOK.............................................................',  // 195
+    '............................................................................................KKKKOOOOOOOOOK............................................................',  // 196
+    '.............................................................................................KKKKOOOOOOOK.............................................................',  // 197
+    '..............................................................................................KKKKOOOOOOOK............................................................',  // 198
+    '...............................................................................................KKKKOOOOOK.............................................................',  // 199
+    '................................................................................................KKKKOOOOOK............................................................',  // 200
+    '.................................................................................................KKKKOOOOK............................................................',  // 201
+    '..................................................................................................KKKKOOOOK...........................................................',  // 202
+    '...................................................................................................KKKKOOOK...........................................................',  // 203
+    '....................................................................................................KKKKOOOK..........................................................',  // 204
+    '.....................................................................................................KKKKOOK..........................................................',  // 205
+    '......................................................................................................KKKKKK..........................................................',  // 206
+    '.......................................................................................................KKKK...........................................................',  // 207
+    '......................................................................................................................................................................',  // 208
+    '......................................................................................................................................................................',  // 209
+    '......................................................................................................................................................................',  // 210
+    '...................KKKKKKKKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK......................................',  // 211
+    '.................KKKKKKKKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK....................................',  // 212
+    '................KKKKKRRRRRRRKKKKKRRRRRRRKKKKKKKKKOOOOOOOKKKKKKKKKKKKKKYYYYYYYKKKKKKKKKKKKKKGGGGGGGKKKKKKKKKKKKKKCCCCCCCKKKKKKKKKKKKK..................................',  // 213
+    '................KKKKKRRRRRRRKKKKKRRRRRRRKKKKKKKKOOOOOOOOOOKKKKKKKKKKKYYYYYYYYYKKKKKKKKKKKKGGGGGGGGGGKKKKKKKKKKKKCCCCCCCCCKKKKKKKKKKK..................................',  // 214
+    '................KKKKKRRRKKKKKKKKKRRRKKKKKKKKKKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGKKKKKGGGKKKKKKKKKKKCCCKKKKKCCCKKKKKKKKK..................................',  // 215
+    '................KKKKKRRRKKKKKKKKKRRRKKKKKKKKKKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGKKKKKKKKKKKKKKKKKKKCCCKKKKKKKKKKKKKKKKK..................................',  // 216
+    '................KKKKKRRRRRRRKKKKKRRRRRRRKKKKKKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGGGGGGGGKKKKKKKKKKKKCCCCCCCCCKKKKKKKKKKK..................................',  // 217
+    '................KKKKKKKKKKRRRKKKKKKKKKRRRKKKKKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKKKKKKKKGGGKKKKKKKKKKKKKKKKKKCCCKKKKKKKKKKK..................................',  // 218
+    '................KKKKKRRRKKKKRKKKKRRRKKKKRKKKKKKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGKKKKGGGKKKKKKKKKKKCCCKKKKKCCCKKKKKKKKK..................................',  // 219
+    '................KKKKKRRRRRRRKKKKKRRRRRRRKKKKKKKKKOOOOOOOOOOKKKKKKKKKKKYYYYYYYYYKKKKKKKKKKKKGGGGGGGGGGKKKKKKKKKKKKCCCCCCCCCKKKKKKKKKKK.................................',  // 220
+    '................KKKKKRRRRRRRKKKKKRRRRRRRKKKKKKKKKKOOOOOOOKKKKKKKKKKKKKKYYYYYYYKKKKKKKKKKKKKKGGGGGGGKKKKKKKKKKKKKKCCCCCCCKKKKKKKKKKKKK.................................',  // 221
+    '.................KKKKKKKKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK....................................',  // 222
+    '...................KKKKKKKKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK......................................',  // 223
+    '......................................................................................................................................................................',  // 224
+    '......................................................................................................................................................................',  // 225
+    '......................................................................................................................................................................',  // 226
+    '..................................KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK...................................................',  // 227
+    '................................KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK.................................................',  // 228
+    '...............................KKKKKMMMMMMMKKKKKKKKKKKKKPPPPPPPKKKKKKKKKKKKKNNNNNNNKKKKKKKKKKKKKKRRRRRRRKKKKKKKKKKKKK.................................................',  // 229
+    '...............................KKKKKMMMMMMMMMKKKKKKKKKKPPPPPPPPPKKKKKKKKKKKNNNNNNNNNKKKKKKKKKKKKKRRRRRRRRRKKKKKKKKKKK.................................................',  // 230
+    '...............................KKKKKMMMKKKKKMMMKKKKKKKKPPPKKKKKPPPKKKKKKKKKNNNKKKKKNNNKKKKKKKKKKKRRRKKKKKRRRKKKKKKKKK.................................................',  // 231
+    '...............................KKKKKMMMKKKKKMMMKKKKKKKKPPPKKKKKPPPKKKKKKKKKNNNKKKKKKKKKKKKKKKKKKKRRRKKKKKRRRKKKKKKKKK.................................................',  // 232
+    '...............................KKKKKMMMKKKKKMMMKKKKKKKKPPPKKKKKPPPKKKKKKKKKNNNNNNNNNKKKKKKKKKKKKKRRRRRRRRRKKKKKKKKKKK.................................................',  // 233
+    '...............................KKKKKMMMKKKKKMMMKKKKKKKKPPPKKKKKPPPKKKKKKKKKKKKKKKNNNKKKKKKKKKKKKKRRRKKKKKRRRKKKKKKKKK.................................................',  // 234
+    '...............................KKKKKMMMKKKKKMMMKKKKKKKKPPPKKKKKPPPKKKKKKKKKNNNKKKKKNNNKKKKKKKKKKKRRRKKKKKRRRKKKKKKKKK.................................................',  // 235
+    '...............................KKKKKMMMMMMMMMKKKKKKKKKKPPPPPPPPPKKKKKKKKKKKNNNNNNNNNKKKKKKKKKKKKKRRRKKKKKRRRKKKKKKKKK.................................................',  // 236
+    '...............................KKKKKMMMMMMMKKKKKKKKKKKKKPPPPPPPKKKKKKKKKKKKKNNNNNNNKKKKKKKKKKKKKKRRRKKKKKRRRKKKKKKKKK.................................................',  // 237
+    '................................KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK.................................................',  // 238
+    '..................................KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK...................................................',  // 239
+    '......................................................................................................................................................................',  // 240
+    '......................................................................................................................................................................',  // 241
+    '......................................................................................................................................................................',  // 242
+    '...............................................KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK............................................................',  // 243
+    '................................................KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK.......................................................',  // 244
+    '............................................KKKKKOOOOOOOKKKKKKKKKKKKKKYYYYYYYKKKKKKKKKKKKKKGGGGGGGKKKKKKKKKKKKK.......................................................',  // 245
+    '............................................KKKKOOOOOOOOOOKKKKKKKKKKKYYYYYYYYYKKKKKKKKKKKKGGGGGGGGGGKKKKKKKKKKK.......................................................',  // 246
+    '............................................KKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGKKKKKGGGKKKKKKKKKK.......................................................',  // 247
+    '............................................KKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGKKKKKKKKKKKKKKKKKK.......................................................',  // 248
+    '................................------------KKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGGGGGGGGKKKKKKKKKKK-------------------------------------------------......',  // 249
+    '............................................KKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKKKKKKKKGGGKKKKKKKKKKK.......................................................',  // 250
+    '............................................KKKKOOOKKKKKOOOKKKKKKKKKKYYYKKKKKYYYKKKKKKKKKKGGGKKKKGGGKKKKKKKKKK........................................................',  // 251
+    '............................................KKKKOOOOOOOOOOKKKKKKKKKKKYYYYYYYYYKKKKKKKKKKKKGGGGGGGGGGKKKKKKKKKKK.......................................................',  // 252
+    '............................................KKKKKOOOOOOOKKKKKKKKKKKKKKYYYYYYYKKKKKKKKKKKKKKGGGGGGGKKKKKKKKKKKKK.......................................................',  // 253
+    '.............................................KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK...KKKKKKKKKKKKKKKKKKK..........................................................',  // 254
+    '...............................................KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK.......KKKKKKKKKKKKKKK............................................................',  // 255
+    '......................................................................................................................................................................',  // 256
+    '......................................................................................................................................................................',  // 257
+    '......................................................................................................................................................................',  // 258
+    '........................................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW......................................................................',  // 259
+    '......................................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW....................................................................',  // 260
+    '.....................................................WWWWKKKKKWWWWWKKKKKWWWWWKKKKKWWWWWKKKKKWWWWWWW...................................................................',  // 261
+    '.....................................................WWWWKKKKKWWWWWKKKKKWWWWWKKKKKWWWWWKKKKKWWWWWWW...................................................................',  // 262
+    '.....................................................WWWWKKWWWWWWWWKKWWWWWWWWKKWWWWWWWWKKWWWWWWWWWW...................................................................',  // 263
+    '.....................................................WWWWKKKKKWWWWWKKKKKWWWWWKKKKKWWWWWKKKKKKWWWWWW...................................................................',  // 264
+    '.....................................................WWWWKKWWWWWWWWKKWWWWWWWWKKWWWWWWWWKKWWWKKWWWWW...................................................................',  // 265
+    '.....................................................WWWWKKWWWWWWWWKKWWWWWWWWKKWWWWWWWWKKWWWWKKWWWW...................................................................',  // 266
+    '.....................................................WWWWKKKKKKKKWWKKKKKKKKWWKKKKKKKKWWKKWWWWKKWWWW...................................................................',  // 267
+    '......................................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW....................................................................',  // 268
+    '........................................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW......................................................................',  // 269
+    '......................................................................................................................................................................',  // 270
+    '......................................................................................................................................................................',  // 271
+    '......................................................................................................................................................................',  // 272
+    '.......................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.............................................',  // 273
+    '.....................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW...........................................',  // 274
+    '....................WWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWW........................................',  // 275
+    '....................WWWWKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWW.......................................',  // 276
+    '....................WWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWWWKKWWWWW.......................................',  // 277
+    '....................WWWWKKKKKKKKWWWWKKWWWWWKKWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWWWKKWWWWW........................................',  // 278
+    '....................WWWWKKWWWWKKWWWWKKWWWWWKKWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWWWKKWWWWW........................................',  // 279
+    '....................WWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWW............................................',  // 280
+    '....................WWWWKKWWWWWKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWW......................................',  // 281
+    '....................WWWWKKWWWWWKKWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWW.......................................',  // 282
+    '.....................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW...........................................',  // 283
+    '.......................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.............................................',  // 284
+    '......................................................................................................................................................................',  // 285
+    '......................................................................................................................................................................',  // 286
+    '......................................................................................................................................................................',  // 287
+    '...............................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.....................................................',  // 288
+    '.............................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW...................................................',  // 289
+    '............................................WWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKW................................................',  // 290
+    '............................................WWWWKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKW................................................',  // 291
+    '............................................WWWWKKWWWWWKKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWWWKKWWWWWWWKWWKKW................................................',  // 292
+    '............................................WWWWKKKKKKKKWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWWWKKKKKKKKWWWWKKKW................................................',  // 293
+    '............................................WWWWKKWWWWKKWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWWWKKWWWWKKWWWWKKKW................................................',  // 294
+    '............................................WWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKWWWWWKKWWWWKKKW.................................................',  // 295
+    '............................................WWWWKKWWWWWKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKKKKKKWWWWKKKKW................................................',  // 296
+    '............................................WWWWKKWWWWWKKWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKKKKKWWWWWWKKKW................................................',  // 297
+    '.............................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW...................................................',  // 298
+    '...............................................WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.....................................................',  // 299
+    '......................................................................................................................................................................',  // 300
+    '......................................................................................................................................................................',  // 301
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 302
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 303
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 304
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 305
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 306
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 307
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 308
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 309
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 310
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......',  // 311
+    'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB......'   // 312
 ];
 
 const _BRUCE_FROZEN_SUBS = { O:'I', H:'i' };
@@ -1205,20 +1454,24 @@ const _CUSTOM_SPRITES = {
         grid:        _BRUCE_GRID,
         palette:     _BRUCE_PALETTE,
         frozenSubs:  _BRUCE_FROZEN_SUBS,
-        cols:        160,
-        // Grid is 64 rows tall. anchorRow sits at row 38 — right below
-        // the eye/fang cluster (rows 32-36), which is where the bear's
-        // hitbox should centre on the field (same body-mid placement as
-        // the original 14-row sprite).
-        anchorRow:   38,
+        // Per user: don't trim, don't modify — embed Gemini's complete
+        // ASCII paste verbatim and just colour it via the palette. The
+        // grid is 166 × 313 cells: bear with cap at top (rows 3-65),
+        // skin-tone diamond mid-frame, mini-bear silhouette, palette
+        // sample blocks, fake-Hebrew bubble rows, then the solid blue
+        // band at the bottom.
+        cols:        166,
+        // Anchor on the bear's head/body (~row 30) so the unit's hitbox
+        // sits on the character, even though the figure extends much
+        // further down the grid.
+        anchorRow:   30,
         flickerRows: 0,
         teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 },
-        // The grid is 160 cols — way too big for PIX=2 cell rendering
-        // (would draw a 320-px-wide unit). `targetWidthPx` routes through
-        // a separate drawImage path that scales the cached PNG to this
-        // exact on-canvas width, keeping the unit visually similar in size
-        // to the original 16×14 design (~32 px) regardless of grid res.
-        targetWidthPx: 40
+        // Grid is 166 cols × 313 rows — too large for cell-by-cell PIX=2
+        // rendering. `targetWidthPx` routes through a drawImage path that
+        // scales the cached PNG to a fixed on-canvas width. Height scales
+        // proportionally — 60 px wide × (313/166) ≈ 113 px tall.
+        targetWidthPx: 60
     },
     scrappy: {
         grid:        _SCRAPPY_GRID,
