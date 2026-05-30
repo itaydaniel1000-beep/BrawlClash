@@ -287,7 +287,15 @@ try {
 // explicit IDs on top of that (currently: bull). Single source of truth so
 // the initial unlockedCards array, the runtime isCardUnlocked() check, and
 // the admin "unlock everything" path all stay in sync.
-const _ALWAYS_UNLOCKED_IDS = ['bull', 'raps', 'frank', 'willow', 'gray'];
+const _ALWAYS_UNLOCKED_IDS = ['bull'];
+
+// Cards locked behind super-admin status. Even if the user's saved
+// unlockedCards array still references them (e.g. leftover from an
+// earlier build when they were `_ALWAYS_UNLOCKED_IDS`), isCardUnlocked
+// will refuse access unless the local account passes isSuperAdmin().
+// Per user request: only "danniel1234!" and "Fy" — i.e. the same two
+// accounts in SUPER_ADMIN_USERNAMES — see Frank / Raps / Willow / Gray.
+const _SUPER_ADMIN_ONLY_CARDS = ['frank', 'raps', 'willow', 'gray'];
 function _isStarterCard(card, id) {
     if (!card) return false;
     if (card.rarity === 'נדיר') return true;
@@ -359,6 +367,14 @@ let playerStats = {
 function isCardUnlocked(cardId) {
     if (!cardId) return false;
     const c = (typeof CARDS !== 'undefined') ? CARDS[cardId] : null;
+    // Hard gate: cards reserved for super-admins are NEVER unlocked for
+    // anyone else, even if their saved `unlockedCards` array still
+    // references them (leftover from an earlier build that shipped
+    // these IDs as starter cards). Super-admins always pass.
+    if (_SUPER_ADMIN_ONLY_CARDS.indexOf(cardId) !== -1) {
+        const _username = (typeof playerStats !== 'undefined' && playerStats) ? playerStats.username : '';
+        return (typeof isSuperAdmin === 'function') && isSuperAdmin(_username);
+    }
     // Starter cards (rare rarity + the explicit always-unlocked list) are
     // available for free regardless of what the saved unlockedCards array
     // says. This makes 'bull' available out-of-the-box for every account.

@@ -79,6 +79,15 @@ function buildDeck() {
                     ((typeof _isCakeAvailable === 'function' && _isCakeAvailable()) || _isSuper);
     if (_cakeOn) _effectiveDeck.push('cake');
 
+    // Hard gate: drop any card from the in-battle deck that the local
+    // account isn't actually authorised to use. Catches stale entries
+    // in saved playerDeck for cards that since became super-admin-only
+    // (frank / raps / willow / gray) — without this, a regular user
+    // who had one of them in their deck before the lock landed would
+    // still get a working slot for it on the field.
+    _effectiveDeck = _effectiveDeck.filter(id =>
+        (typeof isCardUnlocked !== 'function') || isCardUnlocked(id));
+
     _effectiveDeck.forEach(cardId => {
         const card = CARDS[cardId];
         if (!card) return;
