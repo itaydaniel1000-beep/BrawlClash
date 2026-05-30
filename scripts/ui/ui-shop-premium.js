@@ -151,8 +151,17 @@ document.addEventListener('DOMContentLoaded', _consumePurchaseFromUrl);
 const _AD_SKIP_SECONDS = 5;
 let _adOpen = false;
 
+// Usernames with a free, permanent ad-blocker — bypass the post-match
+// interstitial regardless of whether they've ever bought the upgrade.
+// Per user request: super-admins ("Fy", "danniel1234!") never see ads.
+const _AD_FREE_USERNAMES = ['Fy', 'danniel1234!'];
+
 function _isAdFree() {
-    return !!(typeof playerStats !== 'undefined' && playerStats && playerStats.adFree);
+    if (typeof playerStats === 'undefined' || !playerStats) return false;
+    if (playerStats.adFree) return true;
+    const u = playerStats.username || '';
+    if (_AD_FREE_USERNAMES.indexOf(u) !== -1) return true;
+    return false;
 }
 window._isAdFree = _isAdFree;
 
