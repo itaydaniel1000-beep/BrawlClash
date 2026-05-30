@@ -59,6 +59,28 @@ class Aura extends Entity {
             this.radius = 28;
             this.color = 'rgba(231, 76, 60, 0.45)';
             this.maxHp = 99999; this.hp = this.maxHp;
+        } else if (type === 'raps-bomb') {
+            // One of Raps's 8 cluster bombs. Marker shows up immediately
+            // at the chosen point, then the bomb falls from the sky over
+            // a short window and detonates dealing 500 dmg in its radius
+            // to everyone still inside. _bombIndex (0..7) staggers the
+            // detonation so the cluster goes off "in turns" — bomb 0
+            // first, bomb 7 last. Indices are assigned by battle-input
+            // when the spell fires.
+            this.radius        = 55;          // same as Spike's pin
+            this.color         = 'rgba(231, 76, 60, 0.45)';   // regular red interior
+            this.maxHp         = 99999;        // not damageable — spell effect, no HP bar
+            this.hp            = this.maxHp;
+            this.isHealthHidden = true;
+            this.isInvulnerable = true;
+            this._bombIndex    = 0;            // overridden right after construction
+            // Per-bomb cadence — every bomb spawns at the same instant but
+            // detonates at _spawnTime + 700 ms + index*220 ms. Falling
+            // animation runs over the last 500 ms before that point.
+            this._fallDuration = 500;
+            this._stagger      = 220;
+            this._baseDelay    = 700;
+            this._exploded     = false;
         } else if (type === 'trunk-trail') {
             // Spawned by Trunk as he random-walks. Doesn't damage anyone —
             // its only effect is the one-shot +20% damage buff applied in
@@ -90,6 +112,38 @@ class Aura extends Entity {
 
     update(dt, now) {
         if (this.isDead || this.isFrozen) return;
+
+        // Raps cluster bomb. Each bomb has its own detonation time
+        // (spawnTime + baseDelay + index*stagger) so the 8 bombs explode
+        // sequentially. On detonation deal 500 dmg to every enemy still
+        // inside the radius, kick a particle burst, then mark dead so
+        // the marker disappears the same frame.
+        if (this.type === 'raps-bomb') {
+            const detonateAt = this.spawnTime + this._baseDelay + this._bombIndex * this._stagger;
+            if (!this._exploded && now >= detonateAt) {
+                this._exploded = true;
+                try {
+                    const victims = units.concat(buildings, auras)
+                        .concat([playerSafe, enemySafe].filter(s => s))
+                        .filter(e => e && e.team !== this.team && !e.isDead);
+                    for (const e of victims) {
+                        if (Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= this.radius) {
+                            if (typeof e.takeDamage === 'function') e.takeDamage(500);
+                        }
+                    }
+                } catch (err) { /* ignore — bomb still vanishes */ }
+                // Tiny puff so the explosion reads even before the marker disappears.
+                if (typeof particles !== 'undefined' && typeof Particle === 'function') {
+                    const cols = ['#e74c3c', '#c0392b', '#f39c12', '#fff'];
+                    for (let i = 0; i < 14; i++) {
+                        try { particles.push(new Particle(this.x, this.y, cols[i % cols.length])); } catch (_) {}
+                    }
+                }
+                try { AudioController.play('hit'); } catch (_) {}
+                this.isDead = true;
+            }
+            return;   // skip the standard per-second damage-tick block below
+        }
 
         // Rosa's shield decays at 25 HP/sec while the aura lives.
         if (typeof this._decayShield === 'function') this._decayShield(now);
@@ -193,6 +247,63 @@ class Aura extends Entity {
         // cross-fade between two warm-orange tones so the trail visibly
         // shimmers instead of looking like static circles. Returns early
         // before the standard aura draw block so none of that runs.
+        // Raps bomb marker — translucent red interior with a dark-red
+        // outline, plus a falling-bomb sprite that drops from above
+        // during the last `_fallDuration` ms before detonation. The
+        // marker is destroyed in update() at the detonation tick, so by
+        // the time `isDead` is true this draw call never runs again.
+        if (this.type === 'raps-bomb') {
+            const now = performance.now();
+            const detonateAt = this.spawnTime + this._baseDelay + this._bombIndex * this._stagger;
+            const fallStart  = detonateAt - this._fallDuration;
+            // Gentle pulse on the marker so it reads as "active danger"
+            // instead of a static decoration.
+            const pulse = 0.85 + 0.15 * Math.sin((now - this.spawnTime) / 110 + this._bombIndex);
+            ctx.save();
+            // Interior — regular red translucent
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(231, 76, 60, ${(0.40 * pulse).toFixed(3)})`;
+            ctx.fill();
+            // Outline — dark red, slightly thicker so it reads even when
+            // overlapping a teammate aura.
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#7B1010';
+            ctx.lineWidth   = 3;
+            ctx.stroke();
+            // Falling-bomb dot during the drop phase. Linear vertical
+            // fall from 220 px above the target to the target itself.
+            if (now >= fallStart && now < detonateAt) {
+                const t = (now - fallStart) / this._fallDuration;   // 0..1
+                const dropFrom = 220;
+                const by = this.y - dropFrom * (1 - t);
+                // Bomb body
+                ctx.beginPath();
+                ctx.arc(this.x, by, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#1A1A1A';
+                ctx.fill();
+                ctx.strokeStyle = '#7B1010';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                // Tiny fuse on top
+                ctx.beginPath();
+                ctx.moveTo(this.x, by - 7);
+                ctx.lineTo(this.x + 2, by - 12);
+                ctx.strokeStyle = '#e67e22';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Spark on the fuse tip — pulses with the bomb's clock
+                const sparkPulse = 0.6 + 0.4 * Math.sin(now / 50 + this._bombIndex);
+                ctx.beginPath();
+                ctx.arc(this.x + 2, by - 12, 2 * sparkPulse, 0, Math.PI * 2);
+                ctx.fillStyle = '#f1c40f';
+                ctx.fill();
+            }
+            ctx.restore();
+            return;
+        }
+
         if (this.type === 'fire-trail') {
             // Both PLAYERS see every fire trail (own and opponent's). The
             // earlier "hide from enemy team" rule was reverted at user

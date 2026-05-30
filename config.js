@@ -205,7 +205,17 @@ const CARDS = {
     // heals allies in radius, explodes in confetti on death. Excluded from
     // every "all cards" list by the `eventOnly` flag.
     'cake':   { name: 'עוגה', cost: 5, type: 'building', color: '#ff6b9d', icon: '🎂',
-               rarity: 'אגדי', eventOnly: true }
+               rarity: 'אגדי', eventOnly: true },
+    // Raps — stealth bomber. 5 elixir. Tapping any point on the map
+    // detonates an 8-bomb hex cluster centred at the click. Each bomb has
+    // Spike's radius (55px) and the cluster is packed so adjacent circles
+    // are tangent (3-2-3 hex layout). Bombs explode SEQUENTIALLY, one
+    // every ~200 ms, dealing 500 dmg to every enemy standing in the
+    // radius at the moment of detonation. Raps himself is never
+    // instantiated as a unit — pure spell with a visible red marker per
+    // bomb that vanishes the instant that bomb hits the ground.
+    'raps':   { name: 'ראפס', cost: 5, type: 'spell', color: '#c0392b', icon: '💣',
+               rarity: 'אגדי' }
 };
 
 const STAR_POWERS = {

@@ -269,7 +269,7 @@ try {
 // explicit IDs on top of that (currently: bull). Single source of truth so
 // the initial unlockedCards array, the runtime isCardUnlocked() check, and
 // the admin "unlock everything" path all stay in sync.
-const _ALWAYS_UNLOCKED_IDS = ['bull'];
+const _ALWAYS_UNLOCKED_IDS = ['bull', 'raps'];
 function _isStarterCard(card, id) {
     if (!card) return false;
     if (card.rarity === 'נדיר') return true;

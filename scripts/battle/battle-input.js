@@ -87,6 +87,57 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: true, cardId: 'sirius' };
     }
 
+    // Raps — stealth bomber spell. Tapping any in-bounds point detonates
+    // an 8-bomb hex cluster centred at the click. Each bomb has Spike's
+    // pin radius (55) and the layout is hex-packed (3-2-3) so adjacent
+    // circles are tangent. Bombs explode SEQUENTIALLY — bomb 0 first,
+    // bomb 7 last — each dealing 500 dmg to enemies still inside their
+    // radius at detonation. Raps himself never appears on the field
+    // (pure spell), so no unit / no HP bar / no visibility worry.
+    if (selectedCardId === 'raps') {
+        const insideBorder = x >= 10 && x <= (CONFIG.CANVAS_WIDTH - 10) &&
+                             y >= 10 && y <= (CONFIG.CANVAS_HEIGHT - 10);
+        if (!insideBorder) return { placed: false };
+        const rapsCard = CARDS['raps'];
+        const canAffordRaps = playerElixir >= (rapsCard.cost - 0.01) ||
+                              adminHacks.infiniteElixir || adminHacks.freeCards;
+        if (!canAffordRaps) {
+            if (typeof showTransientToast === 'function') showTransientToast('🧪 אין מספיק אליקסיר לראפס');
+            return { placed: false };
+        }
+        if (!adminHacks.infiniteElixir && !adminHacks.freeCards) {
+            playerElixir = Math.max(0, playerElixir - rapsCard.cost);
+        }
+        // Hex-pack 8 bombs around the click point. Bomb radius is 55, so
+        // the horizontal step is 2*r = 110 and the vertical step is r*√3
+        // ≈ 95.26 — exact tangent spacing.
+        const r = 55;
+        const vstep = r * Math.sqrt(3);
+        const offsets = [
+            [-2*r, -vstep], [   0, -vstep], [ 2*r, -vstep],   // top row
+            [  -r,      0], [   r,      0],                   // middle row (offset)
+            [-2*r,  vstep], [   0,  vstep], [ 2*r,  vstep]    // bottom row
+        ];
+        offsets.forEach(([dx, dy], i) => {
+            const bx = x + dx;
+            const by = y + dy;
+            try {
+                const bomb = new Aura(bx, by, 'player', 'raps-bomb');
+                bomb._bombIndex = i;
+                auras.push(bomb);
+            } catch (e) { /* ignore — one missing bomb shouldn't break the cast */ }
+        });
+        try { AudioController.play('spawn'); } catch (e) {}
+        // Shift / long-press → keep card selected to chain-cast.
+        // Otherwise consume the slot.
+        if (!shiftHeld) {
+            selectedCardId = null;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        }
+        if (typeof showTransientToast === 'function') showTransientToast('💣 ראפס - 8 פצצות שוגרו');
+        return { placed: true, cardId: 'raps' };
+    }
+
     // Rosa — defensive shield-spell. Mirror image of Sirius: while held,
     // every PLAYER-team entity is tagged with a coral glow; clicking one
     // applies a 500-HP shield bubble that drains 25 HP/sec. Stacks on top
@@ -687,6 +738,30 @@ function drawGhost(ctx) {
     // Same reason — the highlight ring on every player-team entity IS
     // the cue; a pointer-following ghost would clutter.
     if (cardKey === 'rosa') return;
+
+    // Raps shows its own preview — 8 hex-packed red circles showing
+    // exactly where the cluster will land. No pointer-following emoji.
+    if (cardKey === 'raps') {
+        ctx.save();
+        const r = 55;
+        const vstep = r * Math.sqrt(3);
+        const offsets = [
+            [-2*r, -vstep], [   0, -vstep], [ 2*r, -vstep],
+            [  -r,      0], [   r,      0],
+            [-2*r,  vstep], [   0,  vstep], [ 2*r,  vstep]
+        ];
+        for (const [dx, dy] of offsets) {
+            ctx.beginPath();
+            ctx.arc(mouseX + dx, mouseY + dy, r, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.32)';
+            ctx.fill();
+            ctx.strokeStyle = '#7B1010';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+        ctx.restore();
+        return;
+    }
 
     ctx.save();
     ctx.globalAlpha = 0.4;
