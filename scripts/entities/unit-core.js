@@ -129,6 +129,21 @@ class Unit extends Entity {
             this.color = '#ff69b4';
             this.isInvulnerable = true;       // takeDamage no-op (entity-base.js)
             this.isHealthHidden = true;       // skip HP bar — always full
+        } else if (type === 'pang') {
+            // Pang — chain-dash bruiser. 2000 HP / 200 dmg melee, Bruce-
+            // pace movement so once the chain dash finishes he plays like
+            // any other front-line melee. The actual chain-dash logic
+            // lives in unit-logic.js's Pang block at the top of every
+            // update; `_pangDashing` flips off the moment there's no
+            // un-visited enemy left on the opposing team.
+            this.maxHp = 2000; this.hp = 2000;
+            this.attackDamage = 200;
+            this.speed = 50;                 // Bruce baseline
+            this.attackRange = 60;
+            this.attackSpeed = 1000;
+            this.color = '#34495e';
+            this._pangDashing = true;        // chain dash starts immediately on spawn
+            this._pangVisited = new Set();   // entity refs that already ate a dash
         } else if (type === 'gray') {
             // Gray — pacifist portal-pair. Stationary, invulnerable, no
             // HP bar. The actual teleport mechanic lives in

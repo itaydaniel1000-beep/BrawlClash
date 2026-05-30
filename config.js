@@ -245,6 +245,17 @@ const CARDS = {
     // since auras never run Unit.update): they walk over the portals
     // like normal floor.
     'gray':   { name: 'גריי', cost: 4, type: 'unit', color: '#2c3e50', icon: '🦯',
+                rarity: 'אגדי' },
+    // Pang — martial-arts panda. 8 elixir, legendary. 2000 HP / 200 dmg
+    // melee. On spawn he kicks into a CHAIN DASH: at 8× his normal walk
+    // speed he warps to the nearest enemy entity, hits it once for his
+    // base damage, then immediately re-targets the next-nearest unvisited
+    // enemy and repeats — until everything currently on the opposing team
+    // has been dashed-to. Then he drops out of dash mode and behaves like
+    // any other nearest-enemy melee unit. Pure offense; no special anti-
+    // safe rules, so the safe is the last thing in his queue if it's
+    // still standing when the field is empty.
+    'pang':   { name: 'פאנג', cost: 8, type: 'unit', color: '#34495e', icon: '🐼',
                 rarity: 'אגדי' }
 };
 

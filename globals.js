@@ -287,7 +287,7 @@ try {
 // explicit IDs on top of that (currently: bull). Single source of truth so
 // the initial unlockedCards array, the runtime isCardUnlocked() check, and
 // the admin "unlock everything" path all stay in sync.
-const _ALWAYS_UNLOCKED_IDS = ['bull'];
+const _ALWAYS_UNLOCKED_IDS = ['bull', 'pang'];
 
 // Cards locked behind super-admin status. Even if the user's saved
 // unlockedCards array still references them (e.g. leftover from an

@@ -321,7 +321,58 @@ Unit.prototype.update = function(dt, now) {
         return;
     }
 
-    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi' || this.type === 'barry' || this.type === 'gigi' || this.type === 'frank') {
+    // === Pang — chain dash on spawn =========================================
+    // Until every team-opposing entity has been dashed-to once, Pang
+    // ignores normal targeting and warps (at 8× walking speed) toward the
+    // nearest un-visited enemy. When he gets within attackRange he applies
+    // his base damage in one tick, marks the victim as visited, and the
+    // next frame picks the new nearest un-visited enemy. Once the candidate
+    // list runs out (everyone visited, or everyone died), `_pangDashing`
+    // flips to false and Pang falls through to the standard nearest-enemy
+    // targeting branch below.
+    if (this.type === 'pang' && this._pangDashing) {
+        const candidates = units.concat(buildings)
+            .concat([playerSafe, enemySafe].filter(s => s))
+            .filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen &&
+                         (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)) &&
+                         !(this._pangVisited && this._pangVisited.has(e)));
+        if (candidates.length === 0) {
+            // No more un-visited enemies — drop out of dash mode and let
+            // the standard targeting block below run for this tick.
+            this._pangDashing = false;
+        } else {
+            candidates.sort((a, b) =>
+                Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
+            const next  = candidates[0];
+            const dx    = (next.x || 0) - this.x;
+            const dy    = (next.y || 0) - this.y;
+            const dist  = Math.hypot(dx, dy);
+            const reach = this.attackRange + (next.radius || 15);
+            if (dist <= reach) {
+                // Reached the target — hit, tag, move on. Spawn a melee
+                // flash at the impact point for visual feedback.
+                if (typeof next.takeDamage === 'function') next.takeDamage(this.attackDamage * damageMult);
+                this._pangVisited.add(next);
+                if (typeof MeleeEffect === 'function' && typeof projectiles !== 'undefined') {
+                    projectiles.push(new MeleeEffect(
+                        this.x + (next.x - this.x) * 0.5,
+                        this.y + (next.y - this.y) * 0.5
+                    ));
+                }
+            } else {
+                // Dash toward the target at 8× normal walking speed.
+                const angle     = Math.atan2(dy, dx);
+                const dashSpeed = this.speed * 8;
+                this.x += Math.cos(angle) * dashSpeed * speedMult * (dt / 1000);
+                this.y += Math.sin(angle) * dashSpeed * speedMult * (dt / 1000);
+            }
+            // Skip the rest of the update — no standard targeting, no normal
+            // movement / attack while the dash chain is still running.
+            return;
+        }
+    }
+
+    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi' || this.type === 'barry' || this.type === 'gigi' || this.type === 'frank' || this.type === 'pang') {
         let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
 
