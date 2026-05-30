@@ -376,12 +376,13 @@ Unit.prototype.update = function(dt, now) {
                 }
 
                 // === Frank — pyramid-cone hammer swing =====================
-                // Frank's hit isn't a single-target swing; it's a wide cone
-                // (tip at Frank, base far in front of him) that damages
-                // EVERY enemy entity caught inside it. Every SECOND swing
-                // also stuns each hit enemy for 2 s (isFrozen pulse via
-                // setTimeout). The swing leaves a CrackEffect on the
-                // ground that lingers 2 s for visual feedback.
+                // The swing is a 72° cone (36° each side) reaching 150 px in
+                // front of Frank. Every enemy entity caught inside takes the
+                // full hit. Per user revision — stuns apply ONLY to the
+                // single locked target (`this.target`), NOT to every entity
+                // the cone sweeps through. The cone is for damage; the
+                // stun is for "what he hit". The swing leaves a CrackEffect
+                // on the ground that lingers 2 s for visual feedback.
                 if (this.type === 'frank') {
                     const swingAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                     const CONE_LENGTH     = 150;
@@ -402,11 +403,13 @@ Unit.prototype.update = function(dt, now) {
                         const diff = Math.abs(((va - swingAngle + Math.PI) % (Math.PI * 2)) - Math.PI);
                         if (diff > CONE_HALF_ANGLE) continue;
                         if (typeof v.takeDamage === 'function') v.takeDamage(dmg);
-                        if (isStunSwing && !v.isInvulnerable) {
-                            v.isFrozen = true;
-                            const _victim = v;
-                            setTimeout(() => { if (_victim) _victim.isFrozen = false; }, 2000);
-                        }
+                    }
+                    // Stun fires every 2nd swing, but ONLY on the actual
+                    // locked target — not on every entity the cone touched.
+                    if (isStunSwing && this.target && !this.target.isInvulnerable && !this.target.isDead) {
+                        this.target.isFrozen = true;
+                        const _victim = this.target;
+                        setTimeout(() => { if (_victim) _victim.isFrozen = false; }, 2000);
                     }
                     // Ground cracks — fade over 2 s.
                     if (typeof CrackEffect === 'function' && typeof projectiles !== 'undefined') {
