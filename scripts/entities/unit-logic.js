@@ -565,7 +565,9 @@ Unit.prototype.update = function(dt, now) {
                 if (this.type === 'mo') {
                     const aimAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                     if (typeof spawnMoCascadeBullet === 'function') {
-                        spawnMoCascadeBullet(this.x, this.y, aimAngle, 500 * damageMult, 80, this.team, 1);
+                        // Primary bullet damage was 500; bumped down 65 % to
+                        // 175 across the cascade per user's tuning pass.
+                        spawnMoCascadeBullet(this.x, this.y, aimAngle, 175 * damageMult, 80, this.team, 1);
                     }
                     this.lastAttackTime = now;
                 } else if (this.type === 'frank') {

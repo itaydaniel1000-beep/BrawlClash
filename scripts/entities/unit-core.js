@@ -139,8 +139,13 @@ class Unit extends Entity {
             // projectile.js. Stats here are the standalone-unit
             // numbers; per-stage damage / range are constants in
             // those files.
+            // Per-bullet damage tuned down by 65% across the entire
+            // cascade (per user). Resulting numbers:
+            //   primary (stage 1)       500 → 175
+            //   diagonals (stage 2)     100 → 35
+            //   straight follow (stage 3) 400 → 140
             this.maxHp = 1500; this.hp = 1500;
-            this.attackDamage = 500;          // primary bullet only
+            this.attackDamage = 175;          // primary bullet only
             this.speed = 50;
             this.attackRange = 80;            // matches primary bullet travel
             this.attackSpeed = 7500;          // 1.5 s × 5 — slower cadence

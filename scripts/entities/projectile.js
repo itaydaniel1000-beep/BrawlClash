@@ -87,15 +87,17 @@ class Projectile extends Entity {
                 if (typeof spawnMoCascadeBullet === 'function') {
                     const DIAG = [Math.PI / 4, -Math.PI / 4, 3 * Math.PI / 4, -3 * Math.PI / 4];
                     if (this._moStage === 1) {
-                        // 4 diagonals @ 100 dmg / 50 px
+                        // 4 diagonals @ 35 dmg / 50 px  (was 100, dropped 65 %)
                         for (const da of DIAG) {
-                            spawnMoCascadeBullet(this.x, this.y, this._moAngle + da, 100, 50, this.team, 2);
+                            spawnMoCascadeBullet(this.x, this.y, this._moAngle + da, 35, 50, this.team, 2);
                         }
-                        // 1 straight @ 400 dmg / 70 px (stage 3 — will itself fan out)
-                        spawnMoCascadeBullet(this.x, this.y, this._moAngle, 400, 70, this.team, 3);
+                        // 1 straight @ 140 dmg / 70 px (was 400, dropped 65 %)
+                        // — stage 3, will itself fan out into more diagonals.
+                        spawnMoCascadeBullet(this.x, this.y, this._moAngle, 140, 70, this.team, 3);
                     } else if (this._moStage === 3) {
+                        // 4 diagonals @ 35 dmg / 60 px (was 100, dropped 65 %)
                         for (const da of DIAG) {
-                            spawnMoCascadeBullet(this.x, this.y, this._moAngle + da, 100, 60, this.team, 2);
+                            spawnMoCascadeBullet(this.x, this.y, this._moAngle + da, 35, 60, this.team, 2);
                         }
                     }
                 }
