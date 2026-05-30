@@ -185,9 +185,22 @@ class Entity {
             for(let i=0; i<10; i++) particles.push(new Particle(this.x, this.y, this.color || '#fff'));
 
             if (this.type === 'penny' && this.team === 'player' && hasStarPower('penny', 'sp2')) {
+                // Last-breath barrage. Was crashing the engine before:
+                // `fakeTarget` is a bare {x, y, radius} object with no
+                // takeDamage() method, and the projectile was created
+                // with isSplash=false — so when the bomb reached the
+                // "target", Projectile.hit() called
+                // `this.target.takeDamage(...)` on the plain object and
+                // raised an uncaught TypeError, freezing the loop.
+                //
+                // Fix: spawn the bombs in SPLASH mode (isSplash=true).
+                // Hit() takes the splash branch instead, iterates the
+                // REAL enemy arrays itself, and never touches the fake
+                // target. Bombs are AoE anyway, so this matches the
+                // intent better than the single-target path did.
                 for (let i = 0; i < 4; i++) {
                     let fakeTarget = { x: this.x + (Math.random() - 0.5) * 200, y: this.y + (Math.random() - 0.5) * 200, radius: 20 };
-                    projectiles.push(new Projectile(this.x, this.y, fakeTarget, 200, this.team, false));
+                    projectiles.push(new Projectile(this.x, this.y, fakeTarget, 200, this.team, true, 'penny'));
                 }
             }
 
