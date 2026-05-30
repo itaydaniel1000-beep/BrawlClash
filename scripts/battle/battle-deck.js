@@ -9,7 +9,8 @@ function releaseAllFreeze() {
     // and frostbite aren't affected, only upward motion is capped.
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     [...units, ...buildings, ...auras].filter(e => e.team === 'player' && e.isFrozen).forEach(e => {
-        e.isFrozen = false;
+        e.isFrozen           = false;
+        e._isPlacementFreeze = false;   // clear the placement-freeze tag too
         e._postReleaseHpCap = e.hp;
         e._postReleaseHpCapUntil = now + 2000;
     });
@@ -30,7 +31,8 @@ function handleRemoteReleaseFreeze() {
     // Mirror the local rule: un-freeze + HP-ceiling lock for 2s, no heal.
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
     [...units, ...buildings, ...auras].filter(e => e.team === 'enemy' && e.isFrozen).forEach(e => {
-        e.isFrozen = false;
+        e.isFrozen           = false;
+        e._isPlacementFreeze = false;
         e._postReleaseHpCap = e.hp;
         e._postReleaseHpCapUntil = now + 2000;
     });

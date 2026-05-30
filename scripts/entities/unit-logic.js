@@ -1476,11 +1476,13 @@ function _drawAmberTorch(ctx, cx, cy, team, isFrozen, isInvisible) {
 
 Unit.prototype.draw = function(ctx) {
     if (this.isInvisible && this.team !== 'player' && this.type !== 'bull') return;
-    // Frozen ENEMY units are hidden from the local player — they spawn on
-    // the opponent's side in a held-back state and shouldn't be visible
-    // to us until the opponent releases them. Mirrors the isInvisible
-    // rule above.
-    if (this.isFrozen && this.team === 'enemy') return;
+    // Frozen ENEMY units placed via the freeze-card path are hidden from
+    // the local player — they spawn on the opponent's side in a held-back
+    // state and shouldn't be visible to us until the opponent releases
+    // them. Transient attack-stuns (Frank's hammer, Bruce SP2) also set
+    // isFrozen, but those don't tag _isPlacementFreeze and SHOULD stay
+    // visible so both players watch the paralysis happen on screen.
+    if (this.isFrozen && this._isPlacementFreeze && this.team === 'enemy') return;
 
     // Custom pixel-art sprite for any registered type (currently amber +
     // bruce). Replaces the standard "circle + emoji" rendering with a

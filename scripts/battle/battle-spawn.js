@@ -147,7 +147,18 @@ function spawnEntity(x, y, team, typeStr, isFrozen = false, isRemote = false, re
     // guarantee the two screens agree on HP and damage without shipping every
     // player's full level table across the wire.
 
-    if (isFrozen) entity.isFrozen = true;
+    if (isFrozen) {
+        // `isFrozen=true` here ONLY comes from the freeze-card placement
+        // path (the player clicked the 🧊 button + dropped the card).
+        // That kind of freeze is the held-back-on-the-opponent's-side
+        // variant — both clients hide the unit from the LOCAL human
+        // until the opponent presses release. Tag it so the renderer's
+        // hide-rule can fire only for THIS subset and not for transient
+        // attack-stuns (Frank's hammer, Bruce SP2) which should stay
+        // fully visible on both screens while paralysed.
+        entity.isFrozen          = true;
+        entity._isPlacementFreeze = true;
+    }
     AudioController.play('spawn');
 
     // Lock the cake to once-per-match for this team. The check at the top

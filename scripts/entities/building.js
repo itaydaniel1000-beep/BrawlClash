@@ -363,10 +363,12 @@ class Building extends Entity {
     }
 
     draw(ctx) {
-        // Frozen ENEMY buildings are hidden from us — they're held back on
-        // the opponent's side and only become visible when the opponent
-        // releases their freeze.
-        if (this.isFrozen && this.team === 'enemy') return;
+        // Frozen ENEMY buildings placed via the freeze-card path are
+        // hidden from us — they're held back on the opponent's side and
+        // only become visible when the opponent releases their freeze.
+        // Transient attack-stuns (Frank's hammer) leave _isPlacementFreeze
+        // unset and stay visible on both screens.
+        if (this.isFrozen && this._isPlacementFreeze && this.team === 'enemy') return;
 
         // 🌟 Lumi — render the 3 concentric danger zones BEFORE the
         // building chrome so the rings sit under the sprite. Each ring
