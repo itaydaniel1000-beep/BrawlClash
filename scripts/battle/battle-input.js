@@ -87,13 +87,15 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: true, cardId: 'sirius' };
     }
 
-    // Willow — necromancer-spell. Mirror image of Sirius: while held,
-    // every click on an enemy entity instantly KILLS that entity instead
-    // of copying it. Cost is dynamic: target's base card cost + 2 elixir
-    // surcharge (Sirius is +1; killing is stronger than copying so the
-    // premium is +1 higher). Untargetable / non-CARDS entities (porters,
-    // safes, fire-trails) refuse the cast. The card is consumed on a
-    // successful kill; missed clicks keep it armed for another try.
+    // Willow — necromancer-spell. Mirror image of Sirius with a twist:
+    // every click on an enemy entity (a) KILLS the original and (b) at
+    // the same instant SUMMONS a player-team copy of that same type at
+    // the dying enemy's position. So Willow simultaneously removes the
+    // threat AND raises it under your control. Cost is dynamic: target's
+    // base card cost + 2 elixir surcharge (Sirius is +1; this is +2
+    // because the kill is an extra benefit). Untargetable / non-CARDS
+    // entities (porters, safes, fire-trails) and other spells refuse
+    // the cast. The card is consumed on a successful kill+summon.
     if (selectedCardId === 'willow') {
         const candidates = units.concat(buildings, auras).filter(e =>
             e && e.team === 'enemy' && !e.isDead &&
@@ -116,15 +118,20 @@ function _placeAtInternal(x, y, shiftHeld) {
         const totalCost = (victimCard.cost || 0) + 2;
         const canAffordKill = playerElixir >= (totalCost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
         if (!canAffordKill) {
-            if (typeof showTransientToast === 'function') showTransientToast(`🧪 צריך ${totalCost} אליקסיר להרוג את ${victimCard.name}`);
+            if (typeof showTransientToast === 'function') showTransientToast(`🧪 צריך ${totalCost} אליקסיר ל${victimCard.name}`);
             return { placed: false };
         }
+        // Pay the +2 surcharge by hand. spawnEntity below will subtract
+        // the raised unit's base cost on top of this, so total = base+2.
         if (!adminHacks.infiniteElixir && !adminHacks.freeCards) {
-            playerElixir = Math.max(0, playerElixir - totalCost);
+            playerElixir = Math.max(0, playerElixir - 2);
         }
-        // Instant-kill. Bypasses takeDamage so isInvulnerable / shieldHp
-        // are ignored on purpose — Willow's curse is a hard removal, not
-        // a hit. Matches the existing admin 🗑️ delete-unit semantic.
+        // Capture the kill position BEFORE flipping isDead, then instant-
+        // kill the original. Bypasses takeDamage so isInvulnerable /
+        // shieldHp are ignored — Willow's curse is a hard removal, not a
+        // hit. Matches the existing admin 🗑️ delete-unit semantic.
+        const killX = victim.x;
+        const killY = victim.y;
         victim.isDead = true;
         victim.hp = 0;
         // P2P: tell the opponent to drop the matching player-team unit on
@@ -133,16 +140,20 @@ function _placeAtInternal(x, y, shiftHeld) {
             if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
                 window.NetworkManager && typeof window.NetworkManager.broadcastDeleteUnit === 'function') {
                 window.NetworkManager.broadcastDeleteUnit(
-                    victim.x, victim.y, victim.type || null, victim.radius || 20
+                    killX, killY, victimType || null, victim.radius || 20
                 );
             }
         } catch (e) { /* ignore — local kill already happened */ }
-        // Consume the slot — no chain-killing even with shift held; each
+        // Now raise the dead — spawn a player-team copy at the same spot.
+        // spawnEntity handles the base-cost deduction + the P2P spawn
+        // broadcast, so no extra plumbing needed here.
+        spawnEntity(killX, killY, 'player', victimType);
+        // Consume the slot — no chain-casting even with shift held; each
         // click resolves a unique target and the player should re-pick
         // to avoid accidental duplicate casts.
         selectedCardId = null;
         document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-        if (typeof showTransientToast === 'function') showTransientToast(`🧙‍♀️ ${victimCard.name} מת`);
+        if (typeof showTransientToast === 'function') showTransientToast(`🧙‍♀️ ${victimCard.name} זומן`);
         return { placed: true, cardId: 'willow' };
     }
 
