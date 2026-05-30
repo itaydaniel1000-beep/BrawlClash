@@ -126,8 +126,13 @@ class Aura extends Entity {
             if (!this._exploded && now >= detonateAt) {
                 this._exploded = true;
                 try {
+                    // Raps explicitly does NOT damage the enemy safe — per
+                    // user spec the spell is an anti-unit / anti-building
+                    // tool, not a vault-cracker. playerSafe / enemySafe are
+                    // dropped from the victim pool; everything else on the
+                    // opposite team (units, buildings, auras) takes the
+                    // full 500 dmg if it's inside the radius at detonation.
                     const victims = units.concat(buildings, auras)
-                        .concat([playerSafe, enemySafe].filter(s => s))
                         .filter(e => e && e.team !== this.team && !e.isDead);
                     for (const e of victims) {
                         if (Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= this.radius) {
