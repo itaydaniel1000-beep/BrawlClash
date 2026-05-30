@@ -126,14 +126,20 @@ class Aura extends Entity {
             if (!this._exploded && now >= detonateAt) {
                 this._exploded = true;
                 try {
-                    // Raps explicitly does NOT damage the enemy safe — per
-                    // user spec the spell is an anti-unit / anti-building
-                    // tool, not a vault-cracker. playerSafe / enemySafe are
-                    // dropped from the victim pool; everything else on the
-                    // opposite team (units, buildings, auras) takes the
-                    // full 500 dmg if it's inside the radius at detonation.
+                    // Raps explicitly does NOT damage the safes — per user
+                    // spec the spell is an anti-unit / anti-building tool,
+                    // never a vault-cracker. Defense-in-depth: not only
+                    // do we leave playerSafe / enemySafe out of the concat
+                    // (they live in their own globals, not in `buildings`),
+                    // we ALSO drop any victim that is === one of the safes
+                    // OR has a type marker that looks like a safe, so
+                    // future refactors that accidentally push a safe into
+                    // `buildings` still can't damage it from here.
                     const victims = units.concat(buildings, auras)
-                        .filter(e => e && e.team !== this.team && !e.isDead);
+                        .filter(e => e && e.team !== this.team && !e.isDead &&
+                                     e !== playerSafe && e !== enemySafe &&
+                                     e.type !== 'safe' &&
+                                     !(typeof Safe !== 'undefined' && e instanceof Safe));
                     for (const e of victims) {
                         if (Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= this.radius) {
                             if (typeof e.takeDamage === 'function') e.takeDamage(500);
