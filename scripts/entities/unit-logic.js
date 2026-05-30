@@ -529,36 +529,32 @@ const _AMBER_FROZEN_SUBS = {
     C:'b', c:'b'
 };
 
-// === Bruce — Gemini's full 160x64 red-bear-with-cap grid ==================
+// === Bruce — Nita's bear from Brawl Stars (warm-brown 16x14 face) =========
 //
-// This is the exact grid Gemini drew for Bruce, taken verbatim from the
-// user's paste. Composition:
-//   • Rows 3-14   : cyan-rimmed cap with dark-brown crown
-//   • Rows 15-31  : red bear head + ears (left + right K-outlined ears)
-//   • Rows 32-49  : red body with K eye-cluster and WW fang pair
-//   • Rows 50-63  : red body tapering to a point at bottom-right
+// Per user request, scrapped the Gemini-pasted grids entirely. Bruce now
+// renders as the round brown bear-cub face Nita summons in Brawl Stars:
+// two rounded ears at the top, two black-dot eyes, a black snout in the
+// middle, and two visible white fangs hanging below the muzzle.
 //
-// Color legend (per Gemini's palette guide):
-//   K = #1A1A1A  hard black outline / eyes
-//   O = #E53935  deep red bear body
-//   H = #3E2723  dark-brown cap interior
-//   C = #00BCD4  cyan cap rim / accent
-//   W = #FFFFFF  white fang
+// Color legend:
+//   R = brown fur (warm orange-brown, matches the Brawl Stars look)
+//   r = darker brown shadow on edges + cheeks
+//   H = lighter brown highlight on the top corners
+//   N = black snout                 E = black eye
+//   W = white fang
 //   '.' = transparent
 //
-// Frozen variants (when the unit is frozen):
-//   O → I  (red body → ice blue)
-//   H → i  (dark brown → darker ice blue)
-//   C stays C (already cool), K stays K, W stays W.
+// Frozen variants (active while the unit is frozen):
+//   R → I (ice blue main), r → i (darker ice), H → I (highlight too).
 const _BRUCE_PALETTE = {
-    K: '#1A1A1A',  // black outline / eyes
-    O: '#E53935',  // red bear body
-    H: '#3E2723',  // dark brown cap interior
-    C: '#00BCD4',  // cyan cap rim
-    W: '#FFFFFF',  // white fang highlight
-    // Frozen variants (replace warm colours when the unit is frozen)
-    I: '#9DD3FF',
-    i: '#74B9FF'
+    R: '#A0522D',  // saddle brown (main body)
+    r: '#6B3410',  // deep brown shadow
+    H: '#C77B3C',  // light brown highlight
+    N: '#1A1A1A',  // black snout
+    E: '#1A1A1A',  // black eye
+    W: '#FFFFFF',  // white fang
+    I: '#9DD3FF',  // frozen body
+    i: '#74B9FF'   // frozen shadow
 };
 
 // 160 columns × 64 rows — Gemini's full-resolution grid verbatim. Cap on
@@ -571,73 +567,23 @@ const _BRUCE_PALETTE = {
 // to a fixed on-canvas width, preserving in-battle scale regardless of
 // how dense the source grid is.
 const _BRUCE_GRID = [
-    '......................................................................................................................................................................',  //   0
-    '......................................................................................................................................................................',  //   1
-    '......................................................................................................................................................................',  //   2
-    '.................................................................KKKKKKKKKKKKKK.......................................................................................',  //   3
-    '.............................................................KKKKCCCCCCCCCCHHCKKKK....................................................................................',  //   4
-    '...........................................................KKKCHHHHHHHHHHHHHHHHHHCKKK.................................................................................',  //   5
-    '..........................................................KKCHHHHHHHHHHHHHHHHHHHHHHCKK................................................................................',  //   6
-    '.........................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHKK...............................................................................',  //   7
-    '........................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK..............................................................................',  //   8
-    '.......................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK.............................................................................',  //   9
-    '.......................................................KKHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHKK.............................................................................',  //  10
-    '.......................................................KKKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKKK.............................................................................',  //  11
-    '........................................................KKKCHHHHHHHHHHHHHHHHHHHHHHHHCKK...............................................................................',  //  12
-    '..........................................................KKKKCCCCCCCCCCCCCCCCCCCCKKKK................................................................................',  //  13
-    '..............................................................KKKKKKKKKKKKKKKKKKKK....................................................................................',  //  14
-    '....................................................................OOOOOOOO..........................................................................................',  //  15
-    '..................................................................OOOOOOOOOOOO........................................................................................',  //  16
-    '................................................................OOOOOOOOOOOOOOOO......................................................................................',  //  17
-    '..............................................................OOOOOOOOOOOOOOOOOOOO....................................................................................',  //  18
-    '............................................................OOOOOOOOOOOOOOOOOOOOOOOO..................................................................................',  //  19
-    '................KKKKKKKKKKKKKK............................OOOOOOOOOOOOOOOOOOOOOOOOOOOO............................KKKKKKKKKKKKKK......................................',  //  20
-    '............KKKKOOOOOOOOOOOOOOKKKK......................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO......................KKKKOOOOOOOOOOOOOOKKKK..................................',  //  21
-    '..........KKKOOOOOOOOOOOOOOOOOOOOKKK..................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..................KKKOOOOOOOOOOOOOOOOOOOOKKK................................',  //  22
-    '........KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK..............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..............KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK..............................',  //  23
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO............KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................................',  //  24
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..................................',  //  25
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................',  //  26
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.......KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..................................',  //  27
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.....OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.....KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............................',  //  28
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO...KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  29
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  30
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  31
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  32
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  33
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  34
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  35
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  36
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  37
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  38
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  39
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.........................',  //  40
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  41
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...........................',  //  42
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.............................',  //  43
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWKKKKKKKKKKKKKKWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................',  //  44
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWKKKKKKKKKKWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...................................',  //  45
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWWWKKKKKKWWWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK......................................',  //  46
-    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKWWWWWWWWWWWWWWWWKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.......................................',  //  47
-    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKWWWWWWWWWWWWKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK..........................................',  //  48
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKWWWWWKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK..............................................',  //  49
-    'KKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKK.....................................................',  //  50
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................',  //  51
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................',  //  52
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................',  //  53
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................................',  //  54
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................................',  //  55
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................................................',  //  56
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................................................',  //  57
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.............................................................................................................................',  //  58
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.....................................................................................................................................',  //  59
-    'KKKKOOOOOOOOOOOOOOOOOKKKK.............................................................................................................................................',  //  60
-    'KKKKOOOOOOOOOKKKK.....................................................................................................................................................',  //  61
-    'KKKKOOOKKKK...........................................................................................................................................................',  //  62
-    'KKK...................................................................................................................................................................'   //  63
+    '..RR........RR..',  //  0
+    '.RRRR......RRRR.',  //  1
+    '.RRRR......RRRR.',  //  2
+    'RRRRRRRRRRRRRRRR',  //  3
+    'RHHRRRRRRRRRRHHR',  //  4
+    'rRRREE....EERRRr',  //  5
+    'rRRRRRRRRRRRRRRr',  //  6
+    'rRRRRRNNNNRRRRRr',  //  7
+    'rRRRRNNNNNNRRRRr',  //  8
+    'rRRRRNNNNNNRRRRr',  //  9
+    'rrRRRRNNNNRRRRrr',  // 10
+    '.rRRRWW..WWRRRr.',  // 11
+    '..rrWW....WWrr..',  // 12
+    '.....W....W.....'  // 13
 ];
 
-const _BRUCE_FROZEN_SUBS = { O:'I', H:'i' };
+const _BRUCE_FROZEN_SUBS = { R:'I', r:'i', H:'I' };
 
 // === Scrappy — golden-retriever dog face ==================================
 //
@@ -1206,23 +1152,14 @@ const _CUSTOM_SPRITES = {
         grid:        _BRUCE_GRID,
         palette:     _BRUCE_PALETTE,
         frozenSubs:  _BRUCE_FROZEN_SUBS,
-        // Bear-with-cap ONLY (rows 0-63 of Gemini's grid). Everything
-        // below — skin diamond, mini-bear silhouette, palette samples,
-        // scribbled bubbles, blue band — was ad-page decoration, not
-        // character content. Stripped so Bruce on the battlefield is
-        // just the character itself.
-        cols:        166,
-        // Anchor mid-figure (row 38, just below the eye/fang cluster
-        // at rows 32-36) so the unit's hitbox centres on the bear body.
-        anchorRow:   38,
+        // Back to the classic 16x14 bear-face design (brown bear cub,
+        // Nita's bear from Brawl Stars). Cell-by-cell PIX=2 rendering
+        // gives the familiar 32x28 on-canvas footprint — no drawImage
+        // scaling needed at this resolution, so targetWidthPx is gone.
+        cols:        16,
+        anchorRow:   6.5,
         flickerRows: 0,
-        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 },
-        // Grid is 160 × 64. At PIX=2 cell rendering this would be a
-        // 320-px-wide unit; targetWidthPx routes through drawImage to
-        // scale the cached PNG to a fixed on-canvas width.
-        // 80 px wide × (64/160) = 32 px tall — comparable to the
-        // original 16×14 sprite, with much finer detail.
-        targetWidthPx: 80
+        teamGlow:    { x: 0, y: 4, rx: 14, ry: 4 }
     },
     scrappy: {
         grid:        _SCRAPPY_GRID,
