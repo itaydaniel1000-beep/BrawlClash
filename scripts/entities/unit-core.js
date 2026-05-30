@@ -129,6 +129,19 @@ class Unit extends Entity {
             this.color = '#ff69b4';
             this.isInvulnerable = true;       // takeDamage no-op (entity-base.js)
             this.isHealthHidden = true;       // skip HP bar — always full
+        } else if (type === 'mo') {
+            // Mo — mouse gunner. 1500 HP, walks like Bruce, fires a
+            // cascading 3-stage bullet burst every 1.5 s. The cascade
+            // itself lives in unit-logic.js's attack branch + the Mo
+            // projectile-update path in projectile.js. Stats here are
+            // the standalone-unit numbers; per-stage damage / range
+            // are constants in those files.
+            this.maxHp = 1500; this.hp = 1500;
+            this.attackDamage = 500;          // primary bullet only
+            this.speed = 50;
+            this.attackRange = 80;            // matches primary bullet travel
+            this.attackSpeed = 1500;
+            this.color = '#95a5a6';
         } else if (type === 'pang') {
             // Pang — chain-dash bruiser. 2000 HP / 200 dmg melee, Bruce-
             // pace movement so once the chain dash finishes he plays like

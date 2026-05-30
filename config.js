@@ -256,6 +256,16 @@ const CARDS = {
     // safe rules, so the safe is the last thing in his queue if it's
     // still standing when the field is empty.
     'pang':   { name: 'פאנג', cost: 8, type: 'unit', color: '#34495e', icon: '🐼',
+                rarity: 'אגדי' },
+    // Mo — mouse gunner with a cascading bullet pattern. 6 elixir.
+    // Primary shot travels 80 px (or until it hits something) and deals
+    // 500 dmg. On impact it FANS OUT 5 follow-up bullets: 4 diagonals at
+    // 50 px / 100 dmg each, plus 1 STRAIGHT bullet that continues 70 px
+    // / 400 dmg. The straight follow-up itself fans out into 4 more
+    // diagonals at 60 px / 100 dmg each when it ends. Pure ranged
+    // burst — Mo himself is a 1500 HP walking unit with Bruce-pace
+    // movement and a 1.5 s reload between bursts.
+    'mo':     { name: 'מו', cost: 6, type: 'unit', color: '#95a5a6', icon: '🐭',
                 rarity: 'אגדי' }
 };
 

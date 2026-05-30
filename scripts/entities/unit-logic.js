@@ -439,7 +439,7 @@ Unit.prototype.update = function(dt, now) {
         }
     }
 
-    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi' || this.type === 'barry' || this.type === 'gigi' || this.type === 'frank' || this.type === 'pang') {
+    if (this.type === 'bull' || this.type === 'porter' || this.type === 'libi' || this.type === 'barry' || this.type === 'gigi' || this.type === 'frank' || this.type === 'pang' || this.type === 'mo') {
         let enemies = units.concat(buildings, auras).concat([playerSafe, enemySafe].filter(s => s)).filter(e => e && e.team !== this.team && !e.isInvisible && !e.isDead && !e.isFrozen && !isAmberOrTrail(e));
         this.target = enemies.length > 0 ? enemies.sort((a, b) => Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y))[0] : null;
 
@@ -554,7 +554,21 @@ Unit.prototype.update = function(dt, now) {
                 // the cone sweeps through. The cone is for damage; the
                 // stun is for "what he hit". The swing leaves a CrackEffect
                 // on the ground that lingers 2 s for visual feedback.
-                if (this.type === 'frank') {
+                // === Mo — cascade-bullet burst =============================
+                // Mo fires a STAGE-1 bullet (range 80, dmg 500) toward his
+                // locked target. The bullet's own update() in projectile.js
+                // handles the cascade — when it dies (hit OR end-of-range)
+                // it spawns 4 diagonals + 1 straight follow-up, and the
+                // straight follow-up itself ends with 4 more diagonals.
+                // No direct damage from this side — every hit is delivered
+                // by the projectile chain.
+                if (this.type === 'mo') {
+                    const aimAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
+                    if (typeof spawnMoCascadeBullet === 'function') {
+                        spawnMoCascadeBullet(this.x, this.y, aimAngle, 500 * damageMult, 80, this.team, 1);
+                    }
+                    this.lastAttackTime = now;
+                } else if (this.type === 'frank') {
                     const swingAngle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
                     const CONE_LENGTH     = 150;
                     const CONE_HALF_ANGLE = Math.PI / 5;    // 36° each side ≈ 72° total
@@ -602,7 +616,7 @@ Unit.prototype.update = function(dt, now) {
                     setTimeout(() => { if (this.target) this.target.isFrozen = false; }, 1000);
                 }
 
-                if (this.type !== 'frank' && typeof MeleeEffect === 'function') projectiles.push(new MeleeEffect(this.x + (this.target.x - this.x) * 0.5, this.y + (this.target.y - this.y) * 0.5));
+                if (this.type !== 'frank' && this.type !== 'mo' && typeof MeleeEffect === 'function') projectiles.push(new MeleeEffect(this.x + (this.target.x - this.x) * 0.5, this.y + (this.target.y - this.y) * 0.5));
             }
         } else {
             let angle = Math.atan2(this.target.y - this.y, this.target.x - this.x);
