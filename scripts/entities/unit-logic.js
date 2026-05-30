@@ -551,11 +551,23 @@ const _AMBER_FROZEN_SUBS = {
 //   H → i  (dark brown → darker ice blue)
 //   C stays C (already cool), K stays K, W stays W.
 const _BRUCE_PALETTE = {
-    K: '#1A1A1A',
-    O: '#E53935',
-    H: '#3E2723',
-    C: '#00BCD4',
-    W: '#FFFFFF',
+    // Core bear-with-cap colours
+    K: '#1A1A1A',  // black outline / eyes
+    O: '#E53935',  // red bear body
+    H: '#3E2723',  // dark brown cap interior
+    C: '#00BCD4',  // cyan cap rim
+    W: '#FFFFFF',  // white fang + bubble fill
+    // Additional colours present in the rest of Gemini's grid
+    // (palette-sample blocks, skin diamond, fake-Hebrew bubbles, blue band)
+    S: '#F4C29F',  // skin / belly tone
+    R: '#E53935',  // sample red (= O)
+    Y: '#FDD835',  // sample yellow
+    G: '#43A047',  // sample green
+    M: '#E91E63',  // sample magenta
+    P: '#8E44AD',  // sample purple
+    N: '#F48FB1',  // sample light pink
+    B: '#2952D6',  // royal blue bottom band
+    // Frozen variants (replace warm colours when the unit is frozen)
     I: '#9DD3FF',
     i: '#74B9FF'
 };
