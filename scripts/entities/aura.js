@@ -248,10 +248,11 @@ class Aura extends Entity {
         // shimmers instead of looking like static circles. Returns early
         // before the standard aura draw block so none of that runs.
         // Raps bomb marker — translucent red interior with a dark-red
-        // outline, plus a falling-bomb sprite that drops from above
-        // during the last `_fallDuration` ms before detonation. The
-        // marker is destroyed in update() at the detonation tick, so by
-        // the time `isDead` is true this draw call never runs again.
+        // outline and an X mark at the centre, plus a falling MISSILE
+        // sprite that drops from above during the last `_fallDuration`
+        // ms before detonation. The marker is destroyed in update() at
+        // the detonation tick, so by the time `isDead` is true this
+        // draw call never runs again.
         if (this.type === 'raps-bomb') {
             const now = performance.now();
             const detonateAt = this.spawnTime + this._baseDelay + this._bombIndex * this._stagger;
@@ -272,32 +273,70 @@ class Aura extends Entity {
             ctx.strokeStyle = '#7B1010';
             ctx.lineWidth   = 3;
             ctx.stroke();
-            // Falling-bomb dot during the drop phase. Linear vertical
-            // fall from 220 px above the target to the target itself.
+            // X marker at the centre — same dark red as the rim, slightly
+            // thicker so it reads even when several markers overlap.
+            const xs = 11;
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(this.x - xs, this.y - xs);
+            ctx.lineTo(this.x + xs, this.y + xs);
+            ctx.moveTo(this.x + xs, this.y - xs);
+            ctx.lineTo(this.x - xs, this.y + xs);
+            ctx.stroke();
+            // Falling missile during the drop phase. Linear vertical
+            // fall from 240 px above the target to the target itself.
             if (now >= fallStart && now < detonateAt) {
                 const t = (now - fallStart) / this._fallDuration;   // 0..1
-                const dropFrom = 220;
+                const dropFrom = 240;
                 const by = this.y - dropFrom * (1 - t);
-                // Bomb body
+                // Missile dimensions
+                const bodyW      = 7;
+                const bodyTop    = by - 14;   // rear (where the flame trails up)
+                const bodyBottom = by + 8;    // base of nose cone
+                const noseTip    = bodyBottom + 6;
+                // Flame trail — wavy plume extending upward from the rear.
+                const flameLen = 22 + 6 * Math.sin(now / 35 + this._bombIndex);
+                const flameGrad = ctx.createLinearGradient(this.x, bodyTop - flameLen, this.x, bodyTop);
+                flameGrad.addColorStop(0,    'rgba(255, 215, 64, 0.0)');
+                flameGrad.addColorStop(0.45, 'rgba(243, 156, 18, 0.70)');
+                flameGrad.addColorStop(1,    'rgba(231, 76, 60, 0.95)');
+                ctx.fillStyle = flameGrad;
                 ctx.beginPath();
-                ctx.arc(this.x, by, 8, 0, Math.PI * 2);
-                ctx.fillStyle = '#1A1A1A';
+                ctx.moveTo(this.x - bodyW / 2 + 1, bodyTop);
+                ctx.lineTo(this.x + bodyW / 2 - 1, bodyTop);
+                ctx.lineTo(this.x + 4, bodyTop - flameLen * 0.55);
+                ctx.lineTo(this.x, bodyTop - flameLen);
+                ctx.lineTo(this.x - 4, bodyTop - flameLen * 0.55);
+                ctx.closePath();
                 ctx.fill();
-                ctx.strokeStyle = '#7B1010';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-                // Tiny fuse on top
+                // Fins at the rear — two small dark-red triangles.
+                ctx.fillStyle = '#4A0808';
                 ctx.beginPath();
-                ctx.moveTo(this.x, by - 7);
-                ctx.lineTo(this.x + 2, by - 12);
-                ctx.strokeStyle = '#e67e22';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                // Spark on the fuse tip — pulses with the bomb's clock
-                const sparkPulse = 0.6 + 0.4 * Math.sin(now / 50 + this._bombIndex);
+                ctx.moveTo(this.x - bodyW / 2,     bodyTop);
+                ctx.lineTo(this.x - bodyW / 2 - 4, bodyTop + 5);
+                ctx.lineTo(this.x - bodyW / 2,     bodyTop + 5);
+                ctx.closePath();
+                ctx.fill();
                 ctx.beginPath();
-                ctx.arc(this.x + 2, by - 12, 2 * sparkPulse, 0, Math.PI * 2);
-                ctx.fillStyle = '#f1c40f';
+                ctx.moveTo(this.x + bodyW / 2,     bodyTop);
+                ctx.lineTo(this.x + bodyW / 2 + 4, bodyTop + 5);
+                ctx.lineTo(this.x + bodyW / 2,     bodyTop + 5);
+                ctx.closePath();
+                ctx.fill();
+                // Missile body — dark-red rectangle.
+                ctx.fillStyle = '#7B1010';
+                ctx.fillRect(this.x - bodyW / 2, bodyTop, bodyW, bodyBottom - bodyTop);
+                // Lighter highlight strip along the left edge.
+                ctx.fillStyle = '#a52a2a';
+                ctx.fillRect(this.x - bodyW / 2, bodyTop, 1.5, bodyBottom - bodyTop);
+                // Nose cone — black triangle pointing down.
+                ctx.fillStyle = '#1A1A1A';
+                ctx.beginPath();
+                ctx.moveTo(this.x - bodyW / 2, bodyBottom);
+                ctx.lineTo(this.x + bodyW / 2, bodyBottom);
+                ctx.lineTo(this.x,             noseTip);
+                ctx.closePath();
                 ctx.fill();
             }
             ctx.restore();

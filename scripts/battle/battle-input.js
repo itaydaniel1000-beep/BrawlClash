@@ -653,7 +653,12 @@ function handleCanvasPress(e) {
     // Spell-type cards (sirius / rosa) are one-shot — never auto-repeat,
     // otherwise a long-press would chain-cast them and burn elixir on
     // unintended duplicate clones / shields.
-    const _isSpellHeld = cardBeforePlace && CARDS[cardBeforePlace] && CARDS[cardBeforePlace].type === 'spell';
+    // Raps is the exception: each cast is a self-contained bomb cluster
+    // and chaining them is a legitimate offensive play, so long-press
+    // is allowed for him explicitly.
+    const _isSpellHeld = cardBeforePlace && CARDS[cardBeforePlace] &&
+                         CARDS[cardBeforePlace].type === 'spell' &&
+                         cardBeforePlace !== 'raps';
     if (res && cardBeforePlace && !_isSpellHeld && !e.shiftKey) {
         _scheduleAutoRepeat(cardBeforePlace, LONG_PRESS_MS, wasFreeze);
     }
@@ -740,7 +745,9 @@ function drawGhost(ctx) {
     if (cardKey === 'rosa') return;
 
     // Raps shows its own preview — 8 hex-packed red circles showing
-    // exactly where the cluster will land. No pointer-following emoji.
+    // exactly where the cluster will land. Each circle has an X mark
+    // at its centre so the player can read the eight impact points at
+    // a glance. No pointer-following emoji.
     if (cardKey === 'raps') {
         ctx.save();
         const r = 55;
@@ -751,12 +758,26 @@ function drawGhost(ctx) {
             [-2*r,  vstep], [   0,  vstep], [ 2*r,  vstep]
         ];
         for (const [dx, dy] of offsets) {
+            const cx = mouseX + dx;
+            const cy = mouseY + dy;
+            // Circle interior + dark-red rim
             ctx.beginPath();
-            ctx.arc(mouseX + dx, mouseY + dy, r, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(231, 76, 60, 0.32)';
             ctx.fill();
             ctx.strokeStyle = '#7B1010';
             ctx.lineWidth = 3;
+            ctx.stroke();
+            // X marker at the centre — same dark-red as the rim, slightly
+            // thicker so it reads at a glance even when the circles overlap.
+            const xs = 11;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(cx - xs, cy - xs);
+            ctx.lineTo(cx + xs, cy + xs);
+            ctx.moveTo(cx + xs, cy - xs);
+            ctx.lineTo(cx - xs, cy + xs);
             ctx.stroke();
         }
         ctx.restore();
