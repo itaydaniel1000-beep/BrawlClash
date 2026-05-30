@@ -131,16 +131,19 @@ class Unit extends Entity {
             this.isHealthHidden = true;       // skip HP bar — always full
         } else if (type === 'mo') {
             // Mo — mouse gunner. 1500 HP, walks like Bruce, fires a
-            // cascading 3-stage bullet burst every 1.5 s. The cascade
-            // itself lives in unit-logic.js's attack branch + the Mo
-            // projectile-update path in projectile.js. Stats here are
-            // the standalone-unit numbers; per-stage damage / range
-            // are constants in those files.
+            // cascading 3-stage bullet burst every 4.5 s (per user —
+            // 3× slower than the original 1.5 s baseline; the cascade
+            // is potent enough that a tighter cadence overwhelmed the
+            // field). The cascade itself lives in unit-logic.js's
+            // attack branch + the Mo projectile-update path in
+            // projectile.js. Stats here are the standalone-unit
+            // numbers; per-stage damage / range are constants in
+            // those files.
             this.maxHp = 1500; this.hp = 1500;
             this.attackDamage = 500;          // primary bullet only
             this.speed = 50;
             this.attackRange = 80;            // matches primary bullet travel
-            this.attackSpeed = 1500;
+            this.attackSpeed = 4500;          // 1.5 s × 3 — slower cadence
             this.color = '#95a5a6';
         } else if (type === 'pang') {
             // Pang — chain-dash bruiser. 2000 HP / 200 dmg melee, Bruce-
