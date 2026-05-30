@@ -334,17 +334,57 @@ NetworkManager.joinRoom = function(roomCode) {
     // was timing out on perfectly-recoverable connections (especially
     // phone-vs-phone on different WiFi networks where TURN is required).
     // 20 s gives even the slowest paths a fair shot.
+    let failed = false;
     const failTimer = setTimeout(() => {
-        if (!conn.open) {
+        if (!conn.open && !failed) {
+            failed = true;
             try { conn.close(); } catch (e) {}
             if (typeof showTransientToast === 'function') {
-                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId + " — נסה שוב או בדוק שהמשתמש השני פתח 'PLAY VS PLAYER'");
+                showTransientToast("לא הצלחנו להתחבר לקוד " + targetId + " — נסה שוב, ובדוק שגם המכשיר השני פתח את המשחק ובמסך 'PLAY VS PLAYER'");
             }
         }
     }, 20000);
 
+    // PeerJS surfaces "the target peer doesn't exist on the broker" as a
+    // peer-level error (`peer-unavailable`) that fires within 1-2 s — way
+    // before the 20-s fallback. Catch it here so the user gets immediate
+    // feedback ("הקוד לא קיים") instead of staring at a spinner. Same
+    // path covers ICE / network-level connect failures.
+    const _peerOnceError = (err) => {
+        if (failed || conn.open) return;
+        const errType = (err && err.type) || '';
+        // Only surface errors related to THIS connect attempt — peer-level
+        // errors for OTHER operations (e.g. a stale connection elsewhere)
+        // shouldn't kill the active dialog.
+        const msg = (err && err.message) || '';
+        const isMyConnection = (errType === 'peer-unavailable') ||
+                               /peer-unavailable/i.test(msg) ||
+                               (errType === 'negotiation-failed') ||
+                               (errType === 'connection-closed');
+        if (!isMyConnection) return;
+        failed = true;
+        clearTimeout(failTimer);
+        try { conn.close(); } catch (e) {}
+        try { this.peer.off && this.peer.off('error', _peerOnceError); } catch (e) {}
+        let userMsg;
+        if (errType === 'peer-unavailable' || /peer-unavailable/i.test(msg)) {
+            userMsg = "הקוד " + targetId + " לא נמצא. ודא שהשחקן השני פתח את המסך 'PLAY VS PLAYER' כרגע, וכי הקוד מספרים בלבד.";
+        } else {
+            userMsg = "לא הצלחנו להתחבר לקוד " + targetId + " — בעיית רשת. נסה שוב.";
+        }
+        console.warn("📡 Join failed:", errType, msg);
+        if (typeof showTransientToast === 'function') showTransientToast(userMsg);
+    };
+    this.peer.on('error', _peerOnceError);
+    conn.on('error', _peerOnceError);
+
     conn.on('open', () => {
         clearTimeout(failTimer);
+        // Connect succeeded — stop the timeout + the error listeners so a
+        // subsequent unrelated peer-level error can't accidentally close
+        // this open connection.
+        clearTimeout(failTimer);
+        try { this.peer.off && this.peer.off('error', _peerOnceError); } catch (e) {}
         const roomId = "ROOM-" + Math.random().toString(36).substr(2, 6).toUpperCase();
         this.connections[conn.peer] = conn;
         NetworkManager._watchConnectionForMidBattleClose(conn);
