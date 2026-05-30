@@ -25,7 +25,11 @@
     // on to the long-range buildings and auras.
     const ALL_BRAWLERS = ['bruce', 'leon', 'bull', 'amber', 'bubble', 'sirius', 'trunk', 'rosa',
                           'penny', 'scrappy', 'bonnie', 'pam', 'max', '8bit',
-                          'emz', 'tara', 'spike', 'mr-p'];
+                          'emz', 'tara', 'spike', 'mr-p',
+                          // Latest additions — appended at the end so the
+                          // existing flow stays intact.
+                          'gigi', 'frank', 'pang', 'mo',
+                          'gray', 'raps', 'willow'];
 
     // Per-brawler explanation text shown when the player picks the card.
     const BRAWLER_TIPS = {
@@ -46,7 +50,14 @@
         sirius:   'סיריוס — ספל-שכפול. כשהקלף מורם, כל אויב על המגרש מקבל זוהר סגול. לחץ על אויב כדי ליצור באותו מקום עותק שלו בצוות שלך. העלות = העלות של הדמות שלחצת + 1 אליקסיר. אי אפשר לשכפל פורטר/שערים/שביל-אש. סיריוס עצמה לא מופיעה על המגרש.',
         trunk:    'טרנק — יחידת תמיכה אנרגטית. עולה 5 אליקסיר. הולך בעקראיות בחצי שבו שמת אותו ומפזר שביל אנרגיה סגול. כשיחידה שלך דורכת על השביל, הוא נעלם והיחידה מקבלת בונוס נזק קבוע של +20% (חד-פעמי, לא נערם). לא ניתן להרוג אותו, אין לו מד חיים, ונעלם לבד אחרי 15 שניות.',
         rosa:     'רוזה — ספל הגנתי. עולה 3 אליקסיר. כשמרימים את הקלף, כל הדמויות שלך מסומנות בעוטר ורוד. לחץ על דמות שלך כדי להעניק לה בועת מגן של 500 חיים שיורד 25 בכל שנייה. רוזה עצמה לא מופיעה על המגרש.',
-        bonnie:   'בוני — טורט-צלף ארוך-טווח. עולה 6 אליקסיר. יורה למחצית מהמפה (טווח 450) אבל אטית פי 2 מפני (יורה כל 5 שניות, נזק 250). יש לה יכולת מיוחדת: כפתור 🪄 שמסמן את כל הבוניות שלך, ולחיצה על אחת הופכת אותה לברוס מיוחד עם הילה זהובה שתוקף הכל חוץ מהכספת — מצוין לטיהור הצד של היריב.'
+        bonnie:   'בוני — טורט-צלף ארוך-טווח. עולה 6 אליקסיר. יורה למחצית מהמפה (טווח 450) אבל אטית פי 2 מפני (יורה כל 5 שניות, נזק 250). יש לה יכולת מיוחדת: כפתור 🪄 שמסמן את כל הבוניות שלך, ולחיצה על אחת הופכת אותה לברוס מיוחד עם הילה זהובה שתוקף הכל חוץ מהכספת — מצוין לטיהור הצד של היריב.',
+        gigi:     'ג\'יגי — בלרינה לוחמת. עולה 7 אליקסיר, 2500 חיים, 250 נזק. יכולת מיוחדת: כפתור <b>🩰</b> מסמן את כל הג\'יגיות שלך עם טבעת ורודה (טווח 200 פיקסלים). לחיצה במפה בטוואח טבעת משגרת את הג\'יגי לשם. כל ג\'יגי יכולה להשתגר רק פעם אחת בחיים.',
+        frank:    'פרנק — לוחם פטיש כבד. עולה 7 אליקסיר, 3000 חיים. ההתקפה שלו היא בצורת <b>פירמידה/חרוט</b> (72°, 150 פיקסלים) שעושה 400 נזק לכל אויב בתוך החרוט ומשאיר סדקים על האדמה (2 שניות). <b>כל מכה שנייה משתקת את היחידה שהוא ישירות פגע בה ל-2 שניות</b>. הוא תוקף הכל כולל הכספת.',
+        pang:     'פאנג — פנדה לוחם. עולה 8 אליקסיר, 2000 חיים, 200 נזק. <b>ברגע שמופיע הוא עושה דאש שרשרת ב-×8 מהירות לכל אויב הקרוב ביותר</b> אחד אחרי השני (עם נזק בכל פגיעה), עד שאין יותר אויבים על המגרש. אחרי השרשרת הוא מתנהג כיחידה רגילה.',
+        mo:       'מו — עכבר רובה. עולה 6 אליקסיר, 1500 חיים. כל 7.5 שניות יורה <b>כדור ראשי</b> (175 נזק, 80 פיקסלים) שמתפצל ל-<b>4 כדורים אלכסוניים</b> (35 נזק כל אחד) + <b>1 כדור ישר</b> (140 נזק, 70 פיקסלים) — והכדור הישר מתפצל שוב ל-4 אלכסונים נוספים. סה"כ עד 10 כדורים פוטנציאליים לגל.',
+        gray:     'גריי — מקל סבא עם זוג פורטלים. עולה 4 אליקסיר. בלחיצה ראשונה מוצב <b>פורטל A</b>; הלחיצה הבאה במפה (בטווח של הטבעת) מציבה <b>פורטל B</b>. כל יחידה שלך שעוברת על פורטל אחד מועברת לשני (פעם אחת בחיים). שום יחידת אויב לא רואה את הפורטלים — רק השחקנים.',
+        raps:     'ראפס — פצצן סתר. עולה 5 אליקסיר. לחיצה <b>בכל מקום במפה</b> יוצרת 8 פצצות אדומות באשכול הקסגונלי שמתפוצצות ברצף (~220ms ביניהן). כל פצצה עושה 500 נזק (לא לכספת!) באזור של ספייק. השחקנים רואים סמני עיגול אדומים עם X — יחידות האויב לא.',
+        willow:   'וילו — נקרומנסרית. עלות דינמית (עלות הקלף שאתה לוחץ עליו + 2). היא <b>הורגת</b> את האויב שאתה לוחץ עליו ובאותו זמן <b>מזמנת עותק שלו לצד שלך</b> באותו מקום. סוג של סיריוס בקטיף — מקבל את היחידה ומוריד אחת ליריב בקליק אחד.'
     };
 
     // ---- State ----
@@ -582,6 +593,34 @@
         units.forEach(u => { if (u && u._tutorialRosaTarget) u.isDead = true; });
     }
 
+    // Willow needs an enemy entity to kill+raise — mirror of Sirius's setup.
+    // Two stationary Bulls (Bulls clone cleanly through the spell-cost
+    // pipeline; Bruce is on the no-clone list and would refuse mid-tutorial).
+    function _spawnTutorialWillowTargets() {
+        const out = [];
+        if (typeof spawnEntity !== 'function' || typeof units === 'undefined') return out;
+        [{ x: 220, y: 220 }, { x: 380, y: 220 }].forEach(p => {
+            try {
+                spawnEntity(p.x, p.y, 'enemy', 'bull');
+                for (let i = units.length - 1; i >= 0; i--) {
+                    const u = units[i];
+                    if (u && u.team === 'enemy' && u.type === 'bull' &&
+                        !u._tutorialWillowTarget && !u.isDead) {
+                        u.speed = 0;
+                        u._tutorialWillowTarget = true;
+                        out.push(u);
+                        break;
+                    }
+                }
+            } catch (e) {}
+        });
+        return out;
+    }
+    function _removeTutorialWillowTargets() {
+        if (typeof units === 'undefined') return;
+        units.forEach(u => { if (u && u._tutorialWillowTarget) u.isDead = true; });
+    }
+
     function onBrawlerPicked(brawler, idx) {
         const tip = BRAWLER_TIPS[brawler] || 'דמות חדשה.';
 
@@ -628,6 +667,48 @@
                 title: 'רוזה 🛡️',
                 text: tip + '<br><br>הצבנו לך ברוס נייח בחצי שלך כתרגול. ' +
                       '<b>לחץ עליו</b> כדי להעניק לו בועת מגן.',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
+            });
+        } else if (brawler === 'willow') {
+            // Willow is a kill-spell — same as Sirius, she needs an enemy
+            // entity to click. Spawn 2 stationary enemy Bulls in the enemy
+            // half (NOT Bruces — Bruce is on Sirius's no-clone list and
+            // would also be confusing to "kill" if the player tries to
+            // pair Willow with him later; Bulls are uniformly safe).
+            _spawnTutorialWillowTargets();
+            showStep({
+                title: 'וילו 🧙‍♀️',
+                text: tip + '<br><br>הצבנו לך 2 בולים נייחים בחצי האדום כתרגול. ' +
+                      '<b>לחץ על אחד מהם</b> כדי להרוג אותו ולזמן עותק שלו לצד שלך.',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
+            });
+        } else if (brawler === 'raps') {
+            // Raps drops bomb markers anywhere on the map — no validSide
+            // check. Placement detection has to watch for raps-bomb auras
+            // (no 'raps' typed entity is ever created), not the entity
+            // type → handled in the polling block below.
+            showStep({
+                title: 'ראפס 💣',
+                text: tip + '<br><br>לחץ במפה <b>בכל מקום שתרצה</b> כדי להפיל 8 פצצות באשכול. ' +
+                      'הן יתפוצצו בזו אחר זו ויעשו 500 נזק כל אחת באזור (לא לכספת).',
+                target: '#game-canvas',
+                button: false,
+                allowClick: '#game-canvas'
+            });
+        } else if (brawler === 'gray') {
+            // Gray is a TWO-click placement — portal A → portal B. The
+            // standard placement detector would fire after click 1 (the
+            // gray unit appears in `units`), but we want the player to
+            // also experience click 2. The polling below watches
+            // `_portalB !== null` for that reason.
+            showStep({
+                title: 'גריי 🦯',
+                text: tip + '<br><br>הניח את גריי בחצי שלך. ' +
+                      'אחר כך לחץ <b>שוב במפה</b> (בתוך הטבעת המקווקעת) כדי להציב את הפורטל השני.',
                 target: '#game-canvas',
                 button: false,
                 allowClick: '#game-canvas'
@@ -720,6 +801,61 @@
                     if (shielded) {
                         clearInterval(tickHandle);
                         _removeTutorialRosaTargets();
+                        document.querySelectorAll('.card').forEach(c => {
+                            c.style.pointerEvents = '';
+                            c.style.opacity = '';
+                        });
+                        setTimeout(() => teachBrawler(idx + 1), 600);
+                    }
+                    return;
+                }
+                if (brawler === 'willow') {
+                    // Same heuristic as Sirius — a successful Willow cast
+                    // raises a NEW player-team unit (and kills the source
+                    // enemy, but we don't need to detect that side).
+                    const currentPlayerUnitCount = units.filter(u =>
+                        u && u.team === 'player' &&
+                        !u._tutorialSiriusTarget && !u._tutorialRosaTarget &&
+                        !u._tutorialWillowTarget).length;
+                    if (currentPlayerUnitCount > _initialPlayerUnitCount) {
+                        clearInterval(tickHandle);
+                        _removeTutorialWillowTargets();
+                        document.querySelectorAll('.card').forEach(c => {
+                            c.style.pointerEvents = '';
+                            c.style.opacity = '';
+                        });
+                        setTimeout(() => teachBrawler(idx + 1), 600);
+                    }
+                    return;
+                }
+                if (brawler === 'raps') {
+                    // Raps doesn't create a 'raps' entity — the cast
+                    // spawns up to 9 raps-bomb auras. Detect when at
+                    // least ONE player-team raps-bomb sits on the field.
+                    const cast = (typeof auras !== 'undefined') &&
+                                 auras.some(a => a && a.team === 'player' &&
+                                                  a.type === 'raps-bomb' && !a.isDead);
+                    if (cast) {
+                        clearInterval(tickHandle);
+                        document.querySelectorAll('.card').forEach(c => {
+                            c.style.pointerEvents = '';
+                            c.style.opacity = '';
+                        });
+                        setTimeout(() => teachBrawler(idx + 1), 600);
+                    }
+                    return;
+                }
+                if (brawler === 'gray') {
+                    // Gray needs BOTH portals — wait for the placed unit's
+                    // _portalB field to be populated (i.e. the second click
+                    // landed inside the leash). Without this guard the
+                    // tutorial would advance after click 1 and the player
+                    // would never experience the portal-B placement step.
+                    const ready = units.some(u =>
+                        u && u.team === 'player' && u.type === 'gray' &&
+                        !u.isDead && u._portalB);
+                    if (ready) {
+                        clearInterval(tickHandle);
                         document.querySelectorAll('.card').forEach(c => {
                             c.style.pointerEvents = '';
                             c.style.opacity = '';
