@@ -41,16 +41,17 @@ function _placeAtInternal(x, y, shiftHeld) {
     // the destination half of the original Gray placement.
     //
     // Per user request: portal B must be within GRAY_MAX_PORTAL_DIST px
-    // of portal A (5 squares = 250 px, matching Amber's per-step leash).
-    // A click outside that radius refuses without consuming the pending
-    // state — the player just tries again closer.
+    // of portal A (currently 500 px = 10 squares; the cap was bumped 2×
+    // from the original 250 px). A click outside that radius refuses
+    // without consuming the pending state — the player just tries again
+    // closer.
     if (_pendingGrayPortalB && !_pendingGrayPortalB.isDead) {
         const dx = x - _pendingGrayPortalB.x;
         const dy = y - _pendingGrayPortalB.y;
         const d  = Math.hypot(dx, dy);
         if (d > GRAY_MAX_PORTAL_DIST) {
             if (typeof showTransientToast === 'function') {
-                showTransientToast('🦯 רחוק מדי — הפורטל השני חייב להיות בטווח 5 משבצות מהראשון');
+                showTransientToast('🦯 רחוק מדי — הפורטל השני חייב להיות בטווח של הטבעת');
             }
             return { placed: false };
         }

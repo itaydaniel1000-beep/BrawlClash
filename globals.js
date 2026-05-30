@@ -213,8 +213,10 @@ var _pendingGrayPortalB = null;
 // Maximum distance (in canvas pixels) between Gray's two portals — both
 // the pending-B click and the live preview enforce this leash so a
 // player can't teleport-stretch the whole field with a single Gray.
-// 250 px = 5 game-squares, the same leash Amber's per-step path uses.
-const GRAY_MAX_PORTAL_DIST = 250;
+// Per user — doubled from the original 250 px (5 squares) to 500 px
+// (10 squares) so a Gray placed in his own half can reach well into
+// the opponent's half with portal B.
+const GRAY_MAX_PORTAL_DIST = 500;
 
 // Used by every enemy target-selection filter (Bull / Porter chase, building
 // turrets, the Safe, projectile re-targeting, splash) to skip Amber and her
