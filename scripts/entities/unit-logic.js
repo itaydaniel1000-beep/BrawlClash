@@ -466,61 +466,25 @@ const _AMBER_TORCH_GRID = [
     '.rRR.RYOOOMYRR..',  //  6  left wisp tail + bright accent
     '.RR.RRYOOOOYRR..',  //  7  flame body widens, left wisp ends
     'RRR.RRYOOOOYRR..',  //  8
-    'RRRRYOOOOOOOYRRR',  //  9  max width — full bulb
+    'RRRRYOOOOOOOYRRR',  //  9  max width - full bulb
     '.RRRYOOOOOOOYRR.',  // 10
-    '.......................................................KKKHHHHHHHHHHHHHHHHHHHHHHHHHHHHKKK.......................................................................',  //  11
-    '........................................................KKKCHHHHHHHHHHHHHHHHHHHHHHHHCKK.........................................................................',  //  12
-    '..........................................................KKKKCCCCCCCCCCCCCCCCCCCCKKKK..........................................................................',  //  13
-    '..............................................................KKKKKKKKKKKKKKKKKKKK..............................................................................',  //  14
-    '....................................................................OOOOOOOO....................................................................................',  //  15
-    '..................................................................OOOOOOOOOOOO..................................................................................',  //  16
-    '................................................................OOOOOOOOOOOOOOOO................................................................................',  //  17
-    '..............................................................OOOOOOOOOOOOOOOOOOOO..............................................................................',  //  18
-    '............................................................OOOOOOOOOOOOOOOOOOOOOOOO............................................................................',  //  19
-    '................KKKKKKKKKKKKKK............................OOOOOOOOOOOOOOOOOOOOOOOOOOOO............................KKKKKKKKKKKKKK................................',  //  20
-    '............KKKKOOOOOOOOOOOOOOKKKK......................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO......................KKKKOOOOOOOOOOOOOOKKKK............................',  //  21
-    '..........KKKOOOOOOOOOOOOOOOOOOOOKKK..................OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..................KKKOOOOOOOOOOOOOOOOOOOOKKK..........................',  //  22
-    '........KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK..............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..............KKKOOOOOOOOOOOOOOOOOOOOOOOOKKK........................',  //  23
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO............KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..............................',  //  24
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............................',  //  25
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK........OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO........KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  26
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.......KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK............................',  //  27
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.....OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO.....KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK......................',  //  28
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO...KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................',  //  29
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO..KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................',  //  30
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  31
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  32
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  33
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  34
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  35
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  36
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  37
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  38
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.................',  //  39
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK...................',  //  40
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK....................',  //  41
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.....................',  //  42
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKKKKKKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.......................',  //  43
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWKKKKKKKKKKKKKKWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK..........................',  //  44
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWKKKKKKKKKKWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK.............................',  //  45
-    'KKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKWWWWWWKKKKKKWWWWWWKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKK................................',  //  46
-    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKWWWWWWWWWWWWWWWWKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK.................................',  //  47
-    'KKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKWWWWWWWWWWWWKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKK....................................',  //  48
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKWWWWWKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK........................................',  //  49
-    'KKKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKKKKKKK...............................................',  //  50
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................',  //  51
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................',  //  52
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................',  //  53
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................................',  //  54
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................................',  //  55
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................................................',  //  56
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................................................',  //  57
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOKKKK.......................................................................................................................',  //  58
-    'KKKKOOOOOOOOOOOOOOOOOOOOOOOOOKKKK...............................................................................................................................',  //  59
-    'KKKKOOOOOOOOOOOOOOOOOKKKK.......................................................................................................................................',  //  60
-    'KKKKOOOOOOOOOKKKK...............................................................................................................................................',  //  61
-    'KKKKOOOKKKK.....................................................................................................................................................',  //  62
-    'KKK.............................................................................................................................................................'   // 63
+    '..RRYYOOOOOYYRR.',  // 11
+    '...RRYYYOOOYYRR.',  // 12
+    '....RRYYYYYRR...',  // 13  flame narrows toward base
+    '.....RRRRRRR....',  // 14  flame base
+    '....CCCCCCCC....',  // 15  collar top (slightly wider)
+    '...cCCccccCCc...',  // 16  collar middle (shading band)
+    '....CCCCCCCC....',  // 17  collar bottom
+    '....LDDDDDDD....',  // 18  handle top (8 wide)
+    '....LDDDDDDD....',  // 19
+    '....LDDDDDDd....',  // 20
+    '....LDDDDDDd....',  // 21
+    '.....LDDDDDd....',  // 22  taper to 7 wide
+    '.....LDDDDDd....',  // 23
+    '......LDDDDd....',  // 24  taper to 6 wide
+    '......LDDDDd....',  // 25
+    '.......LDDDd....',  // 26  taper to 5 wide
+    '........DDd.....'   // 27  pointed bottom
 ];
 
 const _AMBER_FROZEN_SUBS = {
