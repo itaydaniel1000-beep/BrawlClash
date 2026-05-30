@@ -222,7 +222,13 @@ function isAmberOrTrail(e) {
     return !!(e && (e.type === 'amber' || e.type === 'fire-trail' ||
                     e.type === 'bubble' ||
                     e.type === 'trunk' || e.type === 'trunk-trail' ||
-                    e.type === 'tara'  || e.type === 'spike'));
+                    e.type === 'tara'  || e.type === 'spike' ||
+                    // Raps bomb markers are pure spell effects — only the
+                    // human players see them on screen. No in-game unit
+                    // should ever path toward, target, splash, or attack
+                    // one (they're invulnerable anyway, but a Bull / Bruce
+                    // would otherwise still try to wail on them mid-march).
+                    e.type === 'raps-bomb'));
 }
 window.isAmberOrTrail = isAmberOrTrail;
 
