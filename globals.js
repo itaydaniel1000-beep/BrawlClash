@@ -203,6 +203,13 @@ var isSelectingAmberPath = false;
 var _amberPendingPath = [];
 var _pendingPathCardId = null;
 
+// Reference to a freshly-placed Gray unit that's still waiting for the
+// player to set its second portal. When non-null, the very next map
+// click in _placeAtInternal hijacks the input: it writes the click
+// position into `_pendingGrayPortalB._portalB` and clears this flag.
+// Drawn as a faint preview circle by drawGhost while pending.
+var _pendingGrayPortalB = null;
+
 // Used by every enemy target-selection filter (Bull / Porter chase, building
 // turrets, the Safe, projectile re-targeting, splash) to skip Amber and her
 // fire-trail tiles. Amber is invulnerable AND her trail is invisible to the
@@ -228,7 +235,12 @@ function isAmberOrTrail(e) {
                     // should ever path toward, target, splash, or attack
                     // one (they're invulnerable anyway, but a Bull / Bruce
                     // would otherwise still try to wail on them mid-march).
-                    e.type === 'raps-bomb'));
+                    e.type === 'raps-bomb' ||
+                    // Gray (the portal-pair grandpa stick) is invisible
+                    // to every in-game character — only the two human
+                    // players can see the linked circles. No targeting,
+                    // no splash, no pathing into him.
+                    e.type === 'gray'));
 }
 window.isAmberOrTrail = isAmberOrTrail;
 
@@ -275,7 +287,7 @@ try {
 // explicit IDs on top of that (currently: bull). Single source of truth so
 // the initial unlockedCards array, the runtime isCardUnlocked() check, and
 // the admin "unlock everything" path all stay in sync.
-const _ALWAYS_UNLOCKED_IDS = ['bull', 'raps', 'frank', 'willow'];
+const _ALWAYS_UNLOCKED_IDS = ['bull', 'raps', 'frank', 'willow', 'gray'];
 function _isStarterCard(card, id) {
     if (!card) return false;
     if (card.rarity === 'נדיר') return true;

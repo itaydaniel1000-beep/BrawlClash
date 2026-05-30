@@ -34,6 +34,18 @@ function _selectCard(cardId) {
 }
 
 function _placeAtInternal(x, y, shiftHeld) {
+    // Gray portal-B placement — runs FIRST so the second click after a
+    // fresh Gray spawn can never be hijacked by another card / mode.
+    // Writes the click position into the pending Gray's _portalB slot
+    // and exits. Free (no cost, no side check) since portal-B is just
+    // the destination half of the original Gray placement.
+    if (_pendingGrayPortalB && !_pendingGrayPortalB.isDead) {
+        _pendingGrayPortalB._portalB = { x, y };
+        _pendingGrayPortalB = null;
+        if (typeof showTransientToast === 'function') showTransientToast('🦯 פורטל שני הוצב');
+        return { placed: false };
+    }
+
     // Sirius — copy-spell. While selected, every click on an enemy entity
     // spawns a player-team copy of that entity at the same position. Cost
     // is dynamic: copied card's cost + 1 elixir surcharge. spawnEntity
@@ -515,6 +527,24 @@ function _placeAtInternal(x, y, shiftHeld) {
         const cardToContinue = selectedCardId;
         spawnEntity(x, y, 'player', selectedCardId);
 
+        // Gray placement is a TWO-CLICK gesture: this first click drops
+        // portal A. Grab the just-spawned unit and stash it as the
+        // pending Gray so the very next map click writes portal B's
+        // position into it (handled at the very top of _placeAtInternal).
+        // Always disable shift-chain for Gray — placing a fresh Gray
+        // while one is still missing its portal B would just create
+        // an orphaned single-portal Gray.
+        if (cardToContinue === 'gray' && typeof units !== 'undefined' && units.length > 0) {
+            const justSpawned = units[units.length - 1];
+            if (justSpawned && justSpawned.type === 'gray') {
+                _pendingGrayPortalB = justSpawned;
+            }
+            selectedCardId = null;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            if (typeof showTransientToast === 'function') showTransientToast('🦯 לחץ איפה שתרצה את הפורטל השני');
+            return { placed: true, cardId: 'gray' };
+        }
+
         if (shiftHeld) {
             selectedCardId = cardToContinue;
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
@@ -798,6 +828,36 @@ function handleMouseMove(e) {
 }
 
 function drawGhost(ctx) {
+    // Gray portal-B preview — paints a faint pointer-following circle in
+    // the same style as Gray's actual portals, so the player can SEE where
+    // the second portal will land before they click. Sits ABOVE the
+    // `if (!card) return` short-circuit because the selected card is
+    // already cleared by this point (placement consumed it).
+    if (_pendingGrayPortalB && !_pendingGrayPortalB.isDead) {
+        const rimColor = _pendingGrayPortalB.team === 'player' ? '#74b9ff' : '#ff7675';
+        const PORTAL_R = 30;
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.arc(mouseX, mouseY, PORTAL_R, 0, Math.PI * 2);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+        ctx.lineWidth   = 4;
+        ctx.strokeStyle = rimColor;
+        ctx.stroke();
+        // Dashed leash from the EXISTING portal A to the pointer so the
+        // player can read the pairing while aiming.
+        ctx.setLineDash([6, 6]);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(_pendingGrayPortalB.x, _pendingGrayPortalB.y);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        return;
+    }
+
     const cardKey = selectedCardId || selectedFreezeCardId;
     const card = CARDS[cardKey];
     if (!card) return;

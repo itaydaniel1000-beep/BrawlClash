@@ -234,7 +234,18 @@ const CARDS = {
     // time. Willow herself is never instantiated on the field — pure
     // spell.
     'willow': { name: 'וילו', cost: 2, type: 'spell', color: '#6a1b9a', icon: '🧙‍♀️', dynamicCost: true,
-               rarity: 'אגדי' }
+               rarity: 'אגדי' },
+    // Gray — pacifist portal-pair "grandpa stick". 4 elixir. Placing him
+    // drops portal A at the click point; the very next map click sets
+    // portal B anywhere on the field. Any unit on Gray's team that walks
+    // onto either circle gets warped to the OTHER one (one teleport per
+    // unit, lifetime). Gray himself has no HP bar, can't move, can't be
+    // attacked, can't be seen by enemy AI — only by the two human
+    // players. Excluded riders (amber, trunk, raps + every AURA type
+    // since auras never run Unit.update): they walk over the portals
+    // like normal floor.
+    'gray':   { name: 'גריי', cost: 4, type: 'unit', color: '#2c3e50', icon: '🦯',
+                rarity: 'אגדי' }
 };
 
 const STAR_POWERS = {

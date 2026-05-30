@@ -129,6 +129,22 @@ class Unit extends Entity {
             this.color = '#ff69b4';
             this.isInvulnerable = true;       // takeDamage no-op (entity-base.js)
             this.isHealthHidden = true;       // skip HP bar — always full
+        } else if (type === 'gray') {
+            // Gray — pacifist portal-pair. Stationary, invulnerable, no
+            // HP bar. The actual teleport mechanic lives in
+            // unit-logic.js's Unit.update (the gray-portal block at the
+            // top of every tick). `_portalB` is set by battle-input.js
+            // on the next map click after spawn (the second-click
+            // hijacks via the _pendingGrayPortalB global).
+            this.maxHp = 99999; this.hp = 99999;
+            this.attackDamage = 0;
+            this.speed = 0;                  // can't walk
+            this.attackRange = 0;
+            this.color = '#2c3e50';
+            this.isPacifist     = true;      // skip the attack code-path
+            this.isInvulnerable = true;      // takeDamage is a no-op
+            this.isHealthHidden = true;      // skip the HP bar
+            this._portalB = null;            // set by next click after placement
         } else if (type === 'frank') {
             // Frank — heavy front-line mauler. 3000 HP / 400 dmg per swing,
             // Bruce-pace movement. Targets the nearest enemy entity (incl.

@@ -2,6 +2,34 @@
 Unit.prototype.update = function(dt, now) {
     if (this.isDead || this.isFrozen) return;
 
+    // === Gray portal teleport =================================================
+    // Before anything else this tick: if I'm a same-team Gray-portal-eligible
+    // unit standing inside one of MY team's Gray's circles, warp to the other
+    // circle and tag myself so this can only ever fire once for this unit.
+    // Excluded riders (per user spec): the Gray itself (would oscillate),
+    // amber, trunk, raps. tara/spike never reach here because they're auras,
+    // not units, and auras don't run Unit.update at all.
+    if (!this._teleportedByGray && this.type !== 'gray' &&
+        this.type !== 'amber' && this.type !== 'trunk' && this.type !== 'raps') {
+        const PORTAL_R = 30;
+        for (let i = 0; i < units.length; i++) {
+            const g = units[i];
+            if (!g || g.type !== 'gray' || g.team !== this.team || g.isDead || !g._portalB) continue;
+            const ax = g.x,           ay = g.y;
+            const bx = g._portalB.x,  by = g._portalB.y;
+            if (Math.hypot(this.x - ax, this.y - ay) <= PORTAL_R) {
+                this.x = bx; this.y = by;
+                this._teleportedByGray = true;
+                break;
+            }
+            if (Math.hypot(this.x - bx, this.y - by) <= PORTAL_R) {
+                this.x = ax; this.y = ay;
+                this._teleportedByGray = true;
+                break;
+            }
+        }
+    }
+
     // Rosa's shield drains 25 HP/sec while the unit lives. Done up here so
     // it ticks regardless of which movement branch (bubble / trunk / amber
     // path / regular) handles the rest of the frame.
@@ -1486,6 +1514,43 @@ Unit.prototype.draw = function(ctx) {
     // isFrozen, but those don't tag _isPlacementFreeze and SHOULD stay
     // visible so both players watch the paralysis happen on screen.
     if (this.isFrozen && this._isPlacementFreeze && this.team === 'enemy') return;
+
+    // === Gray — pacifist portal-pair "grandpa stick" ==========================
+    // Custom render: two black circles with a team-coloured rim, joined by a
+    // dashed line. No HP bar, no emoji, no team glow — just the portals.
+    // Player-team Gray uses the player's blue-safe colour for the rim;
+    // enemy-team Gray uses the enemy's red-safe colour, so both players can
+    // tell who owns a portal-pair at a glance even when they overlap.
+    if (this.type === 'gray') {
+        const rimColor = this.team === 'player' ? '#74b9ff' : '#ff7675';
+        const PORTAL_R = 30;
+        const drawPortal = (cx, cy) => {
+            ctx.beginPath();
+            ctx.arc(cx, cy, PORTAL_R, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+            ctx.lineWidth   = 4;
+            ctx.strokeStyle = rimColor;
+            ctx.stroke();
+        };
+        ctx.save();
+        drawPortal(this.x, this.y);
+        if (this._portalB) {
+            drawPortal(this._portalB.x, this._portalB.y);
+            // Dashed leash so the link between the two circles reads at a
+            // glance even when they're far apart on the field.
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = rimColor;
+            ctx.lineWidth   = 2;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this._portalB.x, this._portalB.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        ctx.restore();
+        return;
+    }
 
     // Custom pixel-art sprite for any registered type (currently amber +
     // bruce). Replaces the standard "circle + emoji" rendering with a
