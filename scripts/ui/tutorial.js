@@ -379,6 +379,11 @@
                 adminHacks.disableBot      = false;
                 adminHacks.infiniteElixir  = false;
                 adminHacks.deleteUnit      = false;
+                // setUpTutorialMatch flips godMode on (so the player's
+                // safe + units stay alive while learning); always force
+                // it off here so a finished / skipped tutorial can't
+                // accidentally leak invincibility into a real match.
+                adminHacks.godMode         = false;
                 if (typeof window !== 'undefined') window.isSelectingDeleteTarget = false;
                 if (typeof saveAdminHacks === 'function') saveAdminHacks();
             }
@@ -408,17 +413,20 @@
             try { localStorage.setItem('brawlclash_deck', JSON.stringify(playerDeck)); } catch (e) {}
         }
         // Disable the bot for the tutorial — the user shouldn't be pressured.
+        // godMode on the LOCAL admin hacks gives every player-team entity
+        // (including the player safe) infinite HP for the lesson, so a
+        // stray enemy projectile or an experimental Mo cascade can't end
+        // the tutorial mid-walkthrough. restoreGameState() flips godMode
+        // back off the moment the tutorial finishes.
         if (typeof adminHacks !== 'undefined') {
-            adminHacks.disableBot = true;
+            adminHacks.disableBot     = true;
             adminHacks.infiniteElixir = true; // make every card free to pick
+            adminHacks.godMode        = true; // player safe + units immortal
             if (typeof saveAdminHacks === 'function') saveAdminHacks();
         }
-        // Make the bot's safe invincible for the duration of the tutorial.
-        // Entity.takeDamage already short-circuits when an enemy entity is
-        // hit while opponentAdminHacks.godMode is on — we just borrow that
-        // path here so the enemy safe (which can't otherwise be made
-        // invincible mid-match) stays alive forever during the lesson.
-        // restoreGameState() rolls this back when the tutorial finishes.
+        // Same path on the opponent side keeps the bot's safe alive for
+        // the whole walkthrough — without it a single Bruce charge would
+        // end the lesson at "place your first unit".
         if (typeof opponentAdminHacks !== 'undefined') {
             try { _state.savedOpponentHacks = JSON.parse(JSON.stringify(opponentAdminHacks)); }
             catch (e) { _state.savedOpponentHacks = null; }
