@@ -176,6 +176,40 @@ function draw(ctx) {
             ctx.restore();
         }
 
+        // Willow kill-spell highlight — same shape as Sirius's pulsing
+        // ring but in a darker, reddish-purple to convey "death" instead
+        // of "copy". Same exclusion list as Sirius (must be a CARDS-
+        // backed type that isn't a spell; bruce excluded so killing the
+        // tank for cost+2 isn't a trivial play).
+        if (typeof selectedCardId !== 'undefined' && selectedCardId === 'willow') {
+            const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 220);
+            const allEnemies = []
+                .concat(typeof units      !== 'undefined' ? units      : [])
+                .concat(typeof buildings  !== 'undefined' ? buildings  : [])
+                .concat(typeof auras      !== 'undefined' ? auras      : []);
+            ctx.save();
+            for (const e of allEnemies) {
+                if (!e || e.isDead || e.team !== 'enemy') continue;
+                const t = e.type;
+                if (!t) continue;
+                const card = (typeof CARDS !== 'undefined') ? CARDS[t] : null;
+                if (!card || card.type === 'spell') continue;
+                const r = (e.radius || 18) + 6;
+                ctx.beginPath();
+                ctx.arc(e.x || 0, e.y || 0, r, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(106, 27, 154, ${0.55 + 0.35 * pulse})`;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([6, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.arc(e.x || 0, e.y || 0, r - 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(74, 20, 140, ${0.12 + 0.10 * pulse})`;
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
         // 🩰✨ Gigi teleport range preview — dashed pink circle around
         // every eligible Gigi (alive + un-teleported) while the player
         // has the teleport button armed. The next map click inside a

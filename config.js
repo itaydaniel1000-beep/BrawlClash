@@ -224,6 +224,16 @@ const CARDS = {
     // instantiated as a unit — pure spell with a visible red marker per
     // bomb that vanishes the instant that bomb hits the ground.
     'raps':   { name: 'ראפס', cost: 5, type: 'spell', color: '#c0392b', icon: '💣',
+               rarity: 'אגדי' },
+    // Willow — necromancer-spell. Mirror image of Sirius: while she's
+    // selected, every click on an enemy entity instantly KILLS that
+    // entity instead of copying it. Cost is dynamic — the target's base
+    // card cost + 2 elixir (Sirius's surcharge is +1; killing is
+    // stronger than copying so the premium is +1 higher). Shown as "?"
+    // on the card slot since the actual cost only resolves at click
+    // time. Willow herself is never instantiated on the field — pure
+    // spell.
+    'willow': { name: 'וילו', cost: 2, type: 'spell', color: '#6a1b9a', icon: '🧙‍♀️', dynamicCost: true,
                rarity: 'אגדי' }
 };
 

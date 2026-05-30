@@ -87,6 +87,65 @@ function _placeAtInternal(x, y, shiftHeld) {
         return { placed: true, cardId: 'sirius' };
     }
 
+    // Willow — necromancer-spell. Mirror image of Sirius: while held,
+    // every click on an enemy entity instantly KILLS that entity instead
+    // of copying it. Cost is dynamic: target's base card cost + 2 elixir
+    // surcharge (Sirius is +1; killing is stronger than copying so the
+    // premium is +1 higher). Untargetable / non-CARDS entities (porters,
+    // safes, fire-trails) refuse the cast. The card is consumed on a
+    // successful kill; missed clicks keep it armed for another try.
+    if (selectedCardId === 'willow') {
+        const candidates = units.concat(buildings, auras).filter(e =>
+            e && e.team === 'enemy' && !e.isDead &&
+            Math.hypot((e.x || 0) - x, (e.y || 0) - y) <= ((e.radius || 15) + 20));
+        if (!candidates.length) {
+            if (typeof showTransientToast === 'function') showTransientToast('🎯 לחץ על אויב כדי להרוג');
+            return { placed: false };
+        }
+        candidates.sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+        const victim = candidates[0];
+        const victimType = victim.type;
+        const victimCard = victimType ? CARDS[victimType] : null;
+        if (!victimCard || victimCard.type === 'spell') {
+            // Porter / fire-trail / sirius itself / another spell — not in
+            // CARDS as a placeable. Refuse the cast so a stray click on a
+            // porter or fire patch doesn't burn the slot.
+            if (typeof showTransientToast === 'function') showTransientToast('⚠️ אי אפשר להרוג את הדמות הזו');
+            return { placed: false };
+        }
+        const totalCost = (victimCard.cost || 0) + 2;
+        const canAffordKill = playerElixir >= (totalCost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
+        if (!canAffordKill) {
+            if (typeof showTransientToast === 'function') showTransientToast(`🧪 צריך ${totalCost} אליקסיר להרוג את ${victimCard.name}`);
+            return { placed: false };
+        }
+        if (!adminHacks.infiniteElixir && !adminHacks.freeCards) {
+            playerElixir = Math.max(0, playerElixir - totalCost);
+        }
+        // Instant-kill. Bypasses takeDamage so isInvulnerable / shieldHp
+        // are ignored on purpose — Willow's curse is a hard removal, not
+        // a hit. Matches the existing admin 🗑️ delete-unit semantic.
+        victim.isDead = true;
+        victim.hp = 0;
+        // P2P: tell the opponent to drop the matching player-team unit on
+        // their screen too. Same mechanism the admin 🗑️ uses.
+        try {
+            if (typeof currentBattleRoom !== 'undefined' && currentBattleRoom &&
+                window.NetworkManager && typeof window.NetworkManager.broadcastDeleteUnit === 'function') {
+                window.NetworkManager.broadcastDeleteUnit(
+                    victim.x, victim.y, victim.type || null, victim.radius || 20
+                );
+            }
+        } catch (e) { /* ignore — local kill already happened */ }
+        // Consume the slot — no chain-killing even with shift held; each
+        // click resolves a unique target and the player should re-pick
+        // to avoid accidental duplicate casts.
+        selectedCardId = null;
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+        if (typeof showTransientToast === 'function') showTransientToast(`🧙‍♀️ ${victimCard.name} מת`);
+        return { placed: true, cardId: 'willow' };
+    }
+
     // Raps — stealth bomber spell. Tapping any in-bounds point detonates
     // an 8-bomb hex cluster centred at the click. Each bomb has Spike's
     // pin radius (55) and the layout is hex-packed (3-2-3) so adjacent
@@ -743,6 +802,11 @@ function drawGhost(ctx) {
     // Same reason — the highlight ring on every player-team entity IS
     // the cue; a pointer-following ghost would clutter.
     if (cardKey === 'rosa') return;
+
+    // Willow is a kill-spell — the player clicks an enemy. Same logic
+    // as Sirius/Rosa: the click target IS the cue, the floating ghost
+    // would just get in the way.
+    if (cardKey === 'willow') return;
 
     // Raps shows its own preview — 8 hex-packed red circles showing
     // exactly where the cluster will land. Each circle has an X mark
