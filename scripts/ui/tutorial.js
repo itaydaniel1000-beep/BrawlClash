@@ -516,6 +516,12 @@
     // Spawn N enemy bruces that don't move — used as decoy targets for the
     // Sirius tutorial step so she has something to clone. Returns the array
     // of spawned units so the caller can wipe them after the demo finishes.
+    //
+    // Per user — Bruce is on Sirius's explicit no-clone list (see the
+    // 'bruce' rejection in battle-input.js's sirius handler), so spawning
+    // Bruces here would let the player click them and get the refusal toast
+    // mid-tutorial. Bull is uncapped and clones cleanly, so the demo uses
+    // Bull targets instead.
     function _spawnTutorialSiriusTargets() {
         const out = [];
         if (typeof spawnEntity !== 'function' || typeof units === 'undefined') return out;
@@ -525,11 +531,11 @@
         ];
         positions.forEach(p => {
             try {
-                spawnEntity(p.x, p.y, 'enemy', 'bruce');
+                spawnEntity(p.x, p.y, 'enemy', 'bull');
                 // The just-spawned unit is the last one of its team+type.
                 for (let i = units.length - 1; i >= 0; i--) {
                     const u = units[i];
-                    if (u && u.team === 'enemy' && u.type === 'bruce' &&
+                    if (u && u.team === 'enemy' && u.type === 'bull' &&
                         !u._tutorialSiriusTarget && !u.isDead) {
                         // Stationary + tagged for cleanup.
                         u.speed = 0;
