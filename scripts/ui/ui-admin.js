@@ -25,6 +25,69 @@ function _verifyMyPassword(pw) {
 }
 window._verifyMyPassword = _verifyMyPassword;
 
+// === Per-key admin "reset lock" =============================================
+// Each adminHacks row gets a 🔒 / 🔓 chip in the panel. When locked, the
+// global reset button (resetAdminPanel) skips that row entirely — the
+// value stays exactly where it was. Locks are persisted globally per
+// device (single localStorage key) so they survive page reloads and
+// match-restarts.
+const _ADMIN_LOCKS_LSKEY = 'brawlclash_admin_locks';
+function _loadAdminLocks() {
+    try {
+        const raw = localStorage.getItem(_ADMIN_LOCKS_LSKEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+}
+function _saveAdminLocks(locks) {
+    try { localStorage.setItem(_ADMIN_LOCKS_LSKEY, JSON.stringify(locks)); } catch (e) {}
+}
+function _isAdminKeyLocked(key) {
+    return !!_loadAdminLocks()[key];
+}
+function _toggleAdminLock(key) {
+    const locks = _loadAdminLocks();
+    locks[key] = !locks[key];
+    _saveAdminLocks(locks);
+    // Re-render the panel so the icon + label flip immediately.
+    if (typeof openAdminMenu === 'function') openAdminMenu();
+    return locks[key];
+}
+window._toggleAdminLock = _toggleAdminLock;
+window._isAdminKeyLocked = _isAdminKeyLocked;
+
+// Inject (or refresh) the lock chip on a given .hack-row. Idempotent —
+// safe to call on every openAdminMenu() pass without duplicating the
+// element.
+function _injectAdminLockChip(row, key) {
+    if (!row || !key) return;
+    let chip = row.querySelector('.admin-lock-btn');
+    const locked = _isAdminKeyLocked(key);
+    if (!chip) {
+        chip = document.createElement('button');
+        chip.className = 'admin-lock-btn';
+        chip.dataset.adminKey = key;
+        chip.style.cssText = [
+            'display:block', 'margin:6px 0 0 auto',
+            'padding:2px 10px',
+            'background:transparent', 'border-style:solid', 'border-width:1px',
+            'border-radius:8px', 'cursor:pointer',
+            'font-size:0.78rem', 'font-weight:bold'
+        ].join(';');
+        chip.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            _toggleAdminLock(key);
+        });
+        row.appendChild(chip);
+    }
+    chip.textContent  = locked ? '🔒 נעול מאיפוס' : '🔓 חופשי לאיפוס';
+    chip.style.color        = locked ? '#e74c3c' : '#7f8c8d';
+    chip.style.borderColor  = locked ? '#e74c3c' : '#555';
+    chip.title = locked
+        ? 'הערך נעול — איפוס הכפתור לא ישנה את זה. לחץ שוב לפתוח.'
+        : 'לחץ לנעול את הערך מאיפוס הכללי.';
+}
+
 function openAdminMenu() {
     const isSuper = (typeof isSuperAdmin === 'function')
         ? isSuperAdmin(playerStats.username || '')
@@ -138,7 +201,12 @@ function openAdminMenu() {
         const libiVisible  = (t.key === 'libiCard')  && _libiAllowed;
         const barryVisible = (t.key === 'barryCard') && _barryAllowed;
         const lumiVisible  = (t.key === 'lumiCard')  && _lumiAllowed;
-        setRowVisibility(row, isSuper || libiVisible || barryVisible || lumiVisible || (myGrant && myGrant[t.key]));
+        const rowVisible   = isSuper || libiVisible || barryVisible || lumiVisible || (myGrant && myGrant[t.key]);
+        setRowVisibility(row, rowVisible);
+        // Reset-lock chip — only attach it for super-admin (only they can
+        // press the reset button, so non-super users have no use for the
+        // lock). Hidden rows skip the chip entirely.
+        if (rowVisible && isSuper && row) _injectAdminLockChip(row, t.key);
     });
     document.querySelectorAll('#admin-panel-overlay .admin-num-input').forEach(inp => {
         const row = inp.closest('.hack-row');
@@ -147,7 +215,9 @@ function openAdminMenu() {
         if (!m) return;
         const key = m[1];
         const granted = myGrant && myGrant[key] && myGrant[key] !== 0 && myGrant[key] !== '';
-        setRowVisibility(row, isSuper || granted);
+        const rowVisible = isSuper || granted;
+        setRowVisibility(row, rowVisible);
+        if (rowVisible && isSuper) _injectAdminLockChip(row, key);
     });
 
     // Currency editor rows — visible to:
@@ -265,11 +335,22 @@ function resetAdminPanel() {
         timeScale: 0, autoIncome: false, allStarPowers: false,
         deleteUnit: false, canGrantAdmin: false, canRevokeAdmin: false,
         libiCard: false,
-        barryCard: false
+        barryCard: false,
+        lumiCard: false
     };
-    Object.assign(adminHacks, defaults);
+    // Per-key reset lock — any row whose 🔒 chip is engaged is left
+    // exactly where it was. Everything else snaps back to its default.
+    const locks = _loadAdminLocks();
+    let lockedCount = 0;
+    for (const key in defaults) {
+        if (locks[key]) { lockedCount++; continue; }
+        adminHacks[key] = defaults[key];
+    }
     saveAdminHacks();
-    if (typeof showTransientToast === 'function') showTransientToast('🔄 תפריט המנהל אופס');
+    const toastMsg = lockedCount > 0
+        ? `🔄 תפריט המנהל אופס (${lockedCount} פריטים נעולים נשמרו)`
+        : '🔄 תפריט המנהל אופס';
+    if (typeof showTransientToast === 'function') showTransientToast(toastMsg);
     // Re-rendering the panel re-syncs every row's toggle label + number
     // input value against the now-default adminHacks values.
     openAdminMenu();
