@@ -115,6 +115,9 @@ function initGame() {
         // Fresh match → reset the cake's once-per-match lock for both teams.
         // (Set in battle-spawn.js, read at the start of every spawn attempt.)
         window._cakeUsedThisMatch = { player: false, enemy: false };
+        // Fresh match → Sirius SP1 "שכפול חינם" — the one-free-copy slot
+        // is replenished. Flag set true after the first cast lands.
+        window._siriusFreeUsed = false;
         // Fresh match → reset the bot's "Amber-vs-Mr-P-spam" cooldown so a
         // late-match trigger from the previous battle doesn't gate the
         // first reaction in this new one. See ai-strategies.js step 0.

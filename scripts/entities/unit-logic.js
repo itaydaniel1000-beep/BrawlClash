@@ -3,28 +3,52 @@ Unit.prototype.update = function(dt, now) {
     if (this.isDead || this.isFrozen) return;
 
     // === Gray portal teleport =================================================
-    // Before anything else this tick: if I'm a same-team Gray-portal-eligible
-    // unit standing inside one of MY team's Gray's circles, warp to the other
-    // circle and tag myself so this can only ever fire once for this unit.
-    // Excluded riders (per user spec): the Gray itself (would oscillate),
-    // amber, trunk, raps. tara/spike never reach here because they're auras,
-    // not units, and auras don't run Unit.update at all.
-    if (!this._teleportedByGray && this.type !== 'gray' &&
-        this.type !== 'amber' && this.type !== 'trunk' && this.type !== 'raps') {
+    // Before anything else this tick: walk every live Gray on the field and
+    // handle three cases for this unit standing inside one of its circles:
+    //   • SAME-team unit, not yet teleported → warp to the paired portal,
+    //     mark _teleportedByGray, and (SP1) tag with +30 % damage buff.
+    //   • OPPOSING-team unit, SP2 "פורטל שלישי" active for the owning
+    //     player → take 500 dmg instead of teleporting. One charge per
+    //     enemy entity (_grayDamaged flag) so they don't bleed every
+    //     frame.
+    // Excluded riders (per user spec): gray itself (would oscillate),
+    // amber, trunk, raps. tara/spike never reach here — they're auras,
+    // not units.
+    {
         const PORTAL_R = 30;
+        const teleportEligible = !this._teleportedByGray && this.type !== 'gray' &&
+                                 this.type !== 'amber' && this.type !== 'trunk' &&
+                                 this.type !== 'raps';
         for (let i = 0; i < units.length; i++) {
             const g = units[i];
-            if (!g || g.type !== 'gray' || g.team !== this.team || g.isDead || !g._portalB) continue;
+            if (!g || g.type !== 'gray' || g.isDead || !g._portalB) continue;
             const ax = g.x,           ay = g.y;
             const bx = g._portalB.x,  by = g._portalB.y;
-            if (Math.hypot(this.x - ax, this.y - ay) <= PORTAL_R) {
-                this.x = bx; this.y = by;
+            const onA = Math.hypot(this.x - ax, this.y - ay) <= PORTAL_R;
+            const onB = Math.hypot(this.x - bx, this.y - by) <= PORTAL_R;
+            if (!onA && !onB) continue;
+            // Owner-side branches first: same team rides the portal.
+            if (g.team === this.team && teleportEligible) {
+                if (onA) { this.x = bx; this.y = by; }
+                else     { this.x = ax; this.y = ay; }
                 this._teleportedByGray = true;
+                // SP1 "פורטל יציב" — passing through grants a permanent
+                // +30 % damage buff. One stack per unit, regardless of
+                // how many portals they cross over their lifetime.
+                if (g.team === 'player' && typeof hasStarPower === 'function' &&
+                    hasStarPower('gray', 'sp1') && !this._grayBuffed &&
+                    typeof this.attackDamage === 'number') {
+                    this._grayBuffed   = true;
+                    this.attackDamage  = this.attackDamage * 1.3;
+                }
                 break;
             }
-            if (Math.hypot(this.x - bx, this.y - by) <= PORTAL_R) {
-                this.x = ax; this.y = ay;
-                this._teleportedByGray = true;
+            // Enemy branch: SP2 punishes them with 500 dmg instead of a teleport.
+            if (g.team !== this.team && g.team === 'player' &&
+                typeof hasStarPower === 'function' && hasStarPower('gray', 'sp2') &&
+                !this._grayDamaged) {
+                this._grayDamaged = true;
+                if (typeof this.takeDamage === 'function') this.takeDamage(500);
                 break;
             }
         }
@@ -153,6 +177,21 @@ Unit.prototype.update = function(dt, now) {
     if (this.isTrunk) {
         // Lifetime — 15 s and he's gone. Marked dead, removed by GC.
         if (now - (this._spawnTime || now) > (this._trunkLifetime || 15000)) {
+            // SP2 "אנרגיה מתפזרת" — on death, every same-team unit on
+            // the field that hasn't already eaten a trail buff gets one
+            // for free (+30 %). Buff caps at one stack per unit so a
+            // unit that already has _trunkBuffed = true is skipped.
+            if (this.team === 'player' && typeof hasStarPower === 'function' &&
+                hasStarPower('trunk', 'sp2')) {
+                try {
+                    for (const u of units) {
+                        if (!u || u.team !== this.team || u.isDead || u._trunkBuffed) continue;
+                        if (u.isPacifist || u.isTrunk) continue;
+                        u._trunkBuffed   = true;
+                        u.attackDamage   = (u.attackDamage || 0) * 1.3;
+                    }
+                } catch (e) { /* ignore — trunk still dies */ }
+            }
             this.isDead = true;
             return;
         }
@@ -239,7 +278,13 @@ Unit.prototype.update = function(dt, now) {
                         a.isDead = true;
                         if (!this._trunkBuffed) {
                             this._trunkBuffed = true;
-                            this.attackDamage = (this.attackDamage || 0) * 1.2;
+                            // SP1 "שביל מכפיל" — bumps the per-step buff
+                            // from +20 % to +40 % for the player team.
+                            const _trunkSp1 = (this.team === 'player' &&
+                                              typeof hasStarPower === 'function' &&
+                                              hasStarPower('trunk', 'sp1'));
+                            const _buffMul = _trunkSp1 ? 1.4 : 1.2;
+                            this.attackDamage = (this.attackDamage || 0) * _buffMul;
                         }
                     }
                 }
@@ -261,7 +306,14 @@ Unit.prototype.update = function(dt, now) {
                         this.y += (dy / dist) * pullStrength * (dt / 1000);
                     }
                 } else if (a.type === 'emz' && a.team === 'player' && hasStarPower('emz', 'sp1')) {
-                    damageMult *= 1.2; 
+                    damageMult *= 1.2;
+                } else if (a.type === 'fire-trail' && a.team === 'player' &&
+                           hasStarPower('amber', 'sp1')) {
+                    // Amber SP1 "להבה ירוקה" — enemies inside an Amber
+                    // fire-trail also crawl at 80% speed for as long as
+                    // they're inside it. Stacks naturally with the
+                    // existing 25 dmg/sec the trail already ticks.
+                    speedMult *= 0.8;
                 }
             }
         }
@@ -340,7 +392,15 @@ Unit.prototype.update = function(dt, now) {
             // No more un-visited enemies — drop out of dash mode and let
             // the standard targeting block below run for this tick.
             this._pangDashing = false;
+            // SP2 invulnerability ends with the dash chain.
+            if (this.team === 'player' && hasStarPower('pang', 'sp2')) {
+                this.isInvulnerable = false;
+            }
         } else {
+            // SP2: pure invulnerability while the chain is still running.
+            if (this.team === 'player' && hasStarPower('pang', 'sp2')) {
+                this.isInvulnerable = true;
+            }
             candidates.sort((a, b) =>
                 Math.hypot(a.x - this.x, a.y - this.y) - Math.hypot(b.x - this.x, b.y - this.y));
             const next  = candidates[0];
@@ -351,7 +411,14 @@ Unit.prototype.update = function(dt, now) {
             if (dist <= reach) {
                 // Reached the target — hit, tag, move on. Spawn a melee
                 // flash at the impact point for visual feedback.
-                if (typeof next.takeDamage === 'function') next.takeDamage(this.attackDamage * damageMult);
+                // SP1: triple damage on every first-hit of every new dash
+                // target (which is what these chain-hits ARE — each victim
+                // is new because we only enter this branch when un-visited).
+                const _sp1Pang = (this.team === 'player' && hasStarPower('pang', 'sp1'));
+                const _dmgMul  = _sp1Pang ? 3 : 1;
+                if (typeof next.takeDamage === 'function') {
+                    next.takeDamage(this.attackDamage * damageMult * _dmgMul);
+                }
                 this._pangVisited.add(next);
                 if (typeof MeleeEffect === 'function' && typeof projectiles !== 'undefined') {
                     projectiles.push(new MeleeEffect(
@@ -399,6 +466,31 @@ Unit.prototype.update = function(dt, now) {
         if (this.target && !this.target.isDead) {
             const dContact = Math.hypot(this.target.x - this.x, this.target.y - this.y);
             if (dContact <= (this.target.radius || 15) + this.radius) {
+                // Amber SP2 "אש נצחית" — drop a one-tick fire-aura on her
+                // square as she vanishes; deals 150 dmg in a single sweep
+                // to every team-opposing entity inside 80 px. Done BEFORE
+                // setting isDead so playerSafe / enemy units that overlap
+                // her death tile are caught in the burst.
+                if (this.team === 'player' && hasStarPower('amber', 'sp2')) {
+                    try {
+                        const BURST_R = 80;
+                        const victims = units.concat(buildings, auras)
+                            .concat([playerSafe, enemySafe].filter(s => s))
+                            .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible &&
+                                         (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
+                        for (const v of victims) {
+                            if (Math.hypot((v.x || 0) - this.x, (v.y || 0) - this.y) <= BURST_R) {
+                                if (typeof v.takeDamage === 'function') v.takeDamage(150);
+                            }
+                        }
+                        if (typeof particles !== 'undefined' && typeof Particle === 'function') {
+                            const cols = ['#e74c3c', '#e67e22', '#f1c40f', '#fff'];
+                            for (let i = 0; i < 18; i++) {
+                                try { particles.push(new Particle(this.x, this.y, cols[i % cols.length])); } catch (_) {}
+                            }
+                        }
+                    } catch (err) { /* ignore — Amber still dies */ }
+                }
                 this.isDead = true;
                 return;
             }

@@ -93,24 +93,53 @@ function _placeAtInternal(x, y, shiftHeld) {
             if (typeof showTransientToast === 'function') showTransientToast('⚠️ אי אפשר לשכפל את ברוס');
             return { placed: false };
         }
-        const totalCost = (enemyCard.cost || 0) + 1;
+        // SP1 "שכפול חינם" — the first sirius cast in each match is
+        // entirely free. We zero `totalCost`, skip the cost gate, AND
+        // refund the base cost spawnEntity is about to charge. After
+        // that the flag is consumed for the rest of the match.
+        const _sirSp1Active = (typeof hasStarPower === 'function' &&
+                              hasStarPower('sirius', 'sp1') && !window._siriusFreeUsed);
+        const totalCost = _sirSp1Active ? 0 : (enemyCard.cost || 0) + 1;
         const canAffordCopy = playerElixir >= (totalCost - 0.01) || adminHacks.infiniteElixir || adminHacks.freeCards;
         if (!canAffordCopy) {
             if (typeof showTransientToast === 'function') showTransientToast(`🧪 צריך ${totalCost} אליקסיר לשכפל את ${enemyCard.name}`);
             return { placed: false };
         }
         // Pay the +1 surcharge by hand. spawnEntity will subtract the
-        // copied card's base cost on top of this.
+        // copied card's base cost on top of this. SP1 free-copy path skips
+        // BOTH and pre-refunds the base so spawnEntity nets to zero.
         if (!adminHacks.infiniteElixir && !adminHacks.freeCards) {
-            playerElixir = Math.max(0, playerElixir - 1);
+            if (_sirSp1Active) {
+                const _refund = (enemyCard.cost || 0);
+                playerElixir = Math.min(playerMaxElixir || 99, playerElixir + _refund);
+            } else {
+                playerElixir = Math.max(0, playerElixir - 1);
+            }
         }
         spawnEntity(target.x, target.y, 'player', enemyType);
+        // SP1 was just consumed for this match — flip the flag.
+        if (_sirSp1Active) window._siriusFreeUsed = true;
+        // SP2 "כפל נזק" — the freshly-spawned clone gets +10% damage.
+        // The clone is the last entity pushed to its team-typed array.
+        if (typeof hasStarPower === 'function' && hasStarPower('sirius', 'sp2')) {
+            try {
+                const arr = (CARDS[enemyType] && CARDS[enemyType].type === 'building') ? buildings
+                          : (CARDS[enemyType] && CARDS[enemyType].type === 'aura')     ? auras
+                          : units;
+                const clone = arr[arr.length - 1];
+                if (clone && clone.type === enemyType && clone.team === 'player' &&
+                    typeof clone.attackDamage === 'number') {
+                    clone.attackDamage = Math.round(clone.attackDamage * 1.1);
+                }
+            } catch (e) { /* ignore — clone still spawned */ }
+        }
         // Consume the sirius slot — no chain-cloning even with shift held,
         // because each click resolves a unique target and the player should
         // re-pick to avoid accidental duplicate clones.
         selectedCardId = null;
         document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
-        if (typeof showTransientToast === 'function') showTransientToast(`👯 שוכפל: ${enemyCard.name}`);
+        const _siriusToastNote = _sirSp1Active ? ' (חינם!)' : '';
+        if (typeof showTransientToast === 'function') showTransientToast(`👯 שוכפל: ${enemyCard.name}${_siriusToastNote}`);
         return { placed: true, cardId: 'sirius' };
     }
 
@@ -175,6 +204,30 @@ function _placeAtInternal(x, y, shiftHeld) {
         // spawnEntity handles the base-cost deduction + the P2P spawn
         // broadcast, so no extra plumbing needed here.
         spawnEntity(killX, killY, 'player', victimType);
+        // Apply Willow SP perks to the just-raised unit. The freshly-
+        // spawned entity is the LAST member of its team-typed array.
+        try {
+            const arr = (victimCard && victimCard.type === 'building') ? buildings
+                      : (victimCard && victimCard.type === 'aura')     ? auras
+                      : units;
+            const raised = arr[arr.length - 1];
+            if (raised && raised.type === victimType && raised.team === 'player') {
+                // SP1 "תוספת זומבי" — raised unit gets +20% HP.
+                if (typeof hasStarPower === 'function' && hasStarPower('willow', 'sp1') &&
+                    typeof raised.maxHp === 'number') {
+                    raised.maxHp = Math.round(raised.maxHp * 1.2);
+                    raised.hp    = raised.maxHp;
+                }
+                // SP2 "תור שני" — tag the unit so Unit.update / takeDamage
+                // can roll the 30% resurrection chance on death. The actual
+                // resurrection lives in unit-logic.js (see _willowSummoned
+                // death handler), keeping the spawn path clean.
+                if (typeof hasStarPower === 'function' && hasStarPower('willow', 'sp2')) {
+                    raised._willowSummoned     = true;
+                    raised._willowOriginalMaxHp = raised.maxHp;
+                }
+            }
+        } catch (e) { /* ignore — clone still spawned with default stats */ }
         // Consume the slot — no chain-casting even with shift held; each
         // click resolves a unique target and the player should re-pick
         // to avoid accidental duplicate casts.
@@ -224,6 +277,18 @@ function _placeAtInternal(x, y, shiftHeld) {
                 auras.push(bomb);
             } catch (e) { /* ignore — one missing bomb shouldn't break the cast */ }
         });
+        // SP1 "פצצה תשיעית" — extra bomb dead-centre of the cluster that
+        // detonates LAST and deals 1000 dmg (aura.js bumps damage to 1000
+        // when `_isCenterBomb` is true). Index is one past the last
+        // regular bomb so the per-bomb stagger detonates it after all 8.
+        if (typeof hasStarPower === 'function' && hasStarPower('raps', 'sp1')) {
+            try {
+                const bomb = new Aura(x, y, 'player', 'raps-bomb');
+                bomb._bombIndex    = offsets.length;   // = 8, fires after 0..7
+                bomb._isCenterBomb = true;
+                auras.push(bomb);
+            } catch (e) { /* ignore */ }
+        }
         try { AudioController.play('spawn'); } catch (e) {}
         // Shift / long-press → keep card selected to chain-cast.
         // Otherwise consume the slot.
@@ -231,7 +296,8 @@ function _placeAtInternal(x, y, shiftHeld) {
             selectedCardId = null;
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
         }
-        if (typeof showTransientToast === 'function') showTransientToast('💣 ראפס - 8 פצצות שוגרו');
+        const _rapsBombCount = (typeof hasStarPower === 'function' && hasStarPower('raps', 'sp1')) ? 9 : 8;
+        if (typeof showTransientToast === 'function') showTransientToast(`💣 ראפס - ${_rapsBombCount} פצצות שוגרו`);
         return { placed: true, cardId: 'raps' };
     }
 
@@ -268,9 +334,26 @@ function _placeAtInternal(x, y, shiftHeld) {
         // is keyed on _shieldDecayInterval — Mr-P's static shield doesn't
         // set this, so it never drains; Rosa's does, so it ticks down.
         target.shieldHp = (target.shieldHp || 0) + 500;
-        target._shieldDecayInterval = 1000;   // tick every 1000 ms
-        target._shieldDecayAmount   = 25;     // –25 HP per tick
+        // SP1 "מגן רענן" — disables the per-second drain. The shield
+        // stays full until incoming damage burns through it (or the
+        // 60-second timeout below pulls the plug if nothing ever hits).
+        const _rosaSp1 = (typeof hasStarPower === 'function' && hasStarPower('rosa', 'sp1'));
+        target._shieldDecayInterval = _rosaSp1 ? 0    : 1000;
+        target._shieldDecayAmount   = _rosaSp1 ? 0    : 25;
         target._shieldDecayLast     = performance.now();
+        if (_rosaSp1) {
+            // 60-second untouched-shield self-destruct. _shieldUntouchedSince
+            // is set here and refreshed every time the shield actually
+            // absorbs damage (see entity-base.js takeDamage).
+            target._shieldUntouchedSince = performance.now();
+            target._shieldExpireMs       = 60000;
+        }
+        // SP2 "פיצוץ מגן" — flag the entity so the moment its shieldHp
+        // is drained to 0 by incoming damage, the takeDamage handler
+        // detonates a 300-dmg radius-80 burst at its position.
+        if (typeof hasStarPower === 'function' && hasStarPower('rosa', 'sp2')) {
+            target._rosaShieldExplodes = true;
+        }
         // Card is consumed — no chain-spam. Player re-picks for another cast.
         selectedCardId = null;
         document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));

@@ -49,7 +49,20 @@ class Entity {
     // from each subclass's update() (Unit/Building/Aura) so frozen
     // entities pause their shield decay along with everything else.
     _decayShield(now) {
-        if (this.shieldHp <= 0 || !this._shieldDecayInterval) return;
+        if (this.shieldHp <= 0) return;
+        // Rosa SP1 "מגן רענן" — no per-second decay, but the shield
+        // self-destructs after `_shieldExpireMs` (60 s) of NOT being
+        // hit. The take-damage path resets `_shieldUntouchedSince` so
+        // any incoming hit refreshes the timer.
+        if (this._shieldExpireMs && this._shieldUntouchedSince &&
+            (now - this._shieldUntouchedSince) >= this._shieldExpireMs) {
+            this.shieldHp = 0;
+            this._shieldExpireMs       = 0;
+            this._shieldUntouchedSince = 0;
+            this._rosaShieldExplodes   = false;   // expired, no death explosion
+            return;
+        }
+        if (!this._shieldDecayInterval) return;
         if (!this._shieldDecayLast) this._shieldDecayLast = now;
         while (now - this._shieldDecayLast >= this._shieldDecayInterval) {
             this.shieldHp = Math.max(0, this.shieldHp - (this._shieldDecayAmount || 25));
@@ -97,12 +110,46 @@ class Entity {
         }
 
         if (this.shieldHp > 0) {
+            // Track when the shield was last touched — Rosa SP1's no-decay
+            // shield uses this to self-destruct after 60 s of being
+            // ignored. Updating here means absorbing ANY damage tick
+            // refreshes the timer, exactly the user spec.
+            this._shieldUntouchedSince = performance.now();
+            const _shieldStarted = this.shieldHp;
             if (finalAmount <= this.shieldHp) {
                 this.shieldHp -= finalAmount;
                 finalAmount = 0;
             } else {
                 finalAmount -= this.shieldHp;
                 this.shieldHp = 0;
+            }
+            // Rosa SP2 "פיצוץ מגן" — the moment a flagged shield drops
+            // from >0 to 0 (popped by THIS hit), detonate a 300-dmg burst
+            // in an 80-px radius around the wearer. One-shot — clear the
+            // flag so a fresh Rosa shield can be primed again later.
+            if (_shieldStarted > 0 && this.shieldHp === 0 && this._rosaShieldExplodes) {
+                this._rosaShieldExplodes = false;
+                try {
+                    const BURST_R = 80;
+                    const victims = (typeof units !== 'undefined' ? units : [])
+                        .concat(typeof buildings !== 'undefined' ? buildings : [])
+                        .concat(typeof auras !== 'undefined' ? auras : [])
+                        .concat([typeof playerSafe !== 'undefined' ? playerSafe : null,
+                                 typeof enemySafe  !== 'undefined' ? enemySafe  : null].filter(s => s))
+                        .filter(e => e && e.team !== this.team && !e.isDead && !e.isInvisible &&
+                                     (typeof isAmberOrTrail !== 'function' || !isAmberOrTrail(e)));
+                    for (const v of victims) {
+                        if (Math.hypot((v.x || 0) - this.x, (v.y || 0) - this.y) <= BURST_R) {
+                            if (typeof v.takeDamage === 'function') v.takeDamage(300);
+                        }
+                    }
+                    if (typeof particles !== 'undefined' && typeof Particle === 'function') {
+                        const cols = ['#fab1a0', '#ff7eb9', '#ffeaa7', '#fff'];
+                        for (let i = 0; i < 16; i++) {
+                            try { particles.push(new Particle(this.x, this.y, cols[i % cols.length])); } catch (_) {}
+                        }
+                    }
+                } catch (err) { /* ignore — entity still proceeds */ }
             }
         }
 
@@ -116,6 +163,21 @@ class Entity {
         // the `screenShakeTime = 10; screenShakeIntensity = 5;` block here.
 
         if (this.hp <= 0) {
+            // Willow SP2 "תור שני" — units summoned by Willow have a 30%
+            // chance to spring back to life on death with 50% HP. The
+            // flag is consumed (`_willowResurrected = true`) so the same
+            // unit can't ride the wave a second time. Resurrection
+            // happens BEFORE we set isDead, so the entity stays alive on
+            // the field without re-rendering.
+            if (this._willowSummoned && !this._willowResurrected &&
+                typeof hasStarPower === 'function' && hasStarPower('willow', 'sp2')) {
+                if (Math.random() < 0.30) {
+                    this._willowResurrected = true;
+                    this.hp = Math.max(1, Math.floor((this._willowOriginalMaxHp || this.maxHp) * 0.5));
+                    floatingTexts.push(new FloatingText(this.x, this.y, '🧙‍♀️ קם!', '#9b59b6'));
+                    return;
+                }
+            }
             this.hp = 0;
             this.isDead = true;
             AudioController.play('death');

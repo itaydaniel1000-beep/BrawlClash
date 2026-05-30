@@ -140,9 +140,18 @@ class Aura extends Entity {
                                      e !== playerSafe && e !== enemySafe &&
                                      e.type !== 'safe' &&
                                      !(typeof Safe !== 'undefined' && e instanceof Safe));
+                    // Damage tiers:
+                    //   • base                          → 500
+                    //   • SP2 ("פצצה מועצמת") active    → 750  (every bomb)
+                    //   • the SP1 _isCenterBomb flag     → 1000 (regardless of SP2)
+                    const _sp2 = (this.team === 'player' &&
+                                  typeof hasStarPower === 'function' &&
+                                  hasStarPower('raps', 'sp2'));
+                    let dmg = _sp2 ? 750 : 500;
+                    if (this._isCenterBomb) dmg = 1000;
                     for (const e of victims) {
                         if (Math.hypot((e.x || 0) - this.x, (e.y || 0) - this.y) <= this.radius) {
-                            if (typeof e.takeDamage === 'function') e.takeDamage(500);
+                            if (typeof e.takeDamage === 'function') e.takeDamage(dmg);
                         }
                     }
                 } catch (err) { /* ignore — bomb still vanishes */ }
@@ -170,7 +179,14 @@ class Aura extends Entity {
         //     comes from unit-logic.js when each tile spawns).
         if (this.type === 'fire-trail' && this._owner && this._owner.isDead) {
             if (!this._ownerDiedAt) this._ownerDiedAt = now;
-            if (now - this._ownerDiedAt > 5000) {
+            // SP1 "להבה ירוקה" — extends the post-death decay window from
+            // 5 s to 10 s so the trail lingers twice as long after Amber
+            // is gone.
+            const _amberSp1 = (this.team === 'player' &&
+                              typeof hasStarPower === 'function' &&
+                              hasStarPower('amber', 'sp1'));
+            const decayWindow = _amberSp1 ? 10000 : 5000;
+            if (now - this._ownerDiedAt > decayWindow) {
                 this.isDead = true;
                 return;
             }
