@@ -39,7 +39,21 @@ function _placeAtInternal(x, y, shiftHeld) {
     // Writes the click position into the pending Gray's _portalB slot
     // and exits. Free (no cost, no side check) since portal-B is just
     // the destination half of the original Gray placement.
+    //
+    // Per user request: portal B must be within GRAY_MAX_PORTAL_DIST px
+    // of portal A (5 squares = 250 px, matching Amber's per-step leash).
+    // A click outside that radius refuses without consuming the pending
+    // state — the player just tries again closer.
     if (_pendingGrayPortalB && !_pendingGrayPortalB.isDead) {
+        const dx = x - _pendingGrayPortalB.x;
+        const dy = y - _pendingGrayPortalB.y;
+        const d  = Math.hypot(dx, dy);
+        if (d > GRAY_MAX_PORTAL_DIST) {
+            if (typeof showTransientToast === 'function') {
+                showTransientToast('🦯 רחוק מדי — הפורטל השני חייב להיות בטווח 5 משבצות מהראשון');
+            }
+            return { placed: false };
+        }
         _pendingGrayPortalB._portalB = { x, y };
         _pendingGrayPortalB = null;
         if (typeof showTransientToast === 'function') showTransientToast('🦯 פורטל שני הוצב');
@@ -829,28 +843,50 @@ function handleMouseMove(e) {
 
 function drawGhost(ctx) {
     // Gray portal-B preview — paints a faint pointer-following circle in
-    // the same style as Gray's actual portals, so the player can SEE where
-    // the second portal will land before they click. Sits ABOVE the
-    // `if (!card) return` short-circuit because the selected card is
-    // already cleared by this point (placement consumed it).
+    // the same style as Gray's actual portals, plus a dashed range ring
+    // around portal A showing the GRAY_MAX_PORTAL_DIST leash. The cursor
+    // preview turns red when the cursor is outside the leash so the
+    // player can see the click would be refused before they commit.
     if (_pendingGrayPortalB && !_pendingGrayPortalB.isDead) {
-        const rimColor = _pendingGrayPortalB.team === 'player' ? '#74b9ff' : '#ff7675';
-        const PORTAL_R = 30;
+        const teamRim    = _pendingGrayPortalB.team === 'player' ? '#74b9ff' : '#ff7675';
+        const PORTAL_R   = 30;
+        const portalAx   = _pendingGrayPortalB.x;
+        const portalAy   = _pendingGrayPortalB.y;
+        const cursorDist = Math.hypot(mouseX - portalAx, mouseY - portalAy);
+        const inRange    = cursorDist <= GRAY_MAX_PORTAL_DIST;
         ctx.save();
+        // Max-range ring around portal A — always visible while pending so
+        // the player can read the legal landing zone. Translucent fill
+        // when the cursor is INSIDE the leash to highlight the valid area.
+        ctx.beginPath();
+        ctx.arc(portalAx, portalAy, GRAY_MAX_PORTAL_DIST, 0, Math.PI * 2);
+        ctx.fillStyle = inRange
+            ? 'rgba(116, 185, 255, 0.07)'
+            : 'rgba(231, 76, 60, 0.05)';
+        ctx.fill();
+        ctx.setLineDash([8, 6]);
+        ctx.strokeStyle = inRange ? teamRim : '#e74c3c';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Cursor preview portal — translucent black with team rim when in
+        // range, swap to red rim when out of range so the rejection reads
+        // before the click happens.
         ctx.globalAlpha = 0.55;
         ctx.beginPath();
         ctx.arc(mouseX, mouseY, PORTAL_R, 0, Math.PI * 2);
         ctx.fillStyle = '#000';
         ctx.fill();
         ctx.lineWidth   = 4;
-        ctx.strokeStyle = rimColor;
+        ctx.strokeStyle = inRange ? teamRim : '#e74c3c';
         ctx.stroke();
         // Dashed leash from the EXISTING portal A to the pointer so the
         // player can read the pairing while aiming.
         ctx.setLineDash([6, 6]);
         ctx.lineWidth = 2;
+        ctx.strokeStyle = inRange ? teamRim : '#e74c3c';
         ctx.beginPath();
-        ctx.moveTo(_pendingGrayPortalB.x, _pendingGrayPortalB.y);
+        ctx.moveTo(portalAx, portalAy);
         ctx.lineTo(mouseX, mouseY);
         ctx.stroke();
         ctx.setLineDash([]);

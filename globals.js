@@ -210,6 +210,12 @@ var _pendingPathCardId = null;
 // Drawn as a faint preview circle by drawGhost while pending.
 var _pendingGrayPortalB = null;
 
+// Maximum distance (in canvas pixels) between Gray's two portals — both
+// the pending-B click and the live preview enforce this leash so a
+// player can't teleport-stretch the whole field with a single Gray.
+// 250 px = 5 game-squares, the same leash Amber's per-step path uses.
+const GRAY_MAX_PORTAL_DIST = 250;
+
 // Used by every enemy target-selection filter (Bull / Porter chase, building
 // turrets, the Safe, projectile re-targeting, splash) to skip Amber and her
 // fire-trail tiles. Amber is invulnerable AND her trail is invisible to the
