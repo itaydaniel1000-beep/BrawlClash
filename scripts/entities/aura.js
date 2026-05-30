@@ -75,11 +75,14 @@ class Aura extends Entity {
             this.isInvulnerable = true;
             this._bombIndex    = 0;            // overridden right after construction
             // Per-bomb cadence — every bomb spawns at the same instant but
-            // detonates at _spawnTime + 700 ms + index*220 ms. Falling
-            // animation runs over the last 500 ms before that point.
-            this._fallDuration = 500;
+            // detonates at _spawnTime + 1300 ms + index*220 ms. The
+            // missile is visible during the last 1200 ms before that
+            // point, giving it time to fall from the top of the canvas
+            // (y ≈ -30) all the way down to the marker centre at a
+            // readable speed.
+            this._fallDuration = 1200;
             this._stagger      = 220;
-            this._baseDelay    = 700;
+            this._baseDelay    = 1300;
             this._exploded     = false;
         } else if (type === 'trunk-trail') {
             // Spawned by Trunk as he random-walks. Doesn't damage anyone —
@@ -284,44 +287,50 @@ class Aura extends Entity {
             ctx.moveTo(this.x + xs, this.y - xs);
             ctx.lineTo(this.x - xs, this.y + xs);
             ctx.stroke();
-            // Falling missile during the drop phase. Linear vertical
-            // fall from 240 px above the target to the target itself.
+            // Falling missile during the drop phase. The missile spawns
+            // at the very top of the canvas (y_start = -30, just off-
+            // screen) and travels linearly down to the marker centre by
+            // the detonation tick — so the player sees the projectile
+            // dropping "from above" regardless of where the cluster was
+            // placed on the field. Sprite is scaled 4× from the
+            // original draft per user request — chunky missile, not a
+            // dart.
             if (now >= fallStart && now < detonateAt) {
                 const t = (now - fallStart) / this._fallDuration;   // 0..1
-                const dropFrom = 240;
-                const by = this.y - dropFrom * (1 - t);
-                // Missile dimensions
-                const bodyW      = 7;
-                const bodyTop    = by - 14;   // rear (where the flame trails up)
-                const bodyBottom = by + 8;    // base of nose cone
-                const noseTip    = bodyBottom + 6;
+                const yStart = -30;
+                const by = yStart + (this.y - yStart) * t;
+                // Missile dimensions — every linear measure 4× the v1 size
+                const bodyW      = 28;
+                const bodyTop    = by - 56;   // rear (flame trails up from here)
+                const bodyBottom = by + 32;   // base of nose cone
+                const noseTip    = bodyBottom + 24;
                 // Flame trail — wavy plume extending upward from the rear.
-                const flameLen = 22 + 6 * Math.sin(now / 35 + this._bombIndex);
+                const flameLen = 88 + 24 * Math.sin(now / 35 + this._bombIndex);
                 const flameGrad = ctx.createLinearGradient(this.x, bodyTop - flameLen, this.x, bodyTop);
                 flameGrad.addColorStop(0,    'rgba(255, 215, 64, 0.0)');
                 flameGrad.addColorStop(0.45, 'rgba(243, 156, 18, 0.70)');
                 flameGrad.addColorStop(1,    'rgba(231, 76, 60, 0.95)');
                 ctx.fillStyle = flameGrad;
                 ctx.beginPath();
-                ctx.moveTo(this.x - bodyW / 2 + 1, bodyTop);
-                ctx.lineTo(this.x + bodyW / 2 - 1, bodyTop);
-                ctx.lineTo(this.x + 4, bodyTop - flameLen * 0.55);
+                ctx.moveTo(this.x - bodyW / 2 + 4, bodyTop);
+                ctx.lineTo(this.x + bodyW / 2 - 4, bodyTop);
+                ctx.lineTo(this.x + 16, bodyTop - flameLen * 0.55);
                 ctx.lineTo(this.x, bodyTop - flameLen);
-                ctx.lineTo(this.x - 4, bodyTop - flameLen * 0.55);
+                ctx.lineTo(this.x - 16, bodyTop - flameLen * 0.55);
                 ctx.closePath();
                 ctx.fill();
-                // Fins at the rear — two small dark-red triangles.
+                // Fins at the rear — two dark-red triangles.
                 ctx.fillStyle = '#4A0808';
                 ctx.beginPath();
-                ctx.moveTo(this.x - bodyW / 2,     bodyTop);
-                ctx.lineTo(this.x - bodyW / 2 - 4, bodyTop + 5);
-                ctx.lineTo(this.x - bodyW / 2,     bodyTop + 5);
+                ctx.moveTo(this.x - bodyW / 2,      bodyTop);
+                ctx.lineTo(this.x - bodyW / 2 - 16, bodyTop + 20);
+                ctx.lineTo(this.x - bodyW / 2,      bodyTop + 20);
                 ctx.closePath();
                 ctx.fill();
                 ctx.beginPath();
-                ctx.moveTo(this.x + bodyW / 2,     bodyTop);
-                ctx.lineTo(this.x + bodyW / 2 + 4, bodyTop + 5);
-                ctx.lineTo(this.x + bodyW / 2,     bodyTop + 5);
+                ctx.moveTo(this.x + bodyW / 2,      bodyTop);
+                ctx.lineTo(this.x + bodyW / 2 + 16, bodyTop + 20);
+                ctx.lineTo(this.x + bodyW / 2,      bodyTop + 20);
                 ctx.closePath();
                 ctx.fill();
                 // Missile body — dark-red rectangle.
@@ -329,7 +338,7 @@ class Aura extends Entity {
                 ctx.fillRect(this.x - bodyW / 2, bodyTop, bodyW, bodyBottom - bodyTop);
                 // Lighter highlight strip along the left edge.
                 ctx.fillStyle = '#a52a2a';
-                ctx.fillRect(this.x - bodyW / 2, bodyTop, 1.5, bodyBottom - bodyTop);
+                ctx.fillRect(this.x - bodyW / 2, bodyTop, 6, bodyBottom - bodyTop);
                 // Nose cone — black triangle pointing down.
                 ctx.fillStyle = '#1A1A1A';
                 ctx.beginPath();
