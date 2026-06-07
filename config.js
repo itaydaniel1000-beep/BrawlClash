@@ -181,7 +181,7 @@ const CARDS = {
     // lets the admin drop an ice-cream aura (Spike-radius, deals
     // 150 dmg/sec) anywhere on the map. Max 4 ice creams per team on
     // the field at once, max 2 Barrys per team.
-    'barry':  { name: 'צ'יל', cost: 15, type: 'unit', color: '#3498db', icon: '🍦',
+    'barry':  { name: 'פרוסטי', cost: 15, type: 'unit', color: '#3498db', icon: '🍦',
                rarity: 'אגדי', adminOnly: true, placeInEnemyHalf: true },
     // Internal 'icecream' aura — never appears in any deck / shop / brawler
     // grid (adminOnly + hiddenFromAll filters elsewhere). It exists in

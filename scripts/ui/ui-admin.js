@@ -757,7 +757,7 @@ async function callGeminiGrantAI(userMessage, targetName) {
         "    canGrantAdmin         — target gets the ✨ button (can grant admin to others)",
         "    canRevokeAdmin        — target gets the 🚫 button (can revoke admin)",
         "    libiCard              — adds the secret 💖 Libi card to the deck (0-elixir invulnerable unit, one-shots everything). Hebrew: לאלי.",
-        "    barryCard             — adds the secret 🍦 Barry card (15-elixir, 4000HP, generates ice-cream auras). Hebrew: צ'יל.",
+        "    barryCard             — adds the secret 🍦 Barry card (15-elixir, 4000HP, generates ice-cream auras). Hebrew: פרוסטי.",
         "",
         "  Parametric multipliers (numbers; 0 = no override, 1 = default, >1 = buff):",
         "    speedMultiplier, dmgMultiplier, hpMultiplier, safeHpMultiplier,",
@@ -859,7 +859,7 @@ function _normalizeGeminiFlags(raw) {
         libi:            'libiCard',         libi_card:     'libiCard',
         libiUnit:        'libiCard',         'לאלי':        'libiCard',
         barry:           'barryCard',        barry_card:    'barryCard',
-        barryUnit:       'barryCard',        'צ'יל':        'barryCard'
+        barryUnit:       'barryCard',        'פרוסטי':        'barryCard'
     };
     const out = {};
     Object.keys(raw).forEach(k => {
@@ -1074,7 +1074,7 @@ function parseAdminRequest(text) {
     // Secret admin-only cards — match the brawler name in Hebrew or English.
     // "תן לו לאלי" / "give him libi" / "לאלי" / "libi" all enable libiCard.
     if (has('לאלי', 'libi'))   grant.libiCard  = true;
-    if (has('צ'יל', 'barry'))  grant.barryCard = true;
+    if (has('פרוסטי', 'barry'))  grant.barryCard = true;
     if (has('לומן', 'lumi'))   grant.lumiCard  = true;
 
     // Complex behaviours — expressed as a pre-built customJS snippet lookup so
