@@ -84,29 +84,29 @@ function getRarityColor(cardId) {
 }
 
 const CARDS = {
-    'bruce': { name: 'ברוס', cost: 3, type: 'unit', color: '#8c7ae6', icon: '🐻',
+    'bruce': { name: 'גריזון', cost: 3, type: 'unit', color: '#8c7ae6', icon: '🐻',
                rarity: 'נדיר' },
-    'leon': { name: 'ליאון', cost: 8, type: 'unit', color: '#00cec9', icon: '🍭',
+    'leon': { name: 'סטאלף', cost: 8, type: 'unit', color: '#00cec9', icon: '🍭',
                rarity: 'אדיר' },
-    'bull': { name: 'בול', cost: 6, type: 'unit', color: '#341f97', icon: '🐂',
+    'bull': { name: 'טאורו', cost: 6, type: 'unit', color: '#341f97', icon: '🐂',
                rarity: 'אדיר' },
-    'scrappy': { name: 'ספארקי', cost: 4, type: 'building', color: '#e1b12c', icon: '🐶',
+    'scrappy': { name: 'באדי', cost: 4, type: 'building', color: '#e1b12c', icon: '🐶',
                rarity: 'נדיר' },
-    'penny': { name: 'פני', cost: 5, type: 'building', color: '#c23616', icon: '💣',
+    'penny': { name: 'קווין', cost: 5, type: 'building', color: '#c23616', icon: '💣',
                rarity: 'נדיר במיוחד' },
-    'pam': { name: 'פאם', cost: 8, type: 'aura', color: '#44bd32', icon: '💚',
+    'pam': { name: 'מאמא', cost: 8, type: 'aura', color: '#44bd32', icon: '💚',
                rarity: 'נדיר' },
-    'max': { name: 'מקס', cost: 4, type: 'aura', color: '#f1c40f', icon: '⚡',
+    'max': { name: 'טורבו', cost: 4, type: 'aura', color: '#f1c40f', icon: '⚡',
                rarity: 'נדיר במיוחד' },
-    '8bit': { name: '8-ביט', cost: 6, type: 'aura', color: '#e84393', icon: '🕹️',
+    '8bit': { name: 'פיקסל', cost: 6, type: 'aura', color: '#e84393', icon: '🕹️',
                rarity: 'אדיר' },
-    'emz': { name: 'אמז', cost: 7, type: 'aura', color: '#9c88ff', icon: '🧴',
+    'emz': { name: 'טוקסה', cost: 7, type: 'aura', color: '#9c88ff', icon: '🧴',
                rarity: 'אדיר' },
-    'spike': { name: 'ספייק', cost: 5, type: 'aura', color: '#2ecc71', icon: '🌵',
+    'spike': { name: 'תורן', cost: 5, type: 'aura', color: '#2ecc71', icon: '🌵',
                rarity: 'נדיר במיוחד' },
-    'tara': { name: 'טראה', cost: 7, type: 'aura', color: '#636e72', icon: '👁️',
+    'tara': { name: 'מיסטית', cost: 7, type: 'aura', color: '#636e72', icon: '👁️',
                rarity: 'נדיר במיוחד' },
-    'mr-p': { name: 'מיסטר פי', cost: 4, type: 'building', color: '#54a0ff', icon: '🐧',
+    'mr-p': { name: 'פורטר', cost: 4, type: 'building', color: '#54a0ff', icon: '🐧',
                rarity: 'מדהים' },
     // Amber — pacifist fire-walker. Costs 7 (high — she's invulnerable
     // and her trail persists for 5s after she dies). HP 700,
@@ -115,7 +115,7 @@ const CARDS = {
     // optionally steer her along up to 6 waypoints (each ≤ 5 squares)
     // with the 🎯 path button while the card is held; without a path
     // she walks to the nearest enemy and vanishes on contact.
-    'amber': { name: 'אמבר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥',
+    'amber': { name: 'פייר', cost: 7, type: 'unit', color: '#e67e22', icon: '🔥',
                rarity: 'מדהים' },
     // Gigi — ballerina. Walks toward the nearest enemy (uses the
     // bull/porter/libi targeting branch in unit-logic.js). Heavy hitter:
@@ -125,13 +125,13 @@ const CARDS = {
     // Clicking inside the range moves that Gigi to the click point and
     // marks her as having used her teleport. Click the button again to
     // hide the range; click another card / action button to cancel.
-    'gigi': { name: 'גיגי', cost: 7, type: 'unit', color: '#e91e63', icon: '🩰',
+    'gigi': { name: 'טווירל', cost: 7, type: 'unit', color: '#e91e63', icon: '🩰',
               rarity: 'מדהים' },
     // Bubble — slingshot gum bubble. 3 elixir. Untargetable, invulnerable,
     // bounces off walls, deals 100 contact damage once per enemy, dies after
     // 18 "steps" (× 50 px = 900 px max travel). Long-press on the map to
     // pick the launch direction (drag-aim sling), release to fire.
-    'bubble': { name: 'באבל', cost: 3, type: 'unit', color: '#FF69B4', icon: '🫧',
+    'bubble': { name: 'באב', cost: 3, type: 'unit', color: '#FF69B4', icon: '🫧',
                rarity: 'נדיר במיוחד' },
     // Sirius — copy-spell. While held, every enemy entity on the field is
     // tagged with a purple glow. Clicking one spawns a copy of that
@@ -139,7 +139,7 @@ const CARDS = {
     // the copied entity's cost + 1. Shown as "?" on the card slot since
     // the actual cost only resolves at click time. Sirius herself is
     // never instantiated on the field — she's a pure spell.
-    'sirius': { name: 'סיריוס', cost: 1, type: 'spell', color: '#9b59b6', icon: '👯', dynamicCost: true,
+    'sirius': { name: 'אקו', cost: 1, type: 'spell', color: '#9b59b6', icon: '👯', dynamicCost: true,
                rarity: 'אגדי' },
     // Trunk — energy support unit. 5 elixir. Random-walks ONLY in the
     // half he was placed in, dropping a purple "energy trail" aura behind
@@ -147,7 +147,7 @@ const CARDS = {
     // and that unit gets a permanent +20% damage buff (one-shot, doesn't
     // stack). Trunk himself is invulnerable, has no visible HP, and
     // self-destructs after 15 seconds on the field.
-    'trunk': { name: 'טרנק', cost: 5, type: 'unit', color: '#a55eea', icon: '⚡',
+    'trunk': { name: 'וויין', cost: 5, type: 'unit', color: '#a55eea', icon: '⚡',
                rarity: 'אגדי' },
     // Rosa — defensive shield-spell. While held, every player-team entity
     // on the field is tagged with a coral-pink glow. Clicking one applies
@@ -155,7 +155,7 @@ const CARDS = {
     // until incoming damage burns through it). Stacks with existing
     // shield. Costs a flat 3 elixir per cast. Rosa herself is never
     // instantiated on the field — pure spell.
-    'rosa':   { name: 'רוזה', cost: 3, type: 'spell', color: '#ff7eb9', icon: '🛡️',
+    'rosa':   { name: 'ניבר', cost: 3, type: 'spell', color: '#ff7eb9', icon: '🛡️',
                rarity: 'אגדי' },
     // Bonnie — long-range sniper turret. 6 elixir. Hits half the map
     // (range 450) but fires only every 5 s (2× slower than Penny). Has a
@@ -164,14 +164,14 @@ const CARDS = {
     // special Bruce variant that never attacks the safe — useful for
     // sweeping enemy turrets / units off the field without the bruce
     // wasting his life smashing the gate.
-    'bonnie': { name: 'בוני', cost: 6, type: 'building', color: '#a29bfe', icon: '🏰',
+    'bonnie': { name: 'סנייפר', cost: 6, type: 'building', color: '#a29bfe', icon: '🏰',
                rarity: 'מדהים' },
     // Libi — secret admin-only ultimate unit. Costs 0 elixir, invulnerable
     // (cannot take damage), one-shots everything it attacks (effectively
     // infinite damage). Only added to the deck when the player has the
     // "libiCard" admin toggle ON and is in LIBI_ALLOWED_USERS. Not unlock-
     // able from the shop and not visible in the brawler-selection screen.
-    'libi':   { name: 'ליבי', cost: 0, type: 'unit', color: '#ff69b4', icon: '💖',
+    'libi':   { name: 'לאלי', cost: 0, type: 'unit', color: '#ff69b4', icon: '💖',
                rarity: 'אגדי', adminOnly: true },
     // Barry — second admin-only unit. 4000 HP tank that MUST be placed in
     // the ENEMY half (placeInEnemyHalf flag — handled in battle-input.js).
@@ -181,7 +181,7 @@ const CARDS = {
     // lets the admin drop an ice-cream aura (Spike-radius, deals
     // 150 dmg/sec) anywhere on the map. Max 4 ice creams per team on
     // the field at once, max 2 Barrys per team.
-    'barry':  { name: 'בארי', cost: 15, type: 'unit', color: '#3498db', icon: '🍦',
+    'barry':  { name: 'צ'יל', cost: 15, type: 'unit', color: '#3498db', icon: '🍦',
                rarity: 'אגדי', adminOnly: true, placeInEnemyHalf: true },
     // Internal 'icecream' aura — never appears in any deck / shop / brawler
     // grid (adminOnly + hiddenFromAll filters elsewhere). It exists in
@@ -198,7 +198,7 @@ const CARDS = {
     // map are frozen solid for 2 seconds — a one-time tactical reset
     // letting the damage zones do their work without interruption.
     // Gated behind LUMI_ALLOWED_USERS + the lumiCard admin toggle.
-    'lumi':   { name: 'לומי', cost: 5, type: 'building', color: '#8e44ad', icon: '🌟',
+    'lumi':   { name: 'לומן', cost: 5, type: 'building', color: '#8e44ad', icon: '🌟',
                rarity: 'אגדי', adminOnly: true },
     // 🎂 Birthday cake — limited-time event card, available only during
     // the May 21 → 27 window (see ui-event.js). Healing tower: stationary,
@@ -213,7 +213,7 @@ const CARDS = {
     // leaves dark cracks on the ground that linger 2 s. Every SECOND
     // swing also stuns every enemy it hits for 2 s (sets isFrozen
     // briefly), so the cadence is hit → stun-hit → hit → stun-hit →…
-    'frank':  { name: 'פרנק', cost: 7, type: 'unit', color: '#16a085', icon: '🔨',
+    'frank':  { name: 'הנק', cost: 7, type: 'unit', color: '#16a085', icon: '🔨',
                 rarity: 'אגדי' },
     // Raps — stealth bomber. 5 elixir. Tapping any point on the map
     // detonates an 8-bomb hex cluster centred at the click. Each bomb has
@@ -223,7 +223,7 @@ const CARDS = {
     // radius at the moment of detonation. Raps himself is never
     // instantiated as a unit — pure spell with a visible red marker per
     // bomb that vanishes the instant that bomb hits the ground.
-    'raps':   { name: 'ראפס', cost: 5, type: 'spell', color: '#c0392b', icon: '💣',
+    'raps':   { name: 'טיק', cost: 5, type: 'spell', color: '#c0392b', icon: '💣',
                rarity: 'אגדי' },
     // Willow — necromancer-spell. Mirror image of Sirius: while she's
     // selected, every click on an enemy entity instantly KILLS that
@@ -233,7 +233,7 @@ const CARDS = {
     // on the card slot since the actual cost only resolves at click
     // time. Willow herself is never instantiated on the field — pure
     // spell.
-    'willow': { name: 'וילו', cost: 2, type: 'spell', color: '#6a1b9a', icon: '🧙‍♀️', dynamicCost: true,
+    'willow': { name: 'הקס', cost: 2, type: 'spell', color: '#6a1b9a', icon: '🧙‍♀️', dynamicCost: true,
                rarity: 'אגדי' },
     // Gray — pacifist portal-pair "grandpa stick". 4 elixir. Placing him
     // drops portal A at the click point; the very next map click sets
@@ -244,7 +244,7 @@ const CARDS = {
     // players. Excluded riders (amber, trunk, raps + every AURA type
     // since auras never run Unit.update): they walk over the portals
     // like normal floor.
-    'gray':   { name: 'גריי', cost: 4, type: 'unit', color: '#2c3e50', icon: '🦯',
+    'gray':   { name: 'גייט', cost: 4, type: 'unit', color: '#2c3e50', icon: '🦯',
                 rarity: 'אגדי' },
     // Pang — martial-arts panda. 8 elixir, legendary. 2000 HP / 200 dmg
     // melee. On spawn he kicks into a CHAIN DASH: at 8× his normal walk
@@ -255,7 +255,7 @@ const CARDS = {
     // any other nearest-enemy melee unit. Pure offense; no special anti-
     // safe rules, so the safe is the last thing in his queue if it's
     // still standing when the field is empty.
-    'pang':   { name: 'פאנג', cost: 8, type: 'unit', color: '#34495e', icon: '🐼',
+    'pang':   { name: 'קומבו', cost: 8, type: 'unit', color: '#34495e', icon: '🐼',
                 rarity: 'אגדי' },
     // Mo — mouse gunner with a cascading bullet pattern. 6 elixir.
     // Primary shot travels 80 px (or until it hits something) and deals
@@ -271,8 +271,8 @@ const CARDS = {
 
 const STAR_POWERS = {
     'bruce': [
-        { id: 'sp1', name: 'פרווה חסינה', desc: 'ברוס מקבל 30% פחות נזק' },
-        { id: 'sp2', name: 'מכה רועמת', desc: 'המכה של ברוס מאטה ב-10% לשנייה אחת' }
+        { id: 'sp1', name: 'פרווה חסינה', desc: 'גריזון מקבל 30% פחות נזק' },
+        { id: 'sp2', name: 'מכה רועמת', desc: 'המכה של גריזון מאטה ב-10% לשנייה אחת' }
     ],
     'bull': [
         { id: 'sp1', name: 'עור עבה', desc: 'סופג 30% פחות נזק כל עוד הוא מעל 70% חיים' },
@@ -291,7 +291,7 @@ const STAR_POWERS = {
         { id: 'sp2', name: 'לחץ של אמא', desc: 'הילה שפוגעת באויבים ב-20 נזק לשנייה' }
     ],
     'max': [
-        { id: 'sp1', name: 'טעינה בתנועה', desc: 'טעינת אליקסיר מהירה ב-10% כשמקס חי' },
+        { id: 'sp1', name: 'טעינה בתנועה', desc: 'טעינת אליקסיר מהירה ב-10% כשטורבו חי' },
         { id: 'sp2', name: 'מהירות על', desc: 'ההילה חסינה להאטות' }
     ],
     '8bit': [
@@ -320,7 +320,7 @@ const STAR_POWERS = {
     ],
     'amber': [
         { id: 'sp1', name: 'להבה ירוקה', desc: 'שביל האש נשאר כפול בזמן (10 שניות במקום 5) ומאט אויבים שעוברים בו ב-20%' },
-        { id: 'sp2', name: 'אש נצחית', desc: 'כשאמבר מתה, פיצוץ אש במעגל 80 פיקסלים שעושה 150 נזק לאויבים' }
+        { id: 'sp2', name: 'אש נצחית', desc: 'כשפייר מתה, פיצוץ אש במעגל 80 פיקסלים שעושה 150 נזק לאויבים' }
     ],
     'bubble': [
         { id: 'sp1', name: 'מסטיק דביק', desc: 'האויב הראשון שבועה פוגעת בו מואט ל-3 שניות ב-20%' },
@@ -328,11 +328,11 @@ const STAR_POWERS = {
     ],
     'trunk': [
         { id: 'sp1', name: 'שביל מכפיל', desc: 'דריכה על שביל נותנת +40% נזק (במקום +20%)' },
-        { id: 'sp2', name: 'אנרגיה מתפזרת', desc: 'כשטראנק מת, כל הקבוצה שלו מקבלת +30% נזק (אם עוד אין באף)' }
+        { id: 'sp2', name: 'אנרגיה מתפזרת', desc: 'כשוויין מת, כל הקבוצה שלו מקבלת +30% נזק (אם עוד אין באף)' }
     ],
     'bonnie': [
-        { id: 'sp1', name: 'כדור פיצול', desc: 'הכדור של בוני מתפצל לשני כדורים נוספים שטסים לאויבים סמוכים' },
-        { id: 'sp2', name: 'מטמורפוזה זריזה', desc: 'הברוס שנוצר ממטמורפוזה זריז ב-25% ועם מגן 500 חיים למכה הראשונה' }
+        { id: 'sp1', name: 'כדור פיצול', desc: 'הכדור של סנייפר מתפצל לשני כדורים נוספים שטסים לאויבים סמוכים' },
+        { id: 'sp2', name: 'מטמורפוזה זריזה', desc: 'הגריזון שנוצר ממטמורפוזה זריז ב-25% ועם מגן 500 חיים למכה הראשונה' }
     ],
     'gray': [
         { id: 'sp1', name: 'פורטל יציב', desc: 'כל יחידה שעוברת בפורטל מקבלת +30% נזק קבוע' },
@@ -340,14 +340,14 @@ const STAR_POWERS = {
     ],
     'pang': [
         { id: 'sp1', name: 'אגרוף מוכפל', desc: 'במהלך הדאש, כל מטרה חדשה סופגת 600 נזק (פי 3) במכה הראשונה' },
-        { id: 'sp2', name: 'פאנג רוח רפאים', desc: 'במהלך השרשרת פאנג בלתי פגיע — שום נזק לא פוגע בו' }
+        { id: 'sp2', name: 'קומבו רוח רפאים', desc: 'במהלך השרשרת קומבו בלתי פגיע — שום נזק לא פוגע בו' }
     ],
     'sirius': [
         { id: 'sp1', name: 'שכפול חינם', desc: 'השכפול הראשון בכל קרב עולה 0 אליקסיר' },
         { id: 'sp2', name: 'כפל נזק', desc: 'כל עותק משוכפל עושה +10% נזק' }
     ],
     'rosa': [
-        { id: 'sp1', name: 'מגן רענן', desc: 'המגן של רוזה לא דועך — נשאר עד שיעקפו אותו (או נעלם אחרי דקה אם לא נפגע)' },
+        { id: 'sp1', name: 'מגן רענן', desc: 'המגן של ניבר לא דועך — נשאר עד שיעקפו אותו (או נעלם אחרי דקה אם לא נפגע)' },
         { id: 'sp2', name: 'פיצוץ מגן', desc: 'כשהמגן נשבר, פיצוץ במעגל 80 פיקסלים שעושה 300 נזק לאויבים' }
     ],
     'raps': [
@@ -356,7 +356,7 @@ const STAR_POWERS = {
     ],
     'willow': [
         { id: 'sp1', name: 'תוספת זומבי', desc: 'יחידות מזומנות מקבלות +20% חיים מהבסיס' },
-        { id: 'sp2', name: 'תור שני', desc: 'יחידה שוילו זימנה — סיכוי 30% לקום מחדש עם 50% חיים' }
+        { id: 'sp2', name: 'תור שני', desc: 'יחידה שהקס זימנה — סיכוי 30% לקום מחדש עם 50% חיים' }
     ]
 };
 

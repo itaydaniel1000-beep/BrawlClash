@@ -842,7 +842,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else goToLobby();
         
         updateStatsUI();
-        console.log("🚀 BrawlClash modular engine initialized!");
+        console.log("🚀 PixelArena modular engine initialized!");
     } catch (criticalErr) {
         console.error("❌ CRITICAL INITIALIZATION ERROR:", criticalErr);
         switchScreen('lobby-screen');

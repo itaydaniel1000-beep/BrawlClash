@@ -14,7 +14,7 @@
 //        Buttons / etc.
 //   3. The provider redirects on success to a URL containing
 //        ?bc_purchase=<productId>
-//      e.g. https://itaydaniel1000-beep.github.io/BrawlClash/?bc_purchase=premium_pass
+//      e.g. https://itaydaniel1000-beep.github.io/PixelArena/?bc_purchase=premium_pass
 //   4. On page load _consumePurchaseFromUrl() detects the param and
 //      grants the entitlement locally.
 //
@@ -44,17 +44,17 @@ const REAL_MONEY_PRODUCTS = {
         alreadyOwned: () => !!(playerStats && playerStats.hasBrawlPass)
     },
     gems_100: {
-        name: '💎 100 יהלומים', desc: 'חבילה קטנה', price: 5, currency: '₪',
+        name: '💎 100 יהלומןם', desc: 'חבילה קטנה', price: 5, currency: '₪',
         paymentUrl: '',
         grant: () => { playerStats.gems = (playerStats.gems || 0) + 100; }
     },
     gems_500: {
-        name: '💎 500 יהלומים', desc: 'חבילה בינונית • בונוס 25%', price: 20, currency: '₪',
+        name: '💎 500 יהלומןם', desc: 'חבילה בינונית • בונוס 25%', price: 20, currency: '₪',
         paymentUrl: '',
         grant: () => { playerStats.gems = (playerStats.gems || 0) + 500; }
     },
     gems_1500: {
-        name: '💎 1,500 יהלומים', desc: 'חבילה גדולה • הכי משתלם', price: 50, currency: '₪',
+        name: '💎 1,500 יהלומןם', desc: 'חבילה גדולה • הכי משתלם', price: 50, currency: '₪',
         paymentUrl: '',
         grant: () => { playerStats.gems = (playerStats.gems || 0) + 1500; }
     },
@@ -93,7 +93,7 @@ function openPurchaseFlow(productId) {
     try {
         window.open(p.paymentUrl, '_blank', 'noopener');
         if (typeof showTransientToast === 'function')
-            showTransientToast('💳 ההפניה לתשלום נפתחה בלשונית חדשה');
+            showTransientToast('💳 ההקוויןה לתשלום נפתחה בלשונית חדשה');
     } catch (e) {
         if (typeof showTransientToast === 'function')
             showTransientToast('❌ לא הצלחנו לפתוח את עמוד התשלום');

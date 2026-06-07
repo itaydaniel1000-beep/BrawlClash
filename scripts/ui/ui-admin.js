@@ -294,9 +294,9 @@ function _renderGrantedExtras(isSuper, myGrant) {
     if (myGrant.startingElixir)        add(`התחלה עם ${myGrant.startingElixir} אליקסיר`, '🧪');
     if (myGrant.maxElixir)             add(`תקרת אליקסיר ${myGrant.maxElixir}`, '📈');
     if (myGrant.coins)                 add(`קיבלת ${myGrant.coins} מטבעות`, '🪙');
-    if (myGrant.gems)                  add(`קיבלת ${myGrant.gems} יהלומים`, '💎');
+    if (myGrant.gems)                  add(`קיבלת ${myGrant.gems} יהלומןם`, '💎');
     if (myGrant.trophies)              add(`קיבלת ${myGrant.trophies} גביעים`, '🏆');
-    if (myGrant.maxLevels)             add('רמות מקס לכל הדמויות', '🚀');
+    if (myGrant.maxLevels)             add('רמות טורבו לכל הדמויות', '🚀');
     if (myGrant.customJS)              add('כוח מיוחד פעיל (AI)', '🎁');
 
     if (!extras.firstChild) extras.style.display = 'none';
@@ -730,7 +730,7 @@ async function callGeminiGrantAI(userMessage, targetName) {
     const key = localStorage.getItem('brawlclash_gemini_key');
     if (!key) throw new Error('no-key');
     const systemPreamble = [
-        "You are the admin-grant AI for a browser game called BrawlClash. The user talking to you is the super-admin. They want to grant (or revoke) admin-panel powers on another player's account. Always reply in Hebrew, casually.",
+        "You are the admin-grant AI for a browser game called PixelArena. The user talking to you is the super-admin. They want to grant (or revoke) admin-panel powers on another player's account. Always reply in Hebrew, casually.",
         "Return JSON ONLY (no markdown, no code fences) with this shape:",
         "{",
         '  "reply": "<short friendly Hebrew response, 1-3 sentences>",',
@@ -756,8 +756,8 @@ async function callGeminiGrantAI(userMessage, targetName) {
         "    deleteUnit            — shows the 🗑️ button in battle",
         "    canGrantAdmin         — target gets the ✨ button (can grant admin to others)",
         "    canRevokeAdmin        — target gets the 🚫 button (can revoke admin)",
-        "    libiCard              — adds the secret 💖 Libi card to the deck (0-elixir invulnerable unit, one-shots everything). Hebrew: ליבי.",
-        "    barryCard             — adds the secret 🍦 Barry card (15-elixir, 4000HP, generates ice-cream auras). Hebrew: בארי.",
+        "    libiCard              — adds the secret 💖 Libi card to the deck (0-elixir invulnerable unit, one-shots everything). Hebrew: לאלי.",
+        "    barryCard             — adds the secret 🍦 Barry card (15-elixir, 4000HP, generates ice-cream auras). Hebrew: צ'יל.",
         "",
         "  Parametric multipliers (numbers; 0 = no override, 1 = default, >1 = buff):",
         "    speedMultiplier, dmgMultiplier, hpMultiplier, safeHpMultiplier,",
@@ -857,9 +857,9 @@ function _normalizeGeminiFlags(raw) {
         // Secret admin-only cards — accept every reasonable spelling the
         // AI might come up with (English / Hebrew / camelCase / snake_case).
         libi:            'libiCard',         libi_card:     'libiCard',
-        libiUnit:        'libiCard',         'ליבי':        'libiCard',
+        libiUnit:        'libiCard',         'לאלי':        'libiCard',
         barry:           'barryCard',        barry_card:    'barryCard',
-        barryUnit:       'barryCard',        'בארי':        'barryCard'
+        barryUnit:       'barryCard',        'צ'יל':        'barryCard'
     };
     const out = {};
     Object.keys(raw).forEach(k => {
@@ -984,7 +984,7 @@ function parseAdminRequest(text) {
         grant.infiniteElixir = true;
     }
 
-    if (has('רמה מקסימלית', 'רמות מקס', 'מקס רמות', 'רמות מקסימום', 'כל הדמויות מקסימום',
+    if (has('רמה טורבוימלית', 'רמות טורבו', 'טורבו רמות', 'רמות מקסימום', 'כל הדמויות מקסימום',
             'max levels', 'max level', 'maximum level')) {
         grant.maxLevels = true;
     }
@@ -1016,8 +1016,8 @@ function parseAdminRequest(text) {
     const startEl = t.match(/(?:התחלה של|התחיל עם|התחלתי|טעינה של|starting elixir|start with|start elixir|initial elixir)\s*(\d+)/i);
     if (startEl) grant.startingElixir = parseInt(startEl[1], 10);
 
-    // "מקסימום אליקסיר 20" / "max elixir 20" / "אליקסיר מקס 20"
-    const maxEl = t.match(/(?:אליקסיר מקס|מקסימום אליקסיר|מקס אליקסיר|max elixir|elixir cap)\s*(\d+)/i);
+    // "מקסימום אליקסיר 20" / "max elixir 20" / "אליקסיר טורבו 20"
+    const maxEl = t.match(/(?:אליקסיר טורבו|מקסימום אליקסיר|טורבו אליקסיר|max elixir|elixir cap)\s*(\d+)/i);
     if (maxEl) grant.maxElixir = parseInt(maxEl[1], 10);
 
     // "גודל X2" / "רדיוס X2" / "size x2" / "radius x2"
@@ -1052,7 +1052,7 @@ function parseAdminRequest(text) {
     if (botOnly) grant.botOnlyCardId = botOnly[1].toLowerCase();
 
     // Behavioural toggles
-    if (has('טווח אינסופי', 'טווח ללא גבול', 'infinite range', 'unlimited range')) grant.infiniteRange = true;
+    if (has('טווח אינסופי', 'טווח ללא גטאורו', 'infinite range', 'unlimited range')) grant.infiniteRange = true;
     if (has('בלתי נראה', 'שקוף', 'invisible', 'stealth', 'permanent invis')) grant.permanentInvisible = true;
     if (has('קלפים חינם', 'עלות 0', 'free cards', 'zero cost')) grant.freeCards = true;
     if (has('refund', 'החזר מלא', 'החזר אליקסיר', 'full refund')) grant.fullRefund = true;
@@ -1072,10 +1072,10 @@ function parseAdminRequest(text) {
     if (wantRevoke || wantBoth) grant.canRevokeAdmin = true;
 
     // Secret admin-only cards — match the brawler name in Hebrew or English.
-    // "תן לו ליבי" / "give him libi" / "ליבי" / "libi" all enable libiCard.
-    if (has('ליבי', 'libi'))   grant.libiCard  = true;
-    if (has('בארי', 'barry'))  grant.barryCard = true;
-    if (has('לומי', 'lumi'))   grant.lumiCard  = true;
+    // "תן לו לאלי" / "give him libi" / "לאלי" / "libi" all enable libiCard.
+    if (has('לאלי', 'libi'))   grant.libiCard  = true;
+    if (has('צ'יל', 'barry'))  grant.barryCard = true;
+    if (has('לומן', 'lumi'))   grant.lumiCard  = true;
 
     // Complex behaviours — expressed as a pre-built customJS snippet lookup so
     // they work without the Gemini API. The flags themselves stay false; the
@@ -1140,7 +1140,7 @@ function parseAdminRequest(text) {
     // --- Currency grants ----------------------------------------------
     const coinsMatch = t.match(/(\d[\d,\.]*)\s*(?:מטבעות|זהב|coins?|gold)/i);
     if (coinsMatch) grant.coins = parseInt(coinsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
-    const gemsMatch = t.match(/(\d[\d,\.]*)\s*(?:יהלומים|יהלום|gems?|diamonds?)/i);
+    const gemsMatch = t.match(/(\d[\d,\.]*)\s*(?:יהלומןם|יהלום|gems?|diamonds?)/i);
     if (gemsMatch) grant.gems = parseInt(gemsMatch[1].replace(/[,\.]/g, ''), 10) || 0;
     const trophiesMatch = t.match(/(\d[\d,\.]*)\s*(?:גביעים|גביע|trophies|trophy)/i);
     if (trophiesMatch) grant.trophies = parseInt(trophiesMatch[1].replace(/[,\.]/g, ''), 10) || 0;
@@ -1163,7 +1163,7 @@ function parseAdminRequest(text) {
     const editAll = has('עריכת הכל', 'לערוך הכל', 'edit all currencies', 'edit all currency', 'all editors');
     const _edit = (phrases) => phrases.some(p => t.includes(p));
     if (editAll || _edit(['לערוך מטבעות', 'עריכת מטבעות', 'edit coins', 'coins editor', 'coin editor'])) grant.editCoins = true;
-    if (editAll || _edit(['לערוך יהלומים', 'עריכת יהלומים', 'edit gems', 'gems editor', 'gem editor'])) grant.editGems = true;
+    if (editAll || _edit(['לערוך יהלומןם', 'עריכת יהלומןם', 'edit gems', 'gems editor', 'gem editor'])) grant.editGems = true;
     if (editAll || _edit(['לערוך קרדיטים', 'עריכת קרדיטים', 'edit credits', 'credits editor', 'credit editor'])) grant.editCredits = true;
     if (editAll || _edit(['לערוך כוח', 'עריכת כוח', 'לערוך חוזקה', 'עריכת חוזקה', 'edit pp', 'pp editor', 'edit power'])) grant.editPp = true;
     if (editAll || _edit(['לערוך גביעים', 'עריכת גביעים', 'edit trophies', 'trophies editor', 'trophy editor'])) grant.editTrophies = true;
@@ -1199,13 +1199,13 @@ function _describeFlags(f) {
     if (f.hpMultiplier) bits.push(`חיים ×${f.hpMultiplier}`);
     if (f.safeHpMultiplier) bits.push(`כספת ×${f.safeHpMultiplier}`);
     if (f.startingElixir) bits.push(`התחלה ${f.startingElixir} אליקסיר`);
-    if (f.maxElixir) bits.push(`מקס אליקסיר ${f.maxElixir}`);
+    if (f.maxElixir) bits.push(`טורבו אליקסיר ${f.maxElixir}`);
     if (f.coins) bits.push(`${f.coins} 🪙`);
     if (f.gems) bits.push(`${f.gems} 💎`);
     if (f.trophies) bits.push(`${f.trophies} 🏆`);
     if (f.credits) bits.push(`${f.credits} 🎟️`);
     if (f.pp) bits.push(`${f.pp} 💪`);
-    if (f.maxLevels) bits.push('רמות מקס');
+    if (f.maxLevels) bits.push('רמות טורבו');
     if (f.canGrantAdmin) bits.push('✨ יכול להעניק אדמין');
     if (f.canRevokeAdmin) bits.push('🚫 יכול למחוק אדמין');
     // Editor permissions — group into one chip so the preview stays compact.
@@ -1376,11 +1376,11 @@ async function submitGrantAdmin() {
     if (flags.hpMultiplier) parts.push(`חיים ×${flags.hpMultiplier}`);
     if (flags.safeHpMultiplier) parts.push(`כספת ×${flags.safeHpMultiplier}`);
     if (flags.startingElixir) parts.push(`התחלה ${flags.startingElixir} אליקסיר`);
-    if (flags.maxElixir) parts.push(`מקס אליקסיר ${flags.maxElixir}`);
+    if (flags.maxElixir) parts.push(`טורבו אליקסיר ${flags.maxElixir}`);
     if (flags.coins) parts.push(`${flags.coins} 🪙`);
     if (flags.gems) parts.push(`${flags.gems} 💎`);
     if (flags.trophies) parts.push(`${flags.trophies} 🏆`);
-    if (flags.maxLevels) parts.push('רמות מקס');
+    if (flags.maxLevels) parts.push('רמות טורבו');
     if (flags.customJS) parts.push('כוח מיוחד (קוד דינמי)');
     result.style.color = '#2ecc71';
     result.innerText = parts.length

@@ -13,7 +13,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>BrawlClash</title>
+    <title>PixelArena</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Assistant:wght@400;700&display=swap"
@@ -357,7 +357,7 @@
                          safe in target-selection. -->
                     <button id="bonnie-transform-btn"
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #a29bfe; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #6c5ce7; transition: background-color 0.2s;"
-                        title="הפוך בוני לברוס מיוחד">🪄</button>
+                        title="הפוך סנייפר לגריזון מיוחד">🪄</button>
 
                     <!-- Amber path button — appears while the Amber card is
                          selected. First click enters path mode (each map click
@@ -367,7 +367,7 @@
                          the rest are her walking destinations. -->
                     <button id="amber-path-btn" onclick="toggleAmberPathMode()"
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #e67e22; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #a04e0a; transition: background-color 0.2s;"
-                        title="בחר מסלול לאמבר (עד 6 נקודות)">🎯</button>
+                        title="בחר מסלול לפייר (עד 6 נקודות)">🎯</button>
 
                     <!-- 🎂 Blow-out-candles button — visible whenever the
                          player has an alive cake on the field. Clicking it
@@ -392,7 +392,7 @@
                          also exits (per user spec). -->
                     <button id="gigi-teleport-btn"
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #e91e63; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #ad1457; transition: background-color 0.2s;"
-                        title="שגר את גיגי">🩰✨</button>
+                        title="שגר את טווירל">🩰✨</button>
 
                     <!-- 🐧💥 Mr-P self-destruct button — visible whenever
                          the player has at least one alive Mr-P spawner.
@@ -404,7 +404,7 @@
                          repurpose elixir for a different push). -->
                     <button id="mrp-kill-btn"
                         style="display:none; font-family: 'Fredoka One', cursive; background-color: #54a0ff; color: white; border: 4px solid #fff; border-radius: 50%; cursor: pointer; box-shadow: 0 6px #2473a6; transition: background-color 0.2s;"
-                        title="הרוס את כל מיסטר פי שלך">🐧💥</button>
+                        title="הרוס את כל פורטר שלך">🐧💥</button>
 
                     <!-- Admin: Delete-Enemy-Unit button — stacks above bull-dash
                          on the bottom-right of the map while adminHacks.deleteUnit
@@ -745,7 +745,7 @@
         <div id="username-overlay" class="screen overlay" style="background: linear-gradient(135deg, #2980b9, #2c3e50); z-index: 9999; flex-direction: column; align-items: center; justify-content: center;">
             <div class="menu-box" style="max-width: 400px; width: 90%; text-align: center; border: 5px solid #f1c40f;">
                 <h1 style="color: #f1c40f; font-size: 2.5rem; margin-bottom: 20px; text-shadow: 0 4px #000;">ברוך הבא!</h1>
-                <p style="color: white; font-size: 1.2rem; margin-bottom: 25px;">איך קוראים לך ב-BrawlClash?</p>
+                <p style="color: white; font-size: 1.2rem; margin-bottom: 25px;">איך קוראים לך ב-PixelArena?</p>
                 <input type="text" id="username-input" placeholder="הכנס שם משתמש..." maxlength="12" style="width: 100%; padding: 15px; border-radius: 12px; border: 3px solid #34495e; font-size: 1.2rem; font-family: 'Assistant', sans-serif; text-align: center; margin-bottom: 12px; color: #000;">
                 <!-- Password field — required at signup, asked again whenever
                      the user performs a sensitive action (grant / revoke
@@ -918,19 +918,19 @@
                 <div class="hack-row"><div class="hack-label">⏱️ קצב זמן</div><input type="number" step="0.1" min="0" max="10" value="1" class="admin-num-input" oninput="setAdminNumber('timeScale', this.value)"></div>
                 <div class="hack-description">קצב כל המשחק. 0.5 = סלואו-מושן, 3 = מהיר פי 3, קרוב ל-0 = הקפאה.</div>
                 <div class="hack-row"><div class="hack-label">💰 הכנסה אוטומטית</div><div id="toggle-autoIncome" class="toggle-switch-btn" onclick="toggleAdminHack('autoIncome')">כבוי</div></div>
-                <div class="hack-description">כל 10 שניות מקבלים +100 מטבעות ו-+5 יהלומים באופן אוטומטי.</div>
+                <div class="hack-description">כל 10 שניות מקבלים +100 מטבעות ו-+5 יהלומןם באופן אוטומטי.</div>
                 <div class="hack-row"><div class="hack-label">⭐ כל הסטאר-פאוורס</div><div id="toggle-allStarPowers" class="toggle-switch-btn" onclick="toggleAdminHack('allStarPowers')">כבוי</div></div>
                 <div class="hack-description">כל הדמויות שלך מפעילות את שני הסטאר-פאוורס (SP1+SP2) בו-זמנית.</div>
                 <div class="hack-row"><div class="hack-label">🗑️ מחיקת דמות</div><div id="toggle-deleteUnit" class="toggle-switch-btn" onclick="toggleAdminHack('deleteUnit')">כבוי</div></div>
                 <div class="hack-description">במהלך הקרב יופיע כפתור 🗑️ מעל בר האליקסיר מימין. לחיצה עליו מפעילה מצב מחיקה — כל דמות אויב שתלחץ עליה במפה תימחק מיד, והמצב נשאר דלוק עד שתלחץ שוב על הכפתור לכיבוי.</div>
                 <div class="hack-row"><div class="hack-label">🛡️ ביטול אדמין</div><div id="toggle-cancelAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('cancelAdmin')">כבוי</div></div>
                 <div class="hack-description">בקרבות P2P, כל הכוחות של היריב לא יחולו אצלך: הדמויות שלו יגיעו עם סטטיסטיקות בסיס (לא doubleDamage, לא HP×N), גוד-מוד לא מגן עליו אצלך, והכספת שלו לא תקבל בוסט HP. (היריב ממשיך לראות את הכוחות אצלו — זה משפיע רק על המסך שלך).</div>
-                <div class="hack-row"><div class="hack-label">💖 ליבי</div><div id="toggle-libiCard" class="toggle-switch-btn" onclick="toggleAdminHack('libiCard')">כבוי</div></div>
-                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם ליבי שעולה 0 אליקסיר. ליבי חסינה לחלוטין (חיים אינסופיים) וכל מכה שלה מחסלת מיד את היעד.</div>
-                <div class="hack-row"><div class="hack-label">🍦 בארי</div><div id="toggle-barryCard" class="toggle-switch-btn" onclick="toggleAdminHack('barryCard')">כבוי</div></div>
-                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם בארי. בארי עולה 15 אליקסיר (דורש max-elixir גבוה או אליקסיר אינסופי), חיים 4000, וניתן להציב אותה רק בחצי של היריב. כל 5 שניות נטענת לה גלידה — לחיצה על הכפתור 🍦 בצד תאפשר לך להציב גלידה בכל מקום במפה (טווח כמו ספייק, נזק 150 לשנייה). מקסימום 4 גלידות ו-2 בארי במגרש בו-זמנית.</div>
-                <div class="hack-row"><div class="hack-label">🌟 לומי</div><div id="toggle-lumiCard" class="toggle-switch-btn" onclick="toggleAdminHack('lumiCard')">כבוי</div></div>
-                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם לומי (5 אליקסיר, ללא הגבלת מספר במגרש). חבטה חד-פעמית + שיתוק: ברגע שמציבים אותה — כל יחידות וכל בניינים של האויב על המפה (1) סופגים נזק חד-פעמי לפי הטבעת בה הם נמצאים (פנימי 500, אמצעי 1,000, חיצוני 1,000), (2) לא יכולים לזוז ולא לתקוף למשך 2 שניות. הנזק לא מצטבר — כל יחידה סופגת רק את נזק הטבעת בה היא נמצאת באותו רגע, חבטה אחת בלבד. לומי עצמה נעלמת אחרי שנייה אחת.</div>
+                <div class="hack-row"><div class="hack-label">💖 לאלי</div><div id="toggle-libiCard" class="toggle-switch-btn" onclick="toggleAdminHack('libiCard')">כבוי</div></div>
+                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם לאלי שעולה 0 אליקסיר. לאלי חסינה לחלוטין (חיים אינסופיים) וכל מכה שלה מחסלת מיד את היעד.</div>
+                <div class="hack-row"><div class="hack-label">🍦 צ'יל</div><div id="toggle-barryCard" class="toggle-switch-btn" onclick="toggleAdminHack('barryCard')">כבוי</div></div>
+                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם צ'יל. צ'יל עולה 15 אליקסיר (דורש max-elixir גבוה או אליקסיר אינסופי), חיים 4000, וניתן להציב אותה רק בחצי של היריב. כל 5 שניות נטענת לה גלידה — לחיצה על הכפתור 🍦 בצד תאפשר לך להציב גלידה בכל מקום במפה (טווח כמו תורן, נזק 150 לשנייה). מקסימום 4 גלידות ו-2 צ'יל במגרש בו-זמנית.</div>
+                <div class="hack-row"><div class="hack-label">🌟 לומן</div><div id="toggle-lumiCard" class="toggle-switch-btn" onclick="toggleAdminHack('lumiCard')">כבוי</div></div>
+                <div class="hack-description">מוסיף לחפיסה קלף סודי בשם לומן (5 אליקסיר, ללא הגבלת מספר במגרש). חבטה חד-פעמית + שיתוק: ברגע שמציבים אותה — כל יחידות וכל בניינים של האויב על המפה (1) סופגים נזק חד-פעמי לפי הטבעת בה הם נמצאים (קוויןמי 500, אמצעי 1,000, חיצוני 1,000), (2) לא יכולים לזוז ולא לתקוף למשך 2 שניות. הנזק לא מצטבר — כל יחידה סופגת רק את נזק הטבעת בה היא נמצאת באותו רגע, חבטה אחת בלבד. לומן עצמה נעלמת אחרי שנייה אחת.</div>
 
                 <div class="admin-section-title">🗝️ מנהל-משנה</div>
                 <div class="hack-row"><div class="hack-label">✨ יכול להעניק אדמין</div><div id="toggle-canGrantAdmin" class="toggle-switch-btn" onclick="toggleAdminHack('canGrantAdmin')">כבוי</div></div>
@@ -947,7 +947,7 @@
                     <button class="editor-set-btn gold" onclick="setAdminCurrency('coins')">הגדר</button>
                 </div>
                 <div class="editor-row">
-                    <div class="editor-label">💎 יהלומים</div>
+                    <div class="editor-label">💎 יהלומןם</div>
                     <input type="number" id="admin-gems-input" class="editor-input" value="1">
                     <button class="editor-set-btn gems" onclick="setAdminCurrency('gems')">הגדר</button>
                 </div>
@@ -1027,7 +1027,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     
     <!-- Game Core & Config -->
-    <script src="config.js?v=17.2"></script>
+    <script src="config.js?v=17.3"></script>
     <script src="globals.js?v=17.4"></script>
     <script src="audio.js?v=3.8"></script>
     
@@ -1053,12 +1053,12 @@
     <script src="scripts/ui/ui-brawlers.js?v=15.8"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.1"></script>
     <script src="scripts/ui/ui-progression.js?v=16.4"></script>
-    <script src="scripts/ui/ui-admin.js?v=9.90"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.91"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/ui-quests.js?v=1.3"></script>
     <script src="scripts/ui/ui-event.js?v=1.3"></script>
-    <script src="scripts/ui/ui-shop-premium.js?v=1.3"></script>
-    <script src="scripts/ui/tutorial.js?v=15.0"></script>
+    <script src="scripts/ui/ui-shop-premium.js?v=1.4"></script>
+    <script src="scripts/ui/tutorial.js?v=15.1"></script>
 
     <!-- AI & Battle Module -->
     <script src="scripts/ai/ai-core.js?v=7.1"></script>
@@ -1071,7 +1071,7 @@
     <script src="scripts/engine/engine-core.js?v=17.4"></script>
     <script src="scripts/engine/engine-physics.js?v=13.6"></script>
     <script src="scripts/engine/engine-renderer.js?v=14.3"></script>
-    <script src="scripts/engine/engine-input.js?v=15.1"></script>
+    <script src="scripts/engine/engine-input.js?v=15.2"></script>
 </body>
 
 </html>
