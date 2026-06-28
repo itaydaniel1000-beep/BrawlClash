@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ברוכים הבאים</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: #fff;
+      overflow: auto;
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 24px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-size: clamp(28px, 6vw, 48px);
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: clamp(15px, 3vw, 20px);
+      opacity: 0.85;
+      margin-bottom: 40px;
+    }
+
+    .choices {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .choice-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      font-size: clamp(22px, 5vw, 32px);
+      font-weight: 700;
+      padding: 28px 56px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+      backdrop-filter: blur(6px);
+    }
+
+    .choice-btn:hover {
+      transform: translateY(-6px) scale(1.04);
+      background: rgba(255, 255, 255, 0.25);
+      border-color: #fff;
+    }
+
+    .choice-btn:active {
+      transform: translateY(-2px) scale(1.0);
+    }
+
+    /* Under-construction screen */
+    .construction-icon {
+      font-size: clamp(64px, 16vw, 110px);
+      margin-bottom: 20px;
+      animation: bob 2.2s ease-in-out infinite;
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-14px); }
+    }
+
+    .greeting {
+      font-size: clamp(18px, 4vw, 26px);
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .construction-text {
+      font-size: clamp(24px, 6vw, 40px);
+      font-weight: 800;
+      margin-bottom: 32px;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: min(420px, 90vw);
+      margin-bottom: 16px;
+    }
+
+    .preset-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .preset-btn:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* תצוגת 3 תורים (אצל אמי) */
+    .preset-cols {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      align-items: flex-start;
+      width: min(620px, 94vw);
+      margin-bottom: 16px;
+    }
+
+    .preset-col {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex: 1;
+    }
+
+    .preset-col-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 3px;
+      letter-spacing: 0.5px;
+    }
+
+    .preset-cols .preset-btn {
+      width: 100%;
+      font-size: 14px;
+      padding: 9px 8px;
+    }
+
+    .note-box {
+      width: min(420px, 90vw);
+      min-height: 110px;
+      font-family: inherit;
+      font-size: 17px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      resize: vertical;
+      margin-bottom: 16px;
+      outline: none;
+    }
+
+    .note-box::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 18px;
+    }
+
+    .action-btn {
+      border: none;
+      color: #1e3c72;
+      background: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 12px 26px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-3px);
+      opacity: 0.92;
+    }
+
+    .saved-view {
+      width: min(420px, 90vw);
+      min-height: 40px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 17px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 22px;
+      display: none;
+    }
+
+    .saved-view.show {
+      display: block;
+    }
+
+    .saved-view .empty {
+      opacity: 0.6;
+    }
+
+    .back-btn {
+      background: transparent;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      color: #fff;
+      font-size: 17px;
+      padding: 12px 30px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.18s ease;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* כפתור טבלה בפינה השמאלית */
+    .table-corner-btn {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.15s ease;
+    }
+
+    .table-corner-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    /* כפתור סוף יום — בצד ימין */
+    .table-corner-btn-right {
+      left: auto;
+      right: 18px;
+    }
+
+    /* לוח שנה קטן עם התאריך האמיתי של היום */
+    .cal-badge {
+      display: inline-flex;
+      flex-direction: column;
+      width: 26px;
+      height: 26px;
+      border-radius: 5px;
+      overflow: hidden;
+      background: #fff;
+      vertical-align: middle;
+      margin-left: 7px;
+      line-height: 1;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .cal-badge .cal-top {
+      height: 7px;
+      background: #e74c3c;
+    }
+
+    .cal-badge .cal-day {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e3c72;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    /* שתי טבלאות זו לצד זו */
+    .tables-wrap {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      width: min(920px, 96vw);
+      margin-bottom: 22px;
+    }
+
+    .table-block {
+      flex: 1 1 300px;
+      min-width: 270px;
+    }
+
+    .table-title {
+      font-size: 19px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .table-block .week-table {
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    /* טבלה שבועית */
+    .week-table {
+      border-collapse: collapse;
+      width: min(640px, 94vw);
+      margin-bottom: 22px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .week-table th,
+    .week-table td {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .week-table th {
+      background: rgba(255, 255, 255, 0.18);
+      font-weight: 700;
+    }
+
+    .week-table td.day-name {
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .week-table tr.today td {
+      background: rgba(255, 215, 0, 0.18);
+    }
+
+    .week-table select {
+      width: 100%;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 7px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: #2a5298;
+      color: #fff;
+      cursor: pointer;
+    }
+  </style>
+
+  <!-- Firebase SDK (בסיס נתונים משותף בענן) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    // ============================================================
+    //  הדבק כאן את ההגדרות מפרויקט ה-Firebase שלך (Project settings)
+    //  כל עוד זה מכיל "YOUR_..." האתר יעבוד מקומית בלבד (ללא שיתוף)
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyANxkGng3Nai2y6Nn0f92LtHnas83tNVZY",
+      authDomain: "itay-yotam.firebaseapp.com",
+      projectId: "itay-yotam",
+      storageBucket: "itay-yotam.firebasestorage.app",
+      messagingSenderId: "562427083770",
+      appId: "1:562427083770:web:3b8e3f9c02a8671bcdc243"
+    };
+  </script>
+</head>
+<body>
+
+  <!-- כפתור טבלה (במהלך היום) בצד שמאל — מציג את התאריך -->
+  <button class="table-corner-btn" onclick="openTable()">
+    <span class="cal-badge"><span class="cal-top"></span><span class="cal-day" id="todayNum">–</span></span>
+    טבלה
+  </button>
+
+  <!-- כפתור טבלת סוף יום בצד ימין — מציג את מספר היום בשבוע -->
+  <button class="table-corner-btn table-corner-btn-right" onclick="openEndTable()">
+    <span class="cal-badge"><span class="cal-top"></span><span class="cal-day" id="todayWeekNum">–</span></span>
+    סוף יום
+  </button>
+
+  <!-- מסך פתיחה: מי אתה? -->
+  <section id="welcome" class="screen active">
+    <h1>מי אתה?</h1>
+    <p class="subtitle">בחר את השם שלך כדי להמשיך</p>
+    <div class="choices">
+      <button class="choice-btn" onclick="choose('יוסי')">יוסי</button>
+      <button class="choice-btn" onclick="choose('אמי')">אמי</button>
+    </div>
+  </section>
+
+  <!-- מסך טבלה שבועית (במהלך היום) -->
+  <section id="tableScreen" class="screen">
+    <h1>טבלה לשבוע הקרוב</h1>
+    <p class="subtitle">בחר לכל יום מה כל אחד רושם</p>
+    <table class="week-table">
+      <thead>
+        <tr>
+          <th>יום</th>
+          <th>יוסי</th>
+          <th>אמי</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div class="btn-row">
+      <button class="action-btn" onclick="saveTable()">שמור טבלה</button>
+    </div>
+    <button class="back-btn" onclick="goBack()">חזרה</button>
+  </section>
+
+  <!-- מסך טבלת סוף יום -->
+  <section id="endTableScreen" class="screen">
+    <h1>טבלת סוף יום</h1>
+    <p class="subtitle">בחר לכל יום מה כל אחד עושה בסוף היום</p>
+    <table class="week-table">
+      <thead>
+        <tr>
+          <th>יום</th>
+          <th>יוסי</th>
+          <th>אמי</th>
+        </tr>
+      </thead>
+      <tbody id="endTableBody"></tbody>
+    </table>
+    <div class="btn-row">
+      <button class="action-btn" onclick="saveEndTable()">שמור טבלה</button>
+    </div>
+    <button class="back-btn" onclick="goBack()">חזרה</button>
+  </section>
+
+  <!-- מסך "בבנייה" -->
+  <section id="construction" class="screen">
+    <div class="construction-icon">🚧</div>
+    <p class="greeting" id="greeting"></p>
+    <p class="construction-text">האתר עדיין בבנייה</p>
+
+    <div id="presets" class="preset-row"></div>
+
+    <textarea id="noteBox" class="note-box" placeholder="כתוב כאן משהו..."></textarea>
+    <div class="btn-row">
+      <button class="action-btn" onclick="saveNote()">שמור</button>
+      <button class="action-btn" onclick="showNote()">לראות מה הוא רשם</button>
+    </div>
+    <div id="savedView" class="saved-view"></div>
+
+    <button class="back-btn" onclick="goBack()">חזרה</button>
+  </section>
+
+  <script>
+    let showingOther = false;
+
+    // נקרא בכל פעם שמגיע עדכון מהענן — מרענן את התצוגה
+    function onCloudUpdate() {
+      if (typeof applyTableForToday === 'function') applyTableForToday();
+      if (showingOther && typeof showNote === 'function') showNote();
+    }
+
+    // אחסון: בענן (Firebase) אם מוגדר — כך שני אנשים רואים אותו מידע.
+    // אחרת נופל בחזרה ל-localStorage / זיכרון (עבודה מקומית בלבד).
+    const safeStore = (function () {
+      const mem = {};        // מראה מקומית של הנתונים
+      let lsOk = true;
+      let useCloud = false;
+      let docRef = null;
+
+      try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); }
+      catch (e) { lsOk = false; }
+
+      try {
+        const real = firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('YOUR_') !== 0;
+        if (typeof firebase !== 'undefined' && real) {
+          if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+          docRef = firebase.firestore().collection('shared').doc('data');
+          useCloud = true;
+          docRef.onSnapshot(function (snap) {
+            const data = snap.exists ? snap.data() : {};
+            Object.keys(data).forEach(function (k) { mem[k] = data[k]; });
+            onCloudUpdate();
+          });
+        }
+      } catch (e) { useCloud = false; }
+
+      return {
+        isCloud: function () { return useCloud; },
+        get: function (k) {
+          if (k in mem) return mem[k];
+          if (!useCloud && lsOk) { try { return localStorage.getItem(k); } catch (e) {} }
+          return null;
+        },
+        set: function (k, v) {
+          if (mem[k] === v) return;   // ללא שינוי — לדלג (מונע לולאת כתיבה לענן)
+          mem[k] = v;
+          if (useCloud && docRef) {
+            const upd = {}; upd[k] = v;
+            docRef.set(upd, { merge: true }).catch(function () {});
+          } else if (lsOk) {
+            try { localStorage.setItem(k, v); } catch (e) {}
+          }
+        }
+      };
+    })();
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // אופציות מוכנות מראש לכל משתמש
+    const PRESETS = {
+      'יוסי': ['מתעקב', 'מגיע', 'לא מגיע תלך בלעדיי'],
+      'אמי': ['מתעקב', 'מגיע', 'אצל אמא', 'מגיע אצל אמא', 'אצל אמא מתעקב', 'אצל אבא', 'מגיע אצל אבא', 'אצל אבא מתעקב', 'לא מגיע תלך בלעדיי']
+    };
+
+    const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+
+    function todayName() {
+      return DAYS[new Date().getDay()];
+    }
+
+    function loadTable() {
+      try { return JSON.parse(safeStore.get('weekTable') || '{}'); }
+      catch (e) { return {}; }
+    }
+
+    // מחיל את הטבלה של היום על שני האנשים אוטומטית (רץ תמיד ברקע)
+    function applyTableForToday() {
+      const table = loadTable();
+      const today = todayName();
+      const plan = table[today] || {};
+      ['יוסי', 'אמי'].forEach(function (person) {
+        const planned = plan[person];
+        if (planned && planned.trim() !== '') {
+          safeStore.set('note_' + person, planned);
+        }
+      });
+    }
+
+    // בניית הטבלה עם תפריטי בחירה לכל יום ולכל אחד
+    function renderTable() {
+      const saved = loadTable();
+      const today = todayName();
+      const body = document.getElementById('tableBody');
+      body.innerHTML = '';
+
+      DAYS.forEach(function (day) {
+        const tr = document.createElement('tr');
+        if (day === today) tr.className = 'today';
+
+        const dayCell = document.createElement('td');
+        dayCell.className = 'day-name';
+        dayCell.textContent = day + (day === today ? ' (היום)' : '');
+        tr.appendChild(dayCell);
+
+        ['יוסי', 'אמי'].forEach(function (person) {
+          const td = document.createElement('td');
+          const sel = document.createElement('select');
+          sel.dataset.day = day;
+          sel.dataset.person = person;
+
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = '—';
+          sel.appendChild(blank);
+
+          PRESETS[person].forEach(function (opt) {
+            const o = document.createElement('option');
+            o.value = opt;
+            o.textContent = opt;
+            sel.appendChild(o);
+          });
+
+          const savedVal = (saved[day] && saved[day][person]) || '';
+          sel.value = savedVal;
+
+          td.appendChild(sel);
+          tr.appendChild(td);
+        });
+
+        body.appendChild(tr);
+      });
+    }
+
+    // אופציות לטבלת "סוף יום" (לשני האנשים)
+    const END_OPTIONS = ['לא מגיע', 'אצל אמא', 'אצל אבא'];
+
+    function loadEndTable() {
+      try { return JSON.parse(safeStore.get('endDayTable') || '{}'); }
+      catch (e) { return {}; }
+    }
+
+    // בניית טבלת "סוף יום"
+    function renderEndTable() {
+      const saved = loadEndTable();
+      const today = todayName();
+      const body = document.getElementById('endTableBody');
+      body.innerHTML = '';
+
+      DAYS.forEach(function (day) {
+        const tr = document.createElement('tr');
+        if (day === today) tr.className = 'today';
+
+        const dayCell = document.createElement('td');
+        dayCell.className = 'day-name';
+        dayCell.textContent = day + (day === today ? ' (היום)' : '');
+        tr.appendChild(dayCell);
+
+        ['יוסי', 'אמי'].forEach(function (person) {
+          const td = document.createElement('td');
+          const sel = document.createElement('select');
+          sel.dataset.day = day;
+          sel.dataset.person = person;
+
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = '—';
+          sel.appendChild(blank);
+
+          END_OPTIONS.forEach(function (opt) {
+            const o = document.createElement('option');
+            o.value = opt;
+            o.textContent = opt;
+            sel.appendChild(o);
+          });
+
+          sel.value = (saved[day] && saved[day][person]) || '';
+
+          td.appendChild(sel);
+          tr.appendChild(td);
+        });
+
+        body.appendChild(tr);
+      });
+    }
+
+    function openTable() {
+      renderTable();
+      showScreen('tableScreen');
+    }
+
+    function openEndTable() {
+      renderEndTable();
+      showScreen('endTableScreen');
+    }
+
+    function collectTable(selector) {
+      const data = {};
+      document.querySelectorAll(selector).forEach(function (sel) {
+        const day = sel.dataset.day;
+        const person = sel.dataset.person;
+        if (!data[day]) data[day] = {};
+        data[day][person] = sel.value;
+      });
+      return data;
+    }
+
+    function saveTable() {
+      safeStore.set('weekTable', JSON.stringify(collectTable('#tableBody select')));
+      applyTableForToday();
+      alert('הטבלה נשמרה ✓');
+    }
+
+    function saveEndTable() {
+      safeStore.set('endDayTable', JSON.stringify(collectTable('#endTableBody select')));
+      alert('הטבלה נשמרה ✓');
+    }
+
+    function makePresetBtn(option) {
+      const btn = document.createElement('button');
+      btn.className = 'preset-btn';
+      btn.textContent = option;
+      btn.onclick = function () {
+        document.getElementById('noteBox').value = option;
+      };
+      return btn;
+    }
+
+    function renderPresets(name) {
+      const wrap = document.getElementById('presets');
+      wrap.innerHTML = '';
+      const options = PRESETS[name] || [];
+
+      // אצל אמי — 3 תורים: ימין=אמא, אמצע=רגיל, שמאל=אבא
+      if (name === 'אמי') {
+        wrap.className = 'preset-cols';
+        const columns = [
+          { title: 'אמא', items: options.filter(function (o) { return o.indexOf('אמא') !== -1; }) },
+          { title: 'רגיל', items: options.filter(function (o) { return o.indexOf('אמא') === -1 && o.indexOf('אבא') === -1; }) },
+          { title: 'אבא', items: options.filter(function (o) { return o.indexOf('אבא') !== -1; }) }
+        ];
+        columns.forEach(function (col) {
+          const colEl = document.createElement('div');
+          colEl.className = 'preset-col';
+          const h = document.createElement('div');
+          h.className = 'preset-col-title';
+          h.textContent = col.title;
+          colEl.appendChild(h);
+          col.items.forEach(function (o) { colEl.appendChild(makePresetBtn(o)); });
+          wrap.appendChild(colEl);
+        });
+      } else {
+        // אצל יוסי — שורה רגילה
+        wrap.className = 'preset-row';
+        options.forEach(function (o) { wrap.appendChild(makePresetBtn(o)); });
+      }
+    }
+
+    // מי אני — מקומי למכשיר הזה בלבד (לא מסונכרן לענן)
+    let currentUserName = null;
+
+    function choose(name) {
+      showingOther = false;
+      currentUserName = name;
+
+      document.getElementById('greeting').textContent = 'שלום ' + name + '!';
+
+      // התיבה תמיד מתחילה ריקה (כדי שתוצג ההנחיה "כתוב כאן משהו...")
+      document.getElementById('noteBox').value = '';
+      document.getElementById('savedView').classList.remove('show');
+
+      // הצגת האופציות המוכנות מראש של המשתמש הזה
+      renderPresets(name);
+
+      // אם בטבלה רשום משהו ליום הזה — למלא ולשלוח אוטומטית
+      const table = loadTable();
+      const today = todayName();
+      const planned = table[today] && table[today][name];
+      if (planned && planned.trim() !== '') {
+        safeStore.set('note_' + name, planned);
+        const view = document.getElementById('savedView');
+        view.innerHTML = '<span class="empty">נשלח אוטומטית מהטבלה (' + today + '): ' + planned + ' ✓</span>';
+        view.classList.add('show');
+      }
+
+      showScreen('construction');
+    }
+
+    function noteKey() {
+      return 'note_' + (currentUserName || '');
+    }
+
+    function saveNote() {
+      showingOther = false;
+      const text = document.getElementById('noteBox').value;
+      safeStore.set(noteKey(), text);
+      const view = document.getElementById('savedView');
+      view.innerHTML = '<span class="empty">נשמר ✓</span>';
+      view.classList.add('show');
+    }
+
+    function otherUser() {
+      return currentUserName === 'יוסי' ? 'אמי' : 'יוסי';
+    }
+
+    function showNote() {
+      showingOther = true;
+      const other = otherUser();
+      const text = safeStore.get('note_' + other);
+      const view = document.getElementById('savedView');
+      if (text && text.trim() !== '') {
+        view.textContent = other + ' רשם: ' + text;
+      } else {
+        view.innerHTML = '<span class="empty">' + other + ' עדיין לא רשם כלום</span>';
+      }
+      view.classList.add('show');
+    }
+
+    function goBack() {
+      showScreen('welcome');
+    }
+
+    // הצגת התאריך האמיתי על כפתור הטבלה, ומספר היום בשבוע על כפתור סוף יום
+    document.getElementById('todayNum').textContent = new Date().getDate();
+    document.getElementById('todayWeekNum').textContent = new Date().getDay() + 1;
+
+    // בטעינת הדף — להחיל את הטבלה של היום על שני האנשים אוטומטית
+    applyTableForToday();
+  </script>
+
+</body>
+</html>

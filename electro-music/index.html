@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON BEATS — מעבדת מוזיקה אלקטרונית</title>
+<style>
+  :root{
+    --bg:#08080f;
+    --panel:#11121f;
+    --neon1:#00f0ff;
+    --neon2:#ff00e6;
+    --neon3:#a8ff00;
+    --text:#e8e8ff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(circle at 50% 0%,#191235 0%,var(--bg) 60%);
+    color:var(--text);
+    font-family:"Segoe UI",Tahoma,sans-serif;
+    min-height:100vh;
+    padding:18px;
+    overflow-x:hidden;
+  }
+  h1{
+    text-align:center;
+    margin:6px 0 2px;
+    font-size:clamp(26px,5vw,46px);
+    letter-spacing:2px;
+    background:linear-gradient(90deg,var(--neon1),var(--neon2),var(--neon3));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 14px rgba(0,240,255,.45));
+  }
+  .sub{text-align:center;opacity:.65;margin-bottom:16px;font-size:14px}
+
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+    align-items:center;margin-bottom:18px;
+  }
+  button.ctrl{
+    background:var(--panel);color:var(--text);
+    border:1px solid rgba(255,255,255,.12);
+    padding:10px 18px;border-radius:12px;cursor:pointer;
+    font-size:15px;font-weight:600;transition:.15s;
+  }
+  button.ctrl:hover{border-color:var(--neon1);box-shadow:0 0 12px rgba(0,240,255,.4)}
+  button.rec{border-color:var(--neon2)}
+  button.rec.on{
+    background:var(--neon2);color:#fff;
+    box-shadow:0 0 22px rgba(255,0,230,.7);
+    animation:pulse 1s infinite;
+  }
+  @keyframes pulse{50%{opacity:.6}}
+  .timer{font-variant-numeric:tabular-nums;font-size:15px;opacity:.8;min-width:54px}
+
+  .wrap{max-width:880px;margin:0 auto}
+  .section-title{
+    margin:22px 4px 10px;font-size:13px;letter-spacing:3px;
+    text-transform:uppercase;opacity:.55;
+  }
+  .grid{
+    display:grid;gap:12px;
+    grid-template-columns:repeat(4,1fr);
+  }
+  .grid.melody{grid-template-columns:repeat(7,1fr)}
+  .pad{
+    position:relative;
+    border:none;border-radius:16px;cursor:pointer;
+    padding:22px 6px;min-height:78px;
+    font-size:15px;font-weight:700;color:#fff;
+    background:var(--panel);
+    border:1px solid rgba(255,255,255,.08);
+    transition:transform .05s, box-shadow .12s, background .12s;
+    user-select:none;
+  }
+  .pad .key{
+    display:block;font-size:11px;opacity:.5;margin-top:6px;font-weight:500;
+  }
+  .pad:active,.pad.hit{
+    transform:translateY(2px) scale(.97);
+  }
+  .pad.hit{box-shadow:0 0 26px var(--c),0 0 50px var(--c);background:var(--c)}
+  .pad{--c:var(--neon1)}
+  .grid.drums .pad{--c:var(--neon2)}
+  .grid.melody .pad{--c:var(--neon3)}
+  .grid.fx .pad{--c:var(--neon1)}
+
+  .hint{text-align:center;opacity:.45;font-size:12px;margin-top:26px;line-height:1.7}
+  .recordings{max-width:880px;margin:14px auto 0}
+  .recordings .clip{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid rgba(255,255,255,.1);
+    padding:10px 14px;border-radius:12px;margin-bottom:8px;
+  }
+  .recordings audio{height:34px;flex:1;min-width:180px}
+  .recordings a{
+    color:var(--neon3);text-decoration:none;font-weight:600;font-size:13px;
+    border:1px solid var(--neon3);padding:6px 12px;border-radius:8px;
+  }
+  /* ---- STEP SEQUENCER ---- */
+  .seq-controls{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px;
+  }
+  .seq-controls .bpm{
+    display:flex;align-items:center;gap:8px;font-size:14px;opacity:.85;
+  }
+  .seq-controls input[type=range]{accent-color:var(--neon1);width:120px}
+  button.seq-play.on{
+    background:var(--neon3);color:#06120a;border-color:var(--neon3);
+    box-shadow:0 0 18px rgba(168,255,0,.6);
+  }
+  .sequencer{
+    position:relative;overflow-x:auto;
+    background:var(--panel);border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;padding:12px 12px 14px;
+  }
+  .seq-row{
+    display:grid;grid-template-columns:34px repeat(16,1fr);
+    gap:5px;align-items:center;margin-bottom:5px;
+  }
+  .seq-row:last-child{margin-bottom:0}
+  .seq-row .rlabel{
+    font-size:12px;font-weight:700;opacity:.55;text-align:center;
+    white-space:nowrap;
+  }
+  .cell{
+    height:28px;border-radius:6px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:800;color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.55);
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.07);
+    transition:background .08s, box-shadow .08s;--rc:var(--neon1);
+  }
+  .cell.beat{background:rgba(255,255,255,.10)}
+  .cell.on{background:var(--rc);box-shadow:0 0 10px var(--rc)}
+  .cell.playing{outline:2px solid rgba(255,255,255,.55);outline-offset:-1px}
+  .cell.selected{outline:2px solid var(--neon3);outline-offset:2px;box-shadow:0 0 12px rgba(168,255,0,.55)}
+  .seq-hint{font-size:12px;opacity:.55;margin:0 2px 10px;line-height:1.6}
+  .playhead{
+    position:absolute;top:10px;bottom:12px;width:3px;border-radius:2px;
+    background:var(--neon3);box-shadow:0 0 14px var(--neon3);
+    pointer-events:none;display:none;transition:left .04s linear;
+  }
+  @media(max-width:560px){
+    .grid.melody{grid-template-columns:repeat(4,1fr)}
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+</style>
+</head>
+<body>
+  <h1>◢ NEON BEATS ◣</h1>
+  <div class="sub">מעבדת מוזיקה אלקטרונית — לחץ על הפדים, נגן עם המקלדת, והקלט</div>
+
+  <div class="toolbar">
+    <button class="ctrl rec" id="recBtn">● הקלט</button>
+    <span class="timer" id="timer">00:00</span>
+    <button class="ctrl" id="metroBtn">🥁 מטרונום: כבוי</button>
+  </div>
+
+  <div class="wrap">
+    <div class="section-title">סְדְּרָן ביטים — Step Sequencer</div>
+    <div class="seq-controls">
+      <button class="ctrl seq-play" id="seqToggle">▶ פליי</button>
+      <label class="bpm">קצב: <span id="bpmVal">120</span> BPM
+        <input type="range" id="bpmSlider" min="60" max="180" value="120">
+      </label>
+      <button class="ctrl" id="seqAddCol">➕ תור</button>
+      <button class="ctrl" id="seqDelCol">➖ תור</button>
+      <button class="ctrl" id="seqAddRow">➕ שורה</button>
+      <button class="ctrl" id="seqDelRow">➖ שורה</button>
+      <button class="ctrl" id="seqClear">🗑 נקה</button>
+    </div>
+    <div class="seq-hint">איך משייכים צליל: לחץ על משבצת → לחץ על קיצור מקש של צליל (האות/מספר שעל הפד) → הצליל משויך למשבצת. מחיקה: בחר משבצת ולחץ Delete.</div>
+    <div class="sequencer" id="sequencer"></div>
+
+    <div class="section-title">תופים</div>
+    <div class="grid drums" id="drums"></div>
+
+    <div class="section-title">סינתי — מלודיה</div>
+    <div class="grid melody" id="melody"></div>
+
+    <div class="section-title">בס</div>
+    <div class="grid" id="bass"></div>
+
+    <div class="section-title">אפקטים</div>
+    <div class="grid fx" id="fx"></div>
+  </div>
+
+  <div class="recordings" id="recordings"></div>
+
+  <div class="hint">
+    טיפ: אפשר לנגן עם המקלדת — האותיות/מספרים מופיעים על כל פד.<br>
+    כל מה שתנגן בזמן הקלטה יישמר לקובץ שתוכל להוריד.
+  </div>
+
+<script>
+const AC = window.AudioContext || window.webkitAudioContext;
+const ctx = new AC();
+
+// master chain + recording tap
+const master = ctx.createGain();
+master.gain.value = 0.9;
+const comp = ctx.createDynamicsCompressor();
+master.connect(comp);
+comp.connect(ctx.destination);
+
+const recDest = ctx.createMediaStreamDestination();
+comp.connect(recDest);
+
+function now(){ return ctx.currentTime; }
+function ensure(){ if(ctx.state === 'suspended') ctx.resume(); }
+
+// ---------- SOUND ENGINE ----------
+function env(node, t, a, d, peak, sustain, rel, dur){
+  const g = node.gain;
+  g.cancelScheduledValues(t);
+  g.setValueAtTime(0.0001, t);
+  g.exponentialRampToValueAtTime(peak, t+a);
+  g.exponentialRampToValueAtTime(Math.max(sustain,0.0001), t+a+d);
+  g.exponentialRampToValueAtTime(0.0001, t+dur+rel);
+}
+
+function kick(){
+  const t=now(); const o=ctx.createOscillator(), g=ctx.createGain();
+  o.frequency.setValueAtTime(150,t);
+  o.frequency.exponentialRampToValueAtTime(45,t+0.12);
+  g.gain.setValueAtTime(1,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+  o.connect(g).connect(master); o.start(t); o.stop(t+0.4);
+}
+function snare(){
+  const t=now();
+  const noise=ctx.createBufferSource();
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.2,ctx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  noise.buffer=buf;
+  const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1200;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.8,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  noise.connect(hp).connect(g).connect(master); noise.start(t); noise.stop(t+0.2);
+  const o=ctx.createOscillator(),og=ctx.createGain(); o.type='triangle'; o.frequency.value=180;
+  og.gain.setValueAtTime(0.5,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+  o.connect(og).connect(master); o.start(t); o.stop(t+0.1);
+}
+function hat(open){
+  const t=now(); const noise=ctx.createBufferSource();
+  const len=open?0.3:0.06;
+  const buf=ctx.createBuffer(1,ctx.sampleRate*len,ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  noise.buffer=buf;
+  const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=7000;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+len);
+  noise.connect(hp).connect(g).connect(master); noise.start(t); noise.stop(t+len);
+}
+function clap(){
+  const t=now();
+  for(let k=0;k<3;k++){
+    const noise=ctx.createBufferSource();
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.05,ctx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    noise.buffer=buf;
+    const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1500; bp.Q.value=1.2;
+    const g=ctx.createGain(); const st=t+k*0.012;
+    g.gain.setValueAtTime(0.6,st); g.gain.exponentialRampToValueAtTime(0.001,st+0.08);
+    noise.connect(bp).connect(g).connect(master); noise.start(st); noise.stop(st+0.08);
+  }
+}
+function tom(freq){
+  const t=now(); const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(freq,t);
+  o.frequency.exponentialRampToValueAtTime(freq*0.5,t+0.25);
+  g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+  o.connect(g).connect(master); o.start(t); o.stop(t+0.32);
+}
+
+function synthNote(freq,type='sawtooth',dur=0.5){
+  const t=now();
+  const o=ctx.createOscillator(),o2=ctx.createOscillator(),g=ctx.createGain();
+  const filt=ctx.createBiquadFilter(); filt.type='lowpass';
+  filt.frequency.setValueAtTime(4000,t); filt.frequency.exponentialRampToValueAtTime(800,t+dur);
+  o.type=type; o2.type=type; o.frequency.value=freq; o2.frequency.value=freq*1.005;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.35,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(filt); o2.connect(filt); filt.connect(g).connect(master);
+  o.start(t);o2.start(t);o.stop(t+dur+0.05);o2.stop(t+dur+0.05);
+}
+function bassNote(freq){
+  const t=now();
+  const o=ctx.createOscillator(),g=ctx.createGain(),filt=ctx.createBiquadFilter();
+  o.type='sawtooth'; o.frequency.value=freq;
+  filt.type='lowpass'; filt.frequency.setValueAtTime(900,t); filt.frequency.exponentialRampToValueAtTime(200,t+0.4);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.6,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.45);
+  o.connect(filt).connect(g).connect(master); o.start(t); o.stop(t+0.5);
+}
+// FX
+function zap(){
+  const t=now(); const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(1200,t); o.frequency.exponentialRampToValueAtTime(80,t+0.3);
+  g.gain.setValueAtTime(0.4,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+  o.connect(g).connect(master); o.start(t); o.stop(t+0.32);
+}
+function riser(){
+  const t=now(); const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(2000,t+0.8);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.3,t+0.7); g.gain.exponentialRampToValueAtTime(0.001,t+0.9);
+  o.connect(g).connect(master); o.start(t); o.stop(t+0.92);
+}
+function laser(){
+  const t=now(); const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type='square'; o.frequency.setValueAtTime(900,t);
+  o.frequency.setValueAtTime(900,t); o.frequency.exponentialRampToValueAtTime(300,t+0.15);
+  g.gain.setValueAtTime(0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  o.connect(g).connect(master); o.start(t); o.stop(t+0.2);
+}
+function vinyl(){
+  const t=now(); const noise=ctx.createBufferSource();
+  const buf=ctx.createBuffer(1,ctx.sampleRate*0.4,ctx.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.5;
+  noise.buffer=buf; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3000;
+  const g=ctx.createGain(); g.gain.setValueAtTime(0.4,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+  noise.connect(lp).connect(g).connect(master); noise.start(t); noise.stop(t+0.4);
+}
+
+// ---------- PADS DEFINITION ----------
+const drums=[
+  {label:'קיק',key:'A',fn:kick},
+  {label:'סנר',key:'S',fn:snare},
+  {label:'היי-האט',key:'D',fn:()=>hat(false)},
+  {label:'אופן-האט',key:'F',fn:()=>hat(true)},
+  {label:'מחיאה',key:'G',fn:clap},
+  {label:'טום גבוה',key:'H',fn:()=>tom(220)},
+  {label:'טום נמוך',key:'J',fn:()=>tom(110)},
+  {label:'צ׳יק',key:'K',fn:()=>hat(false)},
+];
+const notes=[ // C major scale
+  {n:'דו',f:261.63,k:'1'},{n:'רה',f:293.66,k:'2'},{n:'מי',f:329.63,k:'3'},
+  {n:'פה',f:349.23,k:'4'},{n:'סול',f:392.0,k:'5'},{n:'לה',f:440.0,k:'6'},{n:'סי',f:493.88,k:'7'},
+];
+const melody=notes.map(o=>({label:o.n,key:o.k,fn:()=>synthNote(o.f)}));
+const bass=[
+  {label:'בס דו',key:'Z',fn:()=>bassNote(65.41)},
+  {label:'בס מי',key:'X',fn:()=>bassNote(82.41)},
+  {label:'בס סול',key:'C',fn:()=>bassNote(98.0)},
+  {label:'בס לה',key:'V',fn:()=>bassNote(110.0)},
+];
+const fx=[
+  {label:'זאפ',key:'Q',fn:zap},
+  {label:'רייזר',key:'W',fn:riser},
+  {label:'לייזר',key:'E',fn:laser},
+  {label:'ויניל',key:'R',fn:vinyl},
+];
+
+const keyMap={};
+const soundByKey={};
+function build(containerId,arr,color){
+  const c=document.getElementById(containerId);
+  arr.forEach(p=>{
+    const b=document.createElement('button');
+    b.className='pad';
+    b.innerHTML=`${p.label}<span class="key">${p.key}</span>`;
+    const trigger=()=>{ ensure(); p.fn(); flash(b); };
+    b.addEventListener('pointerdown',e=>{e.preventDefault();trigger();});
+    const k=p.key.toLowerCase();
+    keyMap[k]={fn:trigger};
+    soundByKey[k]={fn:p.fn,label:p.label,key:p.key,color:color};
+    c.appendChild(b);
+  });
+}
+function flash(el){ el.classList.add('hit'); setTimeout(()=>el.classList.remove('hit'),120); }
+
+build('drums',drums,'var(--neon2)');
+build('melody',melody,'var(--neon3)');
+build('bass',bass,'var(--neon1)');
+build('fx',fx,'var(--neon1)');
+
+document.addEventListener('keydown',e=>{
+  if(e.repeat) return;
+  const key=e.key.toLowerCase();
+  if(key==='backspace'||key==='delete'){
+    if(selected){ e.preventDefault(); clearSelected(); }
+    return;
+  }
+  const m=keyMap[key];
+  if(m){
+    e.preventDefault();
+    m.fn();
+    if(soundByKey[key] && selected) assignToSelected(key);
+  }
+});
+
+// ---------- METRONOME ----------
+let metroOn=false, metroTimer=null;
+const metroBtn=document.getElementById('metroBtn');
+metroBtn.addEventListener('click',()=>{
+  ensure();
+  metroOn=!metroOn;
+  metroBtn.textContent=metroOn?'🥁 מטרונום: דולק':'🥁 מטרונום: כבוי';
+  if(metroOn){
+    const tick=()=>{ const t=now();const o=ctx.createOscillator(),g=ctx.createGain();
+      o.frequency.value=1000;g.gain.setValueAtTime(0.2,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+      o.connect(g).connect(master);o.start(t);o.stop(t+0.05);};
+    tick(); metroTimer=setInterval(tick,500); // 120 BPM
+  } else clearInterval(metroTimer);
+});
+
+// ---------- RECORDING ----------
+let mediaRec=null, chunks=[], recording=false, recStart=0, timerInt=null;
+const recBtn=document.getElementById('recBtn');
+const timerEl=document.getElementById('timer');
+const recordingsEl=document.getElementById('recordings');
+
+function fmt(s){const m=Math.floor(s/60),ss=Math.floor(s%60);return String(m).padStart(2,'0')+':'+String(ss).padStart(2,'0');}
+
+recBtn.addEventListener('click',()=>{
+  ensure();
+  if(!recording){
+    chunks=[];
+    mediaRec=new MediaRecorder(recDest.stream);
+    mediaRec.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); };
+    mediaRec.onstop=()=>{
+      const blob=new Blob(chunks,{type:'audio/webm'});
+      const url=URL.createObjectURL(blob);
+      addClip(url);
+    };
+    mediaRec.start();
+    recording=true; recStart=Date.now();
+    recBtn.classList.add('on'); recBtn.textContent='■ עצור';
+    timerInt=setInterval(()=>{ timerEl.textContent=fmt((Date.now()-recStart)/1000); },200);
+  } else {
+    mediaRec.stop(); recording=false;
+    recBtn.classList.remove('on'); recBtn.textContent='● הקלט';
+    clearInterval(timerInt); timerEl.textContent='00:00';
+  }
+});
+
+// ---------- STEP SEQUENCER ----------
+let STEPS=16;
+const ROW_LETTERS=['א','ב','ג','ד','ה','ו','ז','ח','ט','י','כ','ל'];
+let pattern=[];                        // pattern[r][s] = sound key (lowercase) or null
+for(let r=0;r<4;r++) pattern.push(new Array(STEPS).fill(null));
+const seqEl=document.getElementById('sequencer');
+let cellRefs=[];                       // [row][step] -> element
+let selected=null;                     // {r,s}
+let playhead=null;
+let seqPlaying=false, seqStep=0, seqTimer=null, bpm=120;
+
+const seqToggleBtn=document.getElementById('seqToggle');
+const bpmSlider=document.getElementById('bpmSlider');
+const bpmVal=document.getElementById('bpmVal');
+
+function stepMs(){ return (60/bpm/4)*1000; } // 16th notes
+
+function applyCell(cell,r,s){
+  const k=pattern[r][s];
+  cell.classList.remove('on');
+  cell.textContent='';
+  cell.style.removeProperty('--rc');
+  cell.title='';
+  if(k && soundByKey[k]){
+    cell.classList.add('on');
+    cell.style.setProperty('--rc',soundByKey[k].color);
+    cell.textContent=soundByKey[k].key;
+    cell.title=soundByKey[k].label;
+  }
+}
+function selectCell(r,s){
+  if(selected && cellRefs[selected.r] && cellRefs[selected.r][selected.s])
+    cellRefs[selected.r][selected.s].classList.remove('selected');
+  selected={r,s};
+  cellRefs[r][s].classList.add('selected');
+}
+function assignToSelected(key){
+  if(!selected) return;
+  pattern[selected.r][selected.s]=key;
+  const cell=cellRefs[selected.r][selected.s];
+  applyCell(cell,selected.r,selected.s);
+  cell.classList.add('selected');
+}
+function clearSelected(){
+  if(!selected) return;
+  pattern[selected.r][selected.s]=null;
+  const cell=cellRefs[selected.r][selected.s];
+  applyCell(cell,selected.r,selected.s);
+  cell.classList.add('selected');
+}
+
+function renderGrid(){
+  seqEl.innerHTML='';
+  cellRefs=[];
+  for(let r=0;r<pattern.length;r++){
+    const rowEl=document.createElement('div'); rowEl.className='seq-row';
+    rowEl.style.gridTemplateColumns='34px repeat('+STEPS+',1fr)';
+    const lbl=document.createElement('div'); lbl.className='rlabel'; lbl.textContent=ROW_LETTERS[r]||(r+1);
+    rowEl.appendChild(lbl);
+    cellRefs[r]=[];
+    for(let s=0;s<STEPS;s++){
+      const cell=document.createElement('div');
+      cell.className='cell'+((s%4===0)?' beat':'');
+      cell.dataset.step=s;
+      applyCell(cell,r,s);
+      ((rr,ss)=>cell.addEventListener('click',()=>selectCell(rr,ss)))(r,s);
+      rowEl.appendChild(cell);
+      cellRefs[r][s]=cell;
+    }
+    seqEl.appendChild(rowEl);
+  }
+  playhead=document.createElement('div'); playhead.className='playhead';
+  playhead.style.display=seqPlaying?'block':'none';
+  seqEl.appendChild(playhead);
+  if(selected && selected.r<pattern.length) cellRefs[selected.r][selected.s].classList.add('selected');
+  else selected=null;
+}
+
+function paintStep(){
+  const ref=cellRefs[0] && cellRefs[0][seqStep];
+  if(ref && playhead) playhead.style.left=(ref.offsetLeft+ref.offsetWidth/2-1)+'px';
+  for(let r=0;r<pattern.length;r++){
+    cellRefs[r][seqStep].classList.add('playing');
+    const k=pattern[r][seqStep];
+    if(k && soundByKey[k]) soundByKey[k].fn();
+  }
+}
+function tick(){
+  for(let r=0;r<pattern.length;r++) if(cellRefs[r]) cellRefs[r][seqStep].classList.remove('playing');
+  seqStep=(seqStep+1)%STEPS;
+  paintStep();
+}
+function startSeq(){
+  if(seqPlaying) return;
+  ensure();
+  seqPlaying=true; seqStep=0;
+  seqToggleBtn.classList.add('on'); seqToggleBtn.textContent='■ סטופ';
+  if(playhead) playhead.style.display='block';
+  paintStep();
+  seqTimer=setInterval(tick,stepMs());
+}
+function stopSeq(){
+  seqPlaying=false;
+  clearInterval(seqTimer);
+  seqToggleBtn.classList.remove('on'); seqToggleBtn.textContent='▶ פליי';
+  if(playhead) playhead.style.display='none';
+  for(let r=0;r<pattern.length;r++) if(cellRefs[r]) for(let s=0;s<STEPS;s++) cellRefs[r][s].classList.remove('playing');
+  seqStep=0;
+}
+seqToggleBtn.addEventListener('click',()=>{ seqPlaying?stopSeq():startSeq(); });
+
+document.getElementById('seqAddCol').addEventListener('click',()=>{
+  if(STEPS>=32) return;
+  STEPS++;
+  for(let r=0;r<pattern.length;r++) pattern[r].push(null);
+  renderGrid();
+});
+document.getElementById('seqDelCol').addEventListener('click',()=>{
+  if(STEPS<=4) return;
+  STEPS--;
+  for(let r=0;r<pattern.length;r++) pattern[r].pop();
+  if(seqStep>=STEPS) seqStep=0;
+  if(selected && selected.s>=STEPS) selected=null;
+  renderGrid();
+});
+document.getElementById('seqAddRow').addEventListener('click',()=>{
+  if(pattern.length>=12) return;
+  pattern.push(new Array(STEPS).fill(null));
+  renderGrid();
+});
+document.getElementById('seqDelRow').addEventListener('click',()=>{
+  if(pattern.length<=1) return;
+  pattern.pop();
+  if(selected && selected.r>=pattern.length) selected=null;
+  renderGrid();
+});
+document.getElementById('seqClear').addEventListener('click',()=>{
+  for(let r=0;r<pattern.length;r++) for(let s=0;s<STEPS;s++) pattern[r][s]=null;
+  renderGrid();
+});
+bpmSlider.addEventListener('input',()=>{
+  bpm=+bpmSlider.value; bpmVal.textContent=bpm;
+  if(seqPlaying){ clearInterval(seqTimer); seqTimer=setInterval(tick,stepMs()); }
+});
+
+renderGrid();
+
+let clipCount=0;
+function addClip(url){
+  clipCount++;
+  const div=document.createElement('div'); div.className='clip';
+  const audio=document.createElement('audio'); audio.controls=true; audio.src=url;
+  const a=document.createElement('a'); a.href=url; a.download='neon-beat-'+clipCount+'.webm'; a.textContent='⬇ הורד';
+  const label=document.createElement('span'); label.textContent='הקלטה '+clipCount; label.style.fontWeight='600';
+  div.appendChild(label); div.appendChild(audio); div.appendChild(a);
+  recordingsEl.prepend(div);
+}
+</script>
+</body>
+</html>

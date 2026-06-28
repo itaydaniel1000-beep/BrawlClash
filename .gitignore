@@ -1,0 +1,20 @@
+# Local Netlify folder
+.netlify
+
+# Dependencies
+node_modules/
+
+# Build artifacts / local tooling
+.wrangler/
+.claude/worktrees/
+dist/
+
+# Binaries, archives, logs (local only)
+*.exe
+*.zip
+*.log
+*.out
+*.err
+
+# Personal videos — kept LOCAL only, never published
+portal/videos/

@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>מונופול — משחק לוח</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap');
+  * { font-family: 'Heebo', sans-serif; box-sizing: border-box; }
+  body { background: radial-gradient(circle at 50% 0%, #1e3a5f, #0b1220 70%); }
+  .board {
+    display: grid;
+    grid-template-columns: 1.5fr repeat(9, 1fr) 1.5fr;
+    grid-template-rows: 1.5fr repeat(9, 1fr) 1.5fr;
+    gap: 2px;
+    background: #0b3d2e;
+    border: 6px solid #08291f;
+    border-radius: 10px;
+    aspect-ratio: 1/1;
+    width: 100%;
+    max-width: min(95vw, 68vh, 920px);
+    margin: 0 auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    transition: transform .45s ease;
+  }
+  .cell {
+    background: #f3efe0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 11px;
+    line-height: 1.05;
+    text-align: center;
+    overflow: hidden;
+    padding: 2px;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: filter .15s, outline .15s;
+  }
+  .cell:hover { filter: brightness(.94); }
+  .cell.corner { font-size: 12px; justify-content: center; }
+  /* ---- uniform 3-section cell (every non-corner): city header / street name / price ---- */
+  .sec { width: 100%; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.05; }
+  .sec-city { flex-shrink: 0; font-weight: 700; }
+  .sec-city.is-color { height: 20%; min-height: 14px; font-size: 9px; }   /* street: colored bar + city name */
+  .sec-city:not(.is-color) { font-size: 18px; }                           /* railroad / utility / chance / etc — icon */
+  .sec-name { flex: 1; font-weight: 500; word-break: break-word; padding: 1px; }
+  /* push the street name up against the bottom edge of the city header */
+  .cell:not(.vside) .sec-name { align-items: flex-start; }
+  .sec-price { flex-shrink: 0; font-weight: 700; font-size: 10px; }
+  /* side cells (left/right columns): same 3 sections, rotated — color header faces inward */
+  .cell.vside { flex-direction: row; align-items: stretch; justify-content: flex-start; }
+  .cell.vleft { flex-direction: row-reverse; }   /* left column: header on the right (inner) */
+  .cell.vside .sec { width: auto; height: 100%; }
+  .cell.vside .sec-city.is-color { width: 22%; min-width: 15px; writing-mode: vertical-rl; text-orientation: mixed; overflow: hidden; }
+  .cell.vside .sec-name { flex: 1; writing-mode: vertical-rl; text-orientation: mixed; word-break: break-word; overflow: hidden; }
+  .cell.vside .sec-price { writing-mode: vertical-rl; text-orientation: mixed; }
+  /* left column reads the opposite way -> flip only the TEXT 180° (keep emoji icons upright) */
+  .cell.vleft .sec-name, .cell.vleft .sec-price, .cell.vleft .sec-city.is-color { transform: rotate(180deg); }
+  .cell.highlight { outline: 3px solid #facc15; outline-offset: -3px; z-index: 5; }
+  .cell .cname { font-weight: 500; padding: 1px; word-break: break-word; }   /* used by corner cells only */
+  .tokens { position: absolute; inset: 0; z-index: 7; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1px; pointer-events: none; }
+  .token { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.6); transition: transform .25s; font-size:13px; display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;}
+  .owner-dot { position: absolute; top: 1px; left: 1px; z-index: 6; width: 10px; height: 10px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 2px rgba(0,0,0,.8); }
+  .houses { position:absolute; top: 55%; left:0; right:0; z-index: 6; display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start; gap:0; pointer-events:none; line-height:1; }
+  .house { font-size:15px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.5)); }
+  .hotel { font-size:22px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+  /* title-deed style property cards (side panel + player popup) */
+  .pcard { background:#fbf8ee; color:#161616; border:2px solid #111; border-radius:5px; margin:0 auto 8px; overflow:hidden; font-size:9px; line-height:1.3; width:86%; max-width:138px; }
+  .pcard-banner { padding:8px 4px; text-align:center; border-bottom:2px solid #111; min-height:34px; display:flex; flex-direction:column; justify-content:center; }
+  .pcard-dark { background:#1f2937; color:#fff; }
+  .pcard-body { padding:6px 8px; }
+  .pcard-note { font-size:7px; font-style:italic; text-align:center; margin-top:4px; padding-top:3px; border-top:1px dashed #b9b29a; color:#3a3a3a; line-height:1.3; }
+  .pcard-foot { border-top:1px solid #b9b29a; margin-top:4px; padding-top:3px; font-size:8px; text-align:center; color:#555; }
+  /* enlarged card in the popup */
+  .pcard-big .pcard { width:260px; max-width:260px; font-size:15px; }
+  .pcard-big .pcard-banner { min-height:56px; }
+  .pcard-big .pcard-note { font-size:11px; }
+  .pcard-big .pcard-foot { font-size:11px; }
+  .center { grid-area: 2 / 2 / 11 / 11; background: #0b3d2e; display:flex; align-items:center; justify-content:center; position:relative; }
+  .logo { transform: rotate(-30deg); font-size: clamp(20px, 5vw, 52px); font-weight: 900; color:#e11d48; text-shadow: 2px 2px 0 #fff, 4px 4px 12px rgba(0,0,0,.5); letter-spacing: 2px;}
+  /* card-deck piles inside the board center (look like a stack of ~16 cards) */
+  .deck { position:absolute; width:18%; aspect-ratio:3/2; border-radius:5px; border:2px solid #fff;
+          display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4%; pointer-events:none; overflow:hidden;
+          box-shadow: 1px 1px 0 #cfcfcf,2px 2px 0 #fff,3px 3px 0 #cfcfcf,4px 4px 0 #fff,5px 5px 0 #cfcfcf,6px 6px 0 #fff,7px 7px 0 #cfcfcf,8px 8px 0 #fff,9px 9px 0 #cfcfcf, 9px 12px 10px rgba(0,0,0,.45); }
+  .deck-chance { background:#d4222a; }
+  .deck-chest  { background:#1f6fd6; }
+  .deck-logo { font-size:6.5px; font-weight:900; color:#eee; background:#9a1118; border:1px solid #6e0a0f; border-radius:3px; padding:1px 5px; letter-spacing:1px; line-height:1; white-space:nowrap; }
+  .deck-emblem { width:58%; height:46%; background:#a9dcb6; border:2px solid #fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:900; }
+  .deck-chance .deck-emblem { color:#d4222a; }
+  /* shuffle animation */
+  @keyframes deckShuffle {
+    0%,100% { transform: translateX(0) rotate(0) scale(1); }
+    18% { transform: translateX(-7px) translateY(-3px) rotate(-13deg) scale(1.05); }
+    38% { transform: translateX(7px) translateY(3px) rotate(13deg) scale(1.05); }
+    58% { transform: translateX(-5px) rotate(-8deg); }
+    78% { transform: translateX(5px) rotate(8deg); }
+  }
+  .deck.shuffling { animation: deckShuffle .5s ease-in-out 2; overflow: visible; z-index: 6; }
+  .shuffle-card { position:absolute; inset:0; border:2px solid #fff; border-radius:5px; opacity:0; pointer-events:none; box-shadow:0 2px 5px rgba(0,0,0,.4); animation: shuffleFly .55s ease-out forwards; }
+  @keyframes shuffleFly { 0%{ transform:translate(0,0) rotate(0); opacity:.95; } 100%{ transform:translate(var(--dx,30px),var(--dy,-20px)) rotate(40deg); opacity:0; } }
+  /* the side holdings panel is transparent but must NOT eat clicks meant for the controls under it.
+     Only the actual cards stay clickable (to enlarge). */
+  #holdingsPanel { pointer-events: none; }
+  #holdingsPanel .pcard { pointer-events: auto; }
+  @keyframes moneyPulse { 0%{ transform:scale(1); } 30%{ transform:scale(1.45); color:#34d399; text-shadow:0 0 10px rgba(16,185,129,.9); } 100%{ transform:scale(1); } }
+  .money-flash { display:inline-block; animation: moneyPulse .6s ease; }
+  @keyframes tokenHop  { 0%{ transform:translateY(0) scale(1);} 50%{ transform:translateY(-7px) scale(1.12);} 100%{ transform:translateY(0) scale(1);} }
+  @keyframes tokenLand { 0%{ transform:translateY(-10px) scale(1.25);} 55%{ transform:translateY(0) scale(.9);} 100%{ transform:scale(1);} }
+  .token.token-hop  { animation: tokenHop .15s ease; }
+  .token.token-land { animation: tokenLand .35s ease; }
+  /* on desktop, reserve room on the right so the menu/controls never sit under the panel */
+  @media (min-width: 821px){ .max-w-6xl { padding-right: 12.5rem; } }
+  .die { width: 40px; height: 40px; background:#fff; border-radius:9px; display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:5px; box-shadow:0 4px 10px rgba(0,0,0,.4);}
+  .pip { width:7px;height:7px;background:#111;border-radius:50%;align-self:center;justify-self:center;}
+  .rolling { animation: shake .5s ease; }
+  @keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-18deg) scale(1.1)} 75%{transform:rotate(18deg) scale(1.1)} }
+  .btn { transition: all .12s; }
+  .btn:active { transform: scale(.96); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .log-entry { animation: fadein .3s; }
+  @keyframes fadein { from{opacity:0;transform:translateY(-4px)} to{opacity:1} }
+  .modal-bg { background: rgba(0,0,0,.6); backdrop-filter: blur(2px); }
+  ::-webkit-scrollbar { width:7px; }
+  ::-webkit-scrollbar-thumb { background:#475569; border-radius:4px; }
+
+  /* ===== MOBILE ===== */
+  @media (max-width: 820px){
+    body { padding: 0; }
+    /* the floating holdings panel covers the board on a narrow screen -> hide it (tap a player for cards) */
+    #holdingsPanel { display: none !important; }
+    /* board uses the FULL width of the phone, thinner frame so cells get more room */
+    .board { max-width: 100vw; border-width: 3px; gap: 1px; border-radius: 0; }
+    .cell { font-size: 9px; padding: 1px; }
+    .cell.corner { font-size: 10px; }
+    /* hide the price on the board (still shown when tapping a cell) -> the street name gets the room */
+    .cell .sec-price { display: none; }
+    .sec-name { font-size: 8px; line-height: 1; overflow-wrap: anywhere; }
+    .sec-city.is-color { font-size: 8.5px; min-height: 12px; }
+    .sec-city:not(.is-color) { font-size: 15px; }
+    .token { width: 17px; height: 17px; font-size: 11px; border-width: 1.5px; }
+    .house { font-size: 13px; } .hotel { font-size: 18px; }
+    .die { width: 36px; height: 36px; padding:4px; } .pip { width:6px; height:6px; }
+    .logo { font-size: clamp(12px, 4.5vw, 22px); }
+    .pcard { width: 96%; max-width: 260px; font-size: 13px; }
+    /* tighter, full-width menu panels + bigger tap targets */
+    .max-w-6xl { padding-left: 4px; padding-right: 4px; }
+    #rollBtn, #buildBtn, #endBtn, #rotateBtn, #straightenBtn { padding-top: 11px; padding-bottom: 11px; }
+  }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+</head>
+<body class="text-slate-100 min-h-screen p-2 md:p-4">
+
+<!-- ====== MODE SELECT SCREEN ====== -->
+<div id="modeScreen" class="fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-slate-700">
+    <h1 class="text-4xl font-black text-center text-rose-500 mb-1" style="text-shadow:1px 1px 0 #fff">מונופול</h1>
+    <p class="text-center text-slate-400 mb-6">המשחק הקלאסי — כללים רשמיים</p>
+    <button id="modeBots" class="btn w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-black text-lg mb-3">🤖 נגד בוטים / מקומי</button>
+    <button id="modePlayers" class="btn w-full py-4 rounded-xl bg-sky-600 hover:bg-sky-500 font-black text-lg">👥 נגד שחקנים (אונליין)</button>
+  </div>
+</div>
+
+<!-- ====== LOBBY SCREEN ====== -->
+<div id="lobbyScreen" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-slate-700">
+    <h1 class="text-3xl font-black text-center text-sky-400 mb-4">משחק אונליין</h1>
+
+    <div id="lobbyPick">
+      <input id="lobbyName" class="w-full bg-slate-700 rounded-lg px-3 py-2 text-sm mb-4 text-center" value="שחקן" maxlength="12" placeholder="השם שלך" />
+      <label class="block text-sm font-bold mb-2">כמה שחקנים?</label>
+      <div id="lobbyCountBtns" class="flex gap-2 mb-4">
+        <button data-n="2" class="lc-btn flex-1 py-2 rounded-lg bg-sky-600">2</button>
+        <button data-n="3" class="lc-btn flex-1 py-2 rounded-lg bg-slate-700">3</button>
+        <button data-n="4" class="lc-btn flex-1 py-2 rounded-lg bg-slate-700">4</button>
+      </div>
+      <button id="lobbyJoinBtn" class="btn w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 font-black text-lg mb-3">🔌 התאמה אוטומטית</button>
+
+      <div class="flex items-center gap-2 my-3 text-slate-500 text-xs"><div class="flex-1 h-px bg-slate-600"></div>חדר פרטי<div class="flex-1 h-px bg-slate-600"></div></div>
+
+      <button id="lobbyCreateBtn" class="btn w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-black mb-3">➕ צור חדר פרטי</button>
+      <div class="flex gap-2">
+        <input id="lobbyCode" inputmode="numeric" maxlength="4" class="flex-1 bg-slate-700 rounded-lg px-3 py-2 text-center text-lg font-black tracking-widest" placeholder="קוד" />
+        <button id="lobbyJoinCodeBtn" class="btn px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-bold">🔑 הצטרף</button>
+      </div>
+    </div>
+
+    <div id="lobbyWait" class="hidden text-center">
+      <div id="lobbyCodeShow" class="hidden mb-4 bg-slate-900 rounded-xl p-3 border border-emerald-500/40">
+        <div class="text-xs text-slate-400 mb-1">קוד החדר — שתפו עם החברים</div>
+        <div id="lobbyCodeVal" class="text-4xl font-black tracking-[0.3em] text-emerald-400">----</div>
+      </div>
+      <div id="lobbyStatus" class="text-slate-300 mb-2">מתחבר...</div>
+      <div id="lobbyPlayers" class="text-2xl font-black text-emerald-400 mb-3">0/0</div>
+
+      <div id="lobbyPickWrap" class="bg-slate-900/60 rounded-xl p-3 mb-3">
+        <div class="text-xs text-slate-400 mb-2">בחר כלי וצבע</div>
+        <div id="lobbyPieces" class="flex justify-center gap-2 mb-2"></div>
+        <div id="lobbyColors" class="flex justify-center gap-2"></div>
+      </div>
+
+      <div id="lobbyList" class="text-sm text-slate-300 space-y-1 mb-4"></div>
+      <button id="lobbyCancel" class="btn text-sm px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500">ביטול</button>
+    </div>
+
+    <button id="lobbyBack" class="btn w-full mt-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">⬅ חזרה</button>
+  </div>
+</div>
+
+<!-- ====== SETUP SCREEN (bots / local) ====== -->
+<div id="setup" class="hidden fixed inset-0 z-50 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-slate-700">
+    <h1 class="text-4xl font-black text-center text-rose-500 mb-1" style="text-shadow:1px 1px 0 #fff">מונופול</h1>
+    <p class="text-center text-slate-400 mb-6">נגד בוטים / מקומי</p>
+
+    <label class="block text-sm font-bold mb-2">מספר שחקנים</label>
+    <div id="playerCountBtns" class="flex gap-2 mb-5">
+      <button data-n="2" class="pc-btn flex-1 py-2 rounded-lg bg-slate-700">2</button>
+      <button data-n="3" class="pc-btn flex-1 py-2 rounded-lg bg-slate-700">3</button>
+      <button data-n="4" class="pc-btn flex-1 py-2 rounded-lg bg-rose-600">4</button>
+    </div>
+
+    <div id="playerRows" class="space-y-2 mb-6"></div>
+
+    <button id="startBtn" class="btn w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-black text-lg">התחל משחק 🎲</button>
+    <p class="text-xs text-slate-500 mt-3 text-center">סמן "מחשב" כדי לשחק מול יריב אוטומטי</p>
+  </div>
+</div>
+
+<!-- ====== CURRENT PLAYER HOLDINGS (left side) ====== -->
+<div id="holdingsPanel" class="hidden fixed top-2 right-2 bottom-2 w-48 overflow-y-auto z-30 p-1"></div>
+
+<!-- ====== CHAT / ADMIN UNLOCK (bottom-left) ====== -->
+<div id="adminChat" class="fixed bottom-2 left-2 z-40 flex items-center gap-1">
+  <input id="adminInput" type="text" placeholder="💬 צ'אט" autocomplete="off"
+    class="bg-slate-800/90 border border-slate-600 rounded-lg px-2 py-1 text-xs text-white w-28 focus:w-44 transition-all outline-none" />
+  <span id="adminBadge" class="hidden text-[10px] font-bold text-purple-200 bg-purple-700/80 rounded px-1.5 py-1">🔓 אדמין</span>
+</div>
+
+<!-- ====== GAME ====== -->
+<div class="max-w-6xl mx-auto min-h-screen flex flex-col items-center justify-start md:justify-center gap-3 py-3">
+  <!-- Board (centered, leaves room for the menu) -->
+  <div id="board" class="board"></div>
+
+  <!-- Menu below the board -->
+  <div class="w-full grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+    <!-- Current player / controls -->
+    <div id="turnPanel" class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+      <div class="flex items-center gap-2 mb-2">
+        <div id="curColor" class="w-5 h-5 rounded-full border-2 border-white"></div>
+        <h2 id="curName" class="font-black text-base">—</h2>
+        <span id="curCash" class="ms-auto font-bold text-emerald-400">₪0</span>
+      </div>
+      <div class="flex items-center justify-center gap-3 mb-2">
+        <div id="die1" class="die"></div>
+        <div id="die2" class="die"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="rollBtn" class="btn col-span-2 py-2.5 rounded-lg bg-rose-600 hover:bg-rose-500 font-bold">🎲 הטל קוביות</button>
+        <button id="buildBtn" class="btn py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-sm font-bold">🏠 בנייה / משכון</button>
+        <button id="tradeBtn" class="btn col-span-2 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-sm font-bold">🤝 הצע עסקה</button>
+        <button id="endBtn" class="btn py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-sm font-bold">סיים תור ⏭</button>
+        <button id="rotateBtn" class="btn py-2 rounded-lg bg-indigo-700 hover:bg-indigo-600 text-sm font-bold">🔄 סובב</button>
+        <button id="straightenBtn" class="btn py-2 rounded-lg bg-teal-700 hover:bg-teal-600 text-sm font-bold">🔤 יישר כתב</button>
+        <button id="sfxBtn" class="btn col-span-2 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">🔊 צליל</button>
+      </div>
+      <div id="jailControls" class="hidden mt-2 grid grid-cols-2 gap-2"></div>
+    </div>
+
+    <!-- Players -->
+    <div id="playersPanel" class="bg-slate-800 rounded-xl p-2 border border-slate-700 space-y-1"></div>
+
+    <!-- Log -->
+    <div class="bg-slate-800 rounded-xl p-3 border border-slate-700">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-bold text-sm text-slate-300">📜 יומן פעולות</h3>
+        <button id="logToggle" class="btn text-xs px-2 py-1 rounded-md bg-slate-600 hover:bg-slate-500">הסתר ▲</button>
+      </div>
+      <div id="log" class="space-y-1 text-xs max-h-36 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== GENERIC MODAL ====== -->
+<div id="modal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-slate-700">
+    <div id="modalIcon" class="text-5xl text-center mb-2"></div>
+    <h3 id="modalTitle" class="text-xl font-black text-center mb-2"></h3>
+    <p id="modalText" class="text-center text-slate-300 mb-5"></p>
+    <div id="modalBtns" class="flex gap-2"></div>
+  </div>
+</div>
+
+<!-- ====== BUILD/MANAGE MODAL ====== -->
+<div id="manageModal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-5 w-full max-w-lg shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-xl font-black">ניהול נכסים</h3>
+      <button onclick="closeManage()" class="text-slate-400 hover:text-white text-2xl">×</button>
+    </div>
+    <div id="manageList" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- ====== PLAYER DETAILS MODAL ====== -->
+<div id="playerModal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-5 w-full max-w-md shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-3">
+      <h3 id="playerModalTitle" class="text-xl font-black"></h3>
+      <button onclick="closePlayerModal()" class="text-slate-400 hover:text-white text-2xl">×</button>
+    </div>
+    <div id="playerModalBody"></div>
+  </div>
+</div>
+
+<!-- ====== TRADE MODAL ====== -->
+<div id="tradeModal" class="hidden fixed inset-0 z-40 flex items-center justify-center modal-bg p-4">
+  <div class="bg-slate-800 rounded-2xl p-4 w-full max-w-lg shadow-2xl border border-slate-700 max-h-[92vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="text-xl font-black">🤝 הצעת עסקה</h3>
+      <button onclick="closeTrade()" class="text-slate-400 hover:text-white text-2xl">×</button>
+    </div>
+    <div class="mb-3"><label class="text-sm font-bold">עם מי:</label>
+      <div id="tradeTargets" class="flex gap-2 flex-wrap mt-1"></div></div>
+    <div id="tradeBody" class="grid grid-cols-2 gap-3"></div>
+    <button id="tradeSend" class="btn w-full mt-4 py-3 rounded-xl bg-amber-600 hover:bg-amber-500 font-black">📨 שלח הצעה</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   BOARD DATA  (standard 40-space Monopoly, Hebrew localized)
+   rent: [base, 1house, 2house, 3house, 4house, hotel]
+   ============================================================ */
+const COLORS = {
+  brown:   { name:'חום',     hex:'#7c4a1e', city:'אילת',    fg:'#fff' },
+  lblue:   { name:'תכלת',    hex:'#9fdcf0', city:'טבריה',   fg:'#000' },
+  pink:    { name:'ורוד',    hex:'#d63b9a', city:'באר שבע', fg:'#fff' },
+  orange:  { name:'כתום',    hex:'#e8821e', city:'נתניה',   fg:'#000' },
+  red:     { name:'אדום',    hex:'#d4222a', city:'רמת גן',  fg:'#fff' },
+  yellow:  { name:'צהוב',    hex:'#f4d000', city:'ירושלים', fg:'#000' },
+  green:   { name:'ירוק',    hex:'#1f9d4d', city:'חיפה',    fg:'#fff' },
+  dblue:   { name:'כחול',    hex:'#1f4fd6', city:'תל אביב', fg:'#fff' },
+};
+
+function street(name,color,price,rent,houseCost){
+  return {type:'street',name,color,price,rent,houseCost,mortgaged:false,buildings:0,owner:null};
+}
+const BOARD = [
+  {type:'go',name:'התחלה'},
+  street('רח\' אילות','brown',60,[2,10,30,90,160,250],50),          // אילת
+  {type:'chest',name:'תיבת מזל'},
+  street('שד\' התמרים','brown',60,[4,20,60,180,320,450],50),        // אילת
+  {type:'tax',name:'מס הכנסה',amount:200},
+  {type:'railroad',name:'רכבת הפרברים',price:200,owner:null,mortgaged:false},
+  street('רח\' הירדן','lblue',100,[6,30,90,270,400,550],50),        // טבריה
+  {type:'chance',name:'הפתעה'},
+  street('העצמאות (טבריה)','lblue',100,[6,30,90,270,400,550],50),   // טבריה
+  street('רח\' הגליל','lblue',120,[8,40,100,300,450,600],50),       // טבריה
+  {type:'jail',name:'כלא / מבקרים'},
+  street('שד\' שזר','pink',140,[10,50,150,450,625,750],100),        // באר שבע
+  {type:'utility',name:'חברת החשמל',price:150,owner:null,mortgaged:false},
+  street('דרך המשחררים','pink',140,[10,50,150,450,625,750],100),    // באר שבע
+  street('דרך אילת','pink',160,[12,60,180,500,700,900],100),        // באר שבע
+  {type:'railroad',name:'רכבת משא',price:200,owner:null,mortgaged:false},
+  street('שד\' בנימין','orange',180,[14,70,200,550,750,950],100),   // נתניה
+  {type:'chest',name:'תיבת מזל'},
+  street('שד\' ויצמן','orange',180,[14,70,200,550,750,950],100),    // נתניה
+  street('רח\' הרצל','orange',200,[16,80,220,600,800,1000],100),    // נתניה
+  {type:'parking',name:'חניה חופשית'},
+  street('דרך אבא הלל','red',220,[18,90,250,700,875,1050],150),     // רמת גן
+  {type:'chance',name:'הפתעה'},
+  street('דרך ז\'בוטינסקי','red',220,[18,90,250,700,875,1050],150), // רמת גן
+  street('רח\' ביאליק','red',240,[20,100,300,750,925,1100],150),    // רמת גן
+  {type:'railroad',name:'רכבת תחתית',price:200,owner:null,mortgaged:false},
+  street('רח\' יפו','yellow',260,[22,110,330,800,975,1150],150),    // ירושלים
+  street('רח\' בן יהודה','yellow',260,[22,110,330,800,975,1150],150),// ירושלים
+  {type:'utility',name:'חברת המים',price:150,owner:null,mortgaged:false},
+  street('המלך ג\'ורג\'','yellow',280,[24,120,360,850,1025,1200],150),// ירושלים
+  {type:'gotojail',name:'לך לכלא'},
+  street('רח\' העצמאות','green',300,[26,130,390,900,1100,1275],200),// חיפה
+  street('רח\' החלוץ','green',300,[26,130,390,900,1100,1275],200),  // חיפה
+  {type:'chest',name:'תיבת מזל'},
+  street('שד\' מוריה','green',320,[28,150,450,1000,1200,1400],200), // חיפה
+  {type:'railroad',name:'רכבת צפון',price:200,owner:null,mortgaged:false},
+  {type:'chance',name:'הפתעה'},
+  street('רח\' אלנבי','dblue',350,[35,175,500,1100,1300,1500],200), // תל אביב
+  {type:'tax',name:'מס מותרות',amount:100},
+  street('רח\' דיזנגוף','dblue',400,[50,200,600,1400,1700,2000],200),    // תל אביב
+];
+
+const GROUP_SIZE = {brown:2,lblue:3,pink:3,orange:3,red:3,yellow:3,green:3,dblue:2};
+const GO_POS = 0;          // START is data-index 0 (standard board order)
+let boardOffset = 20;  // which corner START sits at (multiples of 10); changed by the rotate button
+let straightText = false;  // when true, every label renders horizontal (no vertical side text)
+let rotating = false;      // guard so the rotate animation can't overlap
+let adminMode = false;     // unlocked by typing the password in the chat box
+let forcedDice = null;     // [d1,d2] forced for the next roll (admin)
+let adminMoveTarget = null;// player id awaiting a board-cell click to teleport (admin)
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+// effect types handled in resolveCard()
+// הפתעה — copied exactly from the original cards in the photos
+const CHANCE = [
+  {t:'זכית בלוטו. קבל ₪50', a:{money:50}},
+  {t:'קבלת מענק שחרור ₪150', a:{money:150}},
+  {t:'קנס על מהירות מופרזת. שלם ₪15', a:{money:-15}},
+  {t:'על נהיגה בשכרות. שלם קנס ₪20', a:{money:-20}},
+  {t:'לך 3 צעדים לאחור', a:{back:3}},
+  {t:'לך לתל-אביב, לרח\' דיזנגוף. אם עברת ב"דרך צלחה" קבל ₪200', a:{move:39}},
+  {t:'לך לרכבת משא. אם עברת ב"דרך צלחה" קבל ₪200', a:{move:15}},
+  {t:'הבנק משלם לך ריבית. קבל ₪50', a:{money:50}},
+  {t:'לך לרמת גן, לרח\' ביאליק. אם עברת ב"דרך צלחה" קבל ₪200', a:{move:24}},
+  {t:'לך לבאר-שבע, לשד\' שז"ר. אם עברת ב"דרך צלחה" קבל ₪200', a:{move:11}},
+  {t:'שלם אגרת חינוך ₪150', a:{money:-150}},
+  {t:'לך ל"דרך צלחה". קבל ₪200', a:{move:GO_POS}},
+  {t:'שלם מסי עיריה: על כל בית ₪40, על כל מלון ₪115', a:{repairs:[40,115]}},
+  {t:'לך ישר לכלא. אל תעבור ב"דרך צלחה", אל תקבל ₪200', a:{gotojail:true}},
+  {t:'צא מהכלא. ניתן לשמור לעת צרה או למכור', a:{getout:true}},
+  {t:'שיפוצים בנכסיך: על כל בית ₪25, על כל מלון ₪100', a:{repairs:[25,100]}},
+];
+// תיבת המזל — copied exactly from the original cards in the photos
+const CHEST = [
+  {t:'שלם ₪10 או קח כרטיס הפתעה', a:{payOrChance:10}},
+  {t:'על חידוש ביטוח רכב שלם ₪50', a:{money:-50}},
+  {t:'נבחרת לסגנית מלכת היופי. קבלי ₪50', a:{money:50}},
+  {t:'מענק זיקנה. קבל ₪50', a:{money:50}},
+  {t:'לרגל נישואיך קבל ₪50 מכל משתתף', a:{collecteach:50}},
+  {t:'החזר מס-הכנסה. קבל ₪20', a:{money:20}},
+  {t:'על השקעותיך בבורסה קבל 7% רווח בסך ₪25', a:{money:25}},
+  {t:'לך ל"דרך צלחה". קבל ₪200', a:{move:GO_POS}},
+  {t:'הסגרת פושע מבוקש. קבל ₪100', a:{money:100}},
+  {t:'צא מהכלא. ניתן לשמור לעת צרה או למכור', a:{getout:true}},
+  {t:'נולד לך נכד. שלם למוהל ₪100', a:{money:-100}},
+  {t:'שלם לרופא ₪50', a:{money:-50}},
+  {t:'הבנק מחזיר לך ₪200', a:{money:200}},
+  {t:'קבלי מענק לידה ₪50', a:{money:50}},
+  {t:'חזור לאילת, לרח\' אילות', a:{move:1, noGo:true}},
+  {t:'לך ישר לכלא. אל תעבור ב"דרך צלחה", אל תקבל ₪200', a:{gotojail:true}},
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+const PCOLORS = ['#ef4444','#3b82f6','#22c55e','#eab308'];
+const PEMOJI  = ['🚗','🐕','🎩','🚢'];
+let players = [];
+let cur = 0;          // current player index
+let dice = [1,1];
+let doublesCount = 0;
+let chanceIdx = 0, chestIdx = 0;
+let chanceDeck = [], chestDeck = [];
+let awaitingEnd = false;   // rolled & resolved, must end turn (or roll again on doubles)
+let canRoll = true;
+let gameOver = false;
+
+/* ============================================================
+   SETUP UI
+   ============================================================ */
+let setupCount = 4;
+function buildSetup(){
+  document.querySelectorAll('.pc-btn').forEach(b=>{
+    b.onclick=()=>{ setupCount=+b.dataset.n;
+      document.querySelectorAll('.pc-btn').forEach(x=>x.className='pc-btn flex-1 py-2 rounded-lg bg-slate-700');
+      b.className='pc-btn flex-1 py-2 rounded-lg bg-rose-600';
+      renderRows();
+    };
+  });
+  renderRows();
+}
+function renderRows(){
+  const box=document.getElementById('playerRows'); box.innerHTML='';
+  for(let i=0;i<setupCount;i++){
+    const row=document.createElement('div');
+    row.className='flex items-center gap-2';
+    row.innerHTML=`
+      <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm" style="background:${PCOLORS[i]}">${PEMOJI[i]}</div>
+      <input class="pname flex-1 bg-slate-700 rounded-lg px-3 py-2 text-sm" value="שחקן ${i+1}" />
+      <label class="flex items-center gap-1 text-xs bg-slate-700 rounded-lg px-2 py-2 cursor-pointer">
+        <input type="checkbox" class="pai" ${i>0?'checked':''}/> מחשב
+      </label>`;
+    box.appendChild(row);
+  }
+}
+document.getElementById('startBtn').onclick=()=>{
+  const names=[...document.querySelectorAll('.pname')].map(i=>i.value.trim()||'שחקן');
+  const ais=[...document.querySelectorAll('.pai')].map(i=>i.checked);
+  players = names.map((n,i)=>({
+    id:i, name:n, ai:ais[i], color:PCOLORS[i], emoji:PEMOJI[i],
+    cash:1500, pos:GO_POS, jail:false, jailTurns:0, getout:0, bankrupt:false
+  }));
+  document.getElementById('setup').classList.add('hidden');
+  startGame();
+};
+buildSetup();
+
+/* ===== MODE SELECT + ONLINE LOBBY ===== */
+let lobbyCount = 2;
+document.getElementById('modeBots').onclick = ()=>{
+  document.getElementById('modeScreen').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+};
+document.getElementById('modePlayers').onclick = ()=>{
+  document.getElementById('modeScreen').classList.add('hidden');
+  document.getElementById('lobbyScreen').classList.remove('hidden');
+};
+document.getElementById('lobbyBack').onclick = ()=>{
+  netCancel();
+  document.getElementById('lobbyScreen').classList.add('hidden');
+  document.getElementById('lobbyPick').classList.remove('hidden');
+  document.getElementById('lobbyWait').classList.add('hidden');
+  document.getElementById('modeScreen').classList.remove('hidden');
+};
+document.getElementById('lobbyCancel').onclick = ()=>{
+  netCancel();
+  document.getElementById('lobbyPick').classList.remove('hidden');
+  document.getElementById('lobbyWait').classList.add('hidden');
+};
+document.querySelectorAll('.lc-btn').forEach(b=>{
+  b.onclick=()=>{ lobbyCount=+b.dataset.n;
+    document.querySelectorAll('.lc-btn').forEach(x=>x.className='lc-btn flex-1 py-2 rounded-lg bg-slate-700');
+    b.className='lc-btn flex-1 py-2 rounded-lg bg-sky-600';
+  };
+});
+function _lobbyName(){ return (document.getElementById('lobbyName').value.trim()||'שחקן'); }
+function _showWait(){
+  document.getElementById('lobbyPick').classList.add('hidden');
+  document.getElementById('lobbyWait').classList.remove('hidden');
+}
+document.getElementById('lobbyJoinBtn').onclick = ()=>{
+  _showWait();
+  document.getElementById('lobbyCodeShow').classList.add('hidden');
+  document.getElementById('lobbyStatus').textContent='מחפש יריבים...';
+  document.getElementById('lobbyPlayers').textContent='0/'+lobbyCount;
+  joinMatch(lobbyCount, _lobbyName());
+};
+document.getElementById('lobbyCreateBtn').onclick = ()=>{
+  _showWait();
+  document.getElementById('lobbyStatus').textContent='יוצר חדר...';
+  document.getElementById('lobbyPlayers').textContent='0/'+lobbyCount;
+  createPrivateRoom(lobbyCount, _lobbyName());
+};
+document.getElementById('lobbyJoinCodeBtn').onclick = ()=>{
+  const code=(document.getElementById('lobbyCode').value.trim());
+  if(!/^\d{4}$/.test(code)){ document.getElementById('lobbyCode').classList.add('ring-2','ring-red-500'); return; }
+  document.getElementById('lobbyCode').classList.remove('ring-2','ring-red-500');
+  _showWait();
+  document.getElementById('lobbyCodeShow').classList.add('hidden');
+  document.getElementById('lobbyStatus').textContent='מצטרף לחדר '+code+'...';
+  document.getElementById('lobbyPlayers').textContent='?';
+  joinPrivateRoom(code, _lobbyName());
+};
+
+/* Log show/hide toggle */
+document.getElementById('logToggle').onclick=()=>{
+  const log=document.getElementById('log');
+  const btn=document.getElementById('logToggle');
+  const hidden=log.classList.toggle('hidden');
+  btn.textContent = hidden ? 'הצג ▼' : 'הסתר ▲';
+};
+
+/* Rotate the board 90° so any player can face it */
+document.getElementById('rotateBtn').onclick=()=>{
+  if(rotating) return;
+  rotating=true;
+  const board=document.getElementById('board');
+  // FLIP technique: build the NEW upright layout first, place it pre-rotated, then spin it INTO place.
+  boardOffset=(boardOffset+10)%40;
+  buildBoard();
+  renderOwnership(); renderTokens();
+  if(players.length) highlightCell(players[cur].pos);
+  board.style.transition='none';
+  board.style.transform='rotate(-90deg)';   // appears where it was before
+  void board.offsetWidth;                     // force reflow so the next change animates
+  board.style.transition='transform .45s ease';
+  board.style.transform='rotate(0deg)';       // spins clockwise into the new upright layout
+  setTimeout(()=>{ board.style.transition='none'; board.style.transform='none'; rotating=false; }, 470);
+};
+
+/* Toggle: straighten all labels (no vertical side text) */
+document.getElementById('straightenBtn').onclick=()=>{
+  straightText=!straightText;
+  document.getElementById('straightenBtn').textContent = straightText ? '↩️ כתב על הצד' : '🔤 יישר כתב';
+  buildBoard();
+  renderOwnership(); renderTokens();
+  if(players.length) highlightCell(players[cur].pos);
+};
+document.getElementById('sfxBtn').onclick=()=>{ toggleSfx(); document.getElementById('sfxBtn').textContent=_sfxOn?'🔊 צליל':'🔇 מושתק'; };
+
+/* money flash on the current-cash display */
+function flashMoney(){
+  const el=document.getElementById('curCash'); if(!el) return;
+  el.classList.remove('money-flash'); void el.offsetWidth; el.classList.add('money-flash');
+}
+
+/* 20s auto-pass timer: starts when nothing's left to do in the turn */
+let turnTimer=null, turnTimerRemain=0;
+function clearTurnTimer(){
+  if(turnTimer){ clearInterval(turnTimer); turnTimer=null; }
+  const b=document.getElementById('endBtn'); if(b && !b.textContent.startsWith('סיים')) b.textContent='סיים תור ⏭';
+  else if(b) b.textContent='סיים תור ⏭';
+}
+function startTurnTimer(){
+  clearTurnTimer();
+  turnTimerRemain=20;
+  const tick=()=>{ const b=document.getElementById('endBtn'); if(b) b.textContent='סיים תור ⏭ ('+turnTimerRemain+')'; };
+  tick();
+  turnTimer=setInterval(()=>{
+    const modalOpen=!document.getElementById('modal').classList.contains('hidden')
+                  || !document.getElementById('manageModal').classList.contains('hidden')
+                  || !document.getElementById('playerModal').classList.contains('hidden');
+    if(modalOpen){ turnTimerRemain=20; return; }   // don't auto-pass while a dialog is open
+    turnTimerRemain--;
+    if(turnTimerRemain<=0){ clearTurnTimer(); if(awaitingEnd && !gameOver && (!online||cur===myIndex)) endTurn(); }
+    else { tick(); }
+  },1000);
+}
+
+/* ============================================================
+   CHAT + ADMIN PANEL
+   ============================================================ */
+document.getElementById('adminInput').addEventListener('keydown', e=>{
+  if(e.key!=='Enter') return;
+  const v=e.target.value.trim(); e.target.value='';
+  if(v==='danniel1234!'){
+    adminMode=true;
+    document.getElementById('adminBadge').classList.remove('hidden');
+    log('🔓 מצב אדמין הופעל — לחץ על קוביות / שחקן / נכס לאפשרויות','text-purple-300');
+    if(players.length){ updateTurnPanel(); }
+  } else if(v){
+    log('💬 '+v,'text-slate-400');
+  }
+});
+
+/* dice click -> rig the next roll */
+['die1','die2'].forEach(id=>{
+  document.getElementById(id).addEventListener('click', ()=>{ if(adminMode) adminRigDice(); });
+});
+function adminRigDice(){
+  modal('🎲','אדמין: קבע קוביות',
+    `הקוביות בתור הבא:<br><br>קובייה 1: <input id="adD1" type="number" min="1" max="6" value="${dice[0]}" style="width:46px" class="text-black rounded px-1 text-center"> &nbsp; קובייה 2: <input id="adD2" type="number" min="1" max="6" value="${dice[1]}" style="width:46px" class="text-black rounded px-1 text-center">`,
+    [{label:'קבע', cls:'bg-purple-600 hover:bg-purple-500', fn:()=>{
+        const cl=x=>Math.max(1,Math.min(6,parseInt(x)||1));
+        forcedDice=[cl(document.getElementById('adD1').value), cl(document.getElementById('adD2').value)];
+        log(`🔧 אדמין: הטלת הקוביות הבאה תהיה ${forcedDice[0]} + ${forcedDice[1]}`,'text-purple-300');
+      }},
+     {label:'בטל'}]);
+}
+
+/* set a player's cash */
+function adminSetMoney(pid){
+  const p=players[pid];
+  modal('💰','אדמין: קבע כסף',
+    `${p.emoji} ${p.name} — סכום חדש:<br><br>₪ <input id="adCash" type="number" value="${p.cash}" style="width:110px" class="text-black rounded px-1 text-center">`,
+    [{label:'קבע', cls:'bg-purple-600 hover:bg-purple-500', fn:()=>{
+        p.cash=Math.max(0, parseInt(document.getElementById('adCash').value)||0);
+        log(`🔧 אדמין: ל${p.name} עכשיו ${fmt(p.cash)}`,'text-purple-300');
+        updateTurnPanel(); showPlayerDetails(pid);
+      }},
+     {label:'סגור'}]);
+}
+
+/* lock a player in jail until the admin releases them */
+function adminToggleJail(pid){
+  const p=players[pid];
+  if(p.adminJailLock){
+    p.adminJailLock=false; p.jail=false; p.jailTurns=0;
+    log(`🔧 אדמין: ${p.name} שוחרר מהכלא`,'text-purple-300');
+  } else {
+    sendToJail(p); p.adminJailLock=true;
+    log(`🔧 אדמין: ${p.name} הוכנס לכלא (נעול)`,'text-purple-300');
+  }
+  renderTokens(); updateTurnPanel();
+  if(p.adminJailLock && pid===cur){ showJailControls(); }
+  else { document.getElementById('jailControls').classList.add('hidden'); }
+  showPlayerDetails(pid);
+}
+
+/* await a board click to teleport this player */
+function adminPickLocation(pid){
+  adminMoveTarget=pid;
+  closePlayerModal();
+  log(`🔧 אדמין: לחץ על משבצת כדי להעביר את ${players[pid].name}`,'text-purple-300');
+}
+
+/* reusable property picker (uses the player modal as a scrollable list) */
+function adminPropertyPicker(title, list, onPick){
+  document.getElementById('playerModalTitle').textContent=title;
+  document.getElementById('playerModalBody').innerHTML = list.length
+    ? `<div class="space-y-1">`+list.map(o=>`<button class="adm-pick w-full text-right px-3 py-2 rounded bg-slate-700 hover:bg-slate-600 text-sm" data-i="${o.i}">${o.label}</button>`).join('')+`</div>`
+    : `<div class="text-slate-400 text-sm py-2">אין נכסים</div>`;
+  document.getElementById('playerModal').classList.remove('hidden');
+  document.querySelectorAll('#playerModalBody .adm-pick').forEach(b=>{ b.onclick=()=>{ closePlayerModal(); onPick(+b.dataset.i); }; });
+}
+/* give any property to a player */
+function adminTakeProperty(pid){
+  const list=BOARD.map((s,i)=>({s,i})).filter(o=>('owner' in o.s))
+    .map(o=>({i:o.i, label:`${o.s.name} ${o.s.owner===pid?'✅ (כבר שלו)':(o.s.owner!=null?'— '+players[o.s.owner].name:'— פנוי')}`}));
+  adminPropertyPicker(`קח נכס עבור ${players[pid].name}`, list, i=>{
+    BOARD[i].owner=pid; BOARD[i].mortgaged=false;
+    log(`🔧 אדמין: ${BOARD[i].name} ניתן ל${players[pid].name}`,'text-purple-300');
+    renderOwnership(); updateTurnPanel();
+  });
+}
+/* return one of the player's properties to the bank */
+function adminReturnProperty(pid){
+  const list=BOARD.map((s,i)=>({s,i})).filter(o=>o.s.owner===pid).map(o=>({i:o.i, label:o.s.name}));
+  adminPropertyPicker(`החזר נכס של ${players[pid].name} לבנק`, list, i=>{
+    BOARD[i].owner=null; BOARD[i].mortgaged=false; if(BOARD[i].type==='street') BOARD[i].buildings=0;
+    log(`🔧 אדמין: ${BOARD[i].name} הוחזר לבנק`,'text-purple-300');
+    renderOwnership(); updateTurnPanel();
+  });
+}
+
+/* ============================================================
+   BOARD RENDER
+   ============================================================ */
+function gridPos(i){
+  // START (index 0) renders top-left; travel direction is mirrored (flows down the side, not across)
+  return gridPosRaw((boardOffset - i + 40) % 40);
+}
+function gridPosRaw(i){
+  if(i<=10) return {r:11, c:11-i};
+  if(i<=20) return {c:1, r:11-(i-10)};
+  if(i<=30) return {r:1, c:(i-20)+1};
+  return {c:11, r:(i-30)+1};
+}
+/* The uniform 3-section content for any non-corner cell:
+   [city header (colored, with city name)] / [street name] / [price] */
+function cellInner(sp){
+  let headBg='', headFg='', head='', name='', price='';
+  if(sp.type==='street'){ const C=COLORS[sp.color]; headBg=C.hex; headFg=C.fg; head=C.city; name=sp.name; price='₪'+sp.price; }
+  else if(sp.type==='railroad'){ head='🚂'; name=sp.name; price='₪200'; }
+  else if(sp.type==='utility'){ head=sp.name.includes('חשמל')?'💡':'🚰'; name=sp.name; price='₪150'; }
+  else if(sp.type==='chance'){ head='❓'; name='הפתעה'; }
+  else if(sp.type==='chest'){ head='📦'; name='תיבת מזל'; }
+  else if(sp.type==='tax'){ head='💰'; name=sp.name; price='₪'+sp.amount; }
+  const colored = sp.type==='street';
+  return `<div class="sec sec-city${colored?' is-color':''}"${colored?` style="background:${headBg};color:${headFg}"`:''}>${head}</div>`
+       + `<div class="sec sec-name">${name}</div>`
+       + `<div class="sec sec-price">${price}</div>`;
+}
+/* Corner cells keep their own custom layout */
+function cornerInner(sp){
+  if(sp.type==='go')       return `<div class="cname" style="color:#d4222a;font-weight:900">התחלה</div><div style="font-size:22px">➡️</div><div style="font-size:9px">אסוף ₪200</div>`;
+  if(sp.type==='jail')     return `<div style="font-size:20px">🔒</div><div class="cname">כלא</div><div style="font-size:9px">מבקרים</div>`;
+  if(sp.type==='parking')  return `<div style="font-size:22px">🅿️</div><div class="cname">חניה חופשית</div>`;
+  if(sp.type==='gotojail') return `<div style="font-size:22px">👮</div><div class="cname">לך לכלא</div>`;
+  return '';
+}
+function buildBoard(){
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  const center=document.createElement('div');
+  center.className='center';
+  // corner-of-center placement based on where jail(10)/go-to-jail(30) currently render
+  const deckCorner=(idx,tilt)=>{
+    const g=gridPos(idx);
+    const vert = g.r===1 ? 'top:11%;' : 'bottom:11%;';
+    const horz = g.c===1 ? 'left:13%;' : 'right:13%;';
+    return `${vert}${horz}transform:rotate(${tilt}deg);`;
+  };
+  center.innerHTML='<div class="logo">מונופול</div>'
+    + `<div class="deck deck-chance" style="${deckCorner(10,-7)}"><div class="deck-logo">מונופול</div><div class="deck-emblem">?</div></div>`
+    + `<div class="deck deck-chest" style="${deckCorner(30,6)}"><div class="deck-logo">מונופול</div><div class="deck-emblem">🧰</div></div>`;
+  board.appendChild(center);
+
+  BOARD.forEach((sp,i)=>{
+    const {r,c}=gridPos(i);
+    const cell=document.createElement('div');
+    const corner=(i%10===0);
+    let sideCls='';
+    if(!corner && !straightText){ if(c===1) sideCls=' vside vleft'; else if(c===11) sideCls=' vside vright'; }
+    cell.className='cell'+(corner?' corner':'')+sideCls;
+    cell.style.gridRow=r; cell.style.gridColumn=c;
+    cell.id='cell'+i;
+    cell.onclick=()=>showSpaceInfo(i);
+
+    const inner = corner ? cornerInner(sp) : cellInner(sp);
+    cell.innerHTML=`<div class="owner-dot" style="display:none"></div>${inner}<div class="houses"></div><div class="tokens"></div>`;
+    board.appendChild(cell);
+  });
+}
+
+function renderTokens(){
+  document.querySelectorAll('.tokens').forEach(t=>t.innerHTML='');
+  players.forEach(p=>{
+    if(p.bankrupt) return;
+    const cell=document.getElementById('cell'+p.pos);
+    const tk=cell.querySelector('.tokens');
+    const d=document.createElement('div');
+    d.className='token';
+    d.dataset.pid=p.id;
+    d.style.background=p.color;
+    d.textContent=p.emoji;
+    tk.appendChild(d);
+  });
+}
+
+function renderOwnership(){
+  BOARD.forEach((sp,i)=>{
+    const cell=document.getElementById('cell'+i);
+    const dot=cell.querySelector('.owner-dot');
+    const houses=cell.querySelector('.houses');
+    houses.innerHTML='';
+    if(('owner' in sp) && sp.owner!=null){
+      const o=players[sp.owner];
+      dot.style.display='block';
+      dot.style.background=o.color;
+      dot.style.opacity = sp.mortgaged? '0.3':'1';
+    } else if('owner' in sp){
+      dot.style.display='none';
+    }
+    if(sp.type==='street' && sp.buildings>0){
+      if(sp.buildings===5){
+        const h=document.createElement('div'); h.className='hotel'; h.textContent='🏨'; houses.appendChild(h);
+      } else {
+        for(let k=0;k<sp.buildings;k++){ const h=document.createElement('div'); h.className='house'; h.textContent='🏠'; houses.appendChild(h);}
+      }
+    }
+  });
+}
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function log(msg,color){
+  const box=document.getElementById('log');
+  const e=document.createElement('div');
+  e.className='log-entry text-slate-300';
+  e.innerHTML=`<span class="${color||'text-slate-300'}">${msg}</span>`;
+  box.prepend(e);
+  while(box.children.length>60) box.removeChild(box.lastChild);
+}
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+/* visual shuffle: wobble each deck pile + fling a few cards out and back */
+function playShuffleAnimation(){
+  document.querySelectorAll('.deck').forEach(deck=>{
+    deck.classList.add('shuffling');
+    const color = deck.classList.contains('deck-chance') ? '#d4222a' : '#1f6fd6';
+    for(let k=0;k<7;k++){
+      const g=document.createElement('div');
+      g.className='shuffle-card'; g.style.background=color;
+      const ang=(k/7)*Math.PI*2;
+      g.style.setProperty('--dx', Math.round(Math.cos(ang)*42)+'px');
+      g.style.setProperty('--dy', Math.round(Math.sin(ang)*32)+'px');
+      g.style.animationDelay=(k*45)+'ms';
+      deck.appendChild(g);
+      setTimeout(()=>g.remove(), 1100);
+    }
+    setTimeout(()=>deck.classList.remove('shuffling'), 1100);
+  });
+}
+const fmt=n=>'₪'+n.toLocaleString('en-US');
+function activePlayers(){ return players.filter(p=>!p.bankrupt); }
+
+/* ===== SOUND ENGINE (Web Audio, no files) ===== */
+let _sfxOn=true, _ac=null;
+function _audio(){ if(!_ac){ try{ _ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return _ac; }
+function _tone(freq, dur, type, vol, when){
+  const ac=_audio(); if(!ac||!_sfxOn) return;
+  const t=ac.currentTime+(when||0);
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'sine'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol||0.2, t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+dur+0.02);
+}
+const sfx = {
+  roll(){ _tone(220,0.05,'square',0.12,0); _tone(180,0.05,'square',0.12,0.06); _tone(300,0.07,'square',0.12,0.12); },
+  buy(){ _tone(523,0.12,'triangle',0.2,0); _tone(659,0.12,'triangle',0.2,0.1); _tone(784,0.18,'triangle',0.2,0.2); },
+  money(){ _tone(988,0.08,'sine',0.18,0); _tone(1319,0.12,'sine',0.18,0.08); },
+  pay(){ _tone(400,0.1,'sawtooth',0.15,0); _tone(300,0.14,'sawtooth',0.15,0.1); },
+  jail(){ _tone(150,0.25,'square',0.2,0); _tone(110,0.3,'square',0.2,0.12); }
+};
+function toggleSfx(){
+  _sfxOn=!_sfxOn;
+  const b=document.getElementById('sfxBtn'); if(b) b.textContent=_sfxOn?'🔊':'🔇';
+  if(_sfxOn) _audio(); // unlock audio on user gesture
+}
+
+const PIPMAP={
+  1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]
+};
+function drawDie(el,val){
+  el.innerHTML='';
+  for(let i=1;i<=9;i++){
+    const cell=document.createElement('div');
+    if(PIPMAP[val].includes(i)){ const p=document.createElement('div'); p.className='pip'; cell.appendChild(p);}
+    el.appendChild(cell);
+  }
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function modal(icon,title,text,buttons){
+  const m=document.getElementById('modal');
+  document.getElementById('modalIcon').textContent=icon;
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalText').innerHTML=text;
+  const bb=document.getElementById('modalBtns'); bb.innerHTML='';
+  buttons.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className='btn flex-1 py-2.5 rounded-lg font-bold '+(b.cls||'bg-slate-600 hover:bg-slate-500');
+    btn.textContent=b.label;
+    btn.onclick=()=>{ m.classList.add('hidden'); b.fn&&b.fn(); };
+    bb.appendChild(btn);
+  });
+  m.classList.remove('hidden');
+}
+function closeModal(){ document.getElementById('modal').classList.add('hidden'); }
+
+/* ============================================================
+   GAME FLOW
+   ============================================================ */
+function startGame(){
+  buildBoard();
+  // shuffle both card decks and reset the draw position
+  chanceDeck=shuffle([...Array(CHANCE.length).keys()]); chanceIdx=0;
+  chestDeck=shuffle([...Array(CHEST.length).keys()]);   chestIdx=0;
+  renderTokens(); renderOwnership(); renderPlayers();
+  drawDie(document.getElementById('die1'),1);
+  drawDie(document.getElementById('die2'),1);
+  cur=0; gameOver=false;
+  log('הקלפים עורבבו 🔀','text-sky-300');
+  log('המשחק התחיל! 🎲','text-emerald-400');
+  playShuffleAnimation();
+  beginTurn();
+}
+
+function beginTurn(){
+  if(gameOver) return;
+  clearTurnTimer();
+  const p=players[cur];
+  if(p.bankrupt){ nextPlayer(); return; }
+  doublesCount=0; awaitingEnd=false; canRoll=true;
+  updateTurnPanel();
+  highlightCell(p.pos);
+  if(p.jail){ showJailControls(); }
+  else { document.getElementById('jailControls').classList.add('hidden'); }
+  if(p.ai){ setTimeout(aiTurn, 900); }
+}
+
+function updateTurnPanel(){
+  const p=players[cur];
+  document.getElementById('curColor').style.background=p.color;
+  document.getElementById('curName').textContent=p.emoji+' '+p.name+(p.ai?' (מחשב)':'');
+  document.getElementById('curCash').textContent=fmt(p.cash);
+  const myTurn = !online || cur===myIndex;   // online: only the active player controls
+  const human = !p.ai && myTurn;
+  document.getElementById('rollBtn').disabled=!human||!canRoll;
+  document.getElementById('endBtn').disabled=!human||!awaitingEnd;
+  document.getElementById('buildBtn').disabled=!human;
+  document.getElementById('tradeBtn').disabled=!human;
+  if(online){
+    document.getElementById('curName').textContent += (cur===myIndex?' — תורך':' — ממתין...');
+  }
+  renderPlayers();
+  renderHoldings();
+  if(online && cur===myIndex && !netSuppress) netBroadcast();
+}
+
+/* Right-side panel (no frame): property cards of the player whose turn it is.
+   If there's exactly one human player, always show that human's cards. */
+function renderHoldings(){
+  const panel=document.getElementById('holdingsPanel');
+  if(!panel||!players.length){ if(panel) panel.classList.add('hidden'); return; }
+  const humans=players.filter(x=>!x.ai && !x.bankrupt);
+  const p = humans.length===1 ? humans[0] : players[cur];
+  panel.classList.remove('hidden');
+  const owned=BOARD.filter(s=>('owner' in s) && s.owner===p.id);
+  let html=`<div class="sticky top-0 z-10 bg-slate-900/90 rounded-md px-2 py-1 mb-2">
+      <div class="flex items-center gap-1">
+        <div class="w-4 h-4 rounded-full shrink-0" style="background:${p.color}"></div>
+        <span class="font-black text-sm truncate text-white">${p.emoji} ${p.name}</span>
+      </div>
+      <div class="text-emerald-400 font-bold text-sm">${fmt(p.cash)}</div>
+      <div class="text-[10px] text-slate-300">${owned.length} נכסים</div>
+    </div>`;
+  if(!owned.length){ html+=`<div class="text-slate-400 text-xs py-2 text-center">אין נכסים עדיין</div>`; }
+  else { html += owned.map(propertyCard).join(''); }
+  panel.innerHTML=html;
+  // click a card to enlarge it
+  panel.querySelectorAll('.pcard').forEach((el,k)=>{
+    el.style.cursor='zoom-in';
+    el.onclick=()=>enlargeCard(BOARD.indexOf(owned[k]));
+  });
+}
+
+/* Show one property card enlarged in the popup modal */
+function enlargeCard(i){
+  const s=BOARD[i];
+  document.getElementById('playerModalTitle').textContent='פרטי נכס';
+  document.getElementById('playerModalBody').innerHTML=`<div class="pcard-big">${propertyCard(s)}</div>`;
+  document.getElementById('playerModal').classList.remove('hidden');
+}
+
+/* A real title-deed style card for a property (used in the side panel and player popup) */
+function propertyCard(s){
+  const mort = s.mortgaged ? ' opacity-60' : '';
+  const stamp = s.mortgaged ? `<div class="text-center text-[9px] font-black text-amber-700 border-t border-slate-400 mt-1 pt-1">⚠ ממושכן</div>` : '';
+  const row=(l,v,hl)=>`<div class="flex justify-between ${hl?'font-black':''}"><span>${l}</span><span>${v}</span></div>`;
+  if(s.type==='street'){
+    const C=COLORS[s.color];
+    return `<div class="pcard${mort}">
+      <div class="pcard-banner" style="background:${C.hex};color:${C.fg}">
+        <div class="text-[8px] opacity-90 leading-none">${C.city}</div>
+        <div class="font-black leading-tight">${s.name}</div>
+      </div>
+      <div class="pcard-body">
+        ${row('שכר דירה','₪'+s.rent[0], s.buildings===0)}
+        ${row('עם קבוצה','₪'+s.rent[0]*2)}
+        ${row('🏠 בית 1','₪'+s.rent[1], s.buildings===1)}
+        ${row('🏠🏠 2','₪'+s.rent[2], s.buildings===2)}
+        ${row('🏠🏠🏠 3','₪'+s.rent[3], s.buildings===3)}
+        ${row('🏠×4','₪'+s.rent[4], s.buildings===4)}
+        ${row('🏨 מלון','₪'+s.rent[5], s.buildings===5)}
+        <div class="pcard-note">אם לבעל הנכס יש את כל העיר הנכסים האלו מוכפלים פי שתיים</div>
+        <div class="pcard-foot">בית ₪${s.houseCost} · מלון ₪${s.houseCost*5} · משכון ₪${Math.floor(s.price/2)}</div>
+        ${stamp}
+      </div></div>`;
+  }
+  if(s.type==='railroad'){
+    return `<div class="pcard${mort}">
+      <div class="pcard-banner pcard-dark"><div class="font-black">🚂 ${s.name}</div></div>
+      <div class="pcard-body">
+        ${row('רכבת 1','₪25')}${row('רכבת 2','₪50')}${row('רכבת 3','₪100')}${row('רכבת 4','₪200')}
+        <div class="pcard-foot">משכון ₪100</div>${stamp}
+      </div></div>`;
+  }
+  if(s.type==='utility'){
+    return `<div class="pcard${mort}">
+      <div class="pcard-banner pcard-dark"><div class="font-black">${s.name.includes('חשמל')?'💡':'🚰'} ${s.name}</div></div>
+      <div class="pcard-body">
+        <div>חברה אחת: פי 4 על הקוביות</div>
+        <div>שתי חברות: פי 10 על הקוביות</div>
+        <div class="pcard-foot">משכון ₪75</div>${stamp}
+      </div></div>`;
+  }
+  return '';
+}
+
+function highlightCell(i){
+  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('highlight'));
+  document.getElementById('cell'+i)?.classList.add('highlight');
+}
+
+/* ---------- ROLLING ---------- */
+document.getElementById('rollBtn').onclick=()=>{ if(canRoll && !players[cur].ai) doRoll(); };
+document.getElementById('endBtn').onclick=()=>{ if(awaitingEnd && !players[cur].ai) endTurn(); };
+document.getElementById('buildBtn').onclick=()=>{ if(!players[cur].ai) openManage(); };
+document.getElementById('tradeBtn').onclick=()=>{ if(!players[cur].ai && (!online||cur===myIndex)) openTrade(); };
+
+function doRoll(){
+  clearTurnTimer(); sfx.roll();
+  canRoll=false; updateTurnPanel();
+  const p=players[cur];
+  let d1, d2;
+  if(forcedDice){ [d1,d2]=forcedDice; forcedDice=null; }   // admin-rigged roll (one-time)
+  else { d1=1+Math.floor(Math.random()*6); d2=1+Math.floor(Math.random()*6); }
+  dice=[d1,d2];
+  const e1=document.getElementById('die1'), e2=document.getElementById('die2');
+  e1.classList.add('rolling'); e2.classList.add('rolling');
+  setTimeout(()=>{
+    e1.classList.remove('rolling'); e2.classList.remove('rolling');
+    drawDie(e1,d1); drawDie(e2,d2);
+    const isDouble=d1===d2;
+    log(`${p.emoji} ${p.name} הטיל ${d1} + ${d2} = ${d1+d2}${isDouble?' (כפול!)':''}`,'text-sky-300');
+
+    // Jail handling
+    if(p.jail){
+      handleJailRoll(isDouble);
+      return;
+    }
+    if(isDouble){
+      doublesCount++;
+      if(doublesCount===3){
+        log(`${p.name} הטיל כפולים 3 פעמים — ישר לכלא! 🚔`,'text-rose-400');
+        sendToJail(p);
+        endTurnSoon();
+        return;
+      }
+    } else doublesCount=0;
+    movePlayer(p, d1+d2, ()=>{
+      afterLanding(p, ()=>{
+        if(isDouble && !p.jail && !p.bankrupt){
+          log(`${p.name} מקבל תור נוסף (כפולים)`,'text-amber-300');
+          canRoll=true; awaitingEnd=false; updateTurnPanel();
+          if(p.ai) setTimeout(aiTurn,800);
+        } else {
+          endTurnSoon();
+        }
+      });
+    });
+  },550);
+}
+
+function endTurnSoon(){
+  const p=players[cur];
+  awaitingEnd=true; canRoll=false; updateTurnPanel();
+  if(p.ai && !gameOver) setTimeout(()=>{ if(awaitingEnd) endTurn(); }, 1100);
+  else if(!gameOver && (!online || cur===myIndex)) startTurnTimer();   // human: 20s auto-pass
+}
+
+function endTurn(){
+  if(gameOver) return;
+  clearTurnTimer();
+  document.getElementById('jailControls').classList.add('hidden');
+  nextPlayer();
+}
+function nextPlayer(){
+  if(gameOver) return;
+  let n=cur;
+  do { n=(n+1)%players.length; } while(players[n].bankrupt && activePlayers().length>1);
+  cur=n;
+  beginTurn();
+}
+
+/* ---------- MOVEMENT ---------- */
+function bounceToken(pid, cls){
+  const t=document.querySelector('.token[data-pid="'+pid+'"]');
+  if(t){ t.classList.add(cls); }
+}
+function movePlayer(p, steps, done){
+  let remaining=steps;
+  function hop(){
+    if(remaining===0){ highlightCell(p.pos); bounceToken(p.id,'token-land'); done&&done(); return; }
+    p.pos=(p.pos+1)%40;
+    // passing or landing on START (GO) awards ₪200
+    if(p.pos===GO_POS){ gainGo(p); }
+    renderTokens();
+    bounceToken(p.id,'token-hop');   // little pop on each step
+    remaining--;
+    setTimeout(hop,150);
+  }
+  hop();
+}
+function gainGo(p){
+  p.cash+=200;
+  log(`${p.name} עבר בהתחלה — +₪200`,'text-emerald-400');
+  sfx.money(); flashMoney();
+  updateTurnPanel();
+}
+function moveTo(p, target, collectGo, cb){
+  // move forward to target index with animation
+  let steps=(target - p.pos + 40)%40;
+  if(steps===0) steps= (target===p.pos)?0:0;
+  if(steps===0){ cb&&cb(); return; }
+  // custom hop that awards Go when wrapping if collectGo
+  let remaining=steps;
+  function hop(){
+    if(remaining===0){ highlightCell(p.pos); cb&&cb(); return; }
+    p.pos=(p.pos+1)%40;
+    if(p.pos===GO_POS && collectGo) gainGo(p);
+    renderTokens(); remaining--; setTimeout(hop,140);
+  }
+  hop();
+}
+
+/* ---------- LANDING ---------- */
+function afterLanding(p, cb){
+  highlightCell(p.pos);
+  const sp=BOARD[p.pos];
+  cb=cb||function(){};
+  switch(sp.type){
+    case 'go': cb(); break;
+    case 'parking': log(`${p.name} בחניה חופשית — מנוחה`,'text-slate-400'); cb(); break;
+    case 'jail': log(`${p.name} רק מבקר בכלא`,'text-slate-400'); cb(); break;
+    case 'gotojail':
+      log(`${p.name} נשלח לכלא! 🚔`,'text-rose-400');
+      sendToJail(p); renderTokens(); cb(); break;
+    case 'tax':
+      payTax(p, sp.amount, cb); break;
+    case 'chance': drawCard(p,'chance',cb); break;
+    case 'chest': drawCard(p,'chest',cb); break;
+    case 'street':
+    case 'railroad':
+    case 'utility':
+      handleProperty(p,sp,cb); break;
+    default: cb();
+  }
+}
+
+function payTax(p, amount, cb){
+  log(`${p.name} משלם ${fmt(amount)} מס`,'text-rose-300');
+  if(!charge(p, amount, null)) { cb(); return; }
+  updateTurnPanel(); cb();
+}
+
+function handleProperty(p,sp,cb){
+  if(sp.owner===null){
+    // unowned -> offer to buy
+    if(p.ai){
+      if(aiWantsBuy(p,sp)){ buyProperty(p,sp); }
+      else { log(`${p.name} ויתר על קניית ${sp.name}`,'text-slate-400'); }
+      cb();
+    } else {
+      offerBuy(p,sp,cb);
+    }
+  } else if(sp.owner===p.id){
+    log(`${p.name} נחת על נכס שבבעלותו (${sp.name})`,'text-slate-400');
+    cb();
+  } else if(sp.mortgaged){
+    log(`${sp.name} ממושכן — אין דמי שכירות`,'text-slate-400');
+    cb();
+  } else {
+    const rent=calcRent(sp, dice[0]+dice[1]);
+    const owner=players[sp.owner];
+    log(`${p.name} משלם ${fmt(rent)} שכירות ל${owner.name} (${sp.name})`,'text-rose-300');
+    charge(p, rent, owner);
+    updateTurnPanel(); cb();
+  }
+}
+
+function calcRent(sp, roll){
+  if(sp.type==='railroad'){
+    const cnt=countOwned(sp.owner,'railroad');
+    return 25*Math.pow(2,cnt-1);
+  }
+  if(sp.type==='utility'){
+    const cnt=countOwned(sp.owner,'utility');
+    return roll*(cnt===2?10:4);
+  }
+  // street
+  if(sp.buildings>0) return sp.rent[sp.buildings];
+  // no buildings; monopoly => double
+  if(ownsGroup(sp.owner, sp.color)) return sp.rent[0]*2;
+  return sp.rent[0];
+}
+function countOwned(pid,type){
+  return BOARD.filter(s=>s.type===type && s.owner===pid).length;
+}
+function ownsGroup(pid,color){
+  const grp=BOARD.filter(s=>s.type==='street'&&s.color===color);
+  return grp.every(s=>s.owner===pid);
+}
+
+/* ---------- BUYING ---------- */
+function offerBuy(p,sp,cb){
+  const affordable = p.cash>=sp.price;
+  const note = affordable ? '' : '<br><span class="text-amber-400 text-sm">אין מספיק מזומן — משכן נכסים כדי לגייס</span>';
+  modal('🏷️', sp.name, `מחיר: <b>${fmt(sp.price)}</b><br>היתרה שלך: ${fmt(p.cash)}${note}`,[
+    {label: affordable?'קנה':'קנה (חסר מזומן)', cls: affordable?'bg-emerald-600 hover:bg-emerald-500':'bg-emerald-900 opacity-60', fn:()=>{
+      if(affordable){ buyProperty(p,sp); cb(); } else { offerBuy(p,sp,cb); } // not enough -> re-open
+    }},
+    {label:'משכון 🏠', cls:'bg-amber-600 hover:bg-amber-500', fn:()=>{ openManage(()=>offerBuy(p,sp,cb)); }},
+    {label:'ויתור', fn:()=>{ log(`${p.name} ויתר על ${sp.name}`,'text-slate-400'); cb(); }}
+  ]);
+}
+function buyProperty(p,sp){
+  if(p.cash<sp.price){ log(`${p.name} לא יכול לממן את ${sp.name}`,'text-rose-400'); return; }
+  p.cash-=sp.price; sp.owner=p.id;
+  sfx.buy();
+  log(`${p.name} קנה את ${sp.name} ב-${fmt(sp.price)} ✅`,'text-emerald-400');
+  renderOwnership(); updateTurnPanel();
+}
+
+/* ---------- CHARGING / BANKRUPTCY ---------- */
+// returns true if fully paid, false if went bankrupt
+function charge(p, amount, creditor){
+  if(p.cash>=amount){
+    p.cash-=amount;
+    if(creditor) creditor.cash+=amount;
+    return true;
+  }
+  // need to raise money
+  const canRaise=p.cash + totalLiquidatable(p);
+  if(canRaise>=amount){
+    if(p.ai){
+      aiRaiseFunds(p, amount);
+      if(p.cash>=amount){ p.cash-=amount; if(creditor) creditor.cash+=amount; return true; }
+    } else {
+      // prompt human to manage assets then auto-pay
+      modal('⚠️','אין מספיק מזומן',
+        `אתה חייב ${fmt(amount)} אך יש לך ${fmt(p.cash)}.<br>מכור בתים או משכן נכסים כדי לגייס כסף.`,
+        [{label:'פתח ניהול נכסים', cls:'bg-amber-600 hover:bg-amber-500', fn:()=>{ openManage(()=>{ settleDebt(p,amount,creditor); }); }}]);
+      return false; // deferred; settled in manage
+    }
+  }
+  // bankruptcy
+  bankrupt(p, creditor);
+  return false;
+}
+function settleDebt(p, amount, creditor){
+  if(p.cash>=amount){
+    p.cash-=amount; if(creditor) creditor.cash+=amount;
+    log(`${p.name} שילם את החוב (${fmt(amount)})`,'text-emerald-400');
+    updateTurnPanel();
+  } else {
+    bankrupt(p,creditor);
+  }
+}
+function totalLiquidatable(p){
+  let sum=0;
+  BOARD.forEach(s=>{
+    if(s.owner===p.id){
+      if(s.type==='street' && s.buildings>0) sum += (s.buildings===5 ? s.houseCost*9 : s.houseCost*s.buildings);
+      if(!s.mortgaged) sum += Math.floor(s.price/2);
+    }
+  });
+  return sum;
+}
+function bankrupt(p, creditor){
+  log(`💀 ${p.name} פשט רגל!`,'text-rose-500');
+  // sell all houses back to bank, transfer or release properties
+  BOARD.forEach(s=>{
+    if(s.owner===p.id){
+      if(s.type==='street'){ s.buildings=0; }
+      if(creditor){
+        s.owner=creditor.id;
+        // creditor must decide on mortgaged props; keep mortgaged status
+      } else {
+        s.owner=null; s.mortgaged=false; s.buildings=0;
+      }
+    }
+  });
+  if(creditor){ creditor.cash+=Math.max(0,p.cash); }
+  p.cash=0; p.bankrupt=true;
+  renderOwnership(); renderTokens(); renderPlayers();
+  checkGameOver();
+}
+function checkGameOver(){
+  const alive=activePlayers();
+  if(alive.length<=1){
+    gameOver=true;
+    const w=alive[0];
+    log(`🏆 ${w?w.name:'—'} ניצח במשחק!`,'text-amber-300');
+    setTimeout(()=>modal('🏆','ניצחון!',`<b>${w?w.name:'—'}</b> הוא המנצח! 🎉`,
+      [{label:'משחק חדש', cls:'bg-emerald-600', fn:()=>location.reload()}]),600);
+  }
+}
+
+/* ---------- JAIL ---------- */
+function sendToJail(p){
+  sfx.jail();
+  p.pos=10; p.jail=true; p.jailTurns=0; doublesCount=0;
+}
+function showJailControls(){
+  const box=document.getElementById('jailControls');
+  const p=players[cur];
+  box.classList.remove('hidden');
+  box.innerHTML='';
+  if(p.adminJailLock){
+    box.innerHTML='<div class="col-span-2 text-center text-xs text-purple-300 bg-purple-900/50 rounded-lg py-2">🔒 נעול בכלא ע"י אדמין — לא ניתן לצאת</div>';
+    log(`${p.name} נעול בכלא ע"י אדמין`,'text-purple-300');
+    return;
+  }
+  const payBtn=document.createElement('button');
+  payBtn.className='btn py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-sm font-bold';
+  payBtn.textContent='שלם ₪50';
+  payBtn.disabled=p.cash<50||p.ai;
+  payBtn.onclick=()=>jailPay();
+  box.appendChild(payBtn);
+  if(p.getout>0){
+    const cardBtn=document.createElement('button');
+    cardBtn.className='btn py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-sm font-bold';
+    cardBtn.textContent='השתמש בכרטיס יציאה';
+    cardBtn.disabled=p.ai;
+    cardBtn.onclick=()=>jailCard();
+    box.appendChild(cardBtn);
+  }
+  log(`${p.name} בכלא (תור ${p.jailTurns+1}/3). הטל כפולים, שלם ₪50, או השתמש בכרטיס`,'text-slate-400');
+}
+function jailPay(){
+  const p=players[cur];
+  if(p.adminJailLock) return;
+  if(p.cash<50) return;
+  p.cash-=50; p.jail=false; p.jailTurns=0;
+  log(`${p.name} שילם ₪50 ויצא מהכלא`,'text-emerald-400');
+  document.getElementById('jailControls').classList.add('hidden');
+  updateTurnPanel();
+}
+function jailCard(){
+  const p=players[cur];
+  if(p.adminJailLock) return;
+  if(p.getout<=0) return;
+  p.getout--; p.jail=false; p.jailTurns=0;
+  log(`${p.name} השתמש בכרטיס יציאה חופשית`,'text-purple-300');
+  document.getElementById('jailControls').classList.add('hidden');
+  updateTurnPanel();
+}
+function handleJailRoll(isDouble){
+  const p=players[cur];
+  if(p.adminJailLock){
+    log(`${p.name} נעול בכלא ע"י אדמין — נשאר בכלא`,'text-purple-300');
+    endTurnSoon(); return;
+  }
+  if(isDouble){
+    log(`${p.name} הטיל כפולים ויצא מהכלא!`,'text-emerald-400');
+    p.jail=false; p.jailTurns=0;
+    document.getElementById('jailControls').classList.add('hidden');
+    movePlayer(p, dice[0]+dice[1], ()=>afterLanding(p, endTurnSoon));
+  } else {
+    p.jailTurns++;
+    if(p.jailTurns>=3){
+      log(`${p.name} בכלא 3 תורות — חייב לשלם ₪50`,'text-amber-300');
+      forceLeaveJail(p);
+    } else {
+      log(`${p.name} לא הטיל כפולים — נשאר בכלא`,'text-slate-400');
+      endTurnSoon();
+    }
+  }
+}
+
+/* Turn-3 in jail: must pay ₪50. Mortgage if needed, then leave & move with the roll. */
+function forceLeaveJail(p){
+  const leaveAndMove=()=>{
+    p.jail=false; p.jailTurns=0;
+    document.getElementById('jailControls').classList.add('hidden');
+    log(`${p.name} שילם ₪50 ויצא מהכלא`,'text-emerald-400');
+    updateTurnPanel();
+    movePlayer(p, dice[0]+dice[1], ()=>afterLanding(p, endTurnSoon));
+  };
+  if(p.cash>=50){ p.cash-=50; leaveAndMove(); return; }
+  // not enough cash — can we raise it?
+  if(p.cash + totalLiquidatable(p) >= 50){
+    if(p.ai){
+      aiRaiseFunds(p,50);
+      if(p.cash>=50){ p.cash-=50; leaveAndMove(); return; }
+      bankrupt(p,null); endTurnSoon(); return;
+    }
+    modal('⚠️','חייב לשלם ₪50 לצאת מהכלא',
+      `אין לך מספיק מזומן (${fmt(p.cash)}).<br>משכן נכסים כדי לגייס ₪50.`,
+      [{label:'פתח ניהול נכסים', cls:'bg-amber-600 hover:bg-amber-500', fn:()=>{
+        openManage(()=>{
+          if(p.cash>=50){ p.cash-=50; leaveAndMove(); }
+          else { log(`${p.name} לא הצליח לגייס ₪50`,'text-rose-400'); bankrupt(p,null); endTurnSoon(); }
+        });
+      }}]);
+    return;
+  }
+  // truly cannot pay even after mortgaging everything
+  bankrupt(p,null); endTurnSoon();
+}
+
+/* ---------- CARDS ---------- */
+function drawCard(p, kind, cb){
+  let idx, card;
+  if(kind==='chance'){
+    if(chanceIdx>=chanceDeck.length){ chanceDeck=shuffle([...Array(CHANCE.length).keys()]); chanceIdx=0; }
+    idx=chanceDeck[chanceIdx++]; card=CHANCE[idx];
+  } else {
+    if(chestIdx>=chestDeck.length){ chestDeck=shuffle([...Array(CHEST.length).keys()]); chestIdx=0; }
+    idx=chestDeck[chestIdx++]; card=CHEST[idx];
+  }
+  const icon=kind==='chance'?'❓':'📦';
+  const title=kind==='chance'?'הפתעה':'תיבת מזל';
+  log(`${p.name} שלף כרטיס ${title}: ${card.t}`,'text-yellow-300');
+  if(p.ai){ resolveCard(p,card,cb); }
+  else { modal(icon,title,card.t,[{label:'אישור',cls:'bg-sky-600 hover:bg-sky-500',fn:()=>resolveCard(p,card,cb)}]); }
+}
+function resolveCard(p, card, cb){
+  const a=card.a;
+  if(a.payOrChance!==undefined){
+    const amt=a.payOrChance;
+    const pay=()=>{ log(`${p.name} שילם ₪${amt}`,'text-rose-300'); charge(p,amt,null); updateTurnPanel(); cb(); };
+    const chance=()=>{ drawCard(p,'chance',cb); };
+    if(p.ai){ pay(); }
+    else { modal('📦','תיבת מזל', `שלם ₪${amt} או קח כרטיס הפתעה`,[
+      {label:`שלם ₪${amt}`, cls:'bg-rose-600 hover:bg-rose-500', fn:pay},
+      {label:'קח כרטיס הפתעה', cls:'bg-amber-600 hover:bg-amber-500', fn:chance}
+    ]); }
+    return;
+  }
+  if(a.money!==undefined){
+    if(a.money>=0){ p.cash+=a.money; updateTurnPanel(); cb(); }
+    else { charge(p,-a.money,null); updateTurnPanel(); cb(); }
+    return;
+  }
+  if(a.move!==undefined){ moveTo(p,a.move,!a.noGo,()=>afterLanding(p,cb)); return; }
+  if(a.back!==undefined){
+    p.pos=(p.pos-a.back+40)%40; renderTokens(); highlightCell(p.pos);
+    setTimeout(()=>afterLanding(p,cb),300); return;
+  }
+  if(a.gotojail){ sendToJail(p); renderTokens(); cb(); return; }
+  if(a.getout){ p.getout++; updateTurnPanel(); cb(); return; }
+  if(a.nearest){
+    let i=p.pos;
+    do{ i=(i+1)%40; }while(BOARD[i].type!==a.nearest);
+    moveTo(p,i,true,()=>{
+      const sp=BOARD[i];
+      if(sp.owner!==null && sp.owner!==p.id && !sp.mortgaged){
+        let rent;
+        if(a.nearest==='railroad') rent=calcRent(sp,0)*2; // double rent
+        else rent=(dice[0]+dice[1])*10; // 10x dice for utility
+        const owner=players[sp.owner];
+        log(`${p.name} משלם ${fmt(rent)} ל${owner.name}`,'text-rose-300');
+        charge(p,rent,owner); updateTurnPanel(); cb();
+      } else { afterLanding(p,cb); }
+    });
+    return;
+  }
+  if(a.payeach!==undefined){
+    activePlayers().forEach(o=>{ if(o.id!==p.id){ const amt=a.payeach; p.cash-=amt; o.cash+=amt; }});
+    if(p.cash<0){ /* simplistic */ }
+    log(`${p.name} שילם ${fmt(a.payeach)} לכל שחקן`,'text-rose-300');
+    updateTurnPanel(); cb(); return;
+  }
+  if(a.collecteach!==undefined){
+    activePlayers().forEach(o=>{ if(o.id!==p.id){ o.cash-=a.collecteach; p.cash+=a.collecteach; }});
+    log(`${p.name} אסף ${fmt(a.collecteach)} מכל שחקן`,'text-emerald-400');
+    updateTurnPanel(); cb(); return;
+  }
+  if(a.repairs){
+    let houses=0,hotels=0;
+    BOARD.forEach(s=>{ if(s.owner===p.id&&s.type==='street'){ if(s.buildings===5)hotels++; else houses+=s.buildings; }});
+    const cost=houses*a.repairs[0]+hotels*a.repairs[1];
+    if(cost>0){ log(`${p.name} משלם ${fmt(cost)} תיקונים (${houses} בתים, ${hotels} מלונות)`,'text-rose-300'); charge(p,cost,null); }
+    updateTurnPanel(); cb(); return;
+  }
+  cb();
+}
+
+/* ============================================================
+   MANAGE / BUILD / MORTGAGE
+   ============================================================ */
+let manageCallback=null;
+let manageMsg='';   // transient error message shown in the manage screen
+function openManage(cb){
+  manageCallback=cb||null;
+  renderManage();
+  document.getElementById('manageModal').classList.remove('hidden');
+}
+function closeManage(){
+  document.getElementById('manageModal').classList.add('hidden');
+  const cb=manageCallback; manageCallback=null;
+  if(cb) cb();
+}
+function renderManage(){
+  const p=players[cur];
+  const box=document.getElementById('manageList');
+  let head=`<div class="mb-2 text-sm">מזומן: <b class="text-emerald-400">${fmt(p.cash)}</b></div>`;
+  if(manageMsg){ head+=`<div class="mb-2 text-xs bg-rose-900/70 border border-rose-500 text-rose-100 rounded-lg px-2 py-1.5">⚠ ${manageMsg}</div>`; manageMsg=''; }
+  box.innerHTML=head;
+  const owned=BOARD.map((s,i)=>({s,i})).filter(o=>o.s.owner===p.id);
+  if(owned.length===0){ box.innerHTML+='<p class="text-slate-400 text-sm">אין לך נכסים.</p>'; return; }
+
+  // group streets by color
+  owned.forEach(({s,i})=>{
+    const row=document.createElement('div');
+    row.className='bg-slate-700 rounded-lg p-2 flex items-center gap-2 text-sm';
+    let colorBar = s.type==='street'? `<span class="inline-block w-3 h-3 rounded" style="background:${COLORS[s.color].hex}"></span>`:'';
+    let info='';
+    if(s.type==='street'){
+      const monopoly=ownsGroup(p.id,s.color);
+      info = s.buildings===5?'🏨 מלון':(s.buildings>0?'🏠'.repeat(s.buildings):(monopoly?'<span class="text-emerald-400 text-xs">קבוצה מלאה</span>':''));
+    }
+    let btns='';
+    // Build house / hotel — always offered while you own the full color group (errors shown on click)
+    if(s.type==='street' && ownsGroup(p.id,s.color) && s.buildings<5){
+      const isHotel = s.buildings===4;
+      btns+=`<button class="btn px-2 py-1 rounded bg-emerald-600 text-xs" onclick="buildHouse(${i})">${isHotel?'קנה מלון':'בנה בית'} (${fmt(buildCost(s))})</button>`;
+    }
+    // Sell house
+    if(s.type==='street' && s.buildings>0 && canSellEven(s)){
+      btns+=`<button class="btn px-2 py-1 rounded bg-orange-600 text-xs" onclick="sellHouse(${i})">מכור ${s.buildings===5?'מלון':'בית'} (+${fmt(sellValue(s))})</button>`;
+    }
+    // Mortgage / unmortgage
+    if(('mortgaged' in s)){
+      if(!s.mortgaged && (s.type!=='street' || s.buildings===0) && groupNoBuildings(p.id, s.color, s)){
+        btns+=`<button class="btn px-2 py-1 rounded bg-amber-700 text-xs" onclick="mortgage(${i})">משכן (+${fmt(Math.floor(s.price/2))})</button>`;
+      }
+      if(s.mortgaged){
+        const cost=Math.floor(s.price/2);
+        btns+=`<button class="btn px-2 py-1 rounded bg-sky-700 text-xs ${p.cash<cost?'opacity-40':''}" onclick="unmortgage(${i})">פדה (${fmt(cost)})</button>`;
+      }
+    }
+    row.innerHTML=`${colorBar}<span class="flex-1">${s.name} ${s.mortgaged?'<span class="text-amber-400 text-xs">(ממושכן)</span>':''} ${info}</span><div class="flex gap-1 flex-wrap">${btns}</div>`;
+    box.appendChild(row);
+  });
+}
+function groupUnmortgaged(pid,color){
+  return BOARD.filter(s=>s.type==='street'&&s.color===color).every(s=>!s.mortgaged);
+}
+function groupNoBuildings(pid,color,self){
+  if(self.type!=='street') return true;
+  return BOARD.filter(s=>s.type==='street'&&s.color===color).every(s=>s.buildings===0);
+}
+function canBuildEven(s){
+  const grp=BOARD.filter(x=>x.type==='street'&&x.color===s.color);
+  const min=Math.min(...grp.map(x=>x.buildings));
+  return s.buildings===min; // must build on lowest first
+}
+function canSellEven(s){
+  const grp=BOARD.filter(x=>x.type==='street'&&x.color===s.color);
+  const max=Math.max(...grp.map(x=>x.buildings));
+  return s.buildings===max;
+}
+const hotelCost=s=>s.houseCost*5;                                  // a hotel costs 5× a house
+const buildCost=s=>(s.buildings===4 ? hotelCost(s) : s.houseCost); // cost to add the next building
+const sellValue=s=>(s.buildings===5 ? hotelCost(s) : s.houseCost); // refund for removing the top building
+function buildHouse(i){
+  const s=BOARD[i], p=players[cur];
+  if(s.type!=='street' || !ownsGroup(p.id,s.color) || s.buildings>=5) return;
+  const what = s.buildings===4 ? 'מלון' : 'בית';
+  const cost = buildCost(s);
+  // validate, and write the reason if it can't be built
+  if(!groupUnmortgaged(p.id,s.color)){ manageMsg='אי אפשר לבנות — יש נכס ממושכן בקבוצה הזו'; renderManage(); return; }
+  if(!canBuildEven(s)){ manageMsg='צריך לבנות בצורה שווה — בנה קודם ברחובות עם פחות בתים בקבוצה'; renderManage(); return; }
+  if(p.cash<cost){ manageMsg=`אין מספיק כסף ל${what} (עולה ${fmt(cost)}, יש לך ${fmt(p.cash)})`; renderManage(); return; }
+  p.cash-=cost; s.buildings++;
+  log(`${p.name} בנה ${what} ב${s.name} (${fmt(cost)})`,'text-emerald-400');
+  renderOwnership(); updateTurnPanel(); renderManage();
+}
+function sellHouse(i){
+  const s=BOARD[i], p=players[cur];
+  if(s.buildings<=0) return;
+  const wasHotel = s.buildings===5;
+  p.cash+=sellValue(s); s.buildings--;
+  log(`${p.name} מכר ${wasHotel?'מלון':'בית'} ב${s.name}`,'text-orange-300');
+  renderOwnership(); updateTurnPanel(); renderManage();
+}
+function mortgage(i){
+  const s=BOARD[i], p=players[cur];
+  if(s.mortgaged) return;
+  s.mortgaged=true; p.cash+=Math.floor(s.price/2);
+  log(`${p.name} משכן את ${s.name} (+${fmt(Math.floor(s.price/2))})`,'text-amber-300');
+  renderOwnership(); updateTurnPanel(); renderManage();
+}
+function unmortgage(i){
+  const s=BOARD[i], p=players[cur];
+  const cost=Math.floor(s.price/2);
+  if(!s.mortgaged||p.cash<cost) return;
+  s.mortgaged=false; p.cash-=cost;
+  log(`${p.name} פדה את ${s.name} (${fmt(cost)})`,'text-sky-300');
+  renderOwnership(); updateTurnPanel(); renderManage();
+}
+
+/* ============================================================
+   PLAYERS PANEL
+   ============================================================ */
+function renderPlayers(){
+  const box=document.getElementById('playersPanel');
+  box.innerHTML='';
+  players.forEach(p=>{
+    const owned=BOARD.filter(s=>s.owner===p.id);
+    const div=document.createElement('div');
+    div.className='rounded-lg px-2 py-1.5 '+(p.id===cur && !p.bankrupt?'bg-slate-700 ring-2 ring-amber-400':'bg-slate-700/40')+(p.bankrupt?' opacity-40':'');
+    let propsHtml='';
+    const byColor={};
+    owned.forEach(s=>{
+      let key = s.type==='street'?COLORS[s.color].hex:(s.type==='railroad'?'#333':'#888');
+      byColor[key]=(byColor[key]||0)+1;
+    });
+    Object.entries(byColor).forEach(([hex,cnt])=>{
+      propsHtml+=`<span class="inline-flex items-center text-[10px] rounded px-1" style="background:${hex};color:#fff">${cnt}</span>`;
+    });
+    div.innerHTML=`
+      <div class="flex items-center gap-1.5">
+        <div class="w-3.5 h-3.5 rounded-full shrink-0" style="background:${p.color}"></div>
+        <span class="font-bold text-sm whitespace-nowrap">${p.emoji} ${p.name}</span>
+        ${p.jail?'<span class="text-amber-400 text-xs">🔒</span>':''}
+        ${p.bankrupt?'<span class="text-rose-400 text-[10px]">פשט רגל</span>':''}
+        <span class="flex gap-0.5 flex-wrap mx-1">${propsHtml}</span>
+        <span class="ms-auto font-bold text-emerald-400 text-sm whitespace-nowrap">${fmt(p.cash)}</span>
+      </div>`;
+    div.style.cursor='pointer';
+    div.title='לחץ לפרטים מלאים';
+    div.onclick=()=>showPlayerDetails(p.id);
+    box.appendChild(div);
+  });
+}
+
+/* Click a player -> full details + their property cards for this round */
+function showPlayerDetails(pid){
+  const p=players[pid];
+  const owned=BOARD.filter(s=>('owner' in s) && s.owner===pid);
+  document.getElementById('playerModalTitle').innerHTML=
+    `<span class="inline-block w-4 h-4 rounded-full align-middle me-1" style="background:${p.color}"></span>${p.emoji} ${p.name}${p.ai?' (מחשב)':''}`;
+  let html=`<div class="mb-3 space-y-1 text-sm bg-slate-700/50 rounded-lg p-3">
+      <div>💰 מזומן: <b class="text-emerald-400">${fmt(p.cash)}</b></div>
+      <div>🏠 נכסים: <b>${owned.length}</b></div>
+      ${p.getout>0?`<div>🎟️ כרטיסי "יציאה מהכלא": <b>${p.getout}</b></div>`:''}
+      ${p.jail?`<div class="text-amber-400">🔒 בכלא (תור ${p.jailTurns}/3)</div>`:''}
+      ${p.bankrupt?`<div class="text-rose-400 font-bold">💀 פשט רגל</div>`:''}
+    </div>`;
+  if(adminMode){
+    html+=`<div class="mb-3 grid grid-cols-2 gap-2">
+        <button class="adm-btn btn py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-xs font-bold" data-a="money">💰 ערוך כסף</button>
+        <button class="adm-btn btn py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-xs font-bold" data-a="loc">📍 בחר מיקום</button>
+        <button class="adm-btn btn py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-xs font-bold" data-a="take">➕ קח נכס</button>
+        <button class="adm-btn btn py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-xs font-bold" data-a="return">➖ החזר נכס לבנק</button>
+        <button class="adm-btn btn col-span-2 py-2 rounded-lg ${p.adminJailLock?'bg-emerald-700 hover:bg-emerald-600':'bg-rose-800 hover:bg-rose-700'} text-xs font-bold" data-a="jail">${p.adminJailLock?'🔓 שחרר מהכלא':'🚔 הכנס לכלא (נעול)'}</button>
+      </div>`;
+  }
+  if(owned.length){
+    html+=`<div class="grid grid-cols-2 gap-2">`+owned.map(propertyCard).join('')+`</div>`;
+  } else {
+    html+=`<div class="text-slate-400 text-sm text-center py-3">אין נכסים</div>`;
+  }
+  document.getElementById('playerModalBody').innerHTML=html;
+  document.getElementById('playerModal').classList.remove('hidden');
+  if(adminMode){
+    document.querySelectorAll('#playerModalBody .adm-btn').forEach(b=>{
+      b.onclick=()=>{ const a=b.dataset.a;
+        if(a==='money') adminSetMoney(pid);
+        else if(a==='loc') adminPickLocation(pid);
+        else if(a==='take') adminTakeProperty(pid);
+        else if(a==='return') adminReturnProperty(pid);
+        else if(a==='jail') adminToggleJail(pid);
+      };
+    });
+  }
+}
+function closePlayerModal(){ document.getElementById('playerModal').classList.add('hidden'); }
+
+/* ============================================================
+   TRADING
+   ============================================================ */
+let tradeTarget=-1, _lastTradeT=0, _appliedTradeT=0;
+function tradeablePropsOf(pid){
+  return BOARD.map((s,i)=>({s,i})).filter(o=>('owner' in o.s) && o.s.owner===pid && !(o.s.type==='street' && o.s.buildings>0));
+}
+function openTrade(){
+  const me = online ? myIndex : cur;
+  if(online && cur!==myIndex) return;
+  const others = players.map((p,i)=>i).filter(i=>i!==me && !players[i].bankrupt);
+  if(!others.length){ log('אין שחקנים אחרים לעסקה','text-slate-400'); return; }
+  if(!others.includes(tradeTarget)) tradeTarget=others[0];
+  renderTradeTargets(me, others); renderTradeBody(me);
+  document.getElementById('tradeModal').classList.remove('hidden');
+}
+function renderTradeTargets(me, others){
+  const tt=document.getElementById('tradeTargets'); tt.innerHTML='';
+  others.forEach(i=>{
+    const b=document.createElement('button');
+    b.className='btn px-2 py-1 rounded text-sm '+(i===tradeTarget?'bg-amber-600':'bg-slate-700');
+    b.textContent=players[i].emoji+' '+players[i].name;
+    b.onclick=()=>{ tradeTarget=i; renderTradeTargets(me,others); renderTradeBody(me); };
+    tt.appendChild(b);
+  });
+}
+function renderTradeBody(me){
+  const mine=tradeablePropsOf(me), theirs=tradeablePropsOf(tradeTarget);
+  const list=(arr,side)=>arr.length?arr.map(o=>`<label class="flex items-center gap-1 text-xs py-0.5"><input type="checkbox" class="tp-${side}" value="${o.i}"> ${o.s.name}</label>`).join(''):'<div class="text-[10px] text-slate-500">אין נכסים</div>';
+  document.getElementById('tradeBody').innerHTML=`
+    <div class="bg-slate-700/50 rounded-lg p-2">
+      <div class="font-bold text-sm mb-1">אני נותן</div>
+      <div class="text-xs mb-1">כסף ₪<input id="tradeGiveCash" type="number" min="0" value="0" style="width:74px" class="text-black rounded px-1"></div>
+      ${list(mine,'give')}
+    </div>
+    <div class="bg-slate-700/50 rounded-lg p-2">
+      <div class="font-bold text-sm mb-1">אני מקבל</div>
+      <div class="text-xs mb-1">כסף ₪<input id="tradeGetCash" type="number" min="0" value="0" style="width:74px" class="text-black rounded px-1"></div>
+      ${list(theirs,'get')}
+    </div>`;
+}
+function closeTrade(){ document.getElementById('tradeModal').classList.add('hidden'); }
+document.getElementById('tradeSend').onclick=()=>{
+  const me = online ? myIndex : cur;
+  const offer={
+    from:me, to:tradeTarget,
+    giveCash:Math.max(0,parseInt(document.getElementById('tradeGiveCash').value)||0),
+    getCash:Math.max(0,parseInt(document.getElementById('tradeGetCash').value)||0),
+    giveProps:[...document.querySelectorAll('.tp-give:checked')].map(c=>+c.value),
+    getProps:[...document.querySelectorAll('.tp-get:checked')].map(c=>+c.value),
+    t:Date.now(), status:'pending'
+  };
+  if(offer.giveCash>players[me].cash){ log('אין לך מספיק כסף להצעה','text-rose-400'); return; }
+  if(!offer.giveCash && !offer.getCash && !offer.giveProps.length && !offer.getProps.length){ log('עסקה ריקה','text-slate-400'); return; }
+  closeTrade();
+  if(players[tradeTarget].ai){
+    if(aiEvaluateTrade(offer)){ applyTrade(offer); log(`🤝 ${players[tradeTarget].name} קיבל את העסקה`,'text-emerald-400'); }
+    else { log(`🤝 ${players[tradeTarget].name} דחה את העסקה`,'text-rose-400'); }
+    if(online && cur===myIndex) netBroadcast();
+  } else if(online){
+    _lastTradeT=offer.t;
+    roomRef.child('trade').set(offer);
+    log(`🤝 הצעה נשלחה ל${players[tradeTarget].name} — ממתין לתשובה`,'text-amber-300');
+  } else {
+    reviewTrade(offer);   // hotseat human
+  }
+};
+function reviewTrade(offer){
+  const A=players[offer.from], B=players[offer.to];
+  const pn=arr=>(arr&&arr.length)?arr.map(i=>BOARD[i].name).join(', '):'—';   // Firebase omits empty arrays
+  const html=`<b>${A.emoji} ${A.name}</b> מציע לך:<br><br>
+    🟢 אתה מקבל: ${offer.giveCash?fmt(offer.giveCash)+' ':''}${pn(offer.giveProps)}<br>
+    🔴 אתה נותן: ${offer.getCash?fmt(offer.getCash)+' ':''}${pn(offer.getProps)}`;
+  modal('🤝','הצעת עסקה',html,[
+    {label:'✅ קבל', cls:'bg-emerald-600 hover:bg-emerald-500', fn:()=>{
+      if(online){ roomRef.child('trade/status').set('accepted'); }
+      else { applyTrade(offer); }
+    }},
+    {label:'❌ דחה', cls:'bg-rose-600 hover:bg-rose-500', fn:()=>{
+      if(online){ roomRef.child('trade/status').set('rejected'); }
+      log(`🤝 ${B.name} דחה את העסקה`,'text-rose-400');
+    }}
+  ]);
+}
+function applyTrade(offer){
+  const A=players[offer.from], B=players[offer.to];
+  if(!A||!B) return;
+  if(A.cash<offer.giveCash || B.cash<offer.getCash){ log('עסקה נכשלה — אין מספיק כסף','text-rose-400'); return; }
+  A.cash-=offer.giveCash; B.cash+=offer.giveCash;
+  B.cash-=offer.getCash; A.cash+=offer.getCash;
+  (offer.giveProps||[]).forEach(i=>{ if(BOARD[i].owner===offer.from) BOARD[i].owner=offer.to; });
+  (offer.getProps||[]).forEach(i=>{ if(BOARD[i].owner===offer.to) BOARD[i].owner=offer.from; });
+  sfx.money();
+  log(`🤝 עסקה בוצעה: ${A.name} ↔ ${B.name}`,'text-emerald-400');
+  renderOwnership(); updateTurnPanel();
+}
+function aiEvaluateTrade(offer){
+  const pv=i=>BOARD[i].price||0;
+  const received=offer.giveCash + (offer.giveProps||[]).reduce((a,i)=>a+pv(i),0);
+  const given=offer.getCash + (offer.getProps||[]).reduce((a,i)=>a+pv(i),0);
+  if(players[offer.to].cash < offer.getCash) return false;
+  return received >= given*0.95;   // accept if the bot isn't really losing
+}
+
+/* ============================================================
+   SPACE INFO (click any cell)
+   ============================================================ */
+function showSpaceInfo(i){
+  // ADMIN: a pending "choose location" click teleports the player to ANY cell
+  if(adminMoveTarget!=null){
+    const pid=adminMoveTarget; adminMoveTarget=null;
+    players[pid].pos=i; renderTokens(); highlightCell(i);
+    log(`🔧 אדמין: ${players[pid].name} הועבר ל${BOARD[i].name||('משבצת '+i)}`,'text-purple-300');
+    return;
+  }
+  const sp=BOARD[i];
+  if(!('price' in sp) && sp.type!=='street'){ return; }
+  let html='';
+  if(sp.type==='street'){
+    html=`קבוצה: ${COLORS[sp.color].name}<br>מחיר: ${fmt(sp.price)}<br>עלות בית: ${fmt(sp.houseCost)}<br><br>
+      שכירות בסיס: ${fmt(sp.rent[0])}<br>קבוצה מלאה: ${fmt(sp.rent[0]*2)}<br>
+      1 בית: ${fmt(sp.rent[1])} | 2: ${fmt(sp.rent[2])} | 3: ${fmt(sp.rent[3])} | 4: ${fmt(sp.rent[4])}<br>מלון: ${fmt(sp.rent[5])}`;
+  } else if(sp.type==='railroad'){
+    html=`מחיר: ${fmt(200)}<br>שכירות: רכבת אחת ₪25, שתיים ₪50, שלוש ₪100, ארבע ₪200`;
+  } else if(sp.type==='utility'){
+    html=`מחיר: ${fmt(150)}<br>שכירות: פי 4 על הקוביה (חברה אחת), פי 10 (שתי חברות)`;
+  }
+  const owner = sp.owner!=null? players[sp.owner].name : 'הבנק (פנוי)';
+  html+=`<br><br>בעלים: <b>${owner}</b>`;
+  const buttons=[{label:'סגור',cls:'bg-slate-600'}];
+  if(adminMode && ('owner' in sp)){
+    buttons.unshift({label:'🔧 קבל בחינם', cls:'bg-purple-600 hover:bg-purple-500', fn:()=>{
+      sp.owner=cur; sp.mortgaged=false;
+      log(`🔧 אדמין: ${sp.name} ניתן ל${players[cur].name} בחינם`,'text-purple-300');
+      renderOwnership(); updateTurnPanel();
+    }});
+  }
+  modal('🏠',sp.name,html,buttons);
+}
+
+/* ============================================================
+   AI
+   ============================================================ */
+function aiTurn(){
+  const p=players[cur];
+  if(p.bankrupt||gameOver) return;
+  if(p.jail){
+    if(p.adminJailLock){ setTimeout(doRoll,400); return; } // locked: just roll, stays in jail
+    // decide: use card > pay if rich > roll
+    if(p.getout>0){ jailCardAI(); return; }
+    if(p.cash>200 && p.jailTurns<2){ /* try roll for doubles first to save money? simple: roll */ }
+    if(p.cash>500){ // pay to get out
+      p.cash-=50; p.jail=false; p.jailTurns=0;
+      log(`${p.name} שילם ₪50 ויצא מהכלא`,'text-emerald-400'); updateTurnPanel();
+      setTimeout(doRoll,500); return;
+    }
+    setTimeout(doRoll,400); return; // just roll
+  }
+  setTimeout(doRoll,300);
+}
+function jailCardAI(){
+  const p=players[cur];
+  p.getout--; p.jail=false; p.jailTurns=0;
+  log(`${p.name} השתמש בכרטיס יציאה`,'text-purple-300');
+  updateTurnPanel(); setTimeout(doRoll,500);
+}
+function aiWantsBuy(p,sp){
+  const buffer=200;
+  if(p.cash - sp.price < buffer) return p.cash > sp.price*1.5; // sometimes still buy if cheap
+  return true;
+}
+function aiRaiseFunds(p, target){
+  // sell houses first (evenly), then mortgage
+  let guard=0;
+  while(p.cash<target && guard++<200){
+    // sell a house
+    const sellable=BOARD.filter(s=>s.owner===p.id&&s.type==='street'&&s.buildings>0&&canSellEven(s));
+    if(sellable.length){
+      sellable.sort((a,b)=>b.buildings-a.buildings);
+      const s=sellable[0]; p.cash+=sellValue(s); s.buildings--;
+      continue;
+    }
+    const mortgageable=BOARD.filter(s=>s.owner===p.id&&!s.mortgaged&&(s.type!=='street'||s.buildings===0)&&groupNoBuildings(p.id,s.color||'',s));
+    if(mortgageable.length){
+      const s=mortgageable[0]; s.mortgaged=true; p.cash+=Math.floor(s.price/2);
+      continue;
+    }
+    break;
+  }
+  log(`${p.name} גייס כספים (מכירת בתים/משכון)`,'text-amber-300');
+  renderOwnership(); updateTurnPanel();
+}
+// AI building after moving: called at end of AI turn via endTurn hook
+function aiMaybeBuild(p){
+  let guard=0;
+  while(guard++<10){
+    const buildable=BOARD.filter(s=>s.type==='street'&&s.owner===p.id&&ownsGroup(p.id,s.color)
+      && !s.mortgaged && s.buildings<5 && groupUnmortgaged(p.id,s.color) && canBuildEven(s) && p.cash> buildCost(s)+250);
+    if(!buildable.length) break;
+    buildable.sort((a,b)=>a.buildings-b.buildings);
+    const s=buildable[0];
+    p.cash-=buildCost(s); s.buildings++;
+    log(`${p.name} בנה ${s.buildings===5?'מלון':'בית'} ב${s.name}`,'text-emerald-400');
+  }
+  renderOwnership(); updateTurnPanel();
+}
+
+// hook AI building into endTurn
+const _origEndTurn=endTurn;
+endTurn=function(){
+  const p=players[cur];
+  if(p && p.ai && !p.bankrupt && !p.jail) aiMaybeBuild(p);
+  _origEndTurn();
+  if(online) netBroadcast();   // push the handoff (cur now = next player) so the other device gets the turn
+};
+
+// SAFETY NET: if a bot's turn ever gets stuck (can't roll, not waiting to end,
+// no open dialog) for ~9s, auto-advance so the game never freezes.
+let _aiStuckSince=0;
+setInterval(()=>{
+  try{
+    if(gameOver || online || !players.length){ _aiStuckSince=0; return; }
+    const p=players[cur];
+    const actionable = canRoll || awaitingEnd;
+    const modalOpen = !document.getElementById('modal').classList.contains('hidden')
+                    || !document.getElementById('manageModal').classList.contains('hidden');
+    if(p && p.ai && !p.bankrupt && !actionable && !modalOpen){
+      if(!_aiStuckSince){ _aiStuckSince=Date.now(); }
+      else if(Date.now()-_aiStuckSince > 9000){
+        _aiStuckSince=0;
+        log('⚠️ הבוט נתקע — ממשיך אוטומטית','text-amber-400');
+        endTurnSoon();
+      }
+    } else { _aiStuckSince=0; }
+  }catch(e){}
+}, 3000);
+
+/* ============================================================
+   ONLINE MULTIPLAYER (Firebase) — active-player-authoritative
+   The player whose turn it is runs the logic locally and broadcasts the
+   full state; everyone else renders it. Offline play is untouched (all of
+   this is gated behind `online`, which stays false until a match starts).
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  databaseURL: "https://monopol-f7039-default-rtdb.firebaseio.com",
+  projectId: "monopol-f7039"
+  // RTDB במצב בדיקה לא דורש apiKey/auth
+};
+let online=false, isHost=false, myIndex=-1, fdb=null, roomRef=null, myUid=null, netStarted=false, netSuppress=false;
+
+function netConfigured(){ return !!FIREBASE_CONFIG.databaseURL; }
+function netCancel(){
+  try{ if(roomRef && myUid) roomRef.child('players/'+myUid).remove(); }catch(e){}
+  try{ if(roomRef) roomRef.off(); }catch(e){}
+  online=false; isHost=false; myIndex=-1; roomRef=null; netStarted=false;
+}
+let _myEmojiIdx=-1, _myColorIdx=-1;
+function _initFb(){
+  if(!netConfigured()){
+    document.getElementById('lobbyStatus').innerHTML='⚠️ מולטיפלייר עדיין לא מוגדר.<br><span class="text-xs text-slate-400">צריך להזין פרטי Firebase בקוד (ראה הוראות).</span>';
+    document.getElementById('lobbyPlayers').textContent=''; return false;
+  }
+  try{ if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG); fdb=firebase.database(); }
+  catch(e){ document.getElementById('lobbyStatus').textContent='שגיאת אתחול Firebase'; return false; }
+  myUid='u'+Math.random().toString(36).slice(2,9);
+  return true;
+}
+/* AUTO matchmaking — finds/creates a public room of the chosen size */
+function joinMatch(count, myName){
+  if(!_initFb()) return;
+  fdb.ref('rooms').transaction(rooms=>{
+    rooms=rooms||{};
+    let rid=Object.keys(rooms).find(k=>{ const r=rooms[k]; return r&&!r.private&&r.size===count&&r.status==='waiting'&&Object.keys(r.players||{}).length<count; });
+    if(!rid){ rid=Date.now().toString(36)+Math.random().toString(36).slice(2,4); rooms[rid]={size:count,status:'waiting',players:{}}; }
+    const r=rooms[rid]; r.players=r.players||{};
+    const idx=Object.keys(r.players).length;
+    r.players[myUid]={name:myName, idx:idx, emoji:idx, color:idx};
+    if(Object.keys(r.players).length>=count) r.status='ready';
+    window._rid=rid; window._myIdx=idx; return rooms;
+  }, (err,committed)=>{
+    if(err||!committed){ document.getElementById('lobbyStatus').textContent='שגיאת התאמה — נסה שוב'; return; }
+    _finishJoin(window._rid, count, false, null);
+  });
+}
+/* CREATE a private room with a random 4-digit code (retries on collision) */
+function createPrivateRoom(count, myName){ if(!_initFb()) return; _tryCreate(count, myName, 0); }
+function _tryCreate(count, myName, attempt){
+  if(attempt>6){ document.getElementById('lobbyStatus').textContent='לא הצלחתי ליצור חדר — נסה שוב'; return; }
+  const code=''+Math.floor(1000+Math.random()*9000);
+  fdb.ref('rooms/'+code).transaction(r=>{
+    if(r) return;   // code already taken — abort & retry
+    return {size:count,status:'waiting',private:true,players:{[myUid]:{name:myName,idx:0,emoji:0,color:0}}};
+  }, (err,committed,snap)=>{
+    if(err){ document.getElementById('lobbyStatus').textContent='שגיאה — נסה שוב'; return; }
+    if(!committed || !snap.val()){ _tryCreate(count, myName, attempt+1); return; }
+    window._myIdx=0; _finishJoin(code, count, true, code);
+  });
+}
+/* JOIN a private room by its 4-digit code */
+function _joinFail(msg){
+  document.getElementById('lobbyStatus').innerHTML=msg+'<br><span class="text-xs text-slate-400">בדוק את הקוד ונסה שוב.</span>';
+  document.getElementById('lobbyPlayers').textContent='';
+  setTimeout(()=>{ document.getElementById('lobbyPick').classList.remove('hidden'); document.getElementById('lobbyWait').classList.add('hidden'); }, 2400);
+}
+function joinPrivateRoom(code, myName){
+  if(!_initFb()) return;
+  const ref=fdb.ref('rooms/'+code);
+  let done=false;
+  // A transaction on a not-yet-cached path runs its first pass with null and,
+  // if we abort there, Firebase NEVER consults the server — so an existing
+  // room looks "missing". Keeping a live listener attached caches the real
+  // value, so the transaction's first pass sees it. We trigger the join from
+  // inside the listener callback (fires once data has arrived).
+  const probe=ref.on('value', snap=>{
+    if(done) return;
+    const r=snap.val();
+    if(!r){ done=true; ref.off('value',probe); _joinFail('❌ קוד החדר לא קיים.'); return; }
+    if(r.status!=='waiting'){ done=true; ref.off('value',probe); _joinFail('❌ המשחק כבר התחיל.'); return; }
+    if(Object.keys(r.players||{}).length>=(r.size||4)){ done=true; ref.off('value',probe); _joinFail('❌ החדר מלא.'); return; }
+    done=true;
+    ref.transaction(rr=>{
+      if(!rr || rr.status!=='waiting') return;
+      const n=Object.keys(rr.players||{}).length;
+      if(n>=rr.size) return;                                  // full (race)
+      rr.players=rr.players||{};
+      rr.players[myUid]={name:myName, idx:n, emoji:n, color:n};
+      if(Object.keys(rr.players).length>=rr.size) rr.status='ready';
+      window._myIdx=n; return rr;
+    }, (err,committed,snap2)=>{
+      ref.off('value',probe);
+      const v=snap2 && snap2.val();
+      if(err || !committed || !v || !v.players || !v.players[myUid]){ _joinFail('❌ ההצטרפות נכשלה (אולי החדר התמלא).'); return; }
+      _finishJoin(code, v.size, true, code);
+    });
+  }, err=>{ if(!done){ done=true; _joinFail('⚠️ שגיאת רשת.'); } });
+}
+/* Shared post-join wiring: lobby listener + piece/color picker + auto-start */
+function _finishJoin(rid, count, isPrivate, code){
+  myIndex=window._myIdx; isHost=(myIndex===0); online=true;
+  _myEmojiIdx=myIndex; _myColorIdx=myIndex;
+  roomRef=fdb.ref('rooms/'+rid);
+  try{ roomRef.child('players/'+myUid).onDisconnect().remove(); }catch(e){}
+  const codeShow=document.getElementById('lobbyCodeShow');
+  if(code){ codeShow.classList.remove('hidden'); document.getElementById('lobbyCodeVal').textContent=code; }
+  else { codeShow.classList.add('hidden'); }
+  document.getElementById('lobbyStatus').textContent = isHost?'אתה המארח 👑 — ממתין לשחקנים...':'מחובר — ממתין לשחקנים...';
+  roomRef.on('value', snap=>{
+    const r=snap.val(); if(!r) return;
+    const cnt=r.size||count;
+    const list=Object.values(r.players||{}).sort((a,b)=>a.idx-b.idx);
+    document.getElementById('lobbyPlayers').textContent=list.length+'/'+cnt;
+    renderLobbyPicker(list);
+    if((r.status==='ready'||r.status==='started') && !netStarted && list.length>=cnt){
+      netStarted=true; roomRef.off(); beginNetworkGame(list);
+    }
+  });
+}
+/* Render the piece/color picker + roster; options taken by others are disabled */
+function renderLobbyPicker(list){
+  const me=list.find(p=>p.idx===myIndex);
+  if(me){ if(typeof me.emoji==='number')_myEmojiIdx=me.emoji; if(typeof me.color==='number')_myColorIdx=me.color; }
+  const takenE={}, takenC={};
+  list.forEach(p=>{ if(p.idx!==myIndex){ if(typeof p.emoji==='number')takenE[p.emoji]=1; if(typeof p.color==='number')takenC[p.color]=1; } });
+  document.getElementById('lobbyPieces').innerHTML=PEMOJI.map((e,i)=>{
+    const taken=takenE[i], mine=(_myEmojiIdx===i);
+    return `<button ${taken?'disabled':''} onclick="claimPiece(${i})" class="btn text-2xl w-11 h-11 rounded-lg ${mine?'bg-sky-500 ring-2 ring-white':'bg-slate-700'} ${taken?'opacity-25 cursor-not-allowed':'hover:bg-slate-600'}">${e}</button>`;
+  }).join('');
+  document.getElementById('lobbyColors').innerHTML=PCOLORS.map((c,i)=>{
+    const taken=takenC[i], mine=(_myColorIdx===i);
+    return `<button ${taken?'disabled':''} onclick="claimColor(${i})" class="btn w-9 h-9 rounded-full ${mine?'ring-4 ring-white':''} ${taken?'opacity-25 cursor-not-allowed':''}" style="background:${c}"></button>`;
+  }).join('');
+  document.getElementById('lobbyList').innerHTML=list.map(p=>{
+    const col=(typeof p.color==='number')?PCOLORS[p.color]:'#888';
+    const em=(typeof p.emoji==='number')?PEMOJI[p.emoji]:'❔';
+    return `<div class="flex items-center justify-center gap-2"><span class="w-5 h-5 rounded-full inline-flex items-center justify-center text-xs" style="background:${col}">${em}</span>${p.idx===0?'👑 ':''}${p.name}${p.idx===myIndex?' (אתה)':''}</div>`;
+  }).join('');
+}
+function claimPiece(i){
+  if(!roomRef||!myUid) return;
+  roomRef.child('players').transaction(ps=>{
+    if(!ps||!ps[myUid]) return ps;
+    for(const k in ps){ if(k!==myUid && ps[k].emoji===i) return; }   // taken by another — abort
+    ps[myUid].emoji=i; return ps;
+  });
+}
+function claimColor(i){
+  if(!roomRef||!myUid) return;
+  roomRef.child('players').transaction(ps=>{
+    if(!ps||!ps[myUid]) return ps;
+    for(const k in ps){ if(k!==myUid && ps[k].color===i) return; }
+    ps[myUid].color=i; return ps;
+  });
+}
+function beginNetworkGame(list){
+  players=list.map((m,i)=>({id:i,name:m.name,ai:false,
+    color:PCOLORS[(typeof m.color==='number')?m.color:i],
+    emoji:PEMOJI[(typeof m.emoji==='number')?m.emoji:i],
+    cash:1500,pos:GO_POS,jail:false,jailTurns:0,getout:0,bankrupt:false}));
+  document.getElementById('lobbyScreen').classList.add('hidden');
+  startGame();
+  log(`🌐 משחק אונליין התחיל — אתה שחקן ${myIndex+1} מתוך ${list.length}`,'text-sky-300');
+  if(isHost){ roomRef.child('status').set('started'); netBroadcast(); }
+  // everyone listens to authoritative state; apply only when you're NOT the active player
+  roomRef.child('state').on('value', snap=>{
+    const st=snap.val(); if(!st) return;
+    if(cur===myIndex && netStarted) return; // I'm the driver — my local state wins
+    netApply(st);
+  });
+  // trade offers: target reviews; on 'accepted' BOTH parties apply the (deterministic) trade
+  roomRef.child('trade').on('value', snap=>{
+    const offer=snap.val(); if(!offer) return;
+    if(offer.status==='pending' && offer.to===myIndex && offer.t!==_lastTradeT){
+      _lastTradeT=offer.t; reviewTrade(offer);
+    } else if(offer.status==='accepted' && _appliedTradeT!==offer.t && (offer.from===myIndex||offer.to===myIndex)){
+      _appliedTradeT=offer.t; applyTrade(offer);
+      if(offer.to===myIndex){ roomRef.child('trade').remove(); }   // recipient clears the slot
+    }
+  });
+  updateTurnPanel();
+}
+function netSerialize(){
+  return {
+    pl: players.map(p=>({n:p.name,c:p.cash,po:p.pos,j:p.jail?1:0,jt:p.jailTurns,go:p.getout,bk:p.bankrupt?1:0,al:p.adminJailLock?1:0})),
+    bd: BOARD.map(s=>('owner'in s)?{o:(s.owner==null?-1:s.owner),m:s.mortgaged?1:0,b:s.buildings||0}:0),
+    cur, dice, cdk:chanceDeck, ci:chanceIdx, hdk:chestDeck, hi:chestIdx,
+    cr:canRoll?1:0, ae:awaitingEnd?1:0, dc:doublesCount, go:gameOver?1:0, t:Date.now()
+  };
+}
+function netApply(st){
+  if(st.t && st.t<=_lastAppliedT) return;   // already have this (or newer) — skip
+  _lastAppliedT = st.t || Date.now();
+  netSuppress=true;
+  try{
+    if(st.pl) st.pl.forEach((p,i)=>{ if(players[i]){ players[i].cash=p.c; players[i].pos=p.po; players[i].jail=!!p.j; players[i].jailTurns=p.jt; players[i].getout=p.go; players[i].bankrupt=!!p.bk; players[i].adminJailLock=!!p.al; } });
+    if(st.bd) st.bd.forEach((b,i)=>{ if(b && ('owner'in BOARD[i])){ BOARD[i].owner=(b.o===-1?null:b.o); BOARD[i].mortgaged=!!b.m; if(BOARD[i].type==='street') BOARD[i].buildings=b.b; } });
+    if(typeof st.cur==='number') cur=st.cur;
+    if(st.dice){ dice=st.dice; drawDie(document.getElementById('die1'),dice[0]); drawDie(document.getElementById('die2'),dice[1]); }
+    if(st.cdk){ chanceDeck=st.cdk; } if(typeof st.ci==='number') chanceIdx=st.ci;
+    if(st.hdk){ chestDeck=st.hdk; } if(typeof st.hi==='number') chestIdx=st.hi;
+    canRoll=!!st.cr; awaitingEnd=!!st.ae; doublesCount=st.dc||0; gameOver=!!st.go;
+    renderTokens(); renderOwnership(); renderPlayers();
+    updateTurnPanel();
+    if(players[cur]) highlightCell(players[cur].pos);
+  }catch(e){ console.warn('netApply',e); }
+  netSuppress=false;
+}
+let _lastAppliedT=0;
+function netBroadcast(){
+  if(!online||!roomRef||netSuppress) return;
+  try{ const s=netSerialize(); _lastAppliedT=s.t; roomRef.child('state').set(s); }catch(e){}
+}
+/* every 2s: the active player re-pushes its state, everyone else pulls the latest */
+setInterval(()=>{
+  if(!online || !netStarted || !roomRef) return;
+  if(cur===myIndex){ netBroadcast(); }
+  else { roomRef.child('state').once('value', s=>{ const st=s.val(); if(st) netApply(st); }); }
+}, 2000);
+
+</script>
+</body>
+</html>

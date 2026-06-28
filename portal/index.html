@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>מה בא לך לעשות?</title>
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --card: #1c2238;
+    --card-hover: #232b48;
+    --accent: #6c8cff;
+    --accent2: #b06cff;
+    --text: #eef1ff;
+    --muted: #9aa3c7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 80% -10%, #2a2150 0%, transparent 55%),
+                radial-gradient(1000px 700px at 0% 0%, #16314f 0%, transparent 50%),
+                var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+  }
+  h1 {
+    font-size: clamp(2.4rem, 7vw, 5rem);
+    font-weight: 800;
+    line-height: 1.15;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 16px;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    margin-bottom: 50px;
+  }
+  .cards {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 900px;
+  }
+  .card {
+    flex: 1 1 220px;
+    max-width: 260px;
+    background: var(--card);
+    border: 1px solid #262e4d;
+    border-radius: 24px;
+    padding: 40px 26px;
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    transition: transform .18s, background .18s, border-color .18s, box-shadow .18s;
+  }
+  .card:hover {
+    transform: translateY(-8px);
+    background: var(--card-hover);
+    border-color: var(--accent);
+    box-shadow: 0 20px 50px rgba(0,0,0,.5);
+  }
+  .card .ico { font-size: 3.6rem; }
+  .card h2 { font-size: 1.5rem; font-weight: 800; }
+  .card p { color: var(--muted); font-size: .95rem; }
+
+  /* שורת קוד גישה למעלה */
+  .access-bar {
+    position: fixed;
+    top: 0; inset-inline: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: rgba(20,26,46,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #2c3556;
+  }
+  .access-bar label { color: var(--muted); font-size: .95rem; font-weight: 700; }
+  .access-bar input {
+    width: 120px; text-align: center; font-size: 1.1rem; letter-spacing: .2em;
+    padding: 8px 12px; border-radius: 999px; border: 1px solid #2c3556;
+    background: #11162a; color: var(--text); outline: none;
+  }
+  .access-bar input:focus { border-color: var(--accent); }
+  .access-bar button {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: 999px;
+    padding: 9px 20px; font-size: .95rem; font-weight: 700; cursor: pointer;
+    transition: transform .15s, filter .15s;
+  }
+  .access-bar button:hover { transform: scale(1.05); filter: brightness(1.1); }
+  #accessMsg { font-size: .9rem; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="access-bar">
+    <label>🔑 קוד גישה:</label>
+    <input id="accessCode" type="password" inputmode="numeric" maxlength="6" placeholder="••••"
+           onkeydown="if(event.key==='Enter')AccessGate.submitHomeCode()" />
+    <button onclick="AccessGate.submitHomeCode()">פתח</button>
+    <span id="accessMsg"></span>
+  </div>
+
+  <h1>מה בא לך לעשות?</h1>
+  <p class="sub">בחר אחת מהאפשרויות 👇</p>
+
+  <div class="cards">
+    <a class="card" href="games.html">
+      <span class="ico">🎮</span>
+      <h2>משחקים</h2>
+      <p>לשחק במשחקים שלי</p>
+    </a>
+    <a class="card" href="videos.html">
+      <span class="ico">🎬</span>
+      <h2>סרטונים</h2>
+      <p>לראות ולערוך סרטונים</p>
+    </a>
+    <a class="card" href="sites.html">
+      <span class="ico">🌐</span>
+      <h2>אתרים</h2>
+      <p>לגלוש באתרים שלי</p>
+    </a>
+  </div>
+  <script src="access.js"></script>
+  <script src="cookies.js"></script>
+</body>
+</html>

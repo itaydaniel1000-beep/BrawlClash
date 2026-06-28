@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>סרטונים</title>
+<link rel="stylesheet" href="category.css" />
+<style>
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 22px;
+  }
+  .video-item {
+    background: var(--card);
+    border: 1px solid #262e4d;
+    border-radius: 18px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .video-item video {
+    width: 100%;
+    display: block;
+    background: #000;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+  }
+  .video-item .meta {
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .video-item .meta .ico { font-size: 1.4rem; }
+  .video-item .meta h3 { font-size: 1.05rem; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <a class="back" href="index.html">→ חזרה</a>
+      <span class="title"><span class="emoji">🎬</span> סרטונים</span>
+    </div>
+
+    <div class="video-grid" id="grid"></div>
+  </div>
+
+  <script src="access.js"></script>
+  <script>
+    const VIDEOS = [
+      { src: "videos/vid1.mp4", title: "סרטון 1" },
+      { src: "videos/vid2.mp4", title: "סרטון 2" },
+      { src: "videos/vid3.mp4", title: "סרטון 3" },
+      { src: "videos/vid4.mp4", title: "סרטון 4" },
+      { src: "videos/vid5.mp4", title: "סרטון 5" },
+      { src: "videos/vid6.mp4", title: "סרטון 6" },
+      { src: "videos/vid7.mp4", title: "סרטון 7" },
+    ];
+
+    function renderVideos() {
+      // בגרסה החיה (GitHub Pages) הסרטונים האישיים לא הועלו — נשארו פרטיים ומקומיים בלבד
+      if (location.hostname.endsWith("github.io") || location.hostname.endsWith("netlify.app")) {
+        document.getElementById("grid").innerHTML = `
+          <div style="grid-column:1/-1; text-align:center; background:#1c2238; border:1px solid #2c3556;
+                      border-radius:20px; padding:46px 26px; color:#eef1ff;">
+            <div style="font-size:2.6rem;">📁</div>
+            <h3 style="margin:12px 0 6px; font-size:1.25rem;">הסרטונים זמינים בגרסה המקומית בלבד</h3>
+            <p style="color:#9aa3c7;">הסרטונים האישיים נשמרים פרטיים ולא הועלו לאינטרנט.</p>
+          </div>`;
+        return;
+      }
+      document.getElementById("grid").innerHTML = VIDEOS.map((v) => `
+        <div class="video-item">
+          <video controls preload="metadata" playsinline>
+            <source src="${v.src}#t=0.1" type="video/mp4" />
+            הדפדפן שלך לא תומך בנגן הווידאו.
+          </video>
+          <div class="meta">
+            <span class="ico">🎬</span>
+            <h3>${v.title}</h3>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    // נדרש קוד גישה 102 כדי לצפות בסרטונים
+    AccessGate.guard(document.getElementById("grid"), "videos", renderVideos);
+  </script>
+  <script src="cookies.js"></script>
+</body>
+</html>
