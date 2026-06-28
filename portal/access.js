@@ -1,13 +1,29 @@
 /* מערכת קוד גישה לפורטל.
    102 -> פותח את הסרטונים | 110 -> פותח את "האתר שלי".
-   הבחירה נשמרת ב-localStorage לפי דפדפן. */
+   הבחירה נשמרת ב-COOKIE אמיתי (path=/, שנה) + localStorage כגיבוי,
+   כך שהזכירה עובדת בכל הדפים בדומיין וגם אחרי F5 / סגירת הדפדפן. */
 (function () {
   var CODES = { "102": "videos", "110": "site" };       // קוד -> אזור
   var FLAG  = { videos: "unlock_videos", site: "unlock_site" };
   var LABEL = { videos: "הסרטונים", site: "האתר שלי" };
 
-  function isUnlocked(area) { return localStorage.getItem(FLAG[area]) === "1"; }
-  function unlock(area) { localStorage.setItem(FLAG[area], "1"); }
+  // ---------- אחסון משותף: cookie (ראשי) + localStorage (גיבוי) ----------
+  function storeSet(k, v) {
+    try { document.cookie = k + "=" + encodeURIComponent(v) + "; path=/; max-age=31536000; SameSite=Lax"; } catch (e) {}
+    try { localStorage.setItem(k, v); } catch (e) {}
+  }
+  function storeGet(k) {
+    var m = document.cookie.match("(?:^|; )" + k + "=([^;]*)");
+    if (m) return decodeURIComponent(m[1]);
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+  function storeDel(k) {
+    try { document.cookie = k + "=; path=/; max-age=0"; } catch (e) {}
+    try { localStorage.removeItem(k); } catch (e) {}
+  }
+
+  function isUnlocked(area) { return storeGet(FLAG[area]) === "1"; }
+  function unlock(area) { storeSet(FLAG[area], "1"); }
 
   // ---------- עיצוב (מוזרק פעם אחת) ----------
   var stylesAdded = false;
@@ -153,8 +169,8 @@
   }
 
   function lockAll() {
-    localStorage.removeItem(FLAG.videos);
-    localStorage.removeItem(FLAG.site);
+    storeDel(FLAG.videos);
+    storeDel(FLAG.site);
     var msg = document.getElementById("accessMsg");
     if (msg) { msg.textContent = "🔒 הכול ננעל מחדש"; msg.style.color = "#9aa3c7"; }
     refreshHomeStatus();

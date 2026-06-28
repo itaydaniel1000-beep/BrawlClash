@@ -1,8 +1,19 @@
 /* באנר הסכמה לעוגיות — משותף לכל דפי הפורטל.
-   מציג את הבאנר רק אם המשתמש עוד לא בחר, וזוכר את הבחירה ב-localStorage. */
+   זוכר את הבחירה ב-COOKIE אמיתי (path=/, שנה) + localStorage כגיבוי. */
 (function () {
   var KEY = "portal_cookie_consent";
-  if (localStorage.getItem(KEY)) return; // כבר בחר — לא מציגים
+
+  function storeSet(k, v) {
+    try { document.cookie = k + "=" + encodeURIComponent(v) + "; path=/; max-age=31536000; SameSite=Lax"; } catch (e) {}
+    try { localStorage.setItem(k, v); } catch (e) {}
+  }
+  function storeGet(k) {
+    var m = document.cookie.match("(?:^|; )" + k + "=([^;]*)");
+    if (m) return decodeURIComponent(m[1]);
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+
+  if (storeGet(KEY)) return; // כבר בחר — לא מציגים
 
   // ----- עיצוב -----
   var style = document.createElement("style");
@@ -73,7 +84,7 @@
   document.body.appendChild(banner);
 
   function choose(value) {
-    localStorage.setItem(KEY, value);
+    storeSet(KEY, value);
     banner.style.transition = "opacity .25s, transform .25s";
     banner.style.opacity = "0";
     banner.style.transform = "translateY(20px)";
