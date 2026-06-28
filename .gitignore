@@ -16,5 +16,3 @@ dist/
 *.out
 *.err
 
-# Personal videos — kept LOCAL only, never published
-portal/videos/

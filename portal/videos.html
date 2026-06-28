@@ -59,17 +59,6 @@
     ];
 
     function renderVideos() {
-      // בגרסה החיה (GitHub Pages) הסרטונים האישיים לא הועלו — נשארו פרטיים ומקומיים בלבד
-      if (location.hostname.endsWith("github.io") || location.hostname.endsWith("netlify.app")) {
-        document.getElementById("grid").innerHTML = `
-          <div style="grid-column:1/-1; text-align:center; background:#1c2238; border:1px solid #2c3556;
-                      border-radius:20px; padding:46px 26px; color:#eef1ff;">
-            <div style="font-size:2.6rem;">📁</div>
-            <h3 style="margin:12px 0 6px; font-size:1.25rem;">הסרטונים זמינים בגרסה המקומית בלבד</h3>
-            <p style="color:#9aa3c7;">הסרטונים האישיים נשמרים פרטיים ולא הועלו לאינטרנט.</p>
-          </div>`;
-        return;
-      }
       document.getElementById("grid").innerHTML = VIDEOS.map((v) => `
         <div class="video-item">
           <video controls preload="metadata" playsinline>
