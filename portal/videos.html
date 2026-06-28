@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>סרטונים</title>
-<link rel="stylesheet" href="category.css" />
+<link rel="stylesheet" href="category.css?v=2" />
 <style>
   .video-grid {
     display: grid;
@@ -46,7 +46,7 @@
     <div class="video-grid" id="grid"></div>
   </div>
 
-  <script src="access.js"></script>
+  <script src="access.js?v=2"></script>
   <script>
     const VIDEOS = [
       { src: "videos/vid1.mp4", title: "סרטון 1" },
@@ -76,6 +76,6 @@
     // נדרש קוד גישה 102 כדי לצפות בסרטונים
     AccessGate.guard(document.getElementById("grid"), "videos", renderVideos);
   </script>
-  <script src="cookies.js"></script>
+  <script src="cookies.js?v=2"></script>
 </body>
 </html>

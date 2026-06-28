@@ -136,7 +136,39 @@
       msg.textContent = "✗ קוד שגוי";
       msg.style.color = "#ff6b8a";
     }
+    refreshHomeStatus();
   }
 
-  window.AccessGate = { isUnlocked: isUnlocked, openModal: openModal, guard: guard, submitHomeCode: submitHomeCode };
+  // מציג בבירור מה כבר פתוח — כך שגם אחרי F5 רואים שהגישה נשמרה
+  function refreshHomeStatus() {
+    var el = document.getElementById("accessStatus");
+    if (!el) return;
+    function badge(area) {
+      return isUnlocked(area)
+        ? '<b style="color:#6cffa0">פתוח ✓</b>'
+        : '<span style="color:#9aa3c7">נעול 🔒</span>';
+    }
+    el.innerHTML = "🎬 סרטונים: " + badge("videos") +
+      " &nbsp;&nbsp;|&nbsp;&nbsp; 🏠 האתר שלי: " + badge("site");
+  }
+
+  function lockAll() {
+    localStorage.removeItem(FLAG.videos);
+    localStorage.removeItem(FLAG.site);
+    var msg = document.getElementById("accessMsg");
+    if (msg) { msg.textContent = "🔒 הכול ננעל מחדש"; msg.style.color = "#9aa3c7"; }
+    refreshHomeStatus();
+  }
+
+  // הצג סטטוס מיד עם טעינת דף הבית
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", refreshHomeStatus);
+  } else {
+    refreshHomeStatus();
+  }
+
+  window.AccessGate = {
+    isUnlocked: isUnlocked, openModal: openModal, guard: guard,
+    submitHomeCode: submitHomeCode, refreshHomeStatus: refreshHomeStatus, lockAll: lockAll
+  };
 })();
