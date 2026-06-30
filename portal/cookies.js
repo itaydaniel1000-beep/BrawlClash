@@ -94,3 +94,10 @@
   banner.querySelector(".accept").addEventListener("click", function () { choose("accepted"); });
   banner.querySelector(".decline").addEventListener("click", function () { choose("declined"); });
 })();
+
+/* רישום ה-Service Worker — מאפשר התקנה כאפליקציה ועבודה ללא אינטרנט */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}

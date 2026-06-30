@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>מה בא לך לעשות?</title>
+<meta name="theme-color" content="#0d0f1a" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="הפורטל" />
 <style>
   :root {
     --bg: #0d0f1a;
@@ -117,6 +125,23 @@
     font-size: .9rem;
     color: var(--muted);
   }
+
+  /* כפתור התקנה כאפליקציה */
+  .install-btn {
+    margin-top: 34px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: 999px;
+    padding: 14px 30px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4);
+    transition: transform .15s, filter .15s;
+  }
+  .install-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+  .ios-hint {
+    margin-top: 26px; color: var(--muted); font-size: .95rem;
+    max-width: 440px; line-height: 1.6;
+    background: rgba(255,255,255,.05); border: 1px solid #2c3556;
+    border-radius: 14px; padding: 14px 18px;
+  }
 </style>
 </head>
 <body>
@@ -150,7 +175,37 @@
       <p>לגלוש באתרים שלי</p>
     </a>
   </div>
-  <script src="access.js?v=3"></script>
-  <script src="cookies.js?v=3"></script>
+
+  <button id="installBtn" class="install-btn" hidden>📲 התקן כאפליקציה</button>
+  <p id="iosHint" class="ios-hint" hidden>
+    📱 להתקנה ב-iPhone: לחץ על כפתור <b>שיתוף</b> ⬆️ בתחתית הדפדפן, ואז בחר <b>"הוסף למסך הבית"</b>.
+  </p>
+
+  <script src="access.js?v=4"></script>
+  <script src="cookies.js?v=4"></script>
+  <script>
+    (function () {
+      var btn = document.getElementById("installBtn");
+      var iosHint = document.getElementById("iosHint");
+      var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      if (standalone) return; // כבר מותקן — לא מציגים כלום
+
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) { iosHint.hidden = false; return; } // ב-iOS אין התקנה אוטומטית
+
+      var deferred = null;
+      window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        deferred = e;
+        btn.hidden = false;
+      });
+      btn.addEventListener("click", function () {
+        if (!deferred) return;
+        deferred.prompt();
+        deferred.userChoice.then(function () { deferred = null; btn.hidden = true; });
+      });
+      window.addEventListener("appinstalled", function () { btn.hidden = true; });
+    })();
+  </script>
 </body>
 </html>
