@@ -1,7 +1,7 @@
 /* Service Worker לפורטל — מאפשר התקנה כאפליקציה ועבודה ללא אינטרנט (shell). */
-const CACHE = "portal-v1";
+const CACHE = "portal-v2";
 const ASSETS = [
-  "index.html", "games.html", "videos.html", "sites.html",
+  "index.html", "games.html", "videos.html", "sites.html", "notes.html",
   "category.css", "access.js", "cookies.js",
   "icon-192.png", "icon-512.png", "apple-touch-icon.png",
   "manifest.webmanifest"

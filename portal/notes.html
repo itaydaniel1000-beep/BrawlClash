@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>הקבוצה שלי</title>
+<meta name="theme-color" content="#0d0f1a" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="הפורטל" />
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --card: #1c2238;
+    --card-hover: #232b48;
+    --accent: #6c8cff;
+    --accent2: #b06cff;
+    --text: #eef1ff;
+    --muted: #9aa3c7;
+    --bubble: #2a3358;
+    --bubble-mine: #3a4a8c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 80% -10%, #2a2150 0%, transparent 55%),
+                radial-gradient(1000px 700px at 0% 0%, #16314f 0%, transparent 50%),
+                var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* כותרת */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    background: rgba(20,26,46,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid #2c3556;
+    flex-shrink: 0;
+  }
+  .back {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); border: 1px solid #2c3556; color: var(--text);
+    text-decoration: none; padding: 8px 14px; border-radius: 999px;
+    font-size: .9rem; transition: all .15s; white-space: nowrap;
+  }
+  .back:hover { border-color: var(--accent); background: var(--card-hover); }
+  .titlewrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .avatar {
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    display: grid; place-items: center; font-size: 1.4rem;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  .titlewrap .name { font-weight: 800; font-size: 1.15rem; line-height: 1.2; }
+  .titlewrap .status { color: var(--muted); font-size: .8rem; }
+  .menu-btn {
+    background: var(--card); border: 1px solid #2c3556; color: var(--text);
+    width: 40px; height: 40px; border-radius: 50%; font-size: 1.3rem; cursor: pointer;
+    flex-shrink: 0; transition: all .15s;
+  }
+  .menu-btn:hover { border-color: var(--accent); background: var(--card-hover); }
+
+  /* תפריט */
+  .menu {
+    position: fixed; top: calc(env(safe-area-inset-top) + 60px); inset-inline-start: 12px;
+    background: var(--card); border: 1px solid #2c3556; border-radius: 14px;
+    padding: 6px; z-index: 60; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+    display: none; min-width: 190px;
+  }
+  .menu.open { display: block; }
+  .menu button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; color: var(--text); text-align: start;
+    padding: 11px 14px; border-radius: 9px; font-size: .95rem; cursor: pointer;
+    font-family: inherit;
+  }
+  .menu button:hover { background: var(--card-hover); }
+  .menu button.danger { color: #ff8a8a; }
+
+  /* אזור ההודעות */
+  .messages {
+    flex: 1; overflow-y: auto; padding: 18px 14px 8px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .day-sep {
+    align-self: center; background: rgba(20,26,46,.85); color: var(--muted);
+    font-size: .78rem; padding: 4px 12px; border-radius: 999px; margin: 6px 0;
+    border: 1px solid #2c3556;
+  }
+  .bubble {
+    align-self: flex-end; max-width: min(78%, 560px);
+    background: var(--bubble-mine);
+    border-radius: 16px 16px 4px 16px;
+    padding: 9px 13px 6px; position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    animation: pop .18s ease;
+  }
+  @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .bubble .text {
+    white-space: pre-wrap; word-break: break-word; line-height: 1.5; font-size: 1rem;
+  }
+  .bubble .text a { color: #bcd0ff; }
+  .bubble .meta {
+    display: flex; align-items: center; gap: 6px; justify-content: flex-start;
+    margin-top: 3px; color: rgba(238,241,255,.6); font-size: .7rem;
+  }
+  .bubble .edited { font-style: italic; }
+  .bubble .acts {
+    position: absolute; top: 4px; inset-inline-start: 4px;
+    display: none; gap: 2px;
+  }
+  .bubble:hover .acts { display: flex; }
+  .bubble .acts button {
+    background: rgba(13,15,26,.65); border: none; color: var(--text);
+    width: 26px; height: 26px; border-radius: 7px; cursor: pointer; font-size: .85rem;
+    display: grid; place-items: center;
+  }
+  .bubble .acts button:hover { background: rgba(13,15,26,.95); }
+
+  .empty {
+    margin: auto; text-align: center; color: var(--muted); max-width: 320px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  .empty .big { font-size: 3rem; }
+
+  /* תיבת כתיבה */
+  .composer {
+    display: flex; align-items: flex-end; gap: 10px;
+    padding: 10px 14px calc(env(safe-area-inset-bottom) + 10px);
+    background: rgba(20,26,46,.92); backdrop-filter: blur(8px);
+    border-top: 1px solid #2c3556; flex-shrink: 0;
+  }
+  .composer textarea {
+    flex: 1; resize: none; max-height: 140px;
+    background: #11162a; color: var(--text);
+    border: 1px solid #2c3556; border-radius: 22px;
+    padding: 12px 16px; font-size: 1rem; font-family: inherit; line-height: 1.4;
+    outline: none;
+  }
+  .composer textarea:focus { border-color: var(--accent); }
+  .send {
+    width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; border: none;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; font-size: 1.3rem; cursor: pointer;
+    display: grid; place-items: center;
+    transition: transform .12s, filter .12s;
+  }
+  .send:hover { transform: scale(1.06); filter: brightness(1.1); }
+  .send:active { transform: scale(.94); }
+
+  .edit-banner {
+    display: none; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 8px 16px; background: rgba(108,140,255,.12);
+    border-top: 1px solid #2c3556; color: var(--muted); font-size: .85rem;
+  }
+  .edit-banner.show { display: flex; }
+  .edit-banner button { background: none; border: none; color: #ff8a8a; cursor: pointer; font-size: 1.1rem; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="index.html">→ חזרה</a>
+    <div class="titlewrap">
+      <div class="avatar">💬</div>
+      <div>
+        <div class="name">הקבוצה שלי</div>
+        <div class="status" id="status">פרטי · נשמר במכשיר</div>
+      </div>
+    </div>
+    <button class="menu-btn" onclick="toggleMenu(event)">⋮</button>
+  </div>
+
+  <div class="menu" id="menu">
+    <button onclick="shareAll()">📤 שתף הכול</button>
+    <button onclick="exportFile()">💾 ייצוא לקובץ</button>
+    <button onclick="importFile()">📥 ייבוא מקובץ</button>
+    <button class="danger" onclick="clearAll()">🗑️ מחק את הכול</button>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="edit-banner" id="editBanner">
+    <span>✏️ עורך הודעה…</span>
+    <button onclick="cancelEdit()">ביטול ✕</button>
+  </div>
+
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="כתוב הודעה…"
+      onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
+    <button class="send" onclick="send()" aria-label="שלח">➤</button>
+  </div>
+
+  <input type="file" id="fileInput" accept="application/json,.json" hidden />
+
+  <script>
+  (function () {
+    var KEY = "portal_notes_v1";
+    var msgs = load();
+    var editingId = null;
+
+    var elMessages = document.getElementById("messages");
+    var elInput = document.getElementById("input");
+    var elMenu = document.getElementById("menu");
+    var elEditBanner = document.getElementById("editBanner");
+
+    function load() {
+      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+      catch (e) { return []; }
+    }
+    function save() { localStorage.setItem(KEY, JSON.stringify(msgs)); }
+
+    var uidCounter = 0;
+    function uid() { return Date.now().toString(36) + "-" + (uidCounter++).toString(36); }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+    function linkify(s) {
+      return escapeHtml(s).replace(/(https?:\/\/[^\s]+)/g, function (u) {
+        return '<a href="' + u + '" target="_blank" rel="noopener">' + u + "</a>";
+      });
+    }
+    function timeStr(ts) {
+      var d = new Date(ts);
+      return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+    }
+    function dayStr(ts) {
+      var d = new Date(ts), now = new Date();
+      var today = now.toDateString(), yest = new Date(now - 864e5).toDateString();
+      if (d.toDateString() === today) return "היום";
+      if (d.toDateString() === yest) return "אתמול";
+      return d.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
+    }
+
+    function render() {
+      elMessages.innerHTML = "";
+      if (!msgs.length) {
+        var e = document.createElement("div");
+        e.className = "empty";
+        e.innerHTML = '<div class="big">💬</div><div><b>אין עדיין הודעות</b></div>' +
+          '<div>כתוב למטה כל מה שבא לך — מחשבות, רעיונות, רשימות. הכול נשמר אצלך במכשיר.</div>';
+        elMessages.appendChild(e);
+        return;
+      }
+      var lastDay = "";
+      msgs.forEach(function (m) {
+        var day = dayStr(m.ts);
+        if (day !== lastDay) {
+          lastDay = day;
+          var sep = document.createElement("div");
+          sep.className = "day-sep";
+          sep.textContent = day;
+          elMessages.appendChild(sep);
+        }
+        var b = document.createElement("div");
+        b.className = "bubble";
+        b.innerHTML =
+          '<div class="acts">' +
+            '<button title="ערוך" data-edit="' + m.id + '">✏️</button>' +
+            '<button title="מחק" data-del="' + m.id + '">🗑️</button>' +
+          '</div>' +
+          '<div class="text">' + linkify(m.text) + '</div>' +
+          '<div class="meta">' + (m.edited ? '<span class="edited">נערך</span> · ' : '') +
+          timeStr(m.ts) + '</div>';
+        elMessages.appendChild(b);
+      });
+      scrollDown();
+    }
+    function scrollDown() { elMessages.scrollTop = elMessages.scrollHeight; }
+
+    elMessages.addEventListener("click", function (e) {
+      var del = e.target.closest("[data-del]");
+      var ed = e.target.closest("[data-edit]");
+      if (del) { delMsg(del.getAttribute("data-del")); }
+      else if (ed) { startEdit(ed.getAttribute("data-edit")); }
+    });
+
+    window.send = function () {
+      var text = elInput.value.trim();
+      if (!text) return;
+      if (editingId) {
+        var m = msgs.find(function (x) { return x.id === editingId; });
+        if (m) { m.text = text; m.edited = true; }
+        cancelEdit();
+      } else {
+        msgs.push({ id: uid(), text: text, ts: Date.now() });
+      }
+      elInput.value = "";
+      autoGrow(elInput);
+      save();
+      render();
+      elInput.focus();
+    };
+
+    window.onKey = function (e) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+    };
+    window.autoGrow = function (el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 140) + "px";
+    };
+
+    function delMsg(id) {
+      if (!confirm("למחוק את ההודעה?")) return;
+      msgs = msgs.filter(function (x) { return x.id !== id; });
+      if (editingId === id) cancelEdit();
+      save(); render();
+    }
+    function startEdit(id) {
+      var m = msgs.find(function (x) { return x.id === id; });
+      if (!m) return;
+      editingId = id;
+      elInput.value = m.text;
+      autoGrow(elInput);
+      elEditBanner.classList.add("show");
+      elInput.focus();
+    }
+    window.cancelEdit = function () {
+      editingId = null;
+      elInput.value = "";
+      autoGrow(elInput);
+      elEditBanner.classList.remove("show");
+    };
+
+    /* תפריט */
+    window.toggleMenu = function (e) {
+      e.stopPropagation();
+      elMenu.classList.toggle("open");
+    };
+    document.addEventListener("click", function () { elMenu.classList.remove("open"); });
+
+    function asText() {
+      return msgs.map(function (m) {
+        var d = new Date(m.ts);
+        return "[" + d.toLocaleString("he-IL") + "] " + m.text;
+      }).join("\n");
+    }
+
+    window.shareAll = function () {
+      if (!msgs.length) { alert("אין הודעות לשיתוף."); return; }
+      var text = asText();
+      if (navigator.share) {
+        navigator.share({ title: "הקבוצה שלי", text: text }).catch(function () {});
+      } else {
+        navigator.clipboard.writeText(text).then(function () {
+          alert("הכול הועתק! אפשר להדביק בכל מקום.");
+        }, function () { alert(text); });
+      }
+    };
+
+    window.exportFile = function () {
+      var blob = new Blob([JSON.stringify(msgs, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = "הקבוצה-שלי.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    var fileInput = document.getElementById("fileInput");
+    window.importFile = function () { fileInput.click(); };
+    fileInput.addEventListener("change", function () {
+      var f = fileInput.files[0];
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function () {
+        try {
+          var data = JSON.parse(r.result);
+          if (!Array.isArray(data)) throw 0;
+          if (msgs.length && !confirm("לשלב את ההודעות מהקובץ עם הקיימות?")) return;
+          var seen = {};
+          msgs.forEach(function (m) { seen[m.id] = 1; });
+          data.forEach(function (m) {
+            if (m && m.text && m.ts && !seen[m.id]) msgs.push(m);
+          });
+          msgs.sort(function (a, b) { return a.ts - b.ts; });
+          save(); render();
+          alert("הייבוא הושלם ✓");
+        } catch (e) { alert("הקובץ לא תקין."); }
+        fileInput.value = "";
+      };
+      r.readAsText(f);
+    });
+
+    window.clearAll = function () {
+      if (!msgs.length) return;
+      if (!confirm("למחוק את כל ההודעות? אי אפשר לבטל.")) return;
+      msgs = [];
+      save(); render();
+    };
+
+    render();
+  })();
+  </script>
+</body>
+</html>
