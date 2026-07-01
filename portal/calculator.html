@@ -308,6 +308,40 @@
   }
   .methods-share button:hover { border-color: var(--accent); }
 
+  /* עורך השלבים */
+  .demo-row { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; color: var(--muted); font-size: .92rem; flex-wrap: wrap; }
+  .demo-in { width: 66px; background: #11162a; border: 1px solid #2c3556; color: var(--text);
+    border-radius: 10px; padding: 7px 9px; text-align: center; font-size: 1rem; outline: none; direction: ltr; }
+  .demo-in:focus { border-color: var(--accent); }
+  .steps-editor { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 10px; }
+  .step-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #11162a; border: 1px solid #2c3556; border-radius: 14px; padding: 10px 12px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .step-row.active { border-color: var(--accent); background: #141a30; box-shadow: 0 0 0 2px rgba(108,140,255,.2); }
+  .step-num {
+    flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--key-fn); color: #d7c6ff; font-weight: 800; font-size: .9rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step-mid { flex: 1; min-width: 0; }
+  .step-expr { direction: ltr; text-align: left; font-size: 1.15rem; color: var(--text); min-height: 1.4em; word-break: break-word; }
+  .step-expr .ph { color: #5a6591; font-size: .9rem; }
+  .step-calc { direction: ltr; text-align: left; color: var(--muted); font-size: .92rem; margin-top: 2px; word-break: break-word; }
+  .step-calc b { color: #a9ffcf; }
+  .step-del { flex: 0 0 auto; background: none; border: none; color: var(--muted); font-size: 1.05rem; cursor: pointer; }
+  .step-del:hover { color: #ffb3c7; }
+  .add-step {
+    width: 100%; background: rgba(255,255,255,.06); border: 1px dashed #34406e; color: #cdd6ff;
+    border-radius: 12px; padding: 10px; font-size: .95rem; font-weight: 700; cursor: pointer; margin-top: 2px;
+  }
+  .add-step:hover { border-color: var(--accent); }
+  .s-steps { margin-top: 6px; }
+  .s-step { direction: ltr; text-align: left; color: var(--text); font-size: .98rem; }
+  .cm-block { margin-top: 8px; }
+  .cm-name { color: #a9ffcf; font-weight: 800; font-size: .92rem; margin-bottom: 2px; }
+
   @media (max-width: 420px) {
     .keys.sci .key { font-size: .95rem; padding: 13px 0; border-radius: 13px; }
     .keys.sci { gap: 7px; }
@@ -352,28 +386,47 @@
     </div>
     <div class="methods-body">
       <p class="method-hint">
-        כתוב נוסחה לכפל בעזרת <b>a</b> ו-<b>b</b> (שני המספרים), והמחשבון יבדוק אם היא נכונה.
-        אם היא שווה ל-<code>a × b</code> — היא נכנסת לשיטות! 🎉<br>
-        דוגמה שעובדת עם כל המספרים: <code>a × (b − 1) + a</code>
+        בונים שיטה <b>בשלבים</b> — כל שורה היא פעולה שממשיכה מהקודמת (כמו הפתרונות למעלה).
+        אפשר להשתמש ב-<b>a</b>, <b>b</b> ובכפתור <b>הקודם</b> (תוצאת השלב הקודם).
+        השלב האחרון צריך לצאת שווה ל-<code>a × b</code> — ולעבוד על <b>כל</b> שני מספרים, לא רק על הדוגמה. 🎯<br>
+        דוגמה שעובדת תמיד: שלב 1: <code>b − 1</code> · שלב 2: <code>הקודם × a</code> · שלב 3: <code>הקודם + a</code>
       </p>
 
       <label for="methodName">שם השיטה</label>
       <input type="text" id="methodName" maxlength="40" placeholder="למשל: השיטה של דני" />
 
-      <label for="methodFormula">הנוסחה</label>
-      <input type="text" id="methodFormula" maxlength="120" placeholder="a × (b − 1) + a" />
-      <div class="fkeys">
-        <button class="ab" onclick="Calc.fKey('a')">a</button>
-        <button class="ab" onclick="Calc.fKey('b')">b</button>
-        <button onclick="Calc.fKey('+')">+</button>
-        <button onclick="Calc.fKey('−')">−</button>
-        <button onclick="Calc.fKey('×')">×</button>
-        <button onclick="Calc.fKey('÷')">÷</button>
-        <button onclick="Calc.fKey('(')">(</button>
-        <button onclick="Calc.fKey(')')">)</button>
-        <button onclick="Calc.fKey('^')">^</button>
-        <button class="clr" onclick="Calc.fClear()">⌫ נקה</button>
+      <div class="demo-row">
+        <span>דוגמה חיה:</span>
+        a = <input type="text" id="demoA" class="demo-in" value="53" inputmode="decimal" oninput="Calc.renderDemo()" />
+        b = <input type="text" id="demoB" class="demo-in" value="9" inputmode="decimal" oninput="Calc.renderDemo()" />
       </div>
+
+      <div class="steps-editor" id="stepsEditor"></div>
+
+      <div class="fkeys" id="stepKeys">
+        <button class="ab" onclick="Calc.ins('a')">a</button>
+        <button class="ab" onclick="Calc.ins('b')">b</button>
+        <button class="ab" onclick="Calc.ins('#')">הקודם</button>
+        <button onclick="Calc.ins('7')">7</button>
+        <button onclick="Calc.ins('8')">8</button>
+        <button onclick="Calc.ins('9')">9</button>
+        <button onclick="Calc.ins('4')">4</button>
+        <button onclick="Calc.ins('5')">5</button>
+        <button onclick="Calc.ins('6')">6</button>
+        <button onclick="Calc.ins('1')">1</button>
+        <button onclick="Calc.ins('2')">2</button>
+        <button onclick="Calc.ins('3')">3</button>
+        <button onclick="Calc.ins('0')">0</button>
+        <button onclick="Calc.ins('.')">.</button>
+        <button onclick="Calc.ins('+')">+</button>
+        <button onclick="Calc.ins('−')">−</button>
+        <button onclick="Calc.ins('×')">×</button>
+        <button onclick="Calc.ins('÷')">÷</button>
+        <button onclick="Calc.ins('(')">(</button>
+        <button onclick="Calc.ins(')')">)</button>
+        <button class="clr" onclick="Calc.insBack()">⌫</button>
+      </div>
+      <button class="add-step" onclick="Calc.addStep()">➕ הוסף שלב</button>
 
       <button class="btn-primary" onclick="Calc.saveMethod()">בדוק ושמור ✓</button>
       <div id="methodMsg"></div>
@@ -911,10 +964,16 @@ const Calc = (function () {
   /* ===== שיטות משלך — כתיבה, בדיקה ושמירה ===== */
   const MKEY = "portal_calc_methods_v1";
   const nameEl = document.getElementById("methodName");
-  const formulaEl = document.getElementById("methodFormula");
+  const demoAEl = document.getElementById("demoA");
+  const demoBEl = document.getElementById("demoB");
+  const stepsEditorEl = document.getElementById("stepsEditor");
   const msgEl = document.getElementById("methodMsg");
   const savedListEl = document.getElementById("savedList");
   const methodsEl = document.getElementById("methods");
+
+  // מצב עורך השלבים — כל שלב הוא ביטוי (שורה)
+  let steps = [""];
+  let activeStep = 0;
 
   // קטגוריות בדיקה — זוגות מספרים מייצגים לכל טווח
   const CATS = [
@@ -932,36 +991,50 @@ const Calc = (function () {
     try { localStorage.setItem(MKEY, JSON.stringify(arr)); } catch (e) {}
   }
 
-  // ממיר נוסחה ידידותית (× ÷ − ^) לפונקציה. זורק שגיאה אם יש תווים אסורים.
-  function compileFormula(src) {
+  // ממיר ביטוי-שלב לפונקציה(a, b, p). p = תוצאת השלב הקודם, # מייצג אותו.
+  function compileStep(src) {
     let s = String(src)
       .replace(/×/g, "*").replace(/÷/g, "/").replace(/[−–—]/g, "-")
-      .replace(/\^/g, "**").replace(/\s+/g, "");
-    if (!s) throw new Error("ריק");
-    if (!/[ab]/.test(s)) throw new Error("הנוסחה חייבת להשתמש ב-a או b");
-    if (!/^[0-9ab+\-*/().%]+$/.test(s)) throw new Error("יש תווים לא חוקיים — מותר רק a b + − × ÷ ( ) . מספרים");
+      .replace(/\^/g, "**").replace(/\s+/g, "")
+      .replace(/#/g, "p");
+    if (!s) throw new Error("שלב ריק");
+    if (!/^[0-9abp+\-*/().%]+$/.test(s)) throw new Error("יש תווים לא חוקיים בשלב");
     // eslint-disable-next-line no-new-func
-    const fn = new Function("a", "b", "return (" + s + ");");
-    // בדיקת ריצה בסיסית
-    const t = fn(2, 3);
-    if (typeof t !== "number") throw new Error("הנוסחה לא מחזירה מספר");
-    return fn;
+    return new Function("a", "b", "p", "return (" + s + ");");
   }
 
-  // בודק לאילו קטגוריות הנוסחה נכונה. מחזיר {cats:{key:bool}, counter}
-  function validateFormula(fn) {
+  // מריץ את שרשרת השלבים עבור a,b. מחזיר מערך תוצאות (NaN אם שלב נכשל).
+  function runSteps(list, a, b) {
+    const out = []; let prev = NaN;
+    for (let i = 0; i < list.length; i++) {
+      const expr = String(list[i] || "").trim();
+      if (!expr) { out.push(NaN); prev = NaN; continue; }
+      if (/#/.test(expr) && (i === 0 || !isFinite(prev))) { out.push(NaN); prev = NaN; continue; }
+      let v;
+      try { v = compileStep(expr)(a, b, isFinite(prev) ? prev : 0); }
+      catch (e) { v = NaN; }
+      if (typeof v !== "number" || !isFinite(v)) v = NaN;
+      out.push(v); prev = v;
+    }
+    return out;
+  }
+  function finalValue(list, a, b) {
+    const r = runSteps(list, a, b);
+    return r.length ? r[r.length - 1] : NaN;
+  }
+
+  // בודק לאילו טווחים השיטה (רשימת שלבים) נכונה. מחזיר {cats, counter}
+  function validateSteps(list) {
     const cats = {}; let counter = null;
     for (const c of CATS) {
       let ok = true;
       for (const a of c.nums) {
         for (const b of c.nums) {
-          let v;
-          try { v = fn(a, b); } catch (e) { v = NaN; }
-          const exp = a * b;
-          const tol = 1e-9 * Math.max(1, Math.abs(exp));
-          if (typeof v !== "number" || !isFinite(v) || Math.abs(v - exp) > tol) {
+          const v = finalValue(list, a, b);
+          const exp = a * b, tol = 1e-9 * Math.max(1, Math.abs(exp));
+          if (!isFinite(v) || Math.abs(v - exp) > tol) {
             ok = false;
-            if (!counter) counter = { a, b, got: (typeof v === "number" && isFinite(v)) ? formatNum(v) : "לא מספר", exp };
+            if (!counter) counter = { a, b, got: isFinite(v) ? formatNum(v) : "לא מספר", exp };
             break;
           }
         }
@@ -972,33 +1045,64 @@ const Calc = (function () {
     return { cats, counter };
   }
 
+  function getDemo() {
+    const a = parseFloat(demoAEl && demoAEl.value), b = parseFloat(demoBEl && demoBEl.value);
+    return { a: isFinite(a) ? a : 53, b: isFinite(b) ? b : 9 };
+  }
+  function prettyRaw(e) { return String(e).replace(/#/g, "הקודם").replace(/\*/g, "×").replace(/\//g, "÷"); }
+  // מציג ביטוי עם המספרים במקום a, b, # (לתצוגה חיה כמו במחשבון)
+  function exprWithNumbers(expr, a, b, prev) {
+    return String(expr)
+      .replace(/#/g, isFinite(prev) ? String(prev) : "?")
+      .replace(/a/g, String(a)).replace(/b/g, String(b))
+      .replace(/\*/g, "×").replace(/\//g, "÷").replace(/-/g, "−");
+  }
+  function methodSteps(m) { return Array.isArray(m.steps) ? m.steps : (m.formula ? [m.formula] : []); }
+
+  // מצייר את עורך השלבים (השורות) עם תצוגה חיה של הדוגמה
+  function renderStepsEditor() {
+    const { a, b } = getDemo();
+    const res = runSteps(steps, a, b);
+    stepsEditorEl.innerHTML = steps.map((expr, i) => {
+      const has = expr.trim() !== "";
+      const numeric = has ? exprWithNumbers(expr, a, b, i > 0 ? res[i - 1] : NaN) : "";
+      const valTxt = !has ? "" : (isFinite(res[i]) ? "= " + formatNum(res[i]) : "= ?");
+      const rawTxt = has ? escapeHtml(prettyRaw(expr)) : '<span class="ph">לחצו כאן והשתמשו במקלדת ⬇️</span>';
+      return `<div class="step-row${i === activeStep ? " active" : ""}" onclick="Calc.setActive(${i})">
+        <span class="step-num">${i + 1}</span>
+        <div class="step-mid">
+          <div class="step-expr">${rawTxt}</div>
+          ${has ? `<div class="step-calc">${escapeHtml(numeric)} <b>${valTxt}</b></div>` : ""}
+        </div>
+        ${steps.length > 1 ? `<button class="step-del" title="מחק שלב" onclick="event.stopPropagation();Calc.delStep(${i})">✕</button>` : ""}
+      </div>`;
+    }).join("");
+  }
+
   function saveMethod() {
     const name = (nameEl.value || "").trim();
-    const formula = (formulaEl.value || "").trim();
     msgEl.className = "";
     if (!name) { msgEl.className = "err"; msgEl.textContent = "צריך לתת שם לשיטה 🙂"; return; }
-    let fn;
-    try { fn = compileFormula(formula); }
-    catch (e) { msgEl.className = "err"; msgEl.textContent = "❌ " + e.message; return; }
-
-    const { cats, counter } = validateFormula(fn);
+    const list = steps.map((s) => s.trim()).filter((s) => s !== "");
+    if (!list.length) { msgEl.className = "err"; msgEl.textContent = "צריך לפחות שלב אחד עם פעולה 🙂"; return; }
+    for (let i = 0; i < list.length; i++) {
+      try { compileStep(list[i]); }
+      catch (e) { msgEl.className = "err"; msgEl.textContent = `❌ שלב ${i + 1}: ${e.message}`; return; }
+      if (i === 0 && /#/.test(list[i])) { msgEl.className = "err"; msgEl.textContent = "❌ שלב 1 לא יכול להשתמש ב'הקודם' — אין שלב לפניו."; return; }
+    }
+    const { cats, counter } = validateSteps(list);
     const passed = CATS.filter((c) => cats[c.key]);
     if (passed.length === 0) {
       msgEl.className = "err";
-      msgEl.innerHTML = `❌ השיטה לא נכונה. למשל ב-<b>${counter.a} × ${counter.b}</b> יצא <b>${counter.got}</b> במקום <b>${counter.exp}</b>.`;
+      msgEl.innerHTML = `❌ השיטה לא נכונה. למשל ב-<b>${counter.a} × ${counter.b}</b> השלב האחרון נתן <b>${counter.got}</b> במקום <b>${counter.exp}</b>.`;
       return;
     }
     const all = passed.length === CATS.length;
     const methods = loadMethods();
-    methods.unshift({
-      id: "m" + Date.now(),
-      name, formula,
-      cats: passed.map((c) => c.key),
-      all,
-    });
+    methods.unshift({ id: "m" + Date.now(), name, steps: list, cats: passed.map((c) => c.key), all });
     storeMethods(methods);
     renderSaved();
-    nameEl.value = ""; formulaEl.value = "";
+    nameEl.value = ""; steps = [""]; activeStep = 0; renderStepsEditor();
     msgEl.className = "ok";
     msgEl.innerHTML = all
       ? "✅ מעולה! השיטה נכונה ונכנסה — היא עובדת עם <b>כל המספרים</b>! 🎉"
@@ -1013,19 +1117,19 @@ const Calc = (function () {
   function renderSaved() {
     const methods = loadMethods();
     if (!methods.length) {
-      savedListEl.innerHTML = '<p class="saved-empty">עוד לא נשמרו שיטות. כתוב אחת למעלה! ⬆️</p>';
+      savedListEl.innerHTML = '<p class="saved-empty">עוד לא נשמרו שיטות. בנה אחת למעלה! ⬆️</p>';
       return;
     }
     const labelOf = (k) => (CATS.find((c) => c.key === k) || {}).label || k;
     savedListEl.innerHTML = methods.map((m) => {
       const badges = m.all
         ? '<span class="badge all">כל המספרים</span>'
-        : m.cats.map((k) => `<span class="badge">${labelOf(k)}</span>`).join("");
-      const pretty = m.formula.replace(/\*/g, "×").replace(/\//g, "÷");
+        : (m.cats || []).map((k) => `<span class="badge">${labelOf(k)}</span>`).join("");
+      const st = methodSteps(m).map((e, i) => `<div class="s-step">${i + 1}. ${escapeHtml(prettyRaw(e))}</div>`).join("");
       return `<div class="saved">
         <div class="s-top"><span class="s-name">${escapeHtml(m.name)}</span>
           <button class="s-del" title="מחק" onclick="Calc.deleteMethod('${m.id}')">🗑️</button></div>
-        <div class="s-formula">${escapeHtml(pretty)} = a × b</div>
+        <div class="s-steps">${st}</div>
         <div class="badges">${badges}</div>
       </div>`;
     }).join("");
@@ -1035,29 +1139,40 @@ const Calc = (function () {
     return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   }
 
-  // מחזיר HTML של שיטות שמורות שמתאימות בדיוק לתרגיל הנוכחי (a×b)
+  // מחזיר HTML של שיטות שמורות שמתאימות לתרגיל הנוכחי — עם השלבים והמספרים
   function applicableCustom(a, b) {
     const methods = loadMethods();
     if (!methods.length) return "";
-    const hits = [];
+    const blocks = [];
     for (const m of methods) {
-      let fn;
-      try { fn = compileFormula(m.formula); } catch (e) { continue; }
-      let v; try { v = fn(a, b); } catch (e) { continue; }
-      const exp = a * b, tol = 1e-9 * Math.max(1, Math.abs(exp));
-      if (typeof v === "number" && isFinite(v) && Math.abs(v - exp) <= tol) {
-        const pretty = m.formula.replace(/\*/g, "×").replace(/\//g, "÷");
-        hits.push(`<div class="cm-item"><b>${escapeHtml(m.name)}:</b> <code>${escapeHtml(pretty)}</code> = ${exp} ✓</div>`);
+      const list = methodSteps(m);
+      if (!list.length) continue;
+      const res = runSteps(list, a, b);
+      const fin = res[res.length - 1], exp = a * b, tol = 1e-9 * Math.max(1, Math.abs(exp));
+      if (isFinite(fin) && Math.abs(fin - exp) <= tol) {
+        const lines = list.map((e, i) =>
+          `<div class="cm-item"><code>${escapeHtml(exprWithNumbers(e, a, b, i > 0 ? res[i - 1] : NaN))} = ${formatNum(res[i])}</code></div>`
+        ).join("");
+        blocks.push(`<div class="cm-block"><div class="cm-name">🧪 ${escapeHtml(m.name)}</div>${lines}</div>`);
       }
-      if (hits.length >= 4) break;
+      if (blocks.length >= 3) break;
     }
-    if (!hits.length) return "";
-    return `<div class="custom-methods"><div class="cm-title">🧪 שיטות שנוספו שמתאימות כאן:</div>${hits.join("")}</div>`;
+    if (!blocks.length) return "";
+    return `<div class="custom-methods"><div class="cm-title">שיטות שנוספו שמתאימות כאן:</div>${blocks.join("")}</div>`;
   }
 
   function toggleMethods() { methodsEl.classList.toggle("collapsed"); }
-  function fKey(ch) { formulaEl.value += ch; formulaEl.focus(); }
-  function fClear() { formulaEl.value = ""; formulaEl.focus(); }
+  function setActive(i) { activeStep = i; renderStepsEditor(); }
+  function ins(ch) { steps[activeStep] = (steps[activeStep] || "") + ch; renderStepsEditor(); }
+  function insBack() { steps[activeStep] = (steps[activeStep] || "").slice(0, -1); renderStepsEditor(); }
+  function addStep() { steps.push(""); activeStep = steps.length - 1; renderStepsEditor(); }
+  function delStep(i) {
+    if (steps.length <= 1) return;
+    steps.splice(i, 1);
+    if (activeStep >= steps.length) activeStep = steps.length - 1;
+    renderStepsEditor();
+  }
+  function renderDemo() { renderStepsEditor(); }
 
   function exportMethods() {
     const data = JSON.stringify(loadMethods(), null, 2);
@@ -1079,7 +1194,7 @@ const Calc = (function () {
           if (!Array.isArray(incoming)) throw new Error();
           const existing = loadMethods();
           const ids = new Set(existing.map((m) => m.id));
-          const merged = existing.concat(incoming.filter((m) => m && m.formula && !ids.has(m.id)));
+          const merged = existing.concat(incoming.filter((m) => m && (m.steps || m.formula) && !ids.has(m.id)));
           storeMethods(merged);
           renderSaved();
           msgEl.className = "ok"; msgEl.textContent = "✅ יובאו שיטות מהקובץ.";
@@ -1117,10 +1232,12 @@ const Calc = (function () {
   refresh();
   resetExplain();
   renderSaved();
+  renderStepsEditor();
 
   return {
     setMode, handle, toggleExplain,
-    toggleMethods, saveMethod, deleteMethod, fKey, fClear, exportMethods, importMethods,
+    toggleMethods, saveMethod, deleteMethod, exportMethods, importMethods,
+    setActive, ins, insBack, addStep, delStep, renderDemo,
   };
 })();
 </script>
