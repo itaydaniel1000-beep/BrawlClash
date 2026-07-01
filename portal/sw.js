@@ -1,5 +1,5 @@
 /* Service Worker לפורטל — מאפשר התקנה כאפליקציה ועבודה ללא אינטרנט (shell). */
-const CACHE = "portal-v4";
+const CACHE = "portal-v5";
 const ASSETS = [
   "index.html", "games.html", "videos.html", "sites.html", "notes.html", "calculator.html",
   "category.css", "access.js", "cookies.js",

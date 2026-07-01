@@ -622,21 +622,67 @@ const Calc = (function () {
   }
 
   // בוחר "טריק מהיר" אחד רלוונטי לכפל (או null)
-  function pickMulTrick(a, b) {
-    const isPow10 = (x) => /^10*$/.test(String(x)) && x >= 10;
-    if (a === 0 || b === 0) return "כל מספר כפול 0 שווה 0.";
-    if (a === 1 || b === 1) return `כפל ב-1 לא משנה כלום — התוצאה היא ${a === 1 ? b : a}.`;
-    if (isPow10(a) || isPow10(b)) {
-      const p = isPow10(a) ? a : b, o = isPow10(a) ? b : a, z = String(p).length - 1;
-      return `כפל ב-${p}: פשוט מוסיפים ${z} ${z === 1 ? "אפס" : "אפסים"} בסוף ${o} → ${o * p}.`;
+  // מוצא שיטה חכמה לחשב  o × t  (t = המספר שעליו מפעילים את הטריק).
+  // מחזיר { score, label, steps, o, t } — score גבוה = שיטה חכמה/נקייה יותר.
+  function methodFor(o, t) {
+    const R = o * t;
+    const pow10 = /^10+$/.test(String(t)); // 10, 100, 1000...
+    const mk = (score, label, steps) => ({ score, label, steps, o, t });
+
+    if (t === 0) return mk(3, "כל מספר כפול 0 שווה 0", [`${o} × 0 = 0`]);
+    if (t === 1) return mk(3, "כפל ב-1 לא משנה כלום", [`${o} × 1 = ${o}`]);
+    if (pow10) { const z = String(t).length - 1; return mk(3, `מוסיפים ${z} ${z === 1 ? "אפס" : "אפסים"}`, [`מוסיפים ${z} ${z === 1 ? "אפס" : "אפסים"} בסוף ${o} → ${R}`]); }
+    if (t === 2) return mk(3, "הכפלה — מחברים לעצמו", [`${o} + ${o} = ${R}`]);
+    if (t === 3) return mk(3, "×2 ועוד פעם המספר", [`${o} × 2 = ${o * 2}`, `${o * 2} + ${o} = ${R}`]);
+    if (t === 4) return mk(3, "מכפילים פעמיים ב-2", [`${o} × 2 = ${o * 2}`, `${o * 2} × 2 = ${R}`]);
+    if (t === 5) return mk(3, "×10 וחצי (חלוקה ב-2)", [`${o} × 10 = ${o * 10}`, `${o * 10} ÷ 2 = ${R}`]);
+    if (t === 6) return mk(3, "×5 ועוד פעם המספר", [`${o} × 5 = ${o * 5}`, `${o * 5} + ${o} = ${R}`]);
+    if (t === 7) return mk(3, "×5 ועוד ×2", [`${o} × 5 = ${o * 5}`, `${o} × 2 = ${o * 2}`, `${o * 5} + ${o * 2} = ${R}`]);
+    if (t === 8) return mk(3, "×10 פחות ×2", [`${o} × 10 = ${o * 10}`, `${o} × 2 = ${o * 2}`, `${o * 10} − ${o * 2} = ${R}`]);
+    if (t === 9) return mk(3, "×10 פחות המספר עצמו", [`${o} × 10 = ${o * 10}`, `${o * 10} − ${o} = ${R}`]);
+    if (t === 11) return mk(3, "×10 ועוד המספר", [`${o} × 10 = ${o * 10}`, `${o * 10} + ${o} = ${R}`]);
+    if (t === 12) return mk(3, "×10 ועוד ×2", [`${o} × 10 = ${o * 10}`, `${o} × 2 = ${o * 2}`, `${o * 10} + ${o * 2} = ${R}`]);
+    if (t === 15) return mk(3, "×10 ועוד חצי", [`${o} × 10 = ${o * 10}`, `חצי מזה = ${o * 5}`, `${o * 10} + ${o * 5} = ${R}`]);
+    if (t === 25) return mk(3, "×100 וחלוקה ב-4", [`${o} × 100 = ${o * 100}`, `${o * 100} ÷ 4 = ${R}`]);
+    if (t === 50) return mk(3, "×100 וחצי (חלוקה ב-2)", [`${o} × 100 = ${o * 100}`, `${o * 100} ÷ 2 = ${R}`]);
+    if (t === 99) return mk(3, "×100 פחות המספר", [`${o} × 100 = ${o * 100}`, `${o * 100} − ${o} = ${R}`]);
+
+    // כפולה עגולה של 10 (30, 40, 60, 70...) — כופלים בספרה ומוסיפים אפס
+    if (t % 10 === 0) { const f = t / 10; return mk(2, `×${f} ואז מוסיפים אפס`, [`${o} × ${f} = ${o * f}`, `מוסיפים אפס → ${R}`]); }
+
+    // עיגול והתאמה: מעגלים את t למספר עגול קרוב ומתקנים
+    {
+      const base = t < 100 ? 10 : t < 1000 ? 100 : 1000;
+      const near = Math.round(t / base) * base;
+      const off = t - near;
+      const thr = base === 10 ? 5 : 12;
+      if (off !== 0 && Math.abs(off) <= thr && near > 0) {
+        const sign = off > 0 ? "+" : "−", ao = Math.abs(off);
+        const label = off > 0 ? `מעגלים ל-${near} ועוד ${ao}` : `מעגלים ל-${near} ופחות ${ao}`;
+        const steps = [
+          `${t} = ${near} ${sign} ${ao}`,
+          `${o} × ${near} = ${o * near}`,
+          `${o} × ${ao} = ${o * ao}`,
+          `${o * near} ${sign} ${o * ao} = ${R}`,
+        ];
+        return mk(ao <= 3 ? 2.7 : 2, label, steps);
+      }
     }
-    if (a === 5 || b === 5) { const o = a === 5 ? b : a; return `כפל ב-5 = כפל ב-10 וחלוקה ב-2:  ${o}×10=${o * 10},  ${o * 10}÷2=${o * 5}.`; }
-    if (a === 9 || b === 9) { const o = a === 9 ? b : a; return `כפל ב-9 = כפל ב-10 פחות המספר עצמו:  ${o}×10=${o * 10},  ${o * 10}−${o}=${o * 9}.`; }
-    if (a === 11 || b === 11) { const o = a === 11 ? b : a; return `כפל ב-11 = כפל ב-10 ועוד המספר:  ${o}×10=${o * 10},  ${o * 10}+${o}=${o * 11}.`; }
-    if (a === 25 || b === 25) { const o = a === 25 ? b : a; return `כפל ב-25 = כפל ב-100 וחלוקה ב-4:  ${o}×100=${o * 100},  ${o * 100}÷4=${o * 25}.`; }
-    if (a === 2 || b === 2) { const o = a === 2 ? b : a; return `כפל ב-2 = מחברים את המספר לעצמו:  ${o}+${o}=${o * 2}.`; }
-    if (a === 4 || b === 4) { const o = a === 4 ? b : a; return `כפל ב-4 = מכפילים פעמיים ב-2:  ${o}×2=${o * 2},  ${o * 2}×2=${o * 4}.`; }
-    return null;
+
+    // מוצא אחרון: פירוק לפי ערך המקום (השיטה ה"רגילה")
+    const parts = placeParts(t).slice().reverse();
+    const terms = [], lines = [];
+    for (const p of parts) { const pv = p.value * o; terms.push(pv); lines.push(`${o} × ${p.value} = ${pv}`); }
+    return mk(1, "פירוק לפי ערך המקום", [`${t} = ${parts.map(p => p.value).join(" + ")}`, ...lines, `${terms.join(" + ")} = ${R}`]);
+  }
+
+  // בוחר את השיטה החכמה ביותר בין הפעלת הטריק על a או על b
+  function bestMul(a, b) {
+    const A = methodFor(b, a); // a הוא ה"מכפיל"
+    const B = methodFor(a, b); // b הוא ה"מכפיל"
+    if (B.score > A.score) return B;
+    if (A.score > B.score) return A;
+    return b <= a ? B : A; // תיקו — מעדיפים את המכפיל הקטן
   }
 
   function explainAdd(a, b) {
@@ -656,20 +702,16 @@ const Calc = (function () {
   }
   function explainMul(a, b) {
     const res = a * b;
-    let h = "";
-    const trick = pickMulTrick(a, b);
-    if (trick) h += `<div class="trick">💡 <b>טריק מהיר:</b> ${trick}</div>`;
-    if (a < 10 && b < 10) {
-      h += `<p>זה תרגיל מלוח הכפל: ${a} × ${b} = ${res}.</p>`;
+    const m = bestMul(a, b);
+    let h;
+    if (m.score <= 1) {
+      h = `<div class="trick">💡 <b>אין כאן קיצור מיוחד:</b> ${m.t} הוא מספר "לא נוח", אז מפרקים אותו לפי ערך המקום ומחברים.</div>`;
+      h += `<p>שלב אחר שלב:</p>`;
     } else {
-      let M = a, S = b;
-      if (String(b).length > String(a).length) { M = b; S = a; }
-      const parts = placeParts(M).slice().reverse(); // מהנמוך לגבוה
-      h += `<p>מפרקים את ${M} לפי ערך המקום, כופלים כל חלק ב-${S}, ומחברים (שיטת הכפל האנכי):</p>`;
-      const terms = [], lines = [];
-      for (const p of parts) { const pv = p.value * S; terms.push(pv); lines.push(`${p.value} × ${S} = ${pv}`); }
-      h += renderSteps([`מפרקים: ${M} = ${parts.map(p => p.value).join(" + ")}`, ...lines, `מחברים: ${terms.join(" + ")} = ${res}`]);
+      h = `<div class="trick">💡 <b>שיטה חכמה:</b> כופלים את ${m.o} ב-${m.t} — ${m.label}.</div>`;
+      h += `<p>ככה פותרים בראש, בלי לפרק לפי ספרות:</p>`;
     }
+    h += renderSteps(m.steps);
     return h + answerLine(`${a} × ${b}`, res);
   }
   function explainDiv(a, b) {
