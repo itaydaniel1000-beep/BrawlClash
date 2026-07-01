@@ -546,10 +546,11 @@
 
   <div class="secret-overlay screen" id="secretScreen">
     <div class="secret-box">
-      <div class="secret-emoji">🔓</div>
+      <div class="secret-emoji">🚀</div>
       <h2>ממשק סודי</h2>
-      <p>מצאת קוד סודי! 🤫<br>הממשק הזה עדיין בבנייה — נעבוד עליו בהמשך.</p>
-      <button onclick="Calc.closeSecret()">סגור</button>
+      <p>מצאת את הקוד הסודי! 🤫<br>נפתח לך משחק חלליות נגד רוחות.</p>
+      <button onclick="location.href='space-ghosts.html'">🚀 כניסה למשחק</button>
+      <button onclick="Calc.closeSecret()" style="margin-top:10px;background:rgba(255,255,255,.08)">סגור</button>
     </div>
   </div>
 
@@ -1299,7 +1300,7 @@ const Calc = (function () {
   // מקור אמת יחיד לכל הסודות — קל להוסיף כאן חדשים
   const SECRETS = [
     { ico: "🦋", code: "10 × 10 × 10 × 34", desc: "פרפר צבעוני שמנפנף בכנפיים ועף על המסך" },
-    { ico: "🔓", code: "7894561230 → x²", desc: "ממשק סודי (עדיין בבנייה)" },
+    { ico: "🚀", code: "7894561230 → x²", desc: "משחק סודי — חלליות נגד רוחות" },
     { ico: "📜", code: "111", desc: "הרשימה הזו — כל הסודות שגילית" },
   ];
   function renderSecretsList() {

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>חלליות ורוחות</title>
+<meta name="theme-color" content="#05060f" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+  html, body { height: 100%; overflow: hidden; background: #05060f; touch-action: none; }
+  body {
+    font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
+    color: #eef1ff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #wrap {
+    position: relative;
+    width: 100%; max-width: 500px; height: 100%;
+    max-height: 100dvh;
+    background: #05060f;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* HUD */
+  .hud {
+    position: absolute; top: 0; inset-inline: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; font-weight: 800; pointer-events: none;
+    text-shadow: 0 2px 8px #000;
+  }
+  .hud .lives { color: #ff6b7d; font-size: 1.15rem; letter-spacing: 2px; }
+  .hud .mid { text-align: center; }
+  .hud .lvl { font-size: 1.15rem; }
+  .hud .kills { font-size: .85rem; color: #9aa3c7; }
+  .back {
+    position: absolute; top: 10px; inset-inline-start: 12px; z-index: 6;
+    color: #9aa3c7; text-decoration: none; font-weight: 700; font-size: .95rem;
+    background: rgba(20,26,46,.7); border: 1px solid #2c3556; border-radius: 999px; padding: 6px 12px;
+  }
+
+  /* מסכי פתיחה / סיום */
+  .screen {
+    position: absolute; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 30px;
+    background: radial-gradient(600px 500px at 50% 30%, rgba(42,33,80,.85), rgba(5,6,15,.94));
+    backdrop-filter: blur(2px);
+  }
+  .screen.hidden { display: none; }
+  .screen h1 {
+    font-size: clamp(1.8rem, 8vw, 2.8rem); font-weight: 900; margin-bottom: 8px;
+    background: linear-gradient(90deg, #6c8cff, #b06cff); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .screen .rules {
+    color: #c3cbf0; font-size: .98rem; line-height: 1.8; margin: 14px 0 22px; max-width: 340px;
+    background: rgba(255,255,255,.05); border: 1px solid #2c3556; border-radius: 14px; padding: 14px 16px;
+  }
+  .screen .rules b { color: #eef1ff; }
+  .chip { display: inline-block; padding: 1px 8px; border-radius: 6px; font-weight: 800; color: #05060f; }
+  .big {
+    background: linear-gradient(90deg, #6c8cff, #b06cff); color: #fff; border: none;
+    border-radius: 999px; padding: 15px 44px; font-size: 1.2rem; font-weight: 900; cursor: pointer;
+    box-shadow: 0 12px 30px rgba(108,140,255,.4);
+  }
+  .big:active { transform: scale(.96); }
+  .score-big { font-size: 1.4rem; font-weight: 900; margin: 6px 0 2px; }
+  .score-big span { color: #6c8cff; }
+
+  /* כפתורי מגע */
+  .touch { position: absolute; bottom: 0; inset-inline: 0; z-index: 4; display: flex; height: 96px; }
+  .touch button {
+    flex: 1; background: transparent; border: none; color: rgba(255,255,255,.85);
+    font-size: 2.4rem; font-weight: 900; cursor: pointer;
+  }
+  .touch .tl { border-inline-end: 1px solid rgba(255,255,255,.06); }
+  .touch button:active { background: rgba(108,140,255,.15); }
+  @media (hover: hover) { .touch { opacity: .35; } }
+</style>
+</head>
+<body>
+  <div id="wrap">
+    <a class="back" href="calculator.html">→ יציאה</a>
+    <div class="hud">
+      <div class="lives" id="lives">❤❤❤</div>
+      <div class="mid">
+        <div class="lvl" id="lvl">שלב 1</div>
+        <div class="kills" id="kills">0 רוחות</div>
+      </div>
+      <div style="width:44px"></div>
+    </div>
+
+    <canvas id="game"></canvas>
+
+    <div class="touch">
+      <button class="tl" id="btnLeft" aria-label="שמאלה">◀</button>
+      <button class="tr" id="btnRight" aria-label="ימינה">▶</button>
+    </div>
+
+    <div class="screen" id="startScreen">
+      <h1>🚀 חלליות ורוחות</h1>
+      <div class="rules">
+        זזים בין 5 התורים עם <b>A</b> / <b>D</b> (או הכפתורים למטה) — ומהקצה עוברים לצד השני.<br>
+        החללית יורה לבד! פגיעה:<br>
+        <span class="chip" style="background:#5b8cff">כחול</span> ← <span class="chip" style="background:#ffd93b">צהוב</span> ← <span class="chip" style="background:#ff4d5e">אדום</span> ← 💥<br>
+        אל תיתנו לרוח להגיע לחללית! כל 40 רוחות — השלב עולה 🔥
+      </div>
+      <button class="big" id="startBtn">התחל</button>
+    </div>
+
+    <div class="screen hidden" id="overScreen">
+      <h1>המשחק נגמר</h1>
+      <div class="score-big">הרגת <span id="finalKills">0</span> רוחות</div>
+      <div class="kills" id="finalLvl" style="margin-bottom:22px">הגעת לשלב 1</div>
+      <button class="big" id="retryBtn">שוב! 🔁</button>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const cv = document.getElementById("game");
+  const ctx = cv.getContext("2d");
+  const wrap = document.getElementById("wrap");
+
+  const COLORS = { red: "#ff4d5e", yellow: "#ffd93b", blue: "#5b8cff" };
+  const ORDER = ["red", "yellow", "blue"];
+  const LANES = 5;
+
+  // כוונון קושי
+  const BASE_SPEED = 90;    // מהירות נפילה בסיסית (פיקסלים לשנייה)
+  const SPEED_MULT = 1.2;   // גדילה לכל שלב
+  const SPAWN_MS = 1100;    // כל כמה זמן מגיעה רוח
+  const FIRE_MS = 250;      // קצב ירי
+  const BULLET_SPEED = 560;
+  const KILLS_PER_LEVEL = 40;
+  const START_LIVES = 3;
+
+  let W = 0, H = 0, laneW = 0, dpr = 1;
+  function resize() {
+    const rect = wrap.getBoundingClientRect();
+    dpr = window.devicePixelRatio || 1;
+    W = rect.width; H = rect.height; laneW = W / LANES;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+
+  const laneX = (i) => laneW * (i + 0.5);
+  const shipY = () => H - 78;
+  const randInt = (n) => Math.floor(Math.random() * n);
+
+  // כוכבים לרקע
+  let stars = [];
+  function initStars() {
+    stars = [];
+    for (let i = 0; i < 70; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, s: Math.random() * 1.8 + 0.4, v: Math.random() * 30 + 10 });
+  }
+
+  // מצב משחק
+  let state = "start"; // start | play | over
+  let ghosts = [], bullets = [];
+  let shipLane = 2, shipX = 0, shipTargetX = 0;
+  let kills = 0, level = 1, lives = START_LIVES;
+  let spawnAcc = 0, fireAcc = 0, frame = 0, hitFlash = 0;
+
+  function reset() {
+    ghosts = []; bullets = [];
+    shipLane = 2; shipX = laneX(2); shipTargetX = shipX;
+    kills = 0; level = 1; lives = START_LIVES;
+    spawnAcc = 0; fireAcc = 0; hitFlash = 0;
+    initStars();
+    updateHud();
+  }
+
+  function ghostSpeed() { return BASE_SPEED * Math.pow(SPEED_MULT, level - 1); }
+
+  function spawnGhost() {
+    const lane = randInt(LANES);
+    const color = ORDER[randInt(ORDER.length)];
+    ghosts.push({ lane, x: laneX(lane), y: -22, r: 19, color });
+  }
+  function fire() {
+    bullets.push({ lane: shipLane, x: laneX(shipLane), y: shipY() - 22 });
+  }
+
+  function moveLeft() { // A — ומהקצה השמאלי עוברים לימני
+    const prev = shipLane;
+    shipLane = (shipLane - 1 + LANES) % LANES;
+    shipTargetX = laneX(shipLane);
+    if (Math.abs(shipLane - prev) > 1) shipX = shipTargetX; // גלישה — קפיצה מיידית
+  }
+  function moveRight() { // D
+    const prev = shipLane;
+    shipLane = (shipLane + 1) % LANES;
+    shipTargetX = laneX(shipLane);
+    if (Math.abs(shipLane - prev) > 1) shipX = shipTargetX;
+  }
+
+  function hitGhost(g) {
+    if (g.color === "blue") g.color = "yellow";
+    else if (g.color === "yellow") g.color = "red";
+    else { g.dead = true; kills++; onKill(); }
+  }
+  function onKill() {
+    const newLevel = Math.floor(kills / KILLS_PER_LEVEL) + 1;
+    if (newLevel !== level) level = newLevel;
+    updateHud();
+  }
+  function loseLife() {
+    lives--; hitFlash = 1; updateHud();
+    if (lives <= 0) gameOver();
+  }
+
+  function update(dt) {
+    frame++;
+    // תנועת החללית (החלקה)
+    shipX += (shipTargetX - shipX) * Math.min(1, dt * 14);
+
+    // הופעת רוחות
+    spawnAcc += dt * 1000;
+    while (spawnAcc >= SPAWN_MS) { spawnAcc -= SPAWN_MS; spawnGhost(); }
+
+    // ירי אוטומטי
+    fireAcc += dt * 1000;
+    while (fireAcc >= FIRE_MS) { fireAcc -= FIRE_MS; fire(); }
+
+    // כדורים למעלה
+    for (const b of bullets) b.y -= BULLET_SPEED * dt;
+
+    // רוחות למטה
+    const gs = ghostSpeed();
+    for (const g of ghosts) g.y += gs * dt;
+
+    // פגיעות
+    for (const b of bullets) {
+      if (b.dead) continue;
+      let target = null;
+      for (const g of ghosts) {
+        if (g.dead || g.lane !== b.lane) continue;
+        if (b.y <= g.y + g.r && b.y >= g.y - g.r) {
+          if (!target || g.y > target.y) target = g;
+        }
+      }
+      if (target) { b.dead = true; hitGhost(target); }
+    }
+
+    // רוח שהגיעה לחללית
+    for (const g of ghosts) {
+      if (!g.dead && g.y >= shipY() - 6) { g.dead = true; loseLife(); }
+    }
+
+    bullets = bullets.filter((b) => !b.dead && b.y > -20);
+    ghosts = ghosts.filter((g) => !g.dead);
+
+    if (hitFlash > 0) hitFlash = Math.max(0, hitFlash - dt * 2.5);
+
+    // כוכבים
+    for (const st of stars) { st.y += st.v * dt; if (st.y > H) { st.y = -2; st.x = Math.random() * W; } }
+  }
+
+  function drawStars() {
+    ctx.fillStyle = "#05060f"; ctx.fillRect(0, 0, W, H);
+    for (const st of stars) {
+      ctx.globalAlpha = 0.4 + st.s / 3;
+      ctx.fillStyle = "#aab6ff";
+      ctx.fillRect(st.x, st.y, st.s, st.s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawGhost(g) {
+    const { x, y, r } = g;
+    ctx.fillStyle = COLORS[g.color];
+    ctx.beginPath();
+    ctx.arc(x, y, r, Math.PI, 0); // כיפה עליונה
+    ctx.lineTo(x + r, y + r - 6);
+    const n = 4, w = (2 * r) / n;
+    for (let i = 0; i < n; i++) {
+      ctx.lineTo(x + r - w * (i + 0.5), y + r);
+      ctx.lineTo(x + r - w * (i + 1), y + r - 6);
+    }
+    ctx.closePath(); ctx.fill();
+    // עיניים (מביטות למטה לכיוון החללית)
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(x - 6, y, 4.5, 0, 7); ctx.arc(x + 6, y, 4.5, 0, 7); ctx.fill();
+    ctx.fillStyle = "#20203a";
+    ctx.beginPath(); ctx.arc(x - 5, y + 2, 2.2, 0, 7); ctx.arc(x + 7, y + 2, 2.2, 0, 7); ctx.fill();
+  }
+
+  function drawBullet(b) {
+    ctx.fillStyle = "#8affd6";
+    ctx.shadowColor = "#5bffcf"; ctx.shadowBlur = 8;
+    ctx.fillRect(b.x - 2.2, b.y - 9, 4.4, 14);
+    ctx.shadowBlur = 0;
+  }
+
+  function drawShip(x, y) {
+    ctx.save(); ctx.translate(x, y);
+    // להבות מנוע
+    const f = 8 + Math.sin(frame * 0.6) * 4;
+    const grd = ctx.createLinearGradient(0, 12, 0, 12 + f + 6);
+    grd.addColorStop(0, "rgba(255,190,80,.95)"); grd.addColorStop(1, "rgba(255,80,40,0)");
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.moveTo(-7, 12); ctx.lineTo(0, 12 + f + 8); ctx.lineTo(7, 12); ctx.closePath(); ctx.fill();
+    // כנפי X
+    ctx.fillStyle = "#8a93b8";
+    ctx.beginPath(); ctx.moveTo(-6, -4); ctx.lineTo(-28, 14); ctx.lineTo(-23, 18); ctx.lineTo(-5, 8); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(6, -4); ctx.lineTo(28, 14); ctx.lineTo(23, 18); ctx.lineTo(5, 8); ctx.closePath(); ctx.fill();
+    // קצות כנפיים אדומים
+    ctx.fillStyle = "#ff4d5e";
+    ctx.fillRect(-28, 12, 6, 3); ctx.fillRect(22, 12, 6, 3);
+    // גוף החללית
+    ctx.fillStyle = "#e6ebff";
+    ctx.beginPath(); ctx.moveTo(0, -24); ctx.lineTo(9, 12); ctx.lineTo(-9, 12); ctx.closePath(); ctx.fill();
+    // תא טייס
+    ctx.fillStyle = "#5b8cff";
+    ctx.beginPath(); ctx.arc(0, -6, 4.5, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+
+  function render() {
+    drawStars();
+    for (const g of ghosts) drawGhost(g);
+    for (const b of bullets) drawBullet(b);
+    if (state === "play") drawShip(shipX, shipY());
+    if (hitFlash > 0) { ctx.fillStyle = `rgba(255,60,80,${hitFlash * 0.35})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // HUD
+  const livesEl = document.getElementById("lives");
+  const lvlEl = document.getElementById("lvl");
+  const killsEl = document.getElementById("kills");
+  function updateHud() {
+    livesEl.textContent = "❤".repeat(Math.max(0, lives)) || "—";
+    lvlEl.textContent = "שלב " + level;
+    killsEl.textContent = kills + " רוחות";
+  }
+
+  // מסכים
+  const startScreen = document.getElementById("startScreen");
+  const overScreen = document.getElementById("overScreen");
+  function startGame() {
+    reset(); state = "play";
+    startScreen.classList.add("hidden");
+    overScreen.classList.add("hidden");
+  }
+  function gameOver() {
+    state = "over";
+    document.getElementById("finalKills").textContent = kills;
+    document.getElementById("finalLvl").textContent = "הגעת לשלב " + level;
+    overScreen.classList.remove("hidden");
+  }
+
+  // לולאת משחק
+  let last = 0;
+  function loop(t) {
+    const dt = Math.min(0.05, last ? (t - last) / 1000 : 0);
+    last = t;
+    if (state === "play") update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  // שליטה
+  window.addEventListener("keydown", (e) => {
+    const k = e.key.toLowerCase();
+    if (state !== "play") {
+      if (k === "enter" || k === " ") { e.preventDefault(); startGame(); }
+      return;
+    }
+    if (k === "a" || k === "arrowleft") { e.preventDefault(); moveLeft(); }
+    else if (k === "d" || k === "arrowright") { e.preventDefault(); moveRight(); }
+  });
+  const bind = (id, fn) => {
+    const el = document.getElementById(id);
+    el.addEventListener("click", () => { if (state === "play") fn(); });
+    el.addEventListener("touchstart", (e) => { e.preventDefault(); if (state === "play") fn(); }, { passive: false });
+  };
+  bind("btnLeft", moveLeft);
+  bind("btnRight", moveRight);
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("retryBtn").addEventListener("click", startGame);
+
+  resize();
+  initStars();
+  updateHud();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
