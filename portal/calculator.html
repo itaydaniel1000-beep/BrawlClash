@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>מחשבון</title>
+<meta name="theme-color" content="#0d0f1a" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="מחשבון" />
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --card: #1c2238;
+    --card-hover: #232b48;
+    --accent: #6c8cff;
+    --accent2: #b06cff;
+    --text: #eef1ff;
+    --muted: #9aa3c7;
+    --key: #232b48;
+    --key-hover: #2c375c;
+    --key-op: #34406e;
+    --key-fn: #2a2150;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 80% -10%, #2a2150 0%, transparent 55%),
+                radial-gradient(1000px 700px at 0% 0%, #16314f 0%, transparent 50%),
+                var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+  }
+  .topbar {
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .back {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid #262e4d;
+    transition: color .15s, border-color .15s;
+  }
+  .back:hover { color: var(--text); border-color: var(--accent); }
+  .title { font-size: 1.4rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+
+  .calc {
+    width: 100%;
+    max-width: 460px;
+    background: var(--card);
+    border: 1px solid #262e4d;
+    border-radius: 26px;
+    padding: 22px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  }
+
+  /* מתג מצב רגיל / מדעי */
+  .mode-switch {
+    display: flex;
+    background: #11162a;
+    border: 1px solid #2c3556;
+    border-radius: 999px;
+    padding: 5px;
+    margin-bottom: 18px;
+  }
+  .mode-switch button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color .18s, background .18s;
+  }
+  .mode-switch button.active {
+    color: #fff;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .display {
+    background: #11162a;
+    border: 1px solid #2c3556;
+    border-radius: 18px;
+    padding: 18px 20px;
+    text-align: left;
+    direction: ltr;
+    margin-bottom: 18px;
+    min-height: 104px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+  .history {
+    color: var(--muted);
+    font-size: 1.05rem;
+    min-height: 26px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .current {
+    color: var(--text);
+    font-size: clamp(2.2rem, 9vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .keys {
+    display: grid;
+    gap: 10px;
+    direction: ltr; /* סידור מקשים סטנדרטי גם בדף RTL */
+  }
+  .keys.basic { grid-template-columns: repeat(4, 1fr); }
+  .keys.sci   { grid-template-columns: repeat(5, 1fr); }
+
+  .key {
+    border: none;
+    background: var(--key);
+    color: var(--text);
+    font-size: 1.35rem;
+    font-weight: 600;
+    padding: 16px 0;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: transform .08s, background .15s, filter .15s;
+    user-select: none;
+  }
+  .key:hover { background: var(--key-hover); }
+  .key:active { transform: scale(.94); }
+  .keys.sci .key { font-size: 1.1rem; padding: 15px 0; }
+
+  .key.op   { background: var(--key-op); color: #cdd6ff; }
+  .key.fn   { background: var(--key-fn); color: #d7c6ff; font-size: 1rem; }
+  .keys.sci .key.fn { font-size: .95rem; }
+  .key.eq   { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; }
+  .key.clr  { background: #3a2340; color: #ffb3c7; }
+  .key.wide { grid-column: span 2; }
+
+  .hint {
+    color: var(--muted);
+    font-size: .85rem;
+    text-align: center;
+    margin-top: 16px;
+  }
+
+  /* פאנל ההסבר "איך פותרים?" */
+  .explain {
+    width: 100%;
+    max-width: 460px;
+    margin-top: 18px;
+    background: var(--card);
+    border: 1px solid #262e4d;
+    border-radius: 22px;
+    padding: 18px 20px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.4);
+  }
+  .explain-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+  .explain-head .toggle {
+    margin-inline-start: auto;
+    color: var(--muted);
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+    background: none;
+    border: 1px solid #2c3556;
+    border-radius: 999px;
+    padding: 5px 12px;
+    transition: color .15s, border-color .15s;
+  }
+  .explain-head .toggle:hover { color: var(--text); border-color: var(--accent); }
+  .explain-body { color: var(--text); font-size: 1rem; line-height: 1.7; }
+  .explain-body p { margin-bottom: 8px; }
+  .explain-hint { color: var(--muted); }
+  .explain.collapsed .explain-body { display: none; }
+  .trick {
+    background: rgba(176,108,255,.12);
+    border: 1px solid #3a2a5e;
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    line-height: 1.65;
+  }
+  .trick b { color: #d7c6ff; }
+  .steps { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+  .step { display: flex; gap: 8px; align-items: baseline; }
+  .step .n {
+    color: var(--accent);
+    font-weight: 800;
+    min-width: 1.5em;
+    text-align: left;
+  }
+  .answer {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #2c3556;
+    font-weight: 800;
+    font-size: 1.15rem;
+    direction: ltr;
+    text-align: right;
+  }
+  .answer span { color: var(--accent); }
+
+  @media (max-width: 420px) {
+    .keys.sci .key { font-size: .95rem; padding: 13px 0; border-radius: 13px; }
+    .keys.sci { gap: 7px; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="index.html">→ חזרה</a>
+    <span class="title"><span>🧮</span> מחשבון</span>
+    <span style="width:64px"></span>
+  </div>
+
+  <div class="calc">
+    <div class="mode-switch">
+      <button id="modeBasic" class="active" onclick="Calc.setMode('basic')">רגיל</button>
+      <button id="modeSci" onclick="Calc.setMode('sci')">מדעי</button>
+    </div>
+
+    <div class="display">
+      <div class="history" id="history"></div>
+      <div class="current" id="current">0</div>
+    </div>
+
+    <div class="keys basic" id="keys"></div>
+
+    <p class="hint">אפשר להשתמש גם במקלדת ⌨️</p>
+  </div>
+
+  <div class="explain" id="explain">
+    <div class="explain-head">
+      <span>📘</span><span>איך פותרים?</span>
+      <button class="toggle" id="explainToggle" onclick="Calc.toggleExplain()">הסתר</button>
+    </div>
+    <div class="explain-body" id="explainBody"></div>
+  </div>
+
+<script>
+const Calc = (function () {
+  // מצב פנימי
+  let expr = "";        // הביטוי הנבנה (JS-ready)
+  let display = "0";    // מה שמוצג בשורה הגדולה
+  let history = "";      // הביטוי בשורה העליונה
+  let justEvaluated = false;
+  let mode = "basic";
+  let angleDeg = true;  // מעלות / רדיאנים במצב מדעי
+
+  const curEl = document.getElementById("current");
+  const histEl = document.getElementById("history");
+  const keysEl = document.getElementById("keys");
+
+  // הגדרת המקשים לכל מצב
+  const BASIC_KEYS = [
+    { l: "AC", t: "clr", a: "clear" },
+    { l: "⌫", t: "clr", a: "back" },
+    { l: "%", t: "op", a: "pct" },
+    { l: "÷", t: "op", a: "op:/" },
+    { l: "7", a: "num:7" }, { l: "8", a: "num:8" }, { l: "9", a: "num:9" }, { l: "×", t: "op", a: "op:*" },
+    { l: "4", a: "num:4" }, { l: "5", a: "num:5" }, { l: "6", a: "num:6" }, { l: "−", t: "op", a: "op:-" },
+    { l: "1", a: "num:1" }, { l: "2", a: "num:2" }, { l: "3", a: "num:3" }, { l: "+", t: "op", a: "op:+" },
+    { l: "±", a: "neg" }, { l: "0", a: "num:0" }, { l: ".", a: "dot" }, { l: "=", t: "eq", a: "eq" },
+  ];
+
+  const SCI_KEYS = [
+    { l: "AC", t: "clr", a: "clear" }, { l: "⌫", t: "clr", a: "back" }, { l: "DEG", t: "fn", a: "angle" }, { l: "π", t: "fn", a: "str:π" }, { l: "e", t: "fn", a: "str:e" },
+    { l: "sin", t: "fn", a: "fn:sin" }, { l: "cos", t: "fn", a: "fn:cos" }, { l: "tan", t: "fn", a: "fn:tan" }, { l: "^", t: "op", a: "op:**" }, { l: "√", t: "fn", a: "wrap:sqrt" },
+    { l: "asin", t: "fn", a: "fn:asin" }, { l: "acos", t: "fn", a: "fn:acos" }, { l: "atan", t: "fn", a: "fn:atan" }, { l: "x²", t: "fn", a: "sq" }, { l: "x!", t: "fn", a: "fact" },
+    { l: "ln", t: "fn", a: "fn:ln" }, { l: "log", t: "fn", a: "fn:log" }, { l: "(", t: "fn", a: "str:(" }, { l: ")", t: "fn", a: "str:)" }, { l: "⌫", t: "clr", a: "back" },
+    { l: "7", a: "num:7" }, { l: "8", a: "num:8" }, { l: "9", a: "num:9" }, { l: "÷", t: "op", a: "op:/" }, { l: "×", t: "op", a: "op:*" },
+    { l: "4", a: "num:4" }, { l: "5", a: "num:5" }, { l: "6", a: "num:6" }, { l: "−", t: "op", a: "op:-" }, { l: "+", t: "op", a: "op:+" },
+    { l: "1", a: "num:1" }, { l: "2", a: "num:2" }, { l: "3", a: "num:3" }, { l: "±", t: "fn", a: "neg" }, { l: "%", t: "op", a: "pct" },
+    { l: "0", a: "num:0", wide: true }, { l: ".", a: "dot" }, { l: "=", t: "eq", a: "eq", wide: true },
+  ];
+
+  // בונה מחדש את לוח המקשים
+  function renderKeys() {
+    const set = mode === "sci" ? SCI_KEYS : BASIC_KEYS;
+    keysEl.className = "keys " + (mode === "sci" ? "sci" : "basic");
+    keysEl.innerHTML = "";
+    for (const k of set) {
+      const b = document.createElement("button");
+      b.className = "key" + (k.t ? " " + k.t : "") + (k.wide ? " wide" : "");
+      b.textContent = (k.a === "angle") ? (angleDeg ? "DEG" : "RAD") : k.l;
+      b.dataset.action = k.a;
+      b.onclick = () => handle(k.a);
+      keysEl.appendChild(b);
+    }
+  }
+
+  function setMode(m) {
+    mode = m;
+    document.getElementById("modeBasic").classList.toggle("active", m === "basic");
+    document.getElementById("modeSci").classList.toggle("active", m === "sci");
+    renderKeys();
+  }
+
+  function toggleExplain() {
+    const collapsed = explainEl.classList.toggle("collapsed");
+    document.getElementById("explainToggle").textContent = collapsed ? "הצג" : "הסתר";
+  }
+
+  // ממיר את הביטוי הפנימי לטקסט קריא לתצוגה
+  function pretty(s) {
+    return s
+      .replace(/\*\*/g, "^")
+      .replace(/\*/g, "×")
+      .replace(/\//g, "÷")
+      .replace(/-/g, "−")
+      .replace(/Math\.PI/g, "π")
+      .replace(/Math\.E/g, "e")
+      .replace(/Math\.sqrt/g, "√")
+      .replace(/Math\.sin/g, "sin").replace(/Math\.cos/g, "cos").replace(/Math\.tan/g, "tan")
+      .replace(/Math\.asin/g, "asin").replace(/Math\.acos/g, "acos").replace(/Math\.atan/g, "atan")
+      .replace(/Math\.log10/g, "log").replace(/Math\.log/g, "ln")
+      .replace(/fact/g, "!")
+      .replace(/D2R/g, "");
+  }
+
+  function refresh() {
+    curEl.textContent = display;
+    histEl.textContent = history;
+  }
+
+  function startFresh(seed) {
+    expr = seed || "";
+    display = seed ? pretty(seed) : "0";
+    justEvaluated = false;
+  }
+
+  function handle(action) {
+    const [cmd, val] = action.split(":");
+
+    switch (cmd) {
+      case "clear":
+        expr = ""; display = "0"; history = ""; justEvaluated = false;
+        resetExplain();
+        break;
+
+      case "back":
+        if (justEvaluated) { break; }
+        expr = expr.slice(0, -stepLen(expr));
+        display = expr ? pretty(expr) : "0";
+        break;
+
+      case "num":
+        if (justEvaluated) startFresh("");
+        expr += val;
+        display = pretty(expr);
+        break;
+
+      case "dot":
+        if (justEvaluated) startFresh("");
+        if (/[.\d]*$/.test(expr) && lastNumber(expr).includes(".")) break;
+        expr += expr === "" || /[^\d.]$/.test(expr) ? "0." : ".";
+        display = pretty(expr);
+        break;
+
+      case "op": // אופרטור בינארי
+        if (expr === "" && val !== "-") { if (justEvaluated) expr = lastAnswer; else break; }
+        justEvaluated = false;
+        expr = expr.replace(/[+\-*/]$|\*\*$/, "");  // מחליף אופרטור קודם
+        expr += val;
+        display = pretty(expr);
+        break;
+
+      case "str": // הכנסת מחרוזת ישירה (סוגריים, π, e)
+        if (justEvaluated && /[π e0-9)]/.test(val)) startFresh("");
+        expr += val === "π" ? "Math.PI" : val === "e" ? "Math.E" : val;
+        display = pretty(expr);
+        break;
+
+      case "fn": // פונקציה עם סוגר פתוח
+        if (justEvaluated) startFresh("");
+        expr += fnMap(val) + "(";
+        display = pretty(expr);
+        break;
+
+      case "wrap": // √ — פותח sqrt(
+        if (justEvaluated) startFresh("");
+        expr += "Math.sqrt(";
+        display = pretty(expr);
+        break;
+
+      case "sq": // x² — בריבוע
+        if (expr === "") break;
+        expr += "**2";
+        display = pretty(expr);
+        break;
+
+      case "fact": // עצרת
+        if (expr === "") break;
+        expr += "!";
+        display = pretty(expr);
+        break;
+
+      case "pct": // אחוז
+        if (expr === "") break;
+        expr += "/100";
+        display = pretty(expr);
+        break;
+
+      case "neg": // שינוי סימן של המספר האחרון
+        expr = toggleSign(expr);
+        display = expr ? pretty(expr) : "0";
+        break;
+
+      case "angle":
+        angleDeg = !angleDeg;
+        renderKeys();
+        break;
+
+      case "eq":
+        evaluate();
+        break;
+    }
+    refresh();
+  }
+
+  // אורך "צעד" למחיקה אחורה (מוחק אסימון שלם כמו Math.sin( )
+  function stepLen(s) {
+    const tokens = ["Math.PI", "Math.E", "Math.sqrt(", "Math.sin(", "Math.cos(", "Math.tan(",
+      "Math.asin(", "Math.acos(", "Math.atan(", "Math.log10(", "Math.log(", "**2", "**", "/100"];
+    for (const t of tokens) if (s.endsWith(t)) return t.length;
+    return 1;
+  }
+
+  function fnMap(name) {
+    return {
+      sin: "Math.sin", cos: "Math.cos", tan: "Math.tan",
+      asin: "Math.asin", acos: "Math.acos", atan: "Math.atan",
+      ln: "Math.log", log: "Math.log10",
+    }[name] || name;
+  }
+
+  function lastNumber(s) {
+    const m = s.match(/[\d.]+$/);
+    return m ? m[0] : "";
+  }
+
+  function toggleSign(s) {
+    if (s === "") return "(-";
+    // אם המספר האחרון כבר עטוף ב(- ...) — מסירים
+    const m = s.match(/\(-([\d.]+)\)$/);
+    if (m) return s.slice(0, m.index) + m[1];
+    const n = s.match(/([\d.]+)$/);
+    if (n) return s.slice(0, n.index) + "(-" + n[1] + ")";
+    return s + "(-";
+  }
+
+  let lastAnswer = "0";
+
+  function evaluate() {
+    if (expr === "") return;
+    // מזהים תרגיל פשוט של שני מספרים שלמים לצורך ההסבר (לפני ש-expr משתנה)
+    const simple = expr.match(/^(\d+)(\*\*|[*/+\-])(\d+)$/);
+    try {
+      const result = compute(expr);
+      if (result === undefined || Number.isNaN(result) || !Number.isFinite(result)) {
+        throw new Error("bad");
+      }
+      history = pretty(expr) + " =";
+      lastAnswer = String(result);
+      expr = String(result);
+      display = formatNum(result);
+      justEvaluated = true;
+      updateExplain(simple, false);
+    } catch (e) {
+      display = "שגיאה";
+      curEl.textContent = display;
+      justEvaluated = true;
+      expr = "";
+      updateExplain(null, true);
+    }
+  }
+
+  // הופך את הביטוי לחישוב אמיתי (כולל מעלות ועצרת)
+  function compute(raw) {
+    let s = raw;
+
+    // עצרת: הופך  N!  ל  fact(N)
+    s = s.replace(/(\d+(?:\.\d+)?|\([^()]*\))!/g, "fact($1)");
+
+    // סוגר סוגריים חסרים בסוף
+    const open = (s.match(/\(/g) || []).length;
+    const close = (s.match(/\)/g) || []).length;
+    s += ")".repeat(Math.max(0, open - close));
+
+    // מעלות: עוטף ארגומנטים של sin/cos/tan בהמרה לרדיאנים,
+    // והופך תוצאה של asin/acos/atan למעלות
+    const D2R = Math.PI / 180;
+    const R2D = 180 / Math.PI;
+
+    const fact = (n) => {
+      if (n < 0 || !Number.isInteger(n)) return NaN;
+      let r = 1;
+      for (let i = 2; i <= n; i++) r *= i;
+      return r;
+    };
+
+    const M = {
+      PI: Math.PI, E: Math.E, sqrt: Math.sqrt, log: Math.log, log10: Math.log10,
+      sin: angleDeg ? (x) => Math.sin(x * D2R) : Math.sin,
+      cos: angleDeg ? (x) => Math.cos(x * D2R) : Math.cos,
+      tan: angleDeg ? (x) => Math.tan(x * D2R) : Math.tan,
+      asin: angleDeg ? (x) => Math.asin(x) * R2D : Math.asin,
+      acos: angleDeg ? (x) => Math.acos(x) * R2D : Math.acos,
+      atan: angleDeg ? (x) => Math.atan(x) * R2D : Math.atan,
+    };
+
+    // eslint-disable-next-line no-new-func
+    const fn = new Function("Math", "fact", "return (" + s + ");");
+    return fn(M, fact);
+  }
+
+  function formatNum(n) {
+    if (Number.isInteger(n)) return String(n);
+    // מקצר עשרוניות ארוכות אבל שומר על דיוק סביר
+    let out = parseFloat(n.toPrecision(12));
+    return String(out);
+  }
+
+  /* ===== מנוע ההסבר "איך פותרים?" ===== */
+  const bodyEl = document.getElementById("explainBody");
+  const explainEl = document.getElementById("explain");
+  const PLACE_NAMES = {
+    1: "יחידות", 10: "עשרות", 100: "מאות", 1000: "אלפים",
+    10000: "עשרות אלפים", 100000: "מאות אלפים", 1000000: "מיליונים"
+  };
+  function placeName(p) { return PLACE_NAMES[p] || ("ערך מקום " + p); }
+
+  // מפרק מספר לחלקים לפי ערך מקום (רק ספרות שאינן 0), מהגבוה לנמוך
+  function placeParts(n) {
+    const s = String(n), L = s.length, out = [];
+    for (let i = 0; i < L; i++) {
+      const d = +s[i];
+      if (d === 0) continue;
+      const place = Math.pow(10, L - 1 - i);
+      out.push({ digit: d, place, value: d * place });
+    }
+    return out;
+  }
+
+  function renderSteps(arr) {
+    return '<div class="steps">' +
+      arr.map((s, i) => `<div class="step"><span class="n">${i + 1}.</span><span>${s}</span></div>`).join("") +
+      "</div>";
+  }
+  function answerLine(expr, res) {
+    return `<div class="answer">${expr} = <span>${res}</span></div>`;
+  }
+  function hintHtml() {
+    return '<p class="explain-hint">פִּתְרו תרגיל פשוט של שני מספרים ולחצו <b>=</b>, וכאן יופיע הסבר קל שלב-אחר-שלב 🙂<br>נסו למשל: <b>53 × 9</b> או <b>47 + 58</b>.</p>';
+  }
+  function resetExplain() { if (bodyEl) bodyEl.innerHTML = hintHtml(); }
+
+  // חיבור בעמודות עם נשא
+  function columnAdd(a, b) {
+    const L = Math.max(String(a).length, String(b).length);
+    const pa = String(a).padStart(L, "0"), pb = String(b).padStart(L, "0");
+    let carry = 0; const steps = [];
+    for (let i = L - 1; i >= 0; i--) {
+      const da = +pa[i], db = +pb[i], place = Math.pow(10, L - 1 - i);
+      const sum = da + db + carry, write = sum % 10, newCarry = Math.floor(sum / 10);
+      let txt = `${placeName(place)}: ${da} + ${db}${carry ? " + " + carry + " (נשא)" : ""} = ${sum}`;
+      txt += newCarry ? ` → כותבים ${write}, נושאים ${newCarry}` : ` → כותבים ${write}`;
+      steps.push(txt); carry = newCarry;
+    }
+    if (carry) steps.push(`נשאר נשא ${carry} — כותבים אותו בהתחלה`);
+    return steps;
+  }
+
+  // חיסור בעמודות עם השאלה (לוֹוים). מניחים a ≥ b
+  function columnSub(a, b) {
+    const L = String(a).length;
+    const pa = String(a).padStart(L, "0").split("").map(Number);
+    const pb = String(b).padStart(L, "0").split("").map(Number);
+    const steps = [];
+    for (let i = L - 1; i >= 0; i--) {
+      let da = pa[i]; const db = pb[i], place = Math.pow(10, L - 1 - i);
+      if (da < db) {
+        const orig = da; da += 10;
+        let j = i - 1; while (j >= 0 && pa[j] === 0) { pa[j] = 9; j--; }
+        if (j >= 0) pa[j] -= 1;
+        steps.push(`${placeName(place)}: ${orig} קטן מ-${db}, לכן לווים 1 מהעמודה השמאלית → ${da} − ${db} = ${da - db}`);
+      } else {
+        steps.push(`${placeName(place)}: ${da} − ${db} = ${da - db}`);
+      }
+    }
+    return steps;
+  }
+
+  // בוחר "טריק מהיר" אחד רלוונטי לכפל (או null)
+  function pickMulTrick(a, b) {
+    const isPow10 = (x) => /^10*$/.test(String(x)) && x >= 10;
+    if (a === 0 || b === 0) return "כל מספר כפול 0 שווה 0.";
+    if (a === 1 || b === 1) return `כפל ב-1 לא משנה כלום — התוצאה היא ${a === 1 ? b : a}.`;
+    if (isPow10(a) || isPow10(b)) {
+      const p = isPow10(a) ? a : b, o = isPow10(a) ? b : a, z = String(p).length - 1;
+      return `כפל ב-${p}: פשוט מוסיפים ${z} ${z === 1 ? "אפס" : "אפסים"} בסוף ${o} → ${o * p}.`;
+    }
+    if (a === 5 || b === 5) { const o = a === 5 ? b : a; return `כפל ב-5 = כפל ב-10 וחלוקה ב-2:  ${o}×10=${o * 10},  ${o * 10}÷2=${o * 5}.`; }
+    if (a === 9 || b === 9) { const o = a === 9 ? b : a; return `כפל ב-9 = כפל ב-10 פחות המספר עצמו:  ${o}×10=${o * 10},  ${o * 10}−${o}=${o * 9}.`; }
+    if (a === 11 || b === 11) { const o = a === 11 ? b : a; return `כפל ב-11 = כפל ב-10 ועוד המספר:  ${o}×10=${o * 10},  ${o * 10}+${o}=${o * 11}.`; }
+    if (a === 25 || b === 25) { const o = a === 25 ? b : a; return `כפל ב-25 = כפל ב-100 וחלוקה ב-4:  ${o}×100=${o * 100},  ${o * 100}÷4=${o * 25}.`; }
+    if (a === 2 || b === 2) { const o = a === 2 ? b : a; return `כפל ב-2 = מחברים את המספר לעצמו:  ${o}+${o}=${o * 2}.`; }
+    if (a === 4 || b === 4) { const o = a === 4 ? b : a; return `כפל ב-4 = מכפילים פעמיים ב-2:  ${o}×2=${o * 2},  ${o * 2}×2=${o * 4}.`; }
+    return null;
+  }
+
+  function explainAdd(a, b) {
+    let h = "<p>מחברים ספרה-ספרה מימין לשמאל (מהיחידות), עם נשא כשהסכום עובר 9:</p>";
+    h += renderSteps(columnAdd(a, b));
+    return h + answerLine(`${a} + ${b}`, a + b);
+  }
+  function explainSub(a, b) {
+    if (b > a) {
+      let h = `<p>כאן ${a} קטן מ-${b}, אז התוצאה שלילית. מחשבים ${b} − ${a} ומוסיפים מינוס:</p>`;
+      h += renderSteps(columnSub(b, a));
+      return h + answerLine(`${a} − ${b}`, a - b);
+    }
+    let h = "<p>מחסרים ספרה-ספרה מימין לשמאל. אם ספרה קטנה מדי — לווים 1 מהעמודה השמאלית:</p>";
+    h += renderSteps(columnSub(a, b));
+    return h + answerLine(`${a} − ${b}`, a - b);
+  }
+  function explainMul(a, b) {
+    const res = a * b;
+    let h = "";
+    const trick = pickMulTrick(a, b);
+    if (trick) h += `<div class="trick">💡 <b>טריק מהיר:</b> ${trick}</div>`;
+    if (a < 10 && b < 10) {
+      h += `<p>זה תרגיל מלוח הכפל: ${a} × ${b} = ${res}.</p>`;
+    } else {
+      let M = a, S = b;
+      if (String(b).length > String(a).length) { M = b; S = a; }
+      const parts = placeParts(M).slice().reverse(); // מהנמוך לגבוה
+      h += `<p>מפרקים את ${M} לפי ערך המקום, כופלים כל חלק ב-${S}, ומחברים (שיטת הכפל האנכי):</p>`;
+      const terms = [], lines = [];
+      for (const p of parts) { const pv = p.value * S; terms.push(pv); lines.push(`${p.value} × ${S} = ${pv}`); }
+      h += renderSteps([`מפרקים: ${M} = ${parts.map(p => p.value).join(" + ")}`, ...lines, `מחברים: ${terms.join(" + ")} = ${res}`]);
+    }
+    return h + answerLine(`${a} × ${b}`, res);
+  }
+  function explainDiv(a, b) {
+    if (b === 0) return '<div class="trick">🚫 אי אפשר לחלק באפס.</div>';
+    const q = Math.floor(a / b), r = a % b;
+    if (r === 0) {
+      let h = `<p>השאלה: כמה פעמים ${b} נכנס בתוך ${a}?</p>`;
+      h += renderSteps([`מחפשים מספר שכפול ${b} נותן ${a}.`, `${b} × ${q} = ${a} ✓`]);
+      return h + answerLine(`${a} ÷ ${b}`, q);
+    }
+    let h = `<p>כמה פעמים ${b} נכנס בתוך ${a}, וכמה נשאר?</p>`;
+    h += renderSteps([
+      `${b} × ${q} = ${b * q}  (הכי קרוב ל-${a} בלי לעבור אותו)`,
+      `${a} − ${b * q} = ${r}  → זו השארית`
+    ]);
+    h += answerLine(`${a} ÷ ${b}`, `${q} ושארית ${r}`);
+    return h + `<p class="explain-hint">כמספר עשרוני: ${a} ÷ ${b} = ${formatNum(a / b)}</p>`;
+  }
+  function explainPow(a, b) {
+    const res = Math.pow(a, b);
+    if (Number.isInteger(b) && b >= 0 && b <= 10) {
+      if (b === 0) return "<p>כל מספר (חוץ מ-0) בחזקת 0 שווה 1.</p>" + answerLine(`${a}^0`, 1);
+      let h = `<p>חזקה זה כפל חוזר — כופלים את ${a} בעצמו ${b} פעמים:</p>`;
+      h += renderSteps([`${a}^${b} = ${Array(b).fill(a).join(" × ")} = ${res}`]);
+      return h + answerLine(`${a}^${b}`, res);
+    }
+    return `<p>${a} בחזקת ${b} שווה ${res}.</p>` + answerLine(`${a}^${b}`, res);
+  }
+
+  function buildExplanation(a, op, b) {
+    if (op === "+") return explainAdd(a, b);
+    if (op === "-") return explainSub(a, b);
+    if (op === "*") return explainMul(a, b);
+    if (op === "/") return explainDiv(a, b);
+    if (op === "**") return explainPow(a, b);
+    return null;
+  }
+
+  // מעדכן את פאנל ההסבר לפי הביטוי שנפתר
+  function updateExplain(simple, isError) {
+    if (!bodyEl) return;
+    if (isError) { bodyEl.innerHTML = '<p class="explain-hint">לא הצלחתי לפתור את זה 🤔 נסו תרגיל אחר.</p>'; return; }
+    if (!simple) {
+      bodyEl.innerHTML = '<p class="explain-hint">ההסבר שלב-אחר-שלב זמין לתרגיל פשוט של <b>שני מספרים שלמים</b> (למשל 53 × 9).<br>נסו כך ותראו את השלבים כאן 🙂</p>';
+      return;
+    }
+    const html = buildExplanation(+simple[1], simple[2], +simple[3]);
+    bodyEl.innerHTML = html || hintHtml();
+  }
+
+  // תמיכה במקלדת
+  document.addEventListener("keydown", (e) => {
+    const k = e.key;
+    if (k >= "0" && k <= "9") return handle("num:" + k);
+    if (k === ".") return handle("dot");
+    if (k === "+") return handle("op:+");
+    if (k === "-") return handle("op:-");
+    if (k === "*") return handle("op:*");
+    if (k === "/") { e.preventDefault(); return handle("op:/"); }
+    if (k === "%") return handle("pct");
+    if (k === "^") return handle("op:**");
+    if (k === "(") return handle("str:(");
+    if (k === ")") return handle("str:)");
+    if (k === "Enter" || k === "=") { e.preventDefault(); return handle("eq"); }
+    if (k === "Backspace") return handle("back");
+    if (k === "Escape") return handle("clear");
+  });
+
+  // אתחול
+  renderKeys();
+  refresh();
+  resetExplain();
+
+  return { setMode, handle, toggleExplain };
+})();
+</script>
+</body>
+</html>
