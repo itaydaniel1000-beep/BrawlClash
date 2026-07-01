@@ -1,5 +1,5 @@
 /* Service Worker לפורטל — מאפשר התקנה כאפליקציה ועבודה ללא אינטרנט (shell). */
-const CACHE = "portal-v9";
+const CACHE = "portal-v10";
 const ASSETS = [
   "index.html", "games.html", "videos.html", "sites.html", "notes.html", "calculator.html",
   "category.css", "access.js", "cookies.js",
@@ -28,10 +28,25 @@ self.addEventListener("fetch", (e) => {
   // אל תיגע בסרטונים הכבדים — תמיד מהרשת (streaming)
   if (req.url.includes("/videos/")) return;
 
-  // shell: cache-first עם התעלמות מ-?v= ; אחרת רשת עם נפילה למטמון
+  // דפי HTML: network-first — תמיד הגרסה העדכנית כשיש רשת, נפילה למטמון כשאין.
+  // כך עדכונים מופיעים מיד בלי מטמון תקוע.
+  const isHTML = req.mode === "navigate" ||
+    (req.headers.get("accept") || "").includes("text/html");
+  if (isHTML) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+          return res;
+        })
+        .catch(() => caches.match(req, { ignoreSearch: true }))
+    );
+    return;
+  }
+
+  // שאר הנכסים (css/js/אייקונים): cache-first עם התעלמות מ-?v=
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then((cached) => {
-      return cached || fetch(req).catch(() => cached);
-    })
+    caches.match(req, { ignoreSearch: true }).then((cached) => cached || fetch(req))
   );
 });
