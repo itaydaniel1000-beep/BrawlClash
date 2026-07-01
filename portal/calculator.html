@@ -230,6 +230,84 @@
   }
   .answer span { color: var(--accent); }
 
+  /* שיטות שנוספו בתוך ההסבר */
+  .custom-methods { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #2c3556; }
+  .custom-methods .cm-title { color: #a9ffcf; font-weight: 800; margin-bottom: 6px; font-size: .95rem; }
+  .cm-item { color: var(--muted); font-size: .95rem; margin-bottom: 3px; }
+  .cm-item b { color: var(--text); }
+  .cm-item code { direction: ltr; unicode-bidi: isolate; color: #d7c6ff; }
+
+  /* כרטיס "כתוב שיטה משלך" */
+  .methods {
+    width: 100%;
+    max-width: 460px;
+    margin-top: 18px;
+    background: var(--card);
+    border: 1px solid #262e4d;
+    border-radius: 22px;
+    padding: 18px 20px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.4);
+  }
+  .methods-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 1.15rem; font-weight: 800; cursor: pointer;
+  }
+  .methods-head .chev { margin-inline-start: auto; color: var(--muted); transition: transform .2s; }
+  .methods.collapsed .chev { transform: rotate(-90deg); }
+  .methods.collapsed .methods-body { display: none; }
+  .methods-body { margin-top: 14px; }
+  .methods-body label { display: block; color: var(--muted); font-weight: 700; font-size: .9rem; margin: 10px 0 5px; }
+  .methods-body input[type="text"] {
+    width: 100%; background: #11162a; border: 1px solid #2c3556; color: var(--text);
+    border-radius: 12px; padding: 11px 13px; font-size: 1rem; outline: none;
+  }
+  .methods-body input[type="text"]:focus { border-color: var(--accent); }
+  #methodFormula { direction: ltr; text-align: left; font-size: 1.15rem; letter-spacing: .03em; }
+  .fkeys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; direction: ltr; }
+  .fkeys button {
+    background: var(--key); color: var(--text); border: 1px solid #2c3556;
+    border-radius: 10px; padding: 8px 12px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    min-width: 40px; transition: background .15s;
+  }
+  .fkeys button:hover { background: var(--key-hover); }
+  .fkeys button.ab { background: var(--key-fn); color: #d7c6ff; }
+  .fkeys button.clr { background: #3a2340; color: #ffb3c7; }
+  .method-hint { color: var(--muted); font-size: .85rem; line-height: 1.6; margin-top: 8px; }
+  .method-hint code { direction: ltr; unicode-bidi: isolate; color: #d7c6ff; }
+  .btn-primary {
+    margin-top: 14px; width: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff;
+    border: none; border-radius: 14px; padding: 13px; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+    transition: filter .15s, transform .12s;
+  }
+  .btn-primary:hover { filter: brightness(1.1); }
+  .btn-primary:active { transform: scale(.98); }
+  #methodMsg { margin-top: 12px; font-size: .95rem; line-height: 1.6; }
+  #methodMsg.ok { color: #a9ffcf; }
+  #methodMsg.err { color: #ffb3c7; }
+  .saved-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .saved-empty { color: var(--muted); font-size: .9rem; text-align: center; }
+  .saved {
+    background: #11162a; border: 1px solid #2c3556; border-radius: 14px; padding: 12px 14px;
+  }
+  .saved .s-top { display: flex; align-items: center; gap: 8px; }
+  .saved .s-name { font-weight: 800; }
+  .saved .s-del { margin-inline-start: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; }
+  .saved .s-del:hover { color: #ffb3c7; }
+  .saved .s-formula { direction: ltr; text-align: left; color: #d7c6ff; margin-top: 4px; font-size: 1.05rem; }
+  .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .badge {
+    background: rgba(108,140,255,.16); border: 1px solid #34406e; color: #cdd6ff;
+    border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 700;
+  }
+  .badge.all { background: rgba(88,220,140,.16); border-color: #2f6b47; color: #a9ffcf; }
+  .methods-share { display: flex; gap: 8px; margin-top: 14px; }
+  .methods-share button {
+    flex: 1; background: rgba(255,255,255,.06); border: 1px solid #2c3556; color: var(--text);
+    border-radius: 12px; padding: 10px; font-size: .9rem; font-weight: 700; cursor: pointer;
+  }
+  .methods-share button:hover { border-color: var(--accent); }
+
   @media (max-width: 420px) {
     .keys.sci .key { font-size: .95rem; padding: 13px 0; border-radius: 13px; }
     .keys.sci { gap: 7px; }
@@ -265,6 +343,48 @@
       <button class="toggle" id="explainToggle" onclick="Calc.toggleExplain()">הסתר</button>
     </div>
     <div class="explain-body" id="explainBody"></div>
+  </div>
+
+  <div class="methods collapsed" id="methods">
+    <div class="methods-head" onclick="Calc.toggleMethods()">
+      <span>🧪</span><span>כתוב שיטה משלך</span>
+      <span class="chev">▾</span>
+    </div>
+    <div class="methods-body">
+      <p class="method-hint">
+        כתוב נוסחה לכפל בעזרת <b>a</b> ו-<b>b</b> (שני המספרים), והמחשבון יבדוק אם היא נכונה.
+        אם היא שווה ל-<code>a × b</code> — היא נכנסת לשיטות! 🎉<br>
+        דוגמה שעובדת עם כל המספרים: <code>a × (b − 1) + a</code>
+      </p>
+
+      <label for="methodName">שם השיטה</label>
+      <input type="text" id="methodName" maxlength="40" placeholder="למשל: השיטה של דני" />
+
+      <label for="methodFormula">הנוסחה</label>
+      <input type="text" id="methodFormula" maxlength="120" placeholder="a × (b − 1) + a" />
+      <div class="fkeys">
+        <button class="ab" onclick="Calc.fKey('a')">a</button>
+        <button class="ab" onclick="Calc.fKey('b')">b</button>
+        <button onclick="Calc.fKey('+')">+</button>
+        <button onclick="Calc.fKey('−')">−</button>
+        <button onclick="Calc.fKey('×')">×</button>
+        <button onclick="Calc.fKey('÷')">÷</button>
+        <button onclick="Calc.fKey('(')">(</button>
+        <button onclick="Calc.fKey(')')">)</button>
+        <button onclick="Calc.fKey('^')">^</button>
+        <button class="clr" onclick="Calc.fClear()">⌫ נקה</button>
+      </div>
+
+      <button class="btn-primary" onclick="Calc.saveMethod()">בדוק ושמור ✓</button>
+      <div id="methodMsg"></div>
+
+      <div class="saved-list" id="savedList"></div>
+
+      <div class="methods-share">
+        <button onclick="Calc.exportMethods()">📤 ייצוא</button>
+        <button onclick="Calc.importMethods()">📥 ייבוא</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -738,7 +858,7 @@ const Calc = (function () {
       h += `<p>ככה פותרים בראש, בלי לפרק לפי ספרות:</p>`;
     }
     h += renderSteps(m.steps);
-    return h + answerLine(`${a} × ${b}`, res);
+    return h + answerLine(`${a} × ${b}`, res) + applicableCustom(a, b);
   }
   function explainDiv(a, b) {
     if (b === 0) return '<div class="trick">🚫 אי אפשר לחלק באפס.</div>';
@@ -788,8 +908,194 @@ const Calc = (function () {
     bodyEl.innerHTML = html || hintHtml();
   }
 
+  /* ===== שיטות משלך — כתיבה, בדיקה ושמירה ===== */
+  const MKEY = "portal_calc_methods_v1";
+  const nameEl = document.getElementById("methodName");
+  const formulaEl = document.getElementById("methodFormula");
+  const msgEl = document.getElementById("methodMsg");
+  const savedListEl = document.getElementById("savedList");
+  const methodsEl = document.getElementById("methods");
+
+  // קטגוריות בדיקה — זוגות מספרים מייצגים לכל טווח
+  const CATS = [
+    { key: "units", label: "יחידות", nums: [1, 2, 3, 6, 7, 9] },
+    { key: "two", label: "דו-ספרתי", nums: [10, 13, 27, 48, 66, 89, 99] },
+    { key: "three", label: "תלת-ספרתי", nums: [100, 123, 250, 404, 678, 999] },
+    { key: "thousands", label: "אלפים", nums: [1000, 1234, 2500, 5678, 9999] },
+    { key: "decimals", label: "עשרוני", nums: [0.5, 1.5, 2.25, 3.75, 12.5] },
+  ];
+
+  function loadMethods() {
+    try { return JSON.parse(localStorage.getItem(MKEY)) || []; } catch (e) { return []; }
+  }
+  function storeMethods(arr) {
+    try { localStorage.setItem(MKEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  // ממיר נוסחה ידידותית (× ÷ − ^) לפונקציה. זורק שגיאה אם יש תווים אסורים.
+  function compileFormula(src) {
+    let s = String(src)
+      .replace(/×/g, "*").replace(/÷/g, "/").replace(/[−–—]/g, "-")
+      .replace(/\^/g, "**").replace(/\s+/g, "");
+    if (!s) throw new Error("ריק");
+    if (!/[ab]/.test(s)) throw new Error("הנוסחה חייבת להשתמש ב-a או b");
+    if (!/^[0-9ab+\-*/().%]+$/.test(s)) throw new Error("יש תווים לא חוקיים — מותר רק a b + − × ÷ ( ) . מספרים");
+    // eslint-disable-next-line no-new-func
+    const fn = new Function("a", "b", "return (" + s + ");");
+    // בדיקת ריצה בסיסית
+    const t = fn(2, 3);
+    if (typeof t !== "number") throw new Error("הנוסחה לא מחזירה מספר");
+    return fn;
+  }
+
+  // בודק לאילו קטגוריות הנוסחה נכונה. מחזיר {cats:{key:bool}, counter}
+  function validateFormula(fn) {
+    const cats = {}; let counter = null;
+    for (const c of CATS) {
+      let ok = true;
+      for (const a of c.nums) {
+        for (const b of c.nums) {
+          let v;
+          try { v = fn(a, b); } catch (e) { v = NaN; }
+          const exp = a * b;
+          const tol = 1e-9 * Math.max(1, Math.abs(exp));
+          if (typeof v !== "number" || !isFinite(v) || Math.abs(v - exp) > tol) {
+            ok = false;
+            if (!counter) counter = { a, b, got: (typeof v === "number" && isFinite(v)) ? formatNum(v) : "לא מספר", exp };
+            break;
+          }
+        }
+        if (!ok) break;
+      }
+      cats[c.key] = ok;
+    }
+    return { cats, counter };
+  }
+
+  function saveMethod() {
+    const name = (nameEl.value || "").trim();
+    const formula = (formulaEl.value || "").trim();
+    msgEl.className = "";
+    if (!name) { msgEl.className = "err"; msgEl.textContent = "צריך לתת שם לשיטה 🙂"; return; }
+    let fn;
+    try { fn = compileFormula(formula); }
+    catch (e) { msgEl.className = "err"; msgEl.textContent = "❌ " + e.message; return; }
+
+    const { cats, counter } = validateFormula(fn);
+    const passed = CATS.filter((c) => cats[c.key]);
+    if (passed.length === 0) {
+      msgEl.className = "err";
+      msgEl.innerHTML = `❌ השיטה לא נכונה. למשל ב-<b>${counter.a} × ${counter.b}</b> יצא <b>${counter.got}</b> במקום <b>${counter.exp}</b>.`;
+      return;
+    }
+    const all = passed.length === CATS.length;
+    const methods = loadMethods();
+    methods.unshift({
+      id: "m" + Date.now(),
+      name, formula,
+      cats: passed.map((c) => c.key),
+      all,
+    });
+    storeMethods(methods);
+    renderSaved();
+    nameEl.value = ""; formulaEl.value = "";
+    msgEl.className = "ok";
+    msgEl.innerHTML = all
+      ? "✅ מעולה! השיטה נכונה ונכנסה — היא עובדת עם <b>כל המספרים</b>! 🎉"
+      : `✅ השיטה נכנסה! היא עובדת עם: <b>${passed.map((c) => c.label).join(", ")}</b>.`;
+  }
+
+  function deleteMethod(id) {
+    storeMethods(loadMethods().filter((m) => m.id !== id));
+    renderSaved();
+  }
+
+  function renderSaved() {
+    const methods = loadMethods();
+    if (!methods.length) {
+      savedListEl.innerHTML = '<p class="saved-empty">עוד לא נשמרו שיטות. כתוב אחת למעלה! ⬆️</p>';
+      return;
+    }
+    const labelOf = (k) => (CATS.find((c) => c.key === k) || {}).label || k;
+    savedListEl.innerHTML = methods.map((m) => {
+      const badges = m.all
+        ? '<span class="badge all">כל המספרים</span>'
+        : m.cats.map((k) => `<span class="badge">${labelOf(k)}</span>`).join("");
+      const pretty = m.formula.replace(/\*/g, "×").replace(/\//g, "÷");
+      return `<div class="saved">
+        <div class="s-top"><span class="s-name">${escapeHtml(m.name)}</span>
+          <button class="s-del" title="מחק" onclick="Calc.deleteMethod('${m.id}')">🗑️</button></div>
+        <div class="s-formula">${escapeHtml(pretty)} = a × b</div>
+        <div class="badges">${badges}</div>
+      </div>`;
+    }).join("");
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  }
+
+  // מחזיר HTML של שיטות שמורות שמתאימות בדיוק לתרגיל הנוכחי (a×b)
+  function applicableCustom(a, b) {
+    const methods = loadMethods();
+    if (!methods.length) return "";
+    const hits = [];
+    for (const m of methods) {
+      let fn;
+      try { fn = compileFormula(m.formula); } catch (e) { continue; }
+      let v; try { v = fn(a, b); } catch (e) { continue; }
+      const exp = a * b, tol = 1e-9 * Math.max(1, Math.abs(exp));
+      if (typeof v === "number" && isFinite(v) && Math.abs(v - exp) <= tol) {
+        const pretty = m.formula.replace(/\*/g, "×").replace(/\//g, "÷");
+        hits.push(`<div class="cm-item"><b>${escapeHtml(m.name)}:</b> <code>${escapeHtml(pretty)}</code> = ${exp} ✓</div>`);
+      }
+      if (hits.length >= 4) break;
+    }
+    if (!hits.length) return "";
+    return `<div class="custom-methods"><div class="cm-title">🧪 שיטות שנוספו שמתאימות כאן:</div>${hits.join("")}</div>`;
+  }
+
+  function toggleMethods() { methodsEl.classList.toggle("collapsed"); }
+  function fKey(ch) { formulaEl.value += ch; formulaEl.focus(); }
+  function fClear() { formulaEl.value = ""; formulaEl.focus(); }
+
+  function exportMethods() {
+    const data = JSON.stringify(loadMethods(), null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "my-calc-methods.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function importMethods() {
+    const inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "application/json,.json";
+    inp.onchange = () => {
+      const file = inp.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const incoming = JSON.parse(reader.result);
+          if (!Array.isArray(incoming)) throw new Error();
+          const existing = loadMethods();
+          const ids = new Set(existing.map((m) => m.id));
+          const merged = existing.concat(incoming.filter((m) => m && m.formula && !ids.has(m.id)));
+          storeMethods(merged);
+          renderSaved();
+          msgEl.className = "ok"; msgEl.textContent = "✅ יובאו שיטות מהקובץ.";
+        } catch (e) {
+          msgEl.className = "err"; msgEl.textContent = "❌ הקובץ לא תקין.";
+        }
+      };
+      reader.readAsText(file);
+    };
+    inp.click();
+  }
+
   // תמיכה במקלדת
   document.addEventListener("keydown", (e) => {
+    // לא חוטפים הקלדה בשדות הטופס של "שיטה משלך"
+    if (e.target && (e.target.tagName === "INPUT" || e.target.isContentEditable)) return;
     const k = e.key;
     if (k >= "0" && k <= "9") return handle("num:" + k);
     if (k === ".") return handle("dot");
@@ -810,8 +1116,12 @@ const Calc = (function () {
   renderKeys();
   refresh();
   resetExplain();
+  renderSaved();
 
-  return { setMode, handle, toggleExplain };
+  return {
+    setMode, handle, toggleExplain,
+    toggleMethods, saveMethod, deleteMethod, fKey, fClear, exportMethods, importMethods,
+  };
 })();
 </script>
 </body>
