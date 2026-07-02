@@ -570,6 +570,24 @@
                 <label for="grant-admin-exclude" style="color: #e17055; font-weight: 800; display: block; margin-bottom: 4px;">🚫 לא לכלול בהענקה (אופציונלי):</label>
                 <input type="text" id="grant-admin-exclude" placeholder="לדוגמה: גוד מוד, הענקת אדמין" maxlength="200" style="width: 100%; padding: 10px; border-radius: 10px; border: 2px solid #e17055; font-family: 'Assistant', sans-serif; font-size: 1rem; text-align: right; margin-bottom: 12px; color: #000;">
 
+                <!-- Manual checklist — every admin-panel capability rendered as a
+                     checkbox / numeric input. When ANY of these is populated the
+                     submit path uses them directly and bypasses the AI parser
+                     (so what you tick is exactly what gets granted). Collapsed
+                     inside a <details> so the modal doesn't feel overwhelming. -->
+                <details id="grant-checklist-wrap" open style="border: 2px solid #34495e; border-radius: 10px; padding: 8px 10px; margin-bottom: 12px; background: rgba(0,0,0,0.25);">
+                    <summary style="color: #f1c40f; font-weight: 800; cursor: pointer; user-select: none; padding: 4px 0;">
+                        ☑️ בחירה ידנית של יכולות (אופציונלי — מדלג על ה-AI)
+                    </summary>
+                    <div style="display: flex; gap: 6px; margin: 8px 0 10px;">
+                        <button type="button" onclick="_grantChecklistSelectAll()" class="bs-btn" style="flex: 1; padding: 6px 10px; font-size: 0.82rem; background: #16a085; color: #fff;">✅ סמן הכל</button>
+                        <button type="button" onclick="_grantChecklistClear()"     class="bs-btn" style="flex: 1; padding: 6px 10px; font-size: 0.82rem; background: #7f8c8d; color: #fff;">🧹 נקה הכל</button>
+                    </div>
+                    <div id="grant-checklist-body" style="display: flex; flex-direction: column; gap: 12px; color: #ecf0f1;">
+                        <!-- rendered by _renderGrantChecklist() every openGrantAdminModal() -->
+                    </div>
+                </details>
+
                 <!-- AI chat log. User messages + AI replies stack here. -->
                 <label style="color: #ecf0f1; font-weight: 800; display: block; margin-bottom: 4px;">שיחה עם ה-AI:</label>
                 <div id="grant-admin-chat" style="max-height: 240px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 2px solid #34495e; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; font-size: 0.92rem; display: flex; flex-direction: column; gap: 8px;">
@@ -1053,7 +1071,7 @@
     <script src="scripts/ui/ui-brawlers.js?v=15.8"></script>
     <script src="scripts/ui/ui-star-powers.js?v=10.1"></script>
     <script src="scripts/ui/ui-progression.js?v=16.4"></script>
-    <script src="scripts/ui/ui-admin.js?v=9.93"></script>
+    <script src="scripts/ui/ui-admin.js?v=9.94"></script>
     <script src="scripts/ui/ui-social.js?v=4.0"></script>
     <script src="scripts/ui/ui-quests.js?v=1.3"></script>
     <script src="scripts/ui/ui-event.js?v=1.3"></script>

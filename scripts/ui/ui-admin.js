@@ -653,9 +653,220 @@ function openGrantAdminModal() {
     document.getElementById('grant-admin-result').innerText = '';
     document.getElementById('grant-admin-target').value = '';
     document.getElementById('grant-admin-desc').value = '';
+    _renderGrantChecklist();
     _refreshAdminOpenClass();
 }
 window.openGrantAdminModal = openGrantAdminModal;
+
+// === Manual grant checklist ================================================
+// Renders every capability the AI parser knows about as a real checkbox or
+// numeric input inside #grant-checklist-body. The super-admin can tick the
+// exact set of powers they want to hand out and skip the free-text / AI
+// parsing entirely. submitGrantAdmin() reads _collectGrantChecklist() first
+// and, if the return value has ANY populated field, uses it as the grant
+// payload directly.
+//
+// The catalogue below mirrors the admin panel's own boolean toggles, the
+// numeric multipliers, the elixir overrides, the one-shot rewards and the
+// currency-editor permissions. Keep it in sync with parseAdminRequest /
+// _describeFlags / the callGeminiGrantAI system prompt when new keys land.
+const _GRANT_CHECKLIST_GROUPS = [
+    {
+        title: '⚔️ כוחות בקרב',
+        color: '#e74c3c',
+        booleans: [
+            { key: 'godMode',            label: 'גוד-מוד (חסינות)' },
+            { key: 'doubleDamage',       label: 'נזק כפול' },
+            { key: 'superSpeed',         label: 'מהירות-על' },
+            { key: 'infiniteElixir',     label: 'אליקסיר אינסופי' },
+            { key: 'infiniteRange',      label: 'טווח אינסופי' },
+            { key: 'permanentInvisible', label: 'ראצח קבוע' },
+            { key: 'freeCards',          label: 'כרטיסים בחינם (0 אליקסיר)' },
+            { key: 'fullRefund',         label: 'החזר אליקסיר מלא' }
+        ]
+    },
+    {
+        title: '🏰 הכספת',
+        color: '#3498db',
+        booleans: [
+            { key: 'safeShoots', label: 'הכספת יורה' },
+            { key: 'safeHeals',  label: 'הכספת מרפאת' },
+            { key: 'doubleSafe', label: 'כספת כפולה' }
+        ],
+        numbers: [
+            { key: 'safeRegen',        label: 'התחדשות כספת (HP/שנייה)', placeholder: '0' },
+            { key: 'safeHpMultiplier', label: 'מכפיל חיים כספת (×)',     placeholder: '1' }
+        ]
+    },
+    {
+        title: '🤖 בוט ומשחק',
+        color: '#9b59b6',
+        booleans: [
+            { key: 'disableBot',    label: 'ביטול הבוט' },
+            { key: 'autoIncome',    label: 'הכנסה אוטומטית (+100🪙 +5💎 כל 10ש)' },
+            { key: 'allStarPowers', label: 'כל הסטאר-פאוורים פעילים' },
+            { key: 'deleteUnit',    label: 'כפתור מחיקת יחידה 🗑️' }
+        ],
+        numbers: [
+            { key: 'timeScale',         label: 'קצב זמן (0.5 איטי, 3 מהיר)', placeholder: '1' },
+            { key: 'botSlowdownFactor', label: 'האטת בוט (×)',              placeholder: '1' },
+            { key: 'enemyNerfFactor',   label: 'החלשת אויב (×)',            placeholder: '1' }
+        ]
+    },
+    {
+        title: '📈 מכפילי יחידות',
+        color: '#f39c12',
+        numbers: [
+            { key: 'speedMultiplier',       label: 'מהירות (×)',         placeholder: '1' },
+            { key: 'dmgMultiplier',         label: 'נזק (×)',            placeholder: '1' },
+            { key: 'hpMultiplier',          label: 'חיים (×)',           placeholder: '1' },
+            { key: 'attackSpeedMultiplier', label: 'מהירות התקפה (×)',   placeholder: '1' },
+            { key: 'radiusMultiplier',      label: 'טווח (×)',           placeholder: '1' },
+            { key: 'elixirRateMultiplier',  label: 'קצב מילוי אליקסיר (×)', placeholder: '1' }
+        ]
+    },
+    {
+        title: '🧪 אליקסיר',
+        color: '#8e44ad',
+        numbers: [
+            { key: 'startingElixir', label: 'אליקסיר התחלה', placeholder: '5'  },
+            { key: 'maxElixir',      label: 'תקרת אליקסיר',   placeholder: '10' }
+        ]
+    },
+    {
+        title: '🎁 כרטיסים סודיים',
+        color: '#e91e63',
+        booleans: [
+            { key: 'libiCard',  label: '💖 כרטיס Libi (לאלי)' },
+            { key: 'barryCard', label: '🍦 כרטיס Barry (פרוסטי)' },
+            { key: 'lumiCard',  label: '🌟 כרטיס Lumi' }
+        ]
+    },
+    {
+        title: '👑 הרשאות אדמין',
+        color: '#f1c40f',
+        booleans: [
+            { key: 'canGrantAdmin',  label: '✨ יכול להעניק אדמין' },
+            { key: 'canRevokeAdmin', label: '🚫 יכול למחוק אדמין' }
+        ]
+    },
+    {
+        title: '💰 עריכת מטבעות',
+        color: '#27ae60',
+        booleans: [
+            { key: 'editCoins',    label: '🪙 עריכת מטבעות' },
+            { key: 'editGems',     label: '💎 עריכת יהלומים' },
+            { key: 'editCredits',  label: '🎟️ עריכת קרדיטים' },
+            { key: 'editPp',       label: '💪 עריכת PP' },
+            { key: 'editTrophies', label: '🏆 עריכת גביעים' }
+        ]
+    },
+    {
+        title: '🎁 פרסים חד-פעמיים (נוספים למאזן פעם אחת)',
+        color: '#16a085',
+        booleans: [
+            { key: 'maxLevels', label: 'רמות טורבו לכל הכרטיסים' }
+        ],
+        numbers: [
+            { key: 'coins',    label: '🪙 מטבעות',   placeholder: '0' },
+            { key: 'gems',     label: '💎 יהלומים',  placeholder: '0' },
+            { key: 'trophies', label: '🏆 גביעים',   placeholder: '0' },
+            { key: 'credits',  label: '🎟️ קרדיטים', placeholder: '0' },
+            { key: 'pp',       label: '💪 PP',       placeholder: '0' }
+        ]
+    }
+];
+
+function _renderGrantChecklist() {
+    const body = document.getElementById('grant-checklist-body');
+    if (!body) return;
+    body.innerHTML = '';
+    _GRANT_CHECKLIST_GROUPS.forEach(group => {
+        const groupEl = document.createElement('div');
+        groupEl.style.cssText = 'border-right: 3px solid ' + group.color + '; padding: 4px 10px 6px 4px;';
+
+        const title = document.createElement('div');
+        title.textContent = group.title;
+        title.style.cssText = 'font-weight: 800; color: ' + group.color + '; margin-bottom: 6px; font-size: 0.95rem;';
+        groupEl.appendChild(title);
+
+        // Boolean grid — 2 columns on wider screens, 1 column stays fine on mobile.
+        if (group.booleans && group.booleans.length) {
+            const boolsWrap = document.createElement('div');
+            boolsWrap.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 4px 12px; margin-bottom: 6px;';
+            group.booleans.forEach(item => {
+                const lbl = document.createElement('label');
+                lbl.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.88rem;';
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.dataset.grantKey = item.key;
+                cb.dataset.grantType = 'bool';
+                cb.style.cssText = 'transform: scale(1.15); accent-color: ' + group.color + ';';
+                lbl.appendChild(cb);
+                const span = document.createElement('span');
+                span.textContent = item.label;
+                lbl.appendChild(span);
+                boolsWrap.appendChild(lbl);
+            });
+            groupEl.appendChild(boolsWrap);
+        }
+
+        // Numeric row — a compact table so labels and inputs line up.
+        if (group.numbers && group.numbers.length) {
+            const numsWrap = document.createElement('div');
+            numsWrap.style.cssText = 'display: grid; grid-template-columns: 1fr 90px; gap: 4px 8px; align-items: center;';
+            group.numbers.forEach(item => {
+                const lbl = document.createElement('div');
+                lbl.textContent = item.label;
+                lbl.style.cssText = 'font-size: 0.85rem; opacity: 0.9;';
+                const inp = document.createElement('input');
+                inp.type = 'number';
+                inp.step = 'any';
+                inp.min = '0';
+                inp.placeholder = item.placeholder || '';
+                inp.dataset.grantKey = item.key;
+                inp.dataset.grantType = 'num';
+                inp.style.cssText = 'padding: 5px 8px; border-radius: 6px; border: 1px solid #34495e; background: rgba(0,0,0,0.35); color: #ecf0f1; font-size: 0.85rem; text-align: center;';
+                numsWrap.appendChild(lbl);
+                numsWrap.appendChild(inp);
+            });
+            groupEl.appendChild(numsWrap);
+        }
+
+        body.appendChild(groupEl);
+    });
+}
+window._renderGrantChecklist = _renderGrantChecklist;
+
+function _grantChecklistSelectAll() {
+    document.querySelectorAll('#grant-checklist-body input[data-grant-type="bool"]').forEach(cb => { cb.checked = true; });
+}
+function _grantChecklistClear() {
+    document.querySelectorAll('#grant-checklist-body input[data-grant-type="bool"]').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#grant-checklist-body input[data-grant-type="num"]').forEach(inp => { inp.value = ''; });
+}
+window._grantChecklistSelectAll = _grantChecklistSelectAll;
+window._grantChecklistClear     = _grantChecklistClear;
+
+// Returns a flags object built from the currently-ticked checkboxes and
+// populated numeric inputs. If nothing is ticked / typed, returns null so
+// submitGrantAdmin() can fall back to the AI/desc pipeline.
+function _collectGrantChecklist() {
+    const flags = {};
+    let any = false;
+    document.querySelectorAll('#grant-checklist-body input[data-grant-type="bool"]').forEach(cb => {
+        if (cb.checked) { flags[cb.dataset.grantKey] = true; any = true; }
+    });
+    document.querySelectorAll('#grant-checklist-body input[data-grant-type="num"]').forEach(inp => {
+        const raw = (inp.value || '').trim();
+        if (raw === '') return;
+        const n = parseFloat(raw);
+        if (!isFinite(n) || n === 0) return;
+        flags[inp.dataset.grantKey] = n; any = true;
+    });
+    return any ? flags : null;
+}
+window._collectGrantChecklist = _collectGrantChecklist;
 
 function closeGrantAdminModal() {
     const overlay = document.getElementById('grant-admin-overlay');
@@ -1251,8 +1462,18 @@ async function submitGrantAdmin() {
     const result = document.getElementById('grant-admin-result');
     result.innerText = '';
 
+    // Manual checklist takes precedence over free-text/AI when populated —
+    // the tick boxes are unambiguous, so we skip the whole Gemini/parser
+    // pipeline and hand the flags straight to the persistence stage.
+    const checklistFlags = (typeof _collectGrantChecklist === 'function') ? _collectGrantChecklist() : null;
+    const useChecklist   = !!checklistFlags;
+
     if (!target) { result.style.color = '#e74c3c'; result.innerText = 'חסר שם משתמש'; return; }
-    if (!desc)   { result.style.color = '#e74c3c'; result.innerText = 'חסר תיאור של מה לתת לו'; return; }
+    if (!useChecklist && !desc) {
+        result.style.color = '#e74c3c';
+        result.innerText = 'סמן יכולות בצ׳קליסט או כתוב הודעה ל-AI';
+        return;
+    }
 
     // Password confirmation — must match the granter's saved password.
     // Stops the open admin panel from being misused if a stranger picked
@@ -1265,15 +1486,27 @@ async function submitGrantAdmin() {
     // Clear the password field so it doesn't sit around in the DOM.
     if (pwEl) pwEl.value = '';
 
+    // Checklist path — build the same shapes the AI path would produce and
+    // skip the chat/Gemini round-trip entirely. Still emits a chat bubble so
+    // the super-admin has a visible confirmation of what they just handed
+    // out.
+    let reply = '';
+    let parsed = null;
+    let customJS = null;
+    if (useChecklist) {
+        parsed = checklistFlags;
+        const preview = _describeFlags(parsed) || Object.keys(parsed).join(', ');
+        reply = `הענקתי ל-${target}: ${preview}`;
+        _appendChatMsg('user', '[צ׳קליסט] ' + preview);
+        _appendChatMsg('ai', reply);
+    } else {
+
     // Push the user's message into the chat log immediately for responsiveness.
     _appendChatMsg('user', desc);
     descEl.value = '';
 
     // Prefer real Gemini replies if a key is configured; otherwise fall back
     // to the deterministic local pattern-matcher.
-    let reply = '';
-    let parsed = null;
-    let customJS = null;
     const hasKey = !!localStorage.getItem('brawlclash_gemini_key');
     if (hasKey) {
         _appendChatMsg('ai', '⌛ חושב…');
@@ -1299,6 +1532,7 @@ async function submitGrantAdmin() {
         reply = preview ? `בסדר, אני נותן ל-${target}: ${preview}` : 'לא הצלחתי לזהות יכולת מההודעה. להרחבה מלאה (כולל יכולות שאין בפארסר המקומי) לחץ ⚙️ והזן מפתח Gemini.';
         _appendChatMsg('ai', reply + (preview ? '\n(להפעלת AI אמיתי, לחץ ⚙️ והזן מפתח Gemini.)' : ''));
     }
+    }  // end of `else` for the useChecklist branch
 
     if (!parsed) parsed = {};
     const anyHack = parsed.infiniteElixir || parsed.godMode || parsed.doubleDamage || parsed.superSpeed;
