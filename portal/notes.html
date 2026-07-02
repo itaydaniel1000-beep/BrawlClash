@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>הקבוצה שלי</title>
+<title>הצ'אטים שלי</title>
 <meta name="theme-color" content="#0d0f1a" />
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" href="icon-192.png" />
@@ -21,7 +21,6 @@
     --accent2: #b06cff;
     --text: #eef1ff;
     --muted: #9aa3c7;
-    --bubble: #2a3358;
     --bubble-mine: #3a4a8c;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -32,94 +31,103 @@
                 radial-gradient(1000px 700px at 0% 0%, #16314f 0%, transparent 50%),
                 var(--bg);
     color: var(--text);
-    display: flex;
-    flex-direction: column;
-    height: 100dvh;
-    overflow: hidden;
+    display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
   }
 
-  /* כותרת */
+  /* כותרת עליונה */
   .topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display: flex; align-items: center; gap: 12px;
     padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
-    background: rgba(20,26,46,.92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid #2c3556;
-    flex-shrink: 0;
+    background: rgba(20,26,46,.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid #2c3556; flex-shrink: 0;
   }
-  .back {
-    display: inline-flex; align-items: center; gap: 6px;
+  .icon-btn {
     background: var(--card); border: 1px solid #2c3556; color: var(--text);
-    text-decoration: none; padding: 8px 14px; border-radius: 999px;
-    font-size: .9rem; transition: all .15s; white-space: nowrap;
+    min-width: 40px; height: 40px; padding: 0 12px; border-radius: 999px;
+    font-size: .9rem; cursor: pointer; transition: all .15s; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 6px; justify-content: center;
   }
-  .back:hover { border-color: var(--accent); background: var(--card-hover); }
+  .icon-btn.round { width: 40px; padding: 0; font-size: 1.3rem; border-radius: 50%; }
+  .icon-btn:hover { border-color: var(--accent); background: var(--card-hover); }
   .titlewrap { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
   .avatar {
     width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
     display: grid; place-items: center; font-size: 1.4rem;
     background: linear-gradient(135deg, var(--accent), var(--accent2));
   }
-  .titlewrap .name { font-weight: 800; font-size: 1.15rem; line-height: 1.2; }
+  .titlewrap .name { font-weight: 800; font-size: 1.15rem; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .titlewrap .status { color: var(--muted); font-size: .8rem; }
-  .menu-btn {
-    background: var(--card); border: 1px solid #2c3556; color: var(--text);
-    width: 40px; height: 40px; border-radius: 50%; font-size: 1.3rem; cursor: pointer;
-    flex-shrink: 0; transition: all .15s;
-  }
-  .menu-btn:hover { border-color: var(--accent); background: var(--card-hover); }
 
-  /* תפריט */
+  /* תפריט נפתח */
   .menu {
     position: fixed; top: calc(env(safe-area-inset-top) + 60px); inset-inline-start: 12px;
     background: var(--card); border: 1px solid #2c3556; border-radius: 14px;
     padding: 6px; z-index: 60; box-shadow: 0 16px 40px rgba(0,0,0,.5);
-    display: none; min-width: 190px;
+    display: none; min-width: 200px;
   }
   .menu.open { display: block; }
   .menu button {
     display: flex; align-items: center; gap: 10px; width: 100%;
     background: none; border: none; color: var(--text); text-align: start;
-    padding: 11px 14px; border-radius: 9px; font-size: .95rem; cursor: pointer;
-    font-family: inherit;
+    padding: 11px 14px; border-radius: 9px; font-size: .95rem; cursor: pointer; font-family: inherit;
   }
   .menu button:hover { background: var(--card-hover); }
   .menu button.danger { color: #ff8a8a; }
 
-  /* אזור ההודעות */
-  .messages {
-    flex: 1; overflow-y: auto; padding: 18px 14px 8px;
-    display: flex; flex-direction: column; gap: 8px;
+  /* ===== מסך רשימת הצ'אטים ===== */
+  #listView { display: flex; flex-direction: column; height: 100%; }
+  .chat-list { flex: 1; overflow-y: auto; padding: 8px 10px calc(env(safe-area-inset-bottom) + 90px); }
+  .chat-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+    border-radius: 16px; cursor: pointer; transition: background .15s;
   }
+  .chat-row:hover { background: var(--card-hover); }
+  .chat-row .info { flex: 1; min-width: 0; }
+  .chat-row .top { display: flex; align-items: baseline; gap: 8px; }
+  .chat-row .cname { font-weight: 700; font-size: 1.05rem; flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat-row .ctime { color: var(--muted); font-size: .75rem; flex-shrink: 0; }
+  .chat-row .preview { color: var(--muted); font-size: .9rem; margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-empty {
+    margin: auto; text-align: center; color: var(--muted); max-width: 320px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 40px 20px;
+  }
+  .list-empty .big { font-size: 3rem; }
+  .fab {
+    position: fixed; inset-inline-start: 20px; bottom: calc(env(safe-area-inset-bottom) + 20px);
+    width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    font-size: 2rem; box-shadow: 0 12px 30px rgba(0,0,0,.45); z-index: 40;
+    display: grid; place-items: center; transition: transform .12s, filter .12s;
+  }
+  .fab:hover { transform: scale(1.07); filter: brightness(1.1); }
+  .fab:active { transform: scale(.93); }
+
+  /* ===== מסך צ'אט בודד ===== */
+  #chatView { display: none; flex-direction: column; height: 100%; }
+  #chatView.active { display: flex; }
+  #listView.hidden { display: none; }
+
+  .messages { flex: 1; overflow-y: auto; padding: 18px 14px 8px;
+    display: flex; flex-direction: column; gap: 8px; }
   .day-sep {
     align-self: center; background: rgba(20,26,46,.85); color: var(--muted);
-    font-size: .78rem; padding: 4px 12px; border-radius: 999px; margin: 6px 0;
-    border: 1px solid #2c3556;
+    font-size: .78rem; padding: 4px 12px; border-radius: 999px; margin: 6px 0; border: 1px solid #2c3556;
   }
   .bubble {
-    align-self: flex-end; max-width: min(78%, 560px);
-    background: var(--bubble-mine);
-    border-radius: 16px 16px 4px 16px;
-    padding: 9px 13px 6px; position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,.25);
-    animation: pop .18s ease;
+    align-self: flex-end; max-width: min(78%, 560px); background: var(--bubble-mine);
+    border-radius: 16px 16px 4px 16px; padding: 9px 13px 6px; position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25); animation: pop .18s ease;
   }
   @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .bubble .text {
-    white-space: pre-wrap; word-break: break-word; line-height: 1.5; font-size: 1rem;
-  }
+  .bubble .text { white-space: pre-wrap; word-break: break-word; line-height: 1.5; font-size: 1rem; }
   .bubble .text a { color: #bcd0ff; }
-  .bubble .meta {
-    display: flex; align-items: center; gap: 6px; justify-content: flex-start;
-    margin-top: 3px; color: rgba(238,241,255,.6); font-size: .7rem;
-  }
+  .bubble .meta { display: flex; align-items: center; gap: 6px; justify-content: flex-start;
+    margin-top: 3px; color: rgba(238,241,255,.6); font-size: .7rem; }
   .bubble .edited { font-style: italic; }
-  .bubble .acts {
-    position: absolute; top: 4px; inset-inline-start: 4px;
-    display: none; gap: 2px;
-  }
+  .bubble .acts { position: absolute; top: 4px; inset-inline-start: 4px; display: none; gap: 2px; }
   .bubble:hover .acts { display: flex; }
   .bubble .acts button {
     background: rgba(13,15,26,.65); border: none; color: var(--text);
@@ -127,14 +135,10 @@
     display: grid; place-items: center;
   }
   .bubble .acts button:hover { background: rgba(13,15,26,.95); }
-
-  .empty {
-    margin: auto; text-align: center; color: var(--muted); max-width: 320px;
-    display: flex; flex-direction: column; gap: 10px; align-items: center;
-  }
+  .empty { margin: auto; text-align: center; color: var(--muted); max-width: 320px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center; }
   .empty .big { font-size: 3rem; }
 
-  /* תיבת כתיבה */
   .composer {
     display: flex; align-items: flex-end; gap: 10px;
     padding: 10px 14px calc(env(safe-area-inset-bottom) + 10px);
@@ -142,23 +146,19 @@
     border-top: 1px solid #2c3556; flex-shrink: 0;
   }
   .composer textarea {
-    flex: 1; resize: none; max-height: 140px;
-    background: #11162a; color: var(--text);
-    border: 1px solid #2c3556; border-radius: 22px;
-    padding: 12px 16px; font-size: 1rem; font-family: inherit; line-height: 1.4;
-    outline: none;
+    flex: 1; resize: none; max-height: 140px; background: #11162a; color: var(--text);
+    border: 1px solid #2c3556; border-radius: 22px; padding: 12px 16px;
+    font-size: 1rem; font-family: inherit; line-height: 1.4; outline: none;
   }
   .composer textarea:focus { border-color: var(--accent); }
   .send {
     width: 48px; height: 48px; border-radius: 50%; flex-shrink: 0; border: none;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #fff; font-size: 1.3rem; cursor: pointer;
-    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    font-size: 1.3rem; cursor: pointer; display: grid; place-items: center;
     transition: transform .12s, filter .12s;
   }
   .send:hover { transform: scale(1.06); filter: brightness(1.1); }
   .send:active { transform: scale(.94); }
-
   .edit-banner {
     display: none; align-items: center; justify-content: space-between; gap: 10px;
     padding: 8px 16px; background: rgba(108,140,255,.12);
@@ -166,63 +166,171 @@
   }
   .edit-banner.show { display: flex; }
   .edit-banner button { background: none; border: none; color: #ff8a8a; cursor: pointer; font-size: 1.1rem; }
+
+  /* ===== חלון (מודל) ליצירה/שינוי שם ===== */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(5,7,15,.7); backdrop-filter: blur(3px);
+    z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid #2c3556; border-radius: 22px;
+    padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  }
+  .modal h3 { font-size: 1.3rem; margin-bottom: 16px; }
+  .modal label { display: block; color: var(--muted); font-size: .85rem; margin-bottom: 6px; }
+  .modal input[type=text] {
+    width: 100%; background: #11162a; color: var(--text); border: 1px solid #2c3556;
+    border-radius: 12px; padding: 12px 14px; font-size: 1rem; font-family: inherit; outline: none;
+  }
+  .modal input[type=text]:focus { border-color: var(--accent); }
+  .emoji-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 20px; }
+  .emoji-row button {
+    width: 42px; height: 42px; border-radius: 12px; border: 1px solid #2c3556;
+    background: #11162a; font-size: 1.3rem; cursor: pointer; transition: all .12s;
+  }
+  .emoji-row button.sel { border-color: var(--accent); background: var(--card-hover); transform: scale(1.08); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-start; }
+  .btn-primary {
+    background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff; border: none;
+    border-radius: 999px; padding: 11px 24px; font-size: .95rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn-ghost {
+    background: rgba(255,255,255,.06); color: var(--text); border: 1px solid #2c3556;
+    border-radius: 999px; padding: 11px 20px; font-size: .95rem; cursor: pointer; font-family: inherit;
+  }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <a class="back" href="index.html">→ חזרה</a>
-    <div class="titlewrap">
-      <div class="avatar">💬</div>
-      <div>
-        <div class="name">הקבוצה שלי</div>
-        <div class="status" id="status">פרטי · נשמר במכשיר</div>
+
+  <!-- ===== מסך רשימת צ'אטים ===== -->
+  <div id="listView">
+    <div class="topbar">
+      <a class="icon-btn" href="index.html">→ חזרה</a>
+      <div class="titlewrap">
+        <div class="avatar">💬</div>
+        <div>
+          <div class="name">הצ'אטים שלי</div>
+          <div class="status">פרטי · נשמר במכשיר</div>
+        </div>
+      </div>
+      <button class="icon-btn round" onclick="toggleMenu('listMenu', event)">⋮</button>
+    </div>
+
+    <div class="menu" id="listMenu">
+      <button onclick="exportAll()">💾 גיבוי הכול לקובץ</button>
+      <button onclick="importAll()">📥 שחזור מקובץ</button>
+    </div>
+
+    <div class="chat-list" id="chatList"></div>
+    <button class="fab" onclick="openNewChat()" aria-label="צ'אט חדש">＋</button>
+  </div>
+
+  <!-- ===== מסך צ'אט בודד ===== -->
+  <div id="chatView">
+    <div class="topbar">
+      <button class="icon-btn" onclick="backToList()">→ צ'אטים</button>
+      <div class="titlewrap">
+        <div class="avatar" id="chatAvatar">💬</div>
+        <div style="min-width:0">
+          <div class="name" id="chatName">צ'אט</div>
+          <div class="status" id="chatStatus"></div>
+        </div>
+      </div>
+      <button class="icon-btn round" onclick="toggleMenu('chatMenu', event)">⋮</button>
+    </div>
+
+    <div class="menu" id="chatMenu">
+      <button onclick="renameCurrent()">✏️ שנה שם ואייקון</button>
+      <button onclick="shareCurrent()">📤 שתף צ'אט</button>
+      <button class="danger" onclick="clearCurrent()">🧹 נקה הודעות</button>
+      <button class="danger" onclick="deleteCurrent()">🗑️ מחק צ'אט</button>
+    </div>
+
+    <div class="messages" id="messages"></div>
+
+    <div class="edit-banner" id="editBanner">
+      <span>✏️ עורך הודעה…</span>
+      <button onclick="cancelEdit()">ביטול ✕</button>
+    </div>
+
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="כתוב הודעה…"
+        onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
+      <button class="send" onclick="send()" aria-label="שלח">➤</button>
+    </div>
+  </div>
+
+  <!-- ===== מודל יצירה/שינוי שם ===== -->
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h3 id="modalTitle">צ'אט חדש</h3>
+      <label>שם הצ'אט</label>
+      <input type="text" id="modalName" placeholder="לדוגמה: המשפחה, רעיונות, עבודה…"
+        maxlength="40" onkeydown="if(event.key==='Enter')saveModal()" />
+      <label style="margin-top:14px">אייקון</label>
+      <div class="emoji-row" id="emojiRow"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="saveModal()">שמור</button>
+        <button class="btn-ghost" onclick="closeModal()">ביטול</button>
       </div>
     </div>
-    <button class="menu-btn" onclick="toggleMenu(event)">⋮</button>
-  </div>
-
-  <div class="menu" id="menu">
-    <button onclick="shareAll()">📤 שתף הכול</button>
-    <button onclick="exportFile()">💾 ייצוא לקובץ</button>
-    <button onclick="importFile()">📥 ייבוא מקובץ</button>
-    <button class="danger" onclick="clearAll()">🗑️ מחק את הכול</button>
-  </div>
-
-  <div class="messages" id="messages"></div>
-
-  <div class="edit-banner" id="editBanner">
-    <span>✏️ עורך הודעה…</span>
-    <button onclick="cancelEdit()">ביטול ✕</button>
-  </div>
-
-  <div class="composer">
-    <textarea id="input" rows="1" placeholder="כתוב הודעה…"
-      onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
-    <button class="send" onclick="send()" aria-label="שלח">➤</button>
   </div>
 
   <input type="file" id="fileInput" accept="application/json,.json" hidden />
 
   <script>
   (function () {
-    var KEY = "portal_notes_v1";
-    var msgs = load();
-    var editingId = null;
+    var KEY = "portal_chats_v1";
+    var OLD_KEY = "portal_notes_v1";
+    var EMOJIS = ["💬","👨‍👩‍👧","🎮","💡","📝","❤️","🔥","⭐","🎵","⚽","🍕","📚","✈️","🐶","🌙","😎"];
 
-    var elMessages = document.getElementById("messages");
-    var elInput = document.getElementById("input");
-    var elMenu = document.getElementById("menu");
-    var elEditBanner = document.getElementById("editBanner");
+    var chats = load();
+    var currentId = null;   // null = מסך רשימה
+    var editingId = null;   // עריכת הודעה
+    var modalMode = "new";  // "new" | "rename"
+    var modalEmoji = "💬";
 
+    var el = {
+      listView: document.getElementById("listView"),
+      chatView: document.getElementById("chatView"),
+      chatList: document.getElementById("chatList"),
+      messages: document.getElementById("messages"),
+      input: document.getElementById("input"),
+      editBanner: document.getElementById("editBanner"),
+      chatName: document.getElementById("chatName"),
+      chatAvatar: document.getElementById("chatAvatar"),
+      chatStatus: document.getElementById("chatStatus"),
+      overlay: document.getElementById("overlay"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalName: document.getElementById("modalName"),
+      emojiRow: document.getElementById("emojiRow")
+    };
+
+    /* ---------- אחסון ---------- */
     function load() {
-      try { return JSON.parse(localStorage.getItem(KEY)) || []; }
-      catch (e) { return []; }
+      var data = null;
+      try { data = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+      if (Array.isArray(data)) return data;
+      // מיגרציה מהגרסה הישנה (צ'אט בודד) אם קיים
+      try {
+        var old = JSON.parse(localStorage.getItem(OLD_KEY));
+        if (Array.isArray(old) && old.length) {
+          return [{ id: cid(), name: "הקבוצה שלי", emoji: "💬", msgs: old }];
+        }
+      } catch (e) {}
+      return [];
     }
-    function save() { localStorage.setItem(KEY, JSON.stringify(msgs)); }
+    function save() { localStorage.setItem(KEY, JSON.stringify(chats)); }
 
-    var uidCounter = 0;
-    function uid() { return Date.now().toString(36) + "-" + (uidCounter++).toString(36); }
+    var counter = 0;
+    function cid() { return "c" + Date.now().toString(36) + "-" + (counter++).toString(36); }
+    function mid() { return "m" + Date.now().toString(36) + "-" + (counter++).toString(36); }
 
+    function current() { return chats.find(function (c) { return c.id === currentId; }); }
+
+    /* ---------- כלי עזר ---------- */
     function escapeHtml(s) {
       return s.replace(/[&<>"']/g, function (c) {
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -234,36 +342,96 @@
       });
     }
     function timeStr(ts) {
-      var d = new Date(ts);
-      return d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+      return new Date(ts).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
     }
     function dayStr(ts) {
       var d = new Date(ts), now = new Date();
-      var today = now.toDateString(), yest = new Date(now - 864e5).toDateString();
-      if (d.toDateString() === today) return "היום";
-      if (d.toDateString() === yest) return "אתמול";
+      if (d.toDateString() === now.toDateString()) return "היום";
+      if (d.toDateString() === new Date(now - 864e5).toDateString()) return "אתמול";
       return d.toLocaleDateString("he-IL", { day: "numeric", month: "long", year: "numeric" });
     }
+    function lastMsg(c) { return c.msgs && c.msgs.length ? c.msgs[c.msgs.length - 1] : null; }
 
-    function render() {
-      elMessages.innerHTML = "";
-      if (!msgs.length) {
+    /* ---------- מסך הרשימה ---------- */
+    function renderList() {
+      el.chatList.innerHTML = "";
+      var sorted = chats.slice().sort(function (a, b) {
+        var la = lastMsg(a), lb = lastMsg(b);
+        return (lb ? lb.ts : 0) - (la ? la.ts : 0);
+      });
+      if (!sorted.length) {
+        var e = document.createElement("div");
+        e.className = "list-empty";
+        e.innerHTML = '<div class="big">💬</div><div><b>אין עדיין צ\'אטים</b></div>' +
+          '<div>לחץ על הכפתור <b>＋</b> כדי לפתוח את הצ\'אט או הקבוצה הראשונה שלך.</div>';
+        el.chatList.appendChild(e);
+        return;
+      }
+      sorted.forEach(function (c) {
+        var lm = lastMsg(c);
+        var preview = lm ? lm.text.replace(/\n/g, " ") : "אין הודעות עדיין";
+        var row = document.createElement("div");
+        row.className = "chat-row";
+        row.setAttribute("data-open", c.id);
+        row.innerHTML =
+          '<div class="avatar">' + escapeHtml(c.emoji || "💬") + '</div>' +
+          '<div class="info">' +
+            '<div class="top">' +
+              '<span class="cname">' + escapeHtml(c.name) + '</span>' +
+              '<span class="ctime">' + (lm ? timeStr(lm.ts) : "") + '</span>' +
+            '</div>' +
+            '<div class="preview">' + escapeHtml(preview) + '</div>' +
+          '</div>';
+        el.chatList.appendChild(row);
+      });
+    }
+
+    el.chatList.addEventListener("click", function (e) {
+      var row = e.target.closest("[data-open]");
+      if (row) openChat(row.getAttribute("data-open"));
+    });
+
+    /* ---------- מעבר בין מסכים ---------- */
+    function openChat(id) {
+      currentId = id;
+      cancelEdit();
+      el.listView.classList.add("hidden");
+      el.chatView.classList.add("active");
+      var c = current();
+      el.chatName.textContent = c.name;
+      el.chatAvatar.textContent = c.emoji || "💬";
+      renderMessages();
+      el.input.focus();
+    }
+    window.backToList = function () {
+      currentId = null;
+      cancelEdit();
+      el.chatView.classList.remove("active");
+      el.listView.classList.remove("hidden");
+      renderList();
+    };
+
+    /* ---------- הודעות ---------- */
+    function renderMessages() {
+      var c = current();
+      el.messages.innerHTML = "";
+      el.chatStatus.textContent = c.msgs.length ? c.msgs.length + " הודעות" : "";
+      if (!c.msgs.length) {
         var e = document.createElement("div");
         e.className = "empty";
-        e.innerHTML = '<div class="big">💬</div><div><b>אין עדיין הודעות</b></div>' +
-          '<div>כתוב למטה כל מה שבא לך — מחשבות, רעיונות, רשימות. הכול נשמר אצלך במכשיר.</div>';
-        elMessages.appendChild(e);
+        e.innerHTML = '<div class="big">' + escapeHtml(c.emoji || "💬") + '</div>' +
+          '<div><b>אין עדיין הודעות</b></div><div>כתוב למטה כל מה שבא לך — הכול נשמר אצלך במכשיר.</div>';
+        el.messages.appendChild(e);
         return;
       }
       var lastDay = "";
-      msgs.forEach(function (m) {
+      c.msgs.forEach(function (m) {
         var day = dayStr(m.ts);
         if (day !== lastDay) {
           lastDay = day;
           var sep = document.createElement("div");
-          sep.className = "day-sep";
-          sep.textContent = day;
-          elMessages.appendChild(sep);
+          sep.className = "day-sep"; sep.textContent = day;
+          el.messages.appendChild(sep);
         }
         var b = document.createElement("div");
         b.className = "bubble";
@@ -273,139 +441,178 @@
             '<button title="מחק" data-del="' + m.id + '">🗑️</button>' +
           '</div>' +
           '<div class="text">' + linkify(m.text) + '</div>' +
-          '<div class="meta">' + (m.edited ? '<span class="edited">נערך</span> · ' : '') +
-          timeStr(m.ts) + '</div>';
-        elMessages.appendChild(b);
+          '<div class="meta">' + (m.edited ? '<span class="edited">נערך</span> · ' : '') + timeStr(m.ts) + '</div>';
+        el.messages.appendChild(b);
       });
-      scrollDown();
+      el.messages.scrollTop = el.messages.scrollHeight;
     }
-    function scrollDown() { elMessages.scrollTop = elMessages.scrollHeight; }
 
-    elMessages.addEventListener("click", function (e) {
+    el.messages.addEventListener("click", function (e) {
       var del = e.target.closest("[data-del]");
       var ed = e.target.closest("[data-edit]");
-      if (del) { delMsg(del.getAttribute("data-del")); }
-      else if (ed) { startEdit(ed.getAttribute("data-edit")); }
+      if (del) delMsg(del.getAttribute("data-del"));
+      else if (ed) startEdit(ed.getAttribute("data-edit"));
     });
 
     window.send = function () {
-      var text = elInput.value.trim();
+      var c = current(); if (!c) return;
+      var text = el.input.value.trim();
       if (!text) return;
       if (editingId) {
-        var m = msgs.find(function (x) { return x.id === editingId; });
+        var m = c.msgs.find(function (x) { return x.id === editingId; });
         if (m) { m.text = text; m.edited = true; }
         cancelEdit();
       } else {
-        msgs.push({ id: uid(), text: text, ts: Date.now() });
+        c.msgs.push({ id: mid(), text: text, ts: Date.now() });
       }
-      elInput.value = "";
-      autoGrow(elInput);
-      save();
-      render();
-      elInput.focus();
+      el.input.value = ""; autoGrow(el.input);
+      save(); renderMessages(); el.input.focus();
     };
-
     window.onKey = function (e) {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
     };
-    window.autoGrow = function (el) {
-      el.style.height = "auto";
-      el.style.height = Math.min(el.scrollHeight, 140) + "px";
+    window.autoGrow = function (elm) {
+      elm.style.height = "auto"; elm.style.height = Math.min(elm.scrollHeight, 140) + "px";
     };
-
     function delMsg(id) {
+      var c = current(); if (!c) return;
       if (!confirm("למחוק את ההודעה?")) return;
-      msgs = msgs.filter(function (x) { return x.id !== id; });
+      c.msgs = c.msgs.filter(function (x) { return x.id !== id; });
       if (editingId === id) cancelEdit();
-      save(); render();
+      save(); renderMessages();
     }
     function startEdit(id) {
-      var m = msgs.find(function (x) { return x.id === id; });
+      var c = current(); if (!c) return;
+      var m = c.msgs.find(function (x) { return x.id === id; });
       if (!m) return;
-      editingId = id;
-      elInput.value = m.text;
-      autoGrow(elInput);
-      elEditBanner.classList.add("show");
-      elInput.focus();
+      editingId = id; el.input.value = m.text; autoGrow(el.input);
+      el.editBanner.classList.add("show"); el.input.focus();
     }
     window.cancelEdit = function () {
-      editingId = null;
-      elInput.value = "";
-      autoGrow(elInput);
-      elEditBanner.classList.remove("show");
+      editingId = null; el.input.value = ""; autoGrow(el.input);
+      el.editBanner.classList.remove("show");
     };
 
-    /* תפריט */
-    window.toggleMenu = function (e) {
+    /* ---------- תפריטים ---------- */
+    window.toggleMenu = function (id, e) {
       e.stopPropagation();
-      elMenu.classList.toggle("open");
+      var m = document.getElementById(id);
+      var wasOpen = m.classList.contains("open");
+      document.querySelectorAll(".menu").forEach(function (x) { x.classList.remove("open"); });
+      if (!wasOpen) m.classList.add("open");
     };
-    document.addEventListener("click", function () { elMenu.classList.remove("open"); });
+    document.addEventListener("click", function () {
+      document.querySelectorAll(".menu").forEach(function (x) { x.classList.remove("open"); });
+    });
 
-    function asText() {
-      return msgs.map(function (m) {
-        var d = new Date(m.ts);
-        return "[" + d.toLocaleString("he-IL") + "] " + m.text;
-      }).join("\n");
+    /* ---------- ניהול צ'אטים ---------- */
+    function buildEmojiRow() {
+      el.emojiRow.innerHTML = "";
+      EMOJIS.forEach(function (em) {
+        var b = document.createElement("button");
+        b.textContent = em;
+        if (em === modalEmoji) b.className = "sel";
+        b.onclick = function () {
+          modalEmoji = em;
+          el.emojiRow.querySelectorAll("button").forEach(function (x) { x.className = ""; });
+          b.className = "sel";
+        };
+        el.emojiRow.appendChild(b);
+      });
     }
-
-    window.shareAll = function () {
-      if (!msgs.length) { alert("אין הודעות לשיתוף."); return; }
-      var text = asText();
-      if (navigator.share) {
-        navigator.share({ title: "הקבוצה שלי", text: text }).catch(function () {});
+    window.openNewChat = function () {
+      modalMode = "new"; modalEmoji = "💬";
+      el.modalTitle.textContent = "צ'אט חדש";
+      el.modalName.value = "";
+      buildEmojiRow();
+      el.overlay.classList.add("open");
+      setTimeout(function () { el.modalName.focus(); }, 50);
+    };
+    window.renameCurrent = function () {
+      var c = current(); if (!c) return;
+      modalMode = "rename"; modalEmoji = c.emoji || "💬";
+      el.modalTitle.textContent = "שינוי שם ואייקון";
+      el.modalName.value = c.name;
+      buildEmojiRow();
+      el.overlay.classList.add("open");
+      setTimeout(function () { el.modalName.focus(); }, 50);
+    };
+    window.saveModal = function () {
+      var name = el.modalName.value.trim();
+      if (!name) { el.modalName.focus(); return; }
+      if (modalMode === "new") {
+        var c = { id: cid(), name: name, emoji: modalEmoji, msgs: [] };
+        chats.push(c); save(); closeModal(); openChat(c.id);
       } else {
-        navigator.clipboard.writeText(text).then(function () {
-          alert("הכול הועתק! אפשר להדביק בכל מקום.");
-        }, function () { alert(text); });
+        var cur = current();
+        if (cur) { cur.name = name; cur.emoji = modalEmoji; save();
+          el.chatName.textContent = name; el.chatAvatar.textContent = modalEmoji; }
+        closeModal();
       }
     };
+    window.closeModal = function () { el.overlay.classList.remove("open"); };
+    el.overlay.addEventListener("click", function (e) {
+      if (e.target === el.overlay) closeModal();
+    });
 
-    window.exportFile = function () {
-      var blob = new Blob([JSON.stringify(msgs, null, 2)], { type: "application/json" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      a.href = url;
-      a.download = "הקבוצה-שלי.json";
-      a.click();
-      URL.revokeObjectURL(url);
+    window.clearCurrent = function () {
+      var c = current(); if (!c || !c.msgs.length) return;
+      if (!confirm("למחוק את כל ההודעות בצ'אט הזה?")) return;
+      c.msgs = []; save(); renderMessages();
+    };
+    window.deleteCurrent = function () {
+      var c = current(); if (!c) return;
+      if (!confirm('למחוק לגמרי את הצ\'אט "' + c.name + '"? אי אפשר לבטל.')) return;
+      chats = chats.filter(function (x) { return x.id !== c.id; });
+      save(); backToList();
+    };
+    window.shareCurrent = function () {
+      var c = current(); if (!c) return;
+      if (!c.msgs.length) { alert("אין הודעות לשיתוף."); return; }
+      var text = c.name + "\n\n" + c.msgs.map(function (m) {
+        return "[" + new Date(m.ts).toLocaleString("he-IL") + "] " + m.text;
+      }).join("\n");
+      if (navigator.share) navigator.share({ title: c.name, text: text }).catch(function () {});
+      else navigator.clipboard.writeText(text).then(
+        function () { alert("הכול הועתק! אפשר להדביק בכל מקום."); },
+        function () { alert(text); });
     };
 
+    /* ---------- גיבוי/שחזור של הכול ---------- */
+    window.exportAll = function () {
+      var blob = new Blob([JSON.stringify(chats, null, 2)], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = "הצאטים-שלי.json"; a.click();
+      URL.revokeObjectURL(url);
+    };
     var fileInput = document.getElementById("fileInput");
-    window.importFile = function () { fileInput.click(); };
+    window.importAll = function () { fileInput.click(); };
     fileInput.addEventListener("change", function () {
-      var f = fileInput.files[0];
-      if (!f) return;
+      var f = fileInput.files[0]; if (!f) return;
       var r = new FileReader();
       r.onload = function () {
         try {
           var data = JSON.parse(r.result);
           if (!Array.isArray(data)) throw 0;
-          if (msgs.length && !confirm("לשלב את ההודעות מהקובץ עם הקיימות?")) return;
-          var seen = {};
-          msgs.forEach(function (m) { seen[m.id] = 1; });
-          data.forEach(function (m) {
-            if (m && m.text && m.ts && !seen[m.id]) msgs.push(m);
+          if (chats.length && !confirm("לשלב את הצ'אטים מהקובץ עם הקיימים?")) { fileInput.value = ""; return; }
+          var seen = {}; chats.forEach(function (c) { seen[c.id] = 1; });
+          data.forEach(function (c) {
+            if (c && c.name && Array.isArray(c.msgs)) {
+              if (seen[c.id]) c.id = cid();
+              chats.push(c);
+            }
           });
-          msgs.sort(function (a, b) { return a.ts - b.ts; });
-          save(); render();
-          alert("הייבוא הושלם ✓");
+          save(); renderList();
+          alert("השחזור הושלם ✓");
         } catch (e) { alert("הקובץ לא תקין."); }
         fileInput.value = "";
       };
       r.readAsText(f);
     });
 
-    window.clearAll = function () {
-      if (!msgs.length) return;
-      if (!confirm("למחוק את כל ההודעות? אי אפשר לבטל.")) return;
-      msgs = [];
-      save(); render();
-    };
-
-    render();
+    renderList();
   })();
   </script>
-  <script src="cookies.js?v=4"></script>
 </body>
 </html>
