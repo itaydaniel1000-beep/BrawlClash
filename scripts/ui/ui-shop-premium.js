@@ -233,3 +233,17 @@ function showInterstitialAd() {
     }
 }
 window.showInterstitialAd = showInterstitialAd;
+
+// Preview helper — bypasses _isAdFree() so super-admins can verify the ad
+// image renders correctly without turning off their permanent ad-block.
+// Usage from the browser console:   _previewAd()
+function _previewAd() {
+    const wasOpen = _adOpen;
+    _adOpen = false;
+    const origIsAdFree = window._isAdFree;
+    window._isAdFree = () => false;
+    try { showInterstitialAd(); }
+    finally { window._isAdFree = origIsAdFree; }
+    if (wasOpen && !_adOpen) _adOpen = wasOpen;
+}
+window._previewAd = _previewAd;
