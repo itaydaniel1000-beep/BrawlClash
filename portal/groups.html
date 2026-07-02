@@ -391,7 +391,7 @@
       if (snap.exists()) { const d = snap.data(); g = { id, name: d.name || g.name, emoji: d.emoji || g.emoji }; addMyGroup(g); }
     } catch (e) {}
     el.gName.textContent = g.name; el.gAvatar.textContent = g.emoji || "👥";
-    el.listView.classList.add("hidden"); el.chatView.classList.add("active");
+    el.listView.style.display = "none"; el.chatView.style.display = "flex"; el.chatView.classList.add("active");
     el.messages.innerHTML = '<div class="empty"><div class="big">⏳</div><div>טוען הודעות…</div></div>';
 
     if (unsub) { unsub(); unsub = null; }
@@ -407,7 +407,8 @@
   window.backToList = function () {
     if (unsub) { unsub(); unsub = null; }
     currentId = null;
-    el.chatView.classList.remove("active"); el.listView.classList.remove("hidden");
+    el.chatView.classList.remove("active"); el.chatView.style.display = "none";
+    el.listView.style.display = "flex";
     renderList();
   };
 
