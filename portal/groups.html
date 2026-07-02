@@ -166,6 +166,73 @@
     background: var(--card); border: 1px solid var(--accent); color: var(--text); padding: 12px 20px;
     border-radius: 999px; z-index: 200; box-shadow: 0 12px 30px rgba(0,0,0,.5); display: none; }
   .toast.show { display: block; animation: pop .2s ease; }
+
+  /* כותרת צ'אט לחיצה */
+  .titlewrap.clickable { cursor: pointer; border-radius: 12px; padding: 4px 6px; margin: -4px -6px; transition: background .15s; }
+  .titlewrap.clickable:hover { background: rgba(255,255,255,.06); }
+  /* אווטאר עם תמונה */
+  .avatar[data-photo] { background-size: cover; background-position: center; font-size: 0; }
+
+  /* הודעת "אין הרשאת כתיבה" */
+  .write-note { padding: 14px; text-align: center; color: var(--muted); font-size: .9rem;
+    background: rgba(20,26,46,.92); border-top: 1px solid #2c3556;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 14px); }
+
+  /* מסך פרטי הקבוצה */
+  #infoView { display: none; flex-direction: column; height: 100%; }
+  #infoView.active { display: flex; }
+  .info-scroll { flex: 1; overflow-y: auto; padding: 8px 14px calc(env(safe-area-inset-bottom) + 30px); }
+  .info-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 0 18px; }
+  .big-avatar { width: 110px; height: 110px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 3.4rem; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    background-size: cover; background-position: center; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .big-avatar[data-photo] { font-size: 0; }
+  .photo-btn { background: var(--card); border: 1px solid #2c3556; color: var(--text);
+    border-radius: 999px; padding: 8px 16px; font-size: .88rem; cursor: pointer; font-family: inherit; }
+  .photo-btn:hover { border-color: var(--accent); background: var(--card-hover); }
+  .photo-btn[hidden] { display: none; }
+  .info-name { font-size: 1.5rem; font-weight: 800; margin-top: 4px; }
+  .info-status { color: var(--muted); font-size: .9rem; }
+
+  .info-section { background: var(--card); border: 1px solid #262e4d; border-radius: 18px;
+    padding: 14px 16px; margin-top: 14px; }
+  .info-section-title { font-weight: 800; font-size: 1rem; margin-bottom: 10px; color: var(--text); }
+
+  .members { display: flex; flex-direction: column; gap: 2px; }
+  .member-row { display: flex; align-items: center; gap: 12px; padding: 9px 6px; border-radius: 12px; }
+  .member-row.tappable { cursor: pointer; }
+  .member-row.tappable:hover { background: var(--card-hover); }
+  .member-row .m-ava { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: grid;
+    place-items: center; font-size: 1.1rem; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .member-row .m-name { flex: 1; min-width: 0; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .member-row .m-badge { font-size: .72rem; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    background: rgba(108,140,255,.18); color: #bcd0ff; border: 1px solid #2c3556; }
+  .member-row .m-you { font-size: .72rem; color: var(--muted); }
+  .member-row .m-write { width: 22px; height: 22px; flex-shrink: 0; cursor: pointer; }
+
+  .settings-body { display: flex; flex-direction: column; gap: 4px; }
+  .opt { display: flex; align-items: center; gap: 11px; padding: 11px 6px; border-radius: 12px;
+    cursor: pointer; transition: background .15s; }
+  .opt:hover { background: var(--card-hover); }
+  .opt .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #4a5680; flex-shrink: 0;
+    display: grid; place-items: center; }
+  .opt.sel .radio { border-color: var(--accent); }
+  .opt.sel .radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); }
+  .opt .opt-txt { font-size: .95rem; }
+  .opt.disabled { opacity: .55; cursor: default; }
+  .opt.disabled:hover { background: none; }
+  .settings-locked { color: var(--muted); font-size: .85rem; padding: 4px 6px; }
+  .media-soon { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+
+  .sheet-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+  .sheet-actions button { text-align: start; background: #11162a; border: 1px solid #2c3556;
+    color: var(--text); border-radius: 12px; padding: 13px 16px; font-size: .95rem; cursor: pointer;
+    font-family: inherit; display: flex; align-items: center; gap: 10px; }
+  .sheet-actions button:hover { border-color: var(--accent); background: var(--card-hover); }
+  .sheet-actions button.danger { color: #ff8a8a; }
 </style>
 </head>
 <body>
@@ -204,7 +271,7 @@
   <div id="chatView">
     <div class="topbar">
       <button class="icon-btn" onclick="backToList()">→ קבוצות</button>
-      <div class="titlewrap">
+      <div class="titlewrap clickable" onclick="openInfo()">
         <div class="avatar" id="gAvatar">👥</div>
         <div style="min-width:0">
           <div class="name" id="gName">קבוצה</div>
@@ -214,14 +281,47 @@
       <button class="icon-btn round" onclick="toggleMenu('chatMenu', event)">⋮</button>
     </div>
     <div class="menu" id="chatMenu">
+      <button onclick="openInfo()">ℹ️ פרטי הקבוצה</button>
       <button onclick="inviteCurrent()">🔗 הזמן חבר (העתק קישור)</button>
       <button onclick="changeNick()">👤 שנה את השם שלי</button>
       <button class="danger" onclick="leaveCurrent()">🚪 עזוב את הקבוצה</button>
     </div>
     <div class="messages" id="messages"></div>
-    <div class="composer">
+    <div class="write-note" id="writeNote" style="display:none"></div>
+    <div class="composer" id="composer">
       <textarea id="input" rows="1" placeholder="כתוב הודעה…" onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
       <button class="send" id="sendBtn" onclick="send()" aria-label="שלח">➤</button>
+    </div>
+  </div>
+
+  <!-- מסך פרטי הקבוצה -->
+  <div id="infoView">
+    <div class="topbar">
+      <button class="icon-btn" onclick="closeInfo()">→ חזרה</button>
+      <div class="titlewrap"><div class="name">פרטי הקבוצה</div></div>
+    </div>
+    <div class="info-scroll">
+      <div class="info-hero">
+        <div class="big-avatar" id="infoAvatar">👥</div>
+        <button class="photo-btn" id="photoBtn" onclick="pickPhoto()">📷 שנה תמונה</button>
+        <div class="info-name" id="infoName">קבוצה</div>
+        <div class="info-status" id="infoStatus"></div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">👥 משתתפים</div>
+        <div class="members" id="membersList"></div>
+      </div>
+
+      <div class="info-section" id="settingsCard">
+        <div class="info-section-title">⚙️ הגדרות כתיבה</div>
+        <div class="settings-body" id="settingsBody"></div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">🖼️ מדיה</div>
+        <div class="media-soon">גלריית המדיה של הקבוצה תתווסף בקרוב (יחד עם שליחת תמונות בצ'אט).</div>
+      </div>
     </div>
   </div>
 
@@ -242,6 +342,19 @@
       </div>
     </div>
   </div>
+
+  <!-- חלון פעולות על משתתף -->
+  <div class="overlay" id="memberSheet">
+    <div class="modal">
+      <h3 id="memberSheetName">משתתף</h3>
+      <div class="sheet-actions" id="memberSheetActions"></div>
+      <div class="modal-actions" style="margin-top:14px">
+        <button class="btn-ghost" onclick="closeMemberSheet()">סגור</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="photoInput" accept="image/*" hidden />
 
   <div class="toast" id="toast"></div>
 
@@ -270,7 +383,12 @@
     gName: $("gName"), gAvatar: $("gAvatar"), gStatus: $("gStatus"), nickStatus: $("nickStatus"),
     overlay: $("overlay"), modalTitle: $("modalTitle"), modalHint: $("modalHint"),
     modalLabel: $("modalLabel"), modalName: $("modalName"), emojiWrap: $("emojiWrap"),
-    emojiRow: $("emojiRow"), toast: $("toast")
+    emojiRow: $("emojiRow"), toast: $("toast"),
+    composer: $("composer"), writeNote: $("writeNote"),
+    infoView: $("infoView"), infoAvatar: $("infoAvatar"), infoName: $("infoName"),
+    infoStatus: $("infoStatus"), photoBtn: $("photoBtn"), photoInput: $("photoInput"),
+    membersList: $("membersList"), settingsCard: $("settingsCard"),
+    memberSheet: $("memberSheet"), memberSheetName: $("memberSheetName"), memberSheetActions: $("memberSheetActions")
   };
 
   if (!CONFIGURED) {
@@ -281,7 +399,7 @@
   // ---- Firebase SDK ----
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
   const {
-    getFirestore, collection, doc, addDoc, setDoc, getDoc, deleteDoc,
+    getFirestore, collection, doc, addDoc, setDoc, updateDoc, getDoc, deleteDoc, deleteField,
     onSnapshot, query, orderBy, limit, serverTimestamp
   } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
@@ -305,7 +423,27 @@
   function removeMyGroup(id) { saveMyGroups(myGroups().filter((x) => x.id !== id)); }
 
   // ---- מצב ----
-  let currentId = null, unsub = null, modalMode = "new", modalEmoji = "👥";
+  let currentId = null, unsub = null, unsubGroup = null, currentGroup = null;
+  let modalMode = "new", modalEmoji = "👥", sheetUid = null;
+
+  // ---- הרשאות ----
+  function isAdmin(u) {
+    u = u || uid;
+    if (!currentGroup) return false;
+    if (currentGroup.createdBy === u) return true;
+    const m = currentGroup.members || {};
+    return !!(m[u] && m[u].admin);
+  }
+  function isRemoved(u) { u = u || uid; return !!(currentGroup && currentGroup.removed && currentGroup.removed[u]); }
+  function canWrite(u) {
+    u = u || uid;
+    if (!currentGroup) return true;
+    if (isRemoved(u)) return false;
+    const mode = currentGroup.writeMode || "all";
+    if (mode === "admins") return isAdmin(u);
+    if (mode === "chosen") return isAdmin(u) || !!(currentGroup.writers && currentGroup.writers[u]);
+    return true;
+  }
 
   // ---- עזרים ----
   function esc(s) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -383,17 +521,30 @@
 
   // ---- פתיחת קבוצה + האזנה בזמן אמת ----
   async function openGroup(id) {
-    currentId = id;
-    // רענון שם/אייקון מהשרת
+    currentId = id; currentGroup = null;
     let g = myGroups().find((x) => x.id === id) || { id, name: "קבוצה", emoji: "👥" };
-    try {
-      const snap = await getDoc(doc(db, "groups", id));
-      if (snap.exists()) { const d = snap.data(); g = { id, name: d.name || g.name, emoji: d.emoji || g.emoji }; addMyGroup(g); }
-    } catch (e) {}
-    el.gName.textContent = g.name; el.gAvatar.textContent = g.emoji || "👥";
+    el.gName.textContent = g.name; setAvatar(el.gAvatar, g.emoji || "👥", null);
     el.listView.style.display = "none"; el.chatView.style.display = "flex"; el.chatView.classList.add("active");
     el.messages.innerHTML = '<div class="empty"><div class="big">⏳</div><div>טוען הודעות…</div></div>';
 
+    const ref = doc(db, "groups", id);
+    // רישום עצמי כמשתתף (בלי לדרוס דגל מנהל, ובלי להוסיף מחדש אם הוסרת)
+    try {
+      const pre = await getDoc(ref);
+      const removedMe = pre.exists() && pre.data().removed && pre.data().removed[uid];
+      if (!removedMe) await updateDoc(ref, { ["members." + uid + ".name"]: nick || "אנונימי", ["members." + uid + ".joinedAt"]: Date.now() });
+    } catch (e) {}
+
+    // האזנה למסמך הקבוצה (שם/תמונה/משתתפים/הגדרות) בזמן אמת
+    if (unsubGroup) { unsubGroup(); unsubGroup = null; }
+    unsubGroup = onSnapshot(ref, (snap) => {
+      if (!snap.exists()) return;
+      currentGroup = { id, ...snap.data() };
+      addMyGroup({ id, name: currentGroup.name || g.name, emoji: currentGroup.emoji || "👥" });
+      applyGroup();
+    });
+
+    // האזנה להודעות
     if (unsub) { unsub(); unsub = null; }
     const qy = query(collection(db, "groups", id, "messages"), orderBy("t", "asc"));
     unsub = onSnapshot(qy, (snap) => {
@@ -404,9 +555,47 @@
     });
     el.input.focus();
   }
+
+  // עדכון הכותרת/הרשאות בכל שינוי במסמך הקבוצה
+  function applyGroup() {
+    if (!currentGroup) return;
+    el.gName.textContent = currentGroup.name || "קבוצה";
+    setAvatar(el.gAvatar, currentGroup.emoji || "👥", currentGroup.photo);
+    const memCount = Object.keys(currentGroup.members || {}).length;
+    el.gStatus.textContent = memCount ? memCount + " משתתפים" : "";
+    gateComposer();
+    if (getComputedStyle(el.infoView).display !== "none") renderInfo();
+  }
+
+  function gateComposer() {
+    if (isRemoved()) {
+      el.composer.style.display = "none";
+      el.writeNote.style.display = "block";
+      el.writeNote.textContent = "הוסרת מהקבוצה. מנהל יכול להחזיר אותך.";
+      return;
+    }
+    if (canWrite()) {
+      el.composer.style.display = "flex";
+      el.writeNote.style.display = "none";
+    } else {
+      el.composer.style.display = "none";
+      el.writeNote.style.display = "block";
+      el.writeNote.textContent = (currentGroup.writeMode === "admins")
+        ? "רק מנהלי הקבוצה יכולים לכתוב כאן."
+        : "רק משתתפים מורשים יכולים לכתוב כאן.";
+    }
+  }
+
+  function setAvatar(node, emoji, photo) {
+    if (photo) { node.style.backgroundImage = "url(" + photo + ")"; node.setAttribute("data-photo", "1"); node.textContent = ""; }
+    else { node.style.backgroundImage = ""; node.removeAttribute("data-photo"); node.textContent = emoji || "👥"; }
+  }
+
   window.backToList = function () {
     if (unsub) { unsub(); unsub = null; }
-    currentId = null;
+    if (unsubGroup) { unsubGroup(); unsubGroup = null; }
+    currentId = null; currentGroup = null;
+    el.infoView.classList.remove("active"); el.infoView.style.display = "none";
     el.chatView.classList.remove("active"); el.chatView.style.display = "none";
     el.listView.style.display = "flex";
     renderList();
@@ -449,6 +638,7 @@
   // ---- שליחה ----
   window.send = async function () {
     if (!currentId) return;
+    if (!canWrite()) { toast("אין לך הרשאת כתיבה בקבוצה זו"); return; }
     const text = el.input.value.trim();
     if (!text) return;
     if (!nick) { const ok = await ensureNick(); if (!ok) return; }
@@ -517,7 +707,11 @@
       if (!nick) { closeModal(); const ok = await ensureNick(); if (!ok) return; }
       const id = randId(), g = { id, name: val, emoji: modalEmoji };
       try {
-        await setDoc(doc(db, "groups", id), { name: g.name, emoji: g.emoji, createdBy: uid, createdByName: nick, createdAt: serverTimestamp() });
+        await setDoc(doc(db, "groups", id), {
+          name: g.name, emoji: g.emoji, createdBy: uid, createdByName: nick,
+          createdAt: serverTimestamp(), writeMode: "all",
+          members: { [uid]: { name: nick, admin: true, joinedAt: Date.now() } }
+        });
         addMyGroup(g); closeModal(); openGroup(id);
       } catch (err) { toast("יצירה נכשלה — בדוק הרשאות Firestore"); }
     } else if (modalMode === "join") {
@@ -561,6 +755,168 @@
     if (!confirm("לעזוב את הקבוצה? היא תיעלם מהרשימה שלך (ההודעות יישארו לחברים האחרים).")) return;
     removeMyGroup(currentId); backToList();
   };
+
+  // ---- מסך פרטי הקבוצה ----
+  window.openInfo = function () {
+    if (!currentId) return;
+    document.querySelectorAll(".menu").forEach((x) => x.classList.remove("open"));
+    el.chatView.style.display = "none";
+    el.infoView.style.display = "flex"; el.infoView.classList.add("active");
+    renderInfo();
+  };
+  window.closeInfo = function () {
+    el.infoView.classList.remove("active"); el.infoView.style.display = "none";
+    el.chatView.style.display = "flex";
+  };
+
+  function renderInfo() {
+    if (!currentGroup) return;
+    const admin = isAdmin();
+    setAvatar(el.infoAvatar, currentGroup.emoji || "👥", currentGroup.photo);
+    el.infoName.textContent = currentGroup.name || "קבוצה";
+    const members = currentGroup.members || {}, removed = currentGroup.removed || {};
+    const active = Object.keys(members).filter((u) => !removed[u]).length;
+    el.infoStatus.textContent = active + " משתתפים";
+    el.photoBtn.hidden = !admin;
+    renderMembers();
+    renderSettings();
+  }
+
+  function renderMembers() {
+    const members = currentGroup.members || {}, removed = currentGroup.removed || {}, writers = currentGroup.writers || {};
+    const admin = isAdmin(), chosen = (currentGroup.writeMode === "chosen");
+    const entries = Object.entries(members);
+    entries.sort((a, b) => {
+      const aa = (currentGroup.createdBy === a[0] || a[1].admin) ? 0 : 1;
+      const bb = (currentGroup.createdBy === b[0] || b[1].admin) ? 0 : 1;
+      if (aa !== bb) return aa - bb;
+      return (a[1].name || "").localeCompare(b[1].name || "");
+    });
+    el.membersList.innerHTML = "";
+    entries.forEach(([u, m]) => {
+      const isRmv = !!removed[u], isAdm = (currentGroup.createdBy === u) || m.admin, me = (u === uid);
+      const row = document.createElement("div");
+      row.className = "member-row" + ((admin && !me) ? " tappable" : "");
+      if (admin && !me) row.setAttribute("data-member", u);
+      const initial = esc((m.name || "?").trim().charAt(0) || "?");
+      let right = "";
+      if (isRmv) right = '<span class="m-you">הוסר</span>';
+      else { if (isAdm) right += '<span class="m-badge">מנהל</span>'; if (me) right += '<span class="m-you">אתה</span>'; }
+      let toggle = "";
+      if (chosen && admin && !isAdm && !isRmv) {
+        toggle = '<input type="checkbox" class="m-write" data-writer="' + u + '" ' + (writers[u] ? "checked" : "") + ' title="יכול לכתוב" />';
+      }
+      row.innerHTML = '<div class="m-ava">' + initial + '</div><div class="m-name">' + esc(m.name || "משתתף") + "</div>" + right + toggle;
+      el.membersList.appendChild(row);
+    });
+  }
+
+  el.membersList.addEventListener("click", (e) => {
+    const cb = e.target.closest("[data-writer]");
+    if (cb) { e.stopPropagation(); toggleWriter(cb.getAttribute("data-writer")); return; }
+    const row = e.target.closest("[data-member]");
+    if (row) openMemberSheet(row.getAttribute("data-member"));
+  });
+
+  function renderSettings() {
+    const admin = isAdmin(), mode = currentGroup.writeMode || "all";
+    const opts = [["all", "כולם יכולים לכתוב"], ["admins", "רק מנהלים יכולים לכתוב"], ["chosen", "רק משתתפים שאבחר"]];
+    let html = "";
+    if (!admin) html += '<div class="settings-locked">רק מנהלי הקבוצה יכולים לשנות הגדרות.</div>';
+    opts.forEach(([v, label]) => {
+      const sel = (mode === v) ? " sel" : "", dis = admin ? "" : " disabled";
+      const oc = admin ? ' onclick="setWriteMode(\'' + v + '\')"' : "";
+      html += '<div class="opt' + sel + dis + '"' + oc + '><div class="radio"></div><div class="opt-txt">' + label + "</div></div>";
+    });
+    if (mode === "chosen") html += '<div class="settings-locked">סמן ברשימת המשתתפים מי מורשה לכתוב (מנהלים תמיד יכולים).</div>';
+    $("settingsBody").innerHTML = html;
+  }
+
+  window.setWriteMode = async function (mode) {
+    if (!isAdmin()) return;
+    try { await updateDoc(doc(db, "groups", currentId), { writeMode: mode }); }
+    catch (e) { toast("העדכון נכשל"); }
+  };
+  window.toggleWriter = async function (u) {
+    if (!isAdmin()) return;
+    const on = currentGroup.writers && currentGroup.writers[u];
+    try { await updateDoc(doc(db, "groups", currentId), { ["writers." + u]: on ? deleteField() : true }); }
+    catch (e) { toast("העדכון נכשל"); }
+  };
+
+  // ---- פעולות על משתתף ----
+  function openMemberSheet(u) {
+    if (!isAdmin() || u === uid) return;
+    sheetUid = u;
+    const m = (currentGroup.members || {})[u] || {};
+    const isAdm = (currentGroup.createdBy === u) || m.admin;
+    const isRmv = !!(currentGroup.removed && currentGroup.removed[u]);
+    el.memberSheetName.textContent = m.name || "משתתף";
+    let html = "";
+    if (isRmv) { html += '<button onclick="readmitMember()">↩️ החזר לקבוצה</button>'; }
+    else {
+      if (!isAdm) html += '<button onclick="makeAdmin()">⭐ הפוך למנהל</button>';
+      if (currentGroup.createdBy !== u) html += '<button class="danger" onclick="removeMember()">🗑️ הסר מהקבוצה</button>';
+    }
+    if (!html) html = '<div class="settings-locked">אין פעולות זמינות למשתתף זה.</div>';
+    el.memberSheetActions.innerHTML = html;
+    el.memberSheet.classList.add("open");
+  }
+  window.closeMemberSheet = function () { el.memberSheet.classList.remove("open"); sheetUid = null; };
+  el.memberSheet.addEventListener("click", (e) => { if (e.target === el.memberSheet) closeMemberSheet(); });
+
+  window.makeAdmin = async function () {
+    if (!isAdmin() || !sheetUid) return;
+    try { await updateDoc(doc(db, "groups", currentId), { ["members." + sheetUid + ".admin"]: true }); toast("הפך למנהל ✓"); }
+    catch (e) { toast("הפעולה נכשלה"); }
+    closeMemberSheet();
+  };
+  window.removeMember = async function () {
+    if (!isAdmin() || !sheetUid) return;
+    if (!confirm("להסיר את המשתתף מהקבוצה?")) return;
+    try { await updateDoc(doc(db, "groups", currentId), { ["removed." + sheetUid]: true }); toast("המשתתף הוסר"); }
+    catch (e) { toast("הפעולה נכשלה"); }
+    closeMemberSheet();
+  };
+  window.readmitMember = async function () {
+    if (!isAdmin() || !sheetUid) return;
+    try { await updateDoc(doc(db, "groups", currentId), { ["removed." + sheetUid]: deleteField() }); toast("הוחזר לקבוצה ✓"); }
+    catch (e) { toast("הפעולה נכשלה"); }
+    closeMemberSheet();
+  };
+
+  // ---- תמונת קבוצה מהגלריה ----
+  window.pickPhoto = function () {
+    if (!isAdmin()) { toast("רק מנהל יכול לשנות את התמונה"); return; }
+    el.photoInput.click();
+  };
+  el.photoInput.addEventListener("change", async () => {
+    const f = el.photoInput.files[0]; el.photoInput.value = "";
+    if (!f || !currentId) return;
+    if (!isAdmin()) { toast("רק מנהל יכול לשנות את התמונה"); return; }
+    try {
+      const dataUrl = await resizeImage(f, 256);
+      await updateDoc(doc(db, "groups", currentId), { photo: dataUrl });
+      toast("התמונה עודכנה ✓");
+    } catch (e) { toast("עדכון התמונה נכשל"); }
+  });
+  function resizeImage(file, max) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const scale = Math.min(1, max / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        try { resolve(c.toDataURL("image/jpeg", 0.82)); } catch (e) { reject(e); }
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  }
 
   // ---- כניסה עם קישור הזמנה (#id) ----
   async function handleHash() {
