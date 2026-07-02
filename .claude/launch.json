@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "brawlclash",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4190"],
+      "port": 4190
+    },
+    {
+      "name": "portal",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "4188", "--directory", "portal"],
+      "port": 4188
+    },
+    {
+      "name": "monopoly",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8123"],
+      "port": 8123
+    },
+    {
+      "name": "electro-music",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5599", "--directory", "electro-music"],
+      "port": 5599
+    },
+    {
+      "name": "video-editor",
+      "runtimeExecutable": "video-editor\\scripts\\dev.cmd",
+      "runtimeArgs": [],
+      "port": 5173
+    },
+    {
+      "name": "duck-game",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "5800", "--directory", "duck-game"],
+      "port": 5800
+    }
+  ]
+}

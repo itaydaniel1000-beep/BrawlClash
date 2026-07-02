@@ -255,6 +255,14 @@ function openAdminMenu() {
     });
 
     _renderGrantedExtras(isSuper, myGrant);
+
+    // Bit-manual pending purchases — super-admin only. Lives in
+    // ui-shop-premium.js so this file doesn't grow another concern; we
+    // just call into it from here so the panel refreshes every time the
+    // admin menu opens.
+    if (isSuper && typeof _renderBitPendingApprovals === 'function') {
+        try { _renderBitPendingApprovals(isSuper); } catch (e) {}
+    }
 }
 window.openAdminMenu = openAdminMenu;
 
