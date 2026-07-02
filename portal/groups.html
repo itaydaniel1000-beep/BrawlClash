@@ -233,6 +233,29 @@
     font-family: inherit; display: flex; align-items: center; gap: 10px; }
   .sheet-actions button:hover { border-color: var(--accent); background: var(--card-hover); }
   .sheet-actions button.danger { color: #ff8a8a; }
+
+  /* כפתור צירוף תמונה */
+  .attach { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; border: 1px solid #2c3556;
+    background: #11162a; color: var(--text); font-size: 1.2rem; cursor: pointer;
+    display: grid; place-items: center; transition: all .12s; }
+  .attach:hover { border-color: var(--accent); background: var(--card-hover); }
+
+  /* תמונה בבועה */
+  .bubble .img-wrap { margin: -2px -4px 4px; }
+  .bubble img.msg-img { display: block; max-width: 240px; width: 100%; border-radius: 12px; cursor: pointer; }
+  .bubble .caption { white-space: pre-wrap; word-break: break-word; line-height: 1.45; font-size: 1rem; }
+
+  /* גלריית מדיה */
+  .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .media-grid .media-thumb { aspect-ratio: 1; border-radius: 10px; background-size: cover;
+    background-position: center; cursor: pointer; border: 1px solid #2c3556; }
+  .media-empty { color: var(--muted); font-size: .9rem; grid-column: 1 / -1; padding: 6px 2px; }
+
+  /* תצוגת תמונה מלאה */
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 200;
+    display: none; align-items: center; justify-content: center; padding: 20px; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -289,9 +312,11 @@
     <div class="messages" id="messages"></div>
     <div class="write-note" id="writeNote" style="display:none"></div>
     <div class="composer" id="composer">
+      <button class="attach" id="attachBtn" onclick="pickImage()" aria-label="צרף תמונה">📷</button>
       <textarea id="input" rows="1" placeholder="כתוב הודעה…" onkeydown="onKey(event)" oninput="autoGrow(this)"></textarea>
       <button class="send" id="sendBtn" onclick="send()" aria-label="שלח">➤</button>
     </div>
+    <input type="file" id="imgInput" accept="image/*" hidden />
   </div>
 
   <!-- מסך פרטי הקבוצה -->
@@ -320,7 +345,7 @@
 
       <div class="info-section">
         <div class="info-section-title">🖼️ מדיה</div>
-        <div class="media-soon">גלריית המדיה של הקבוצה תתווסף בקרוב (יחד עם שליחת תמונות בצ'אט).</div>
+        <div class="media-grid" id="mediaGrid"></div>
       </div>
     </div>
   </div>
@@ -356,6 +381,11 @@
 
   <input type="file" id="photoInput" accept="image/*" hidden />
 
+  <!-- תצוגת תמונה מלאה -->
+  <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+    <img id="lightboxImg" src="" alt="" />
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script type="module">
@@ -384,7 +414,8 @@
     overlay: $("overlay"), modalTitle: $("modalTitle"), modalHint: $("modalHint"),
     modalLabel: $("modalLabel"), modalName: $("modalName"), emojiWrap: $("emojiWrap"),
     emojiRow: $("emojiRow"), toast: $("toast"),
-    composer: $("composer"), writeNote: $("writeNote"),
+    composer: $("composer"), writeNote: $("writeNote"), imgInput: $("imgInput"), attachBtn: $("attachBtn"),
+    mediaGrid: $("mediaGrid"), lightbox: $("lightbox"), lightboxImg: $("lightboxImg"),
     infoView: $("infoView"), infoAvatar: $("infoAvatar"), infoName: $("infoName"),
     infoStatus: $("infoStatus"), photoBtn: $("photoBtn"), photoInput: $("photoInput"),
     membersList: $("membersList"), settingsCard: $("settingsCard"),
@@ -424,7 +455,7 @@
 
   // ---- מצב ----
   let currentId = null, unsub = null, unsubGroup = null, currentGroup = null;
-  let modalMode = "new", modalEmoji = "👥", sheetUid = null;
+  let modalMode = "new", modalEmoji = "👥", sheetUid = null, lastMsgs = [];
 
   // ---- הרשאות ----
   function isAdmin(u) {
@@ -602,8 +633,8 @@
   };
 
   function renderMessages(msgs) {
+    lastMsgs = msgs;
     el.messages.innerHTML = "";
-    el.gStatus.textContent = msgs.length ? msgs.length + " הודעות" : "";
     if (!msgs.length) {
       const e = document.createElement("div"); e.className = "empty";
       e.innerHTML = '<div class="big">💬</div><div><b>עדיין אין הודעות</b></div><div>כתוב את ההודעה הראשונה, או הזמן חברים דרך ⋮.</div>';
@@ -616,17 +647,27 @@
       const mine = m.uid === uid;
       const b = document.createElement("div");
       b.className = "bubble " + (mine ? "mine" : "other");
+      let body = "";
+      if (m.image) {
+        body += '<div class="img-wrap"><img class="msg-img" src="' + m.image + '" alt="תמונה" /></div>';
+        if (m.text) body += '<div class="caption">' + linkify(m.text) + "</div>";
+      } else {
+        body += '<div class="text">' + linkify(m.text || "") + "</div>";
+      }
       b.innerHTML =
         (mine ? '<button class="del" title="מחק" data-del="' + m._id + '">🗑️</button>' : "") +
         (!mine ? '<div class="author">' + esc(m.author || "אנונימי") + "</div>" : "") +
-        '<div class="text">' + linkify(m.text || "") + "</div>" +
+        body +
         '<div class="meta">' + timeStr(m.t) + "</div>";
       el.messages.appendChild(b);
     });
     el.messages.scrollTop = el.messages.scrollHeight;
+    if (getComputedStyle(el.infoView).display !== "none") renderGallery();
   }
 
   el.messages.addEventListener("click", async (e) => {
+    const img = e.target.closest("img.msg-img");
+    if (img) { openLightbox(img.src); return; }
     const del = e.target.closest("[data-del]");
     if (del && currentId) {
       if (!confirm("למחוק את ההודעה?")) return;
@@ -634,6 +675,26 @@
       catch (err) { toast("מחיקה נכשלה"); }
     }
   });
+
+  // ---- גלריית מדיה + תצוגה מלאה ----
+  function renderGallery() {
+    const imgs = (lastMsgs || []).filter((m) => m.image);
+    el.mediaGrid.innerHTML = "";
+    if (!imgs.length) {
+      const e = document.createElement("div"); e.className = "media-empty";
+      e.textContent = "עדיין לא שותפו תמונות בקבוצה.";
+      el.mediaGrid.appendChild(e); return;
+    }
+    imgs.forEach((m) => {
+      const t = document.createElement("div");
+      t.className = "media-thumb";
+      t.style.backgroundImage = "url(" + m.image + ")";
+      t.addEventListener("click", () => openLightbox(m.image));
+      el.mediaGrid.appendChild(t);
+    });
+  }
+  function openLightbox(src) { el.lightboxImg.src = src; el.lightbox.classList.add("open"); }
+  window.closeLightbox = function () { el.lightbox.classList.remove("open"); el.lightboxImg.src = ""; };
 
   // ---- שליחה ----
   window.send = async function () {
@@ -652,6 +713,29 @@
   };
   window.onKey = function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
   window.autoGrow = function (t) { t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 140) + "px"; };
+
+  // ---- שליחת תמונה ----
+  window.pickImage = function () {
+    if (!currentId) return;
+    if (!canWrite()) { toast("אין לך הרשאת כתיבה בקבוצה זו"); return; }
+    el.imgInput.click();
+  };
+  el.imgInput.addEventListener("change", async () => {
+    const f = el.imgInput.files[0]; el.imgInput.value = "";
+    if (!f || !currentId) return;
+    if (!canWrite()) { toast("אין לך הרשאת כתיבה בקבוצה זו"); return; }
+    if (!nick) { const ok = await ensureNick(); if (!ok) return; }
+    const caption = el.input.value.trim();
+    el.attachBtn.disabled = true; toast("שולח תמונה…");
+    try {
+      const image = await compressForMessage(f);
+      await addDoc(collection(db, "groups", currentId, "messages"), {
+        text: caption, image, author: nick, uid, t: Date.now(), ts: serverTimestamp()
+      });
+      el.input.value = ""; autoGrow(el.input);
+    } catch (e) { toast("שליחת התמונה נכשלה"); }
+    el.attachBtn.disabled = false;
+  });
 
   // ---- תפריטים ----
   window.toggleMenu = function (id, e) {
@@ -780,6 +864,7 @@
     el.photoBtn.hidden = !admin;
     renderMembers();
     renderSettings();
+    renderGallery();
   }
 
   function renderMembers() {
@@ -900,22 +985,30 @@
       toast("התמונה עודכנה ✓");
     } catch (e) { toast("עדכון התמונה נכשל"); }
   });
-  function resizeImage(file, max) {
+  function fileToImage(file) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
       const img = new Image();
-      img.onload = () => {
-        let w = img.width, h = img.height;
-        const scale = Math.min(1, max / Math.max(w, h));
-        w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
-        const c = document.createElement("canvas"); c.width = w; c.height = h;
-        c.getContext("2d").drawImage(img, 0, 0, w, h);
-        URL.revokeObjectURL(url);
-        try { resolve(c.toDataURL("image/jpeg", 0.82)); } catch (e) { reject(e); }
-      };
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
       img.src = url;
     });
+  }
+  function drawToDataURL(img, max, q) {
+    let w = img.width, h = img.height;
+    const scale = Math.min(1, max / Math.max(w, h));
+    w = Math.max(1, Math.round(w * scale)); h = Math.max(1, Math.round(h * scale));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    c.getContext("2d").drawImage(img, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", q);
+  }
+  async function resizeImage(file, max) { return drawToDataURL(await fileToImage(file), max, 0.82); }
+  // דחיסת תמונה להודעה — שומר מתחת ל־1MB של Firestore
+  async function compressForMessage(file) {
+    const img = await fileToImage(file);
+    const tries = [[1280, 0.72], [1024, 0.65], [800, 0.6], [640, 0.5]];
+    for (const [m, q] of tries) { const d = drawToDataURL(img, m, q); if (d.length < 900000) return d; }
+    return drawToDataURL(img, 500, 0.5);
   }
 
   // ---- כניסה עם קישור הזמנה (#id) ----
