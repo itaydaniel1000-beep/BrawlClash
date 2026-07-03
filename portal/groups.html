@@ -295,6 +295,7 @@
       <button onclick="changeNick()">👤 שנה את השם שלי</button>
       <button onclick="joinByLink()">🔗 הצטרף לקבוצה עם קישור</button>
       <button onclick="openSync()">🔄 סנכרון בין מכשירים</button>
+      <button id="installBtn" onclick="installApp()" hidden>📲 התקן כאפליקציה</button>
     </div>
     <div class="chat-list" id="chatList"></div>
     <button class="fab" onclick="openNewGroup()" aria-label="קבוצה חדשה">＋</button>
@@ -1112,6 +1113,21 @@
       joinGroup(id);
     }
   }
+
+  // ---- התקנה כאפליקציה (רישום SW + כפתור התקנה) ----
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  let deferredPrompt = null;
+  const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+  if (!standalone) { const b = $("installBtn"); if (b) b.hidden = false; }
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; });
+  window.installApp = async function () {
+    document.querySelectorAll(".menu").forEach((x) => x.classList.remove("open"));
+    if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; return; }
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) toast("באייפון: כפתור שיתוף ⬆️ בסרגל → 'הוסף למסך הבית'");
+    else toast("בדפדפן: תפריט (⋮) → 'התקן אפליקציה', או אייקון ההתקנה בשורת הכתובת");
+  };
+  window.addEventListener("appinstalled", () => { const b = $("installBtn"); if (b) b.hidden = true; });
 
   // ---- אתחול ----
   el.listView.style.display = "flex";
