@@ -277,6 +277,18 @@
     border-radius: 8px; padding: 3px 10px; font-size: .75rem; cursor: pointer; font-family: inherit; margin-inline-start: 6px; }
   #debugPanel .dbg-line { white-space: pre-wrap; word-break: break-word; }
   #debugPanel .dbg-err { color: #ff9a9a; }
+
+  /* באנר התקנה */
+  .install-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    flex-wrap: wrap; margin: 8px 10px 0; padding: 11px 14px; border-radius: 14px;
+    background: linear-gradient(90deg, rgba(108,140,255,.20), rgba(176,108,255,.20));
+    border: 1px solid var(--accent); font-size: .92rem; font-weight: 600; }
+  .install-banner[hidden] { display: none; }
+  .install-banner .ib-btns { display: flex; gap: 8px; flex-shrink: 0; }
+  .install-banner button { background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff;
+    border: none; border-radius: 999px; padding: 8px 18px; font-size: .85rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; }
+  .install-banner button.ghost { background: rgba(255,255,255,.08); border: 1px solid #2c3556; }
 </style>
 </head>
 <body>
@@ -309,6 +321,13 @@
       <button onclick="openSync()">🔄 סנכרון בין מכשירים</button>
       <button id="installBtn" onclick="installApp()" hidden>📲 התקן כאפליקציה</button>
       <button onclick="toggleDebug()">🐞 מצב לוגים (דיבאג)</button>
+    </div>
+    <div id="installBanner" class="install-banner" hidden>
+      <span>📲 אפשר להתקין את האפליקציה על המכשיר</span>
+      <span class="ib-btns">
+        <button onclick="installApp()">התקן</button>
+        <button class="ghost" onclick="dismissInstallBanner()">לא עכשיו</button>
+      </span>
     </div>
     <div class="chat-list" id="chatList"></div>
     <button class="fab" onclick="openNewGroup()" aria-label="קבוצה חדשה">＋</button>
@@ -1182,15 +1201,35 @@
   let deferredPrompt = null;
   const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
   if (!standalone) { const b = $("installBtn"); if (b) b.hidden = false; }
-  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; });
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault(); deferredPrompt = e;
+    dlog("beforeinstallprompt fired — installable");
+    if (!standalone && sessionStorage.getItem("portal_install_dismiss") !== "1") {
+      const banner = $("installBanner"); if (banner) banner.hidden = false;
+    }
+  });
+  window.dismissInstallBanner = function () {
+    sessionStorage.setItem("portal_install_dismiss", "1");
+    const banner = $("installBanner"); if (banner) banner.hidden = true;
+  };
   window.installApp = async function () {
     document.querySelectorAll(".menu").forEach((x) => x.classList.remove("open"));
-    if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; return; }
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const res = await deferredPrompt.userChoice; deferredPrompt = null;
+      dlog("install choice: " + (res && res.outcome));
+      const banner = $("installBanner"); if (banner) banner.hidden = true;
+      return;
+    }
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) toast("באייפון: כפתור שיתוף ⬆️ בסרגל → 'הוסף למסך הבית'");
-    else toast("בדפדפן: תפריט (⋮) → 'התקן אפליקציה', או אייקון ההתקנה בשורת הכתובת");
+    else toast("במחשב (Chrome/Edge): אייקון ההתקנה ⊕ בשורת הכתובת, או תפריט הדפדפן → 'התקנת אפליקציה'");
   };
-  window.addEventListener("appinstalled", () => { const b = $("installBtn"); if (b) b.hidden = true; });
+  window.addEventListener("appinstalled", () => {
+    dlog("appinstalled");
+    const b = $("installBtn"); if (b) b.hidden = true;
+    const banner = $("installBanner"); if (banner) banner.hidden = true;
+  });
 
   // ---- אתחול ----
   dlog("init: uid=" + uid + " nick=" + (nick || "(none)") + " standalone=" + standalone + " hash=" + (location.hash || "(none)"));
