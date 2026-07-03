@@ -461,6 +461,7 @@
   function isAdmin(u) {
     u = u || uid;
     if (!currentGroup) return false;
+    if (isRemoved(u)) return false;
     if (currentGroup.createdBy === u) return true;
     const m = currentGroup.members || {};
     return !!(m[u] && m[u].admin);
@@ -941,7 +942,7 @@
     if (isRmv) { html += '<button onclick="readmitMember()">↩️ החזר לקבוצה</button>'; }
     else {
       if (!isAdm) html += '<button onclick="makeAdmin()">⭐ הפוך למנהל</button>';
-      if (currentGroup.createdBy !== u) html += '<button class="danger" onclick="removeMember()">🗑️ הסר מהקבוצה</button>';
+      html += '<button class="danger" onclick="removeMember()">🗑️ הסר מהקבוצה</button>';
     }
     if (!html) html = '<div class="settings-locked">אין פעולות זמינות למשתתף זה.</div>';
     el.memberSheetActions.innerHTML = html;
