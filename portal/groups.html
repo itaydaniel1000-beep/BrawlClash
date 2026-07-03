@@ -451,6 +451,10 @@
     list.unshift({ id: g.id, name: g.name, emoji: g.emoji });
     saveMyGroups(list);
   }
+  function updateMyGroupMeta(id, name, emoji) {
+    const list = myGroups(); const g = list.find((x) => x.id === id);
+    if (g && (g.name !== name || g.emoji !== emoji)) { g.name = name; g.emoji = emoji; saveMyGroups(list); }
+  }
   function removeMyGroup(id) { saveMyGroups(myGroups().filter((x) => x.id !== id)); }
 
   // ---- מצב ----
@@ -533,6 +537,17 @@
   }
   async function loadPreview(id) {
     try {
+      // רענון שם/אייקון/תמונה של הקבוצה מהשרת (מתקן גם שם זמני "קבוצה")
+      getDoc(doc(db, "groups", id)).then((s) => {
+        if (!s.exists()) return;
+        const d = s.data();
+        updateMyGroupMeta(id, d.name || "קבוצה", d.emoji || "👥");
+        const row = el.chatList.querySelector('[data-open="' + id + '"]');
+        if (row) {
+          const cn = row.querySelector(".cname"); if (cn && d.name) cn.textContent = d.name;
+          const av = row.querySelector(".avatar"); if (av) setAvatar(av, d.emoji || "👥", d.photo);
+        }
+      }).catch(() => {});
       const q = query(collection(db, "groups", id, "messages"), orderBy("t", "desc"), limit(1));
       onSnapshot(q, (snap) => {
         const prevEl = el.chatList.querySelector('[data-prev="' + id + '"]');
@@ -1017,6 +1032,8 @@
     const id = (location.hash || "").replace(/^#/, "").trim();
     if (id && /^[a-f0-9]{16,}$/i.test(id)) {
       history.replaceState(null, "", location.pathname); // ניקוי הקישור
+      addMyGroup({ id, name: "קבוצה", emoji: "👥" }); // זכור את הקבוצה מיד — עוד לפני שם/טעינה
+      renderList();
       if (!nick) await ensureNick();
       joinGroup(id);
     }
