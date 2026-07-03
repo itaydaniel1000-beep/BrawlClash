@@ -4,10 +4,13 @@
   "description": "משחקים, סרטונים ואתרים במקום אחד",
   "lang": "he",
   "dir": "rtl",
+  "id": "./",
   "start_url": "index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
+  "launch_handler": { "client_mode": ["navigate-existing", "auto"] },
+  "handle_links": "preferred",
   "background_color": "#0d0f1a",
   "theme_color": "#0d0f1a",
   "icons": [
