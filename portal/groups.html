@@ -265,6 +265,18 @@
   .code-box button { flex-shrink: 0; background: linear-gradient(90deg, var(--accent), var(--accent2));
     color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-size: .85rem;
     font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* פאנל לוגים */
+  #debugPanel { position: fixed; inset-inline: 0; bottom: 0; z-index: 300; display: none;
+    max-height: 42%; overflow-y: auto; background: rgba(5,7,15,.95); border-top: 2px solid var(--accent);
+    color: #bcffce; font-family: monospace; font-size: .72rem; line-height: 1.5; padding: 8px 10px 14px; }
+  #debugPanel .dbg-head { position: sticky; top: 0; display: flex; justify-content: space-between;
+    background: rgba(5,7,15,.95); color: var(--text); font-family: inherit; font-weight: 700;
+    padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid #2c3556; }
+  #debugPanel .dbg-head button { background: rgba(255,255,255,.1); color: var(--text); border: 1px solid #2c3556;
+    border-radius: 8px; padding: 3px 10px; font-size: .75rem; cursor: pointer; font-family: inherit; margin-inline-start: 6px; }
+  #debugPanel .dbg-line { white-space: pre-wrap; word-break: break-word; }
+  #debugPanel .dbg-err { color: #ff9a9a; }
 </style>
 </head>
 <body>
@@ -296,6 +308,7 @@
       <button onclick="joinByLink()">🔗 הצטרף לקבוצה עם קישור</button>
       <button onclick="openSync()">🔄 סנכרון בין מכשירים</button>
       <button id="installBtn" onclick="installApp()" hidden>📲 התקן כאפליקציה</button>
+      <button onclick="toggleDebug()">🐞 מצב לוגים (דיבאג)</button>
     </div>
     <div class="chat-list" id="chatList"></div>
     <button class="fab" onclick="openNewGroup()" aria-label="קבוצה חדשה">＋</button>
@@ -415,6 +428,9 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- פאנל לוגים (דיבאג) -->
+  <div id="debugPanel" onclick="if(event.target.id==='dbgClear')return;"></div>
+
   <script type="module">
   /* =======================================================================
      ⚙️  הגדרות Firebase — הדבק כאן את הפרטים מה-Firebase Console שלך.
@@ -488,15 +504,19 @@
   // ---- סנכרון רשימת הקבוצות לענן (לפי הקוד האישי = uid) ----
   function userRef() { return doc(db, "users", uid); }
   async function cloudAddGroup(g) {
-    try { await setDoc(userRef(), { groups: { [g.id]: { name: g.name || "קבוצה", emoji: g.emoji || "👥" } } }, { merge: true }); } catch (e) {}
+    try { await setDoc(userRef(), { groups: { [g.id]: { name: g.name || "קבוצה", emoji: g.emoji || "👥" } } }, { merge: true }); dlog("cloudAddGroup ok " + g.id); }
+    catch (e) { derr("cloudAddGroup", e); }
   }
   async function cloudRemoveGroup(id) {
-    try { await updateDoc(userRef(), { ["groups." + id]: deleteField() }); } catch (e) {}
+    try { await updateDoc(userRef(), { ["groups." + id]: deleteField() }); dlog("cloudRemoveGroup ok " + id); }
+    catch (e) { derr("cloudRemoveGroup", e); }
   }
   async function cloudSyncOnLoad() {
     try {
+      dlog("cloudSync start, uid=" + uid);
       const snap = await getDoc(userRef());
       const cloud = (snap.exists() && snap.data().groups) || {};
+      dlog("cloudSync got " + Object.keys(cloud).length + " groups from cloud");
       // ענן → מקומי
       Object.keys(cloud).forEach((id) => {
         if (!myGroups().some((x) => x.id === id)) addMyGroup({ id, name: cloud[id].name || "קבוצה", emoji: cloud[id].emoji || "👥" });
@@ -504,9 +524,10 @@
       // מקומי → ענן (מה שקיים רק מקומית)
       const push = {};
       myGroups().forEach((g) => { if (!cloud[g.id]) push[g.id] = { name: g.name || "קבוצה", emoji: g.emoji || "👥" }; });
-      if (Object.keys(push).length) { try { await setDoc(userRef(), { groups: push }, { merge: true }); } catch (e) {} }
+      if (Object.keys(push).length) { try { await setDoc(userRef(), { groups: push }, { merge: true }); dlog("cloudSync pushed " + Object.keys(push).length + " local groups up"); } catch (e) { derr("cloudSync push", e); } }
       if (!currentId) renderList();
-    } catch (e) {}
+      dlog("cloudSync done, total local=" + myGroups().length);
+    } catch (e) { derr("cloudSync", e); }
   }
 
   // ---- מצב ----
@@ -552,6 +573,39 @@
     clearTimeout(toast._t); toast._t = setTimeout(() => el.toast.classList.remove("show"), 2200);
   }
   function inviteUrl(id) { return location.origin + location.pathname + "#" + id; }
+
+  // ---- לוגים (דיבאג) ----
+  const DEBUG = /[?&]debug=1/.test(location.search) || localStorage.getItem("portal_debug") === "1";
+  function dlog(msg, isErr) {
+    try { console.log("[groups]", msg); } catch (e) {}
+    if (!DEBUG) return;
+    const p = $("debugPanel"); if (!p) return;
+    if (!p._init) {
+      p._init = true;
+      const head = document.createElement("div"); head.className = "dbg-head";
+      head.innerHTML = '<span>🐞 לוגים</span><span><button id="dbgCopy">העתק</button><button id="dbgOff">כבה</button></span>';
+      p.appendChild(head);
+      head.querySelector("#dbgOff").onclick = () => toggleDebug();
+      head.querySelector("#dbgCopy").onclick = () => {
+        const txt = [].slice.call(p.querySelectorAll(".dbg-line")).map((x) => x.textContent).join("\n");
+        if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast("הלוגים הועתקו ✓"), () => {});
+      };
+    }
+    const line = document.createElement("div");
+    line.className = "dbg-line" + (isErr ? " dbg-err" : "");
+    let t = ""; try { t = new Date().toLocaleTimeString("he-IL"); } catch (e) {}
+    line.textContent = t + " · " + msg;
+    p.appendChild(line);
+    p.style.display = "block";
+    p.scrollTop = p.scrollHeight;
+    while (p.childElementCount > 250) p.removeChild(p.querySelector(".dbg-line"));
+  }
+  function derr(label, e) { dlog(label + ": " + (e && (e.code || e.message) || e), true); }
+  window.toggleDebug = function () {
+    const on = localStorage.getItem("portal_debug") === "1";
+    localStorage.setItem("portal_debug", on ? "0" : "1");
+    location.reload();
+  };
 
   // ---- ודא שיש כינוי ----
   function ensureNick() {
@@ -627,21 +681,24 @@
     el.messages.innerHTML = '<div class="empty"><div class="big">⏳</div><div>טוען הודעות…</div></div>';
 
     const ref = doc(db, "groups", id);
+    dlog("openGroup " + id);
     // רישום עצמי כמשתתף (בלי לדרוס דגל מנהל, ובלי להוסיף מחדש אם הוסרת)
     try {
       const pre = await getDoc(ref);
       const removedMe = pre.exists() && pre.data().removed && pre.data().removed[uid];
       if (!removedMe) await updateDoc(ref, { ["members." + uid + ".name"]: nick || "אנונימי", ["members." + uid + ".joinedAt"]: Date.now() });
-    } catch (e) {}
+      dlog("openGroup registered self, exists=" + pre.exists());
+    } catch (e) { derr("openGroup register", e); }
 
     // האזנה למסמך הקבוצה (שם/תמונה/משתתפים/הגדרות) בזמן אמת
     if (unsubGroup) { unsubGroup(); unsubGroup = null; }
     unsubGroup = onSnapshot(ref, (snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) { dlog("group doc missing", true); return; }
       currentGroup = { id, ...snap.data() };
+      dlog("group loaded: " + (currentGroup.name || "?") + " members=" + Object.keys(currentGroup.members || {}).length + " admin=" + isAdmin());
       addMyGroup({ id, name: currentGroup.name || g.name, emoji: currentGroup.emoji || "👥" });
       applyGroup();
-    });
+    }, (e) => derr("group onSnapshot", e));
 
     // האזנה להודעות
     if (unsub) { unsub(); unsub = null; }
@@ -650,6 +707,7 @@
       const msgs = snap.docs.map((d) => ({ _id: d.id, ...d.data() })).filter((m) => m.t);
       renderMessages(msgs);
     }, (err) => {
+      derr("messages onSnapshot", err);
       el.messages.innerHTML = '<div class="empty"><div class="big">⚠️</div><div>שגיאה בטעינה. בדוק חיבור/הרשאות.</div></div>';
     });
     el.input.focus();
@@ -776,7 +834,8 @@
       await addDoc(collection(db, "groups", currentId, "messages"), {
         text, author: nick, uid, t: Date.now(), ts: serverTimestamp()
       });
-    } catch (err) { toast("שליחה נכשלה"); el.input.value = text; }
+      dlog("message sent");
+    } catch (err) { derr("send", err); toast("שליחה נכשלה"); el.input.value = text; }
     el.sendBtn.disabled = false; el.input.focus();
   };
   window.onKey = function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
@@ -864,8 +923,8 @@
           createdAt: serverTimestamp(), writeMode: "all",
           members: { [uid]: { name: nick, admin: true, joinedAt: Date.now() } }
         });
-        addMyGroup(g); cloudAddGroup(g); closeModal(); openGroup(id);
-      } catch (err) { toast("יצירה נכשלה — בדוק הרשאות Firestore"); }
+        addMyGroup(g); cloudAddGroup(g); dlog("group created: " + g.name + " " + id); closeModal(); openGroup(id);
+      } catch (err) { derr("create group", err); toast("יצירה נכשלה — בדוק הרשאות Firestore"); }
     } else if (modalMode === "join") {
       const id = parseInvite(val);
       if (!id) { toast("קישור לא תקין"); return; }
@@ -884,13 +943,15 @@
   async function joinGroup(id) {
     if (!nick) { const ok = await ensureNick(); if (!ok) return; }
     try {
+      dlog("joinGroup getDoc " + id);
       const snap = await getDoc(doc(db, "groups", id));
-      if (!snap.exists()) { toast("הקבוצה לא נמצאה"); return; }
+      if (!snap.exists()) { dlog("joinGroup: group not found", true); toast("הקבוצה לא נמצאה"); return; }
       const d = snap.data();
       const g = { id, name: d.name || "קבוצה", emoji: d.emoji || "👥" };
       addMyGroup(g); cloudAddGroup(g);
+      dlog("joinGroup ok: " + g.name);
       openGroup(id);
-    } catch (err) { toast("הצטרפות נכשלה"); }
+    } catch (err) { derr("joinGroup", err); toast("הצטרפות נכשלה"); }
   }
 
   // ---- פעולות בתפריטים ----
@@ -914,6 +975,7 @@
     if (!code) { el.syncInput.focus(); return; }
     if (code === uid) { toast("זה כבר הקוד שלך"); return; }
     if (!confirm("להתחבר לקוד הזה? הקבוצות משני המכשירים יאוחדו.")) return;
+    dlog("connectSync -> " + code);
     localStorage.setItem("portal_uid", code);
     toast("מסנכרן…");
     setTimeout(() => location.reload(), 400);
@@ -1115,7 +1177,8 @@
   }
 
   // ---- התקנה כאפליקציה (רישום SW + כפתור התקנה) ----
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").then(() => dlog("SW registered")).catch((e) => derr("SW register", e));
+  else dlog("serviceWorker not supported");
   let deferredPrompt = null;
   const standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
   if (!standalone) { const b = $("installBtn"); if (b) b.hidden = false; }
@@ -1130,11 +1193,13 @@
   window.addEventListener("appinstalled", () => { const b = $("installBtn"); if (b) b.hidden = true; });
 
   // ---- אתחול ----
+  dlog("init: uid=" + uid + " nick=" + (nick || "(none)") + " standalone=" + standalone + " hash=" + (location.hash || "(none)"));
   el.listView.style.display = "flex";
   renderList();
   await handleHash();
   cloudSyncOnLoad();
   if (!nick) ensureNick();
+  dlog("init done, local groups=" + myGroups().length);
   </script>
 </body>
 </html>
