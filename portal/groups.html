@@ -256,6 +256,15 @@
     display: none; align-items: center; justify-content: center; padding: 20px; }
   .lightbox.open { display: flex; }
   .lightbox img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+
+  /* תיבת קוד סנכרון */
+  .code-box { display: flex; align-items: center; gap: 8px; background: #11162a; border: 1px solid #2c3556;
+    border-radius: 12px; padding: 10px 12px; }
+  .code-box span { flex: 1; min-width: 0; font-family: monospace; font-size: .95rem; color: #bcd0ff;
+    overflow-wrap: anywhere; word-break: break-all; }
+  .code-box button { flex-shrink: 0; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff; border: none; border-radius: 999px; padding: 7px 14px; font-size: .85rem;
+    font-weight: 700; cursor: pointer; font-family: inherit; }
 </style>
 </head>
 <body>
@@ -285,6 +294,7 @@
     <div class="menu" id="listMenu">
       <button onclick="changeNick()">👤 שנה את השם שלי</button>
       <button onclick="joinByLink()">🔗 הצטרף לקבוצה עם קישור</button>
+      <button onclick="openSync()">🔄 סנכרון בין מכשירים</button>
     </div>
     <div class="chat-list" id="chatList"></div>
     <button class="fab" onclick="openNewGroup()" aria-label="קבוצה חדשה">＋</button>
@@ -379,6 +389,22 @@
     </div>
   </div>
 
+  <!-- חלון סנכרון בין מכשירים -->
+  <div class="overlay" id="syncModal">
+    <div class="modal">
+      <h3>🔄 סנכרון בין מכשירים</h3>
+      <p class="hint">כדי לראות את אותן הקבוצות במכשיר נוסף — פתח שם את הסנכרון והזן את הקוד הזה. שמור עליו כמו על סיסמה.</p>
+      <label>הקוד האישי שלך</label>
+      <div class="code-box"><span id="syncCode">…</span><button onclick="copySync()">העתק</button></div>
+      <label style="margin-top:18px">התחבר לקוד ממכשיר אחר</label>
+      <input type="text" id="syncInput" placeholder="הדבק כאן קוד ממכשיר אחר" onkeydown="if(event.key==='Enter')connectSync()" />
+      <div class="modal-actions" style="margin-top:16px">
+        <button class="btn-primary" onclick="connectSync()">התחבר</button>
+        <button class="btn-ghost" onclick="closeSync()">סגור</button>
+      </div>
+    </div>
+  </div>
+
   <input type="file" id="photoInput" accept="image/*" hidden />
 
   <!-- תצוגת תמונה מלאה -->
@@ -419,7 +445,8 @@
     infoView: $("infoView"), infoAvatar: $("infoAvatar"), infoName: $("infoName"),
     infoStatus: $("infoStatus"), photoBtn: $("photoBtn"), photoInput: $("photoInput"),
     membersList: $("membersList"), settingsCard: $("settingsCard"),
-    memberSheet: $("memberSheet"), memberSheetName: $("memberSheetName"), memberSheetActions: $("memberSheetActions")
+    memberSheet: $("memberSheet"), memberSheetName: $("memberSheetName"), memberSheetActions: $("memberSheetActions"),
+    syncModal: $("syncModal"), syncCode: $("syncCode"), syncInput: $("syncInput")
   };
 
   if (!CONFIGURED) {
@@ -453,9 +480,33 @@
   }
   function updateMyGroupMeta(id, name, emoji) {
     const list = myGroups(); const g = list.find((x) => x.id === id);
-    if (g && (g.name !== name || g.emoji !== emoji)) { g.name = name; g.emoji = emoji; saveMyGroups(list); }
+    if (g && (g.name !== name || g.emoji !== emoji)) { g.name = name; g.emoji = emoji; saveMyGroups(list); cloudAddGroup({ id, name, emoji }); }
   }
   function removeMyGroup(id) { saveMyGroups(myGroups().filter((x) => x.id !== id)); }
+
+  // ---- סנכרון רשימת הקבוצות לענן (לפי הקוד האישי = uid) ----
+  function userRef() { return doc(db, "users", uid); }
+  async function cloudAddGroup(g) {
+    try { await setDoc(userRef(), { groups: { [g.id]: { name: g.name || "קבוצה", emoji: g.emoji || "👥" } } }, { merge: true }); } catch (e) {}
+  }
+  async function cloudRemoveGroup(id) {
+    try { await updateDoc(userRef(), { ["groups." + id]: deleteField() }); } catch (e) {}
+  }
+  async function cloudSyncOnLoad() {
+    try {
+      const snap = await getDoc(userRef());
+      const cloud = (snap.exists() && snap.data().groups) || {};
+      // ענן → מקומי
+      Object.keys(cloud).forEach((id) => {
+        if (!myGroups().some((x) => x.id === id)) addMyGroup({ id, name: cloud[id].name || "קבוצה", emoji: cloud[id].emoji || "👥" });
+      });
+      // מקומי → ענן (מה שקיים רק מקומית)
+      const push = {};
+      myGroups().forEach((g) => { if (!cloud[g.id]) push[g.id] = { name: g.name || "קבוצה", emoji: g.emoji || "👥" }; });
+      if (Object.keys(push).length) { try { await setDoc(userRef(), { groups: push }, { merge: true }); } catch (e) {} }
+      if (!currentId) renderList();
+    } catch (e) {}
+  }
 
   // ---- מצב ----
   let currentId = null, unsub = null, unsubGroup = null, currentGroup = null;
@@ -812,7 +863,7 @@
           createdAt: serverTimestamp(), writeMode: "all",
           members: { [uid]: { name: nick, admin: true, joinedAt: Date.now() } }
         });
-        addMyGroup(g); closeModal(); openGroup(id);
+        addMyGroup(g); cloudAddGroup(g); closeModal(); openGroup(id);
       } catch (err) { toast("יצירה נכשלה — בדוק הרשאות Firestore"); }
     } else if (modalMode === "join") {
       const id = parseInvite(val);
@@ -835,7 +886,8 @@
       const snap = await getDoc(doc(db, "groups", id));
       if (!snap.exists()) { toast("הקבוצה לא נמצאה"); return; }
       const d = snap.data();
-      addMyGroup({ id, name: d.name || "קבוצה", emoji: d.emoji || "👥" });
+      const g = { id, name: d.name || "קבוצה", emoji: d.emoji || "👥" };
+      addMyGroup(g); cloudAddGroup(g);
       openGroup(id);
     } catch (err) { toast("הצטרפות נכשלה"); }
   }
@@ -844,6 +896,27 @@
   window.openNewGroup = async function () { openModal("new"); };
   window.changeNick = function () { openModal("nick"); };
   window.joinByLink = function () { openModal("join"); };
+  window.openSync = function () {
+    document.querySelectorAll(".menu").forEach((x) => x.classList.remove("open"));
+    el.syncCode.textContent = uid;
+    el.syncInput.value = "";
+    el.syncModal.classList.add("open");
+  };
+  window.closeSync = function () { el.syncModal.classList.remove("open"); };
+  el.syncModal.addEventListener("click", (e) => { if (e.target === el.syncModal) closeSync(); });
+  window.copySync = function () {
+    if (navigator.clipboard) navigator.clipboard.writeText(uid).then(() => toast("הקוד הועתק ✓"), () => prompt("העתק את הקוד:", uid));
+    else prompt("העתק את הקוד:", uid);
+  };
+  window.connectSync = function () {
+    const code = (el.syncInput.value || "").trim();
+    if (!code) { el.syncInput.focus(); return; }
+    if (code === uid) { toast("זה כבר הקוד שלך"); return; }
+    if (!confirm("להתחבר לקוד הזה? הקבוצות משני המכשירים יאוחדו.")) return;
+    localStorage.setItem("portal_uid", code);
+    toast("מסנכרן…");
+    setTimeout(() => location.reload(), 400);
+  };
   window.inviteCurrent = function () {
     if (!currentId) return;
     const url = inviteUrl(currentId);
@@ -853,7 +926,7 @@
   window.leaveCurrent = function () {
     if (!currentId) return;
     if (!confirm("לעזוב את הקבוצה? היא תיעלם מהרשימה שלך (ההודעות יישארו לחברים האחרים).")) return;
-    removeMyGroup(currentId); backToList();
+    removeMyGroup(currentId); cloudRemoveGroup(currentId); backToList();
   };
 
   // ---- מסך פרטי הקבוצה ----
@@ -1032,7 +1105,8 @@
     const id = (location.hash || "").replace(/^#/, "").trim();
     if (id && /^[a-f0-9]{16,}$/i.test(id)) {
       history.replaceState(null, "", location.pathname); // ניקוי הקישור
-      addMyGroup({ id, name: "קבוצה", emoji: "👥" }); // זכור את הקבוצה מיד — עוד לפני שם/טעינה
+      const ph = { id, name: "קבוצה", emoji: "👥" };
+      addMyGroup(ph); cloudAddGroup(ph); // זכור את הקבוצה מיד — עוד לפני שם/טעינה
       renderList();
       if (!nick) await ensureNick();
       joinGroup(id);
@@ -1043,6 +1117,7 @@
   el.listView.style.display = "flex";
   renderList();
   await handleHash();
+  cloudSyncOnLoad();
   if (!nick) ensureNick();
   </script>
 </body>
