@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>סוכן AI</title>
+<meta name="theme-color" content="#0d0f1a" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="הפורטל" />
+<style>
+  :root {
+    --bg: #0d0f1a; --card: #1c2238; --card-hover: #232b48;
+    --accent: #6c8cff; --accent2: #b06cff; --text: #eef1ff; --muted: #9aa3c7;
+    --ok: #37d67a; --warn: #ffb454;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Heebo", system-ui, sans-serif;
+    background: radial-gradient(1200px 800px at 80% -10%, #2a2150 0%, transparent 55%),
+                radial-gradient(1000px 700px at 0% 0%, #16314f 0%, transparent 50%), var(--bg);
+    color: var(--text); display: flex; flex-direction: column; min-height: 100dvh;
+  }
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    background: rgba(20,26,46,.9); backdrop-filter: blur(8px);
+    border-bottom: 1px solid #2c3556; position: sticky; top: 0; z-index: 20;
+  }
+  .icon-btn {
+    background: var(--card); border: 1px solid #2c3556; color: var(--text);
+    min-width: 40px; height: 40px; padding: 0 14px; border-radius: 999px;
+    font-size: .9rem; cursor: pointer; transition: all .15s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+  }
+  .icon-btn:hover { border-color: var(--accent); background: var(--card-hover); }
+  .icon-btn[hidden] { display: none; }
+  .topbar .title { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; }
+  .topbar .avatar { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+    font-size: 1.2rem; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .spacer { flex: 1; }
+  .ext-pill { font-size: .72rem; padding: 4px 10px; border-radius: 999px; border: 1px solid #2c3556;
+    color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .ext-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
+  .ext-pill.on .dot { background: var(--ok); }
+
+  main { flex: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: 22px 18px 60px; }
+  .screen { display: none; animation: fade .25s ease; }
+  .screen.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  h1.h { font-size: clamp(1.6rem, 5vw, 2.2rem); font-weight: 800; line-height: 1.2; margin-bottom: 8px; }
+  h1.h .grad { background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: var(--muted); font-size: 1rem; line-height: 1.55; margin-bottom: 24px; }
+
+  .cards { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 460px) { .cards { grid-template-columns: 1fr; } }
+  .choice {
+    background: var(--card); border: 1px solid #262e4d; border-radius: 22px; padding: 26px 20px;
+    text-align: center; cursor: pointer; transition: transform .18s, border-color .18s, background .18s, box-shadow .18s;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .choice:hover { transform: translateY(-6px); border-color: var(--accent); background: var(--card-hover);
+    box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+  .choice .ico { font-size: 3rem; }
+  .choice h3 { font-size: 1.25rem; font-weight: 800; }
+  .choice p { color: var(--muted); font-size: .9rem; line-height: 1.4; }
+
+  .list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .tab-item {
+    display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid #262e4d;
+    border-radius: 16px; padding: 12px 14px; cursor: pointer; transition: all .15s;
+  }
+  .tab-item:hover { border-color: var(--accent); background: var(--card-hover); }
+  .tab-item.sel { border-color: var(--accent); background: var(--card-hover);
+    box-shadow: inset 0 0 0 1px var(--accent); }
+  .tab-item .fav { width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0; background: #11162a;
+    display: grid; place-items: center; font-size: 1rem; overflow: hidden; }
+  .tab-item .fav img { width: 100%; height: 100%; object-fit: contain; }
+  .tab-item .meta { flex: 1; min-width: 0; }
+  .tab-item .t-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tab-item .t-url { color: var(--muted); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tab-item .check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #4a5680; flex-shrink: 0;
+    display: grid; place-items: center; }
+  .tab-item.sel .check { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+  .note { background: rgba(255,180,84,.1); border: 1px solid #5a4a2a; color: #ffd9a3;
+    border-radius: 14px; padding: 12px 16px; font-size: .9rem; line-height: 1.5; margin-bottom: 18px; }
+  .note.info { background: rgba(108,140,255,.1); border-color: #2c3556; color: #bcd0ff; }
+  .note a { color: #fff; font-weight: 700; }
+
+  label.lbl { display: block; color: var(--muted); font-size: .9rem; margin: 4px 4px 8px; }
+  input[type=text], textarea {
+    width: 100%; background: #11162a; color: var(--text); border: 1px solid #2c3556;
+    border-radius: 14px; padding: 14px 16px; font-size: 1rem; font-family: inherit; outline: none;
+  }
+  input[type=text]:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: none; min-height: 96px; line-height: 1.5; }
+
+  .target-chip { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid #2c3556;
+    border-radius: 14px; padding: 10px 14px; margin-bottom: 18px; }
+  .target-chip .fav { width: 26px; height: 26px; border-radius: 7px; background: #11162a; display: grid;
+    place-items: center; overflow: hidden; flex-shrink: 0; }
+  .target-chip .fav img { width: 100%; height: 100%; object-fit: contain; }
+  .target-chip .tt { flex: 1; min-width: 0; }
+  .target-chip .tt .n { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .target-chip .tt .u { color: var(--muted); font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .row { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .btn {
+    flex: 1; min-width: 130px; border: none; border-radius: 999px; padding: 14px 22px; font-size: 1rem;
+    font-weight: 800; cursor: pointer; font-family: inherit; transition: transform .12s, filter .12s;
+    background: linear-gradient(90deg, var(--accent), var(--accent2)); color: #fff;
+  }
+  .btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  .btn:disabled { opacity: .5; cursor: default; transform: none; filter: none; }
+  .btn.ghost { background: rgba(255,255,255,.06); border: 1px solid #2c3556; color: var(--text); flex: 0 0 auto; min-width: 0; }
+
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .empty .big { font-size: 2.6rem; }
+  .spinner { width: 54px; height: 54px; border-radius: 50%; border: 5px solid #2c3556;
+    border-top-color: var(--accent); animation: spin 1s linear infinite; margin: 10px auto 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .run-wrap { text-align: center; padding: 30px 10px; }
+  .run-wrap h2 { font-size: 1.4rem; margin-bottom: 6px; }
+  .run-goal { color: var(--muted); margin-top: 8px; font-size: .95rem; line-height: 1.5; }
+  .log { text-align: start; background: #0b0e19; border: 1px solid #2c3556; border-radius: 14px;
+    padding: 12px 14px; margin-top: 22px; font-family: monospace; font-size: .8rem; color: #bcffce;
+    max-height: 180px; overflow-y: auto; line-height: 1.6; }
+  .big-emoji { font-size: 3.4rem; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="icon-btn" href="index.html" id="homeBtn">→ בית</a>
+    <button class="icon-btn" id="backBtn" hidden onclick="goBack()">→ חזרה</button>
+    <div class="title"><span class="avatar">🤖</span> סוכן AI</div>
+    <span class="spacer"></span>
+    <span class="ext-pill" id="extPill"><span class="dot"></span><span id="extText">בודק תוסף…</span></span>
+  </div>
+
+  <main>
+    <!-- מסך 1: בחירה -->
+    <section class="screen" id="scChoice">
+      <h1 class="h">איפה <span class="grad">המשחק/אתר</span>?</h1>
+      <p class="sub">בחר איפה ה-AI יבצע את המשימה עבורך.</p>
+      <div class="cards">
+        <div class="choice" onclick="chooseMode('browser')">
+          <span class="ico">🌐</span>
+          <h3>דפדפן</h3>
+          <p>אתר או טאב פתוח בדפדפן</p>
+        </div>
+        <div class="choice" onclick="chooseMode('desktop')">
+          <span class="ico">🖥️</span>
+          <h3>משחק על המחשב</h3>
+          <p>תוכנה או משחק שמותקן במחשב</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- מסך 2א: בחירת טאב (דפדפן) -->
+    <section class="screen" id="scTabs">
+      <h1 class="h">בחר <span class="grad">טאב</span></h1>
+      <p class="sub">אלה הדפים הפתוחים בדפדפן שלך:</p>
+      <div id="extMissing" class="note" hidden>
+        ⚠️ לא זוהה התוסף. כדי לראות את הטאבים האמיתיים צריך להתקין את תוסף הדפדפן.
+        <a href="agent-extension/README.txt" target="_blank">איך מתקינים?</a><br>
+        בינתיים אפשר להזין כתובת ידנית למטה.
+      </div>
+      <div class="list" id="tabList"></div>
+      <div id="manualWrap" hidden>
+        <label class="lbl">או הזן כתובת אתר ידנית</label>
+        <input type="text" id="manualUrl" inputmode="url" placeholder="לדוגמה: amazon.com"
+          oninput="onManualUrl()" />
+      </div>
+      <div class="row">
+        <button class="btn" id="tabsNext" disabled onclick="tabsNext()">המשך →</button>
+        <button class="btn ghost" onclick="refreshTabs()">🔄 רענן</button>
+      </div>
+    </section>
+
+    <!-- מסך 2ב: משחק על המחשב -->
+    <section class="screen" id="scDesktop">
+      <h1 class="h">משחק על <span class="grad">המחשב</span></h1>
+      <div class="note">
+        🖥️ זיהוי ושליטה בתוכנות על המחשב דורשים <b>אפליקציית עוזר נייטיב</b> (מחוץ לדפדפן) — זה בפיתוח ויגיע בשלב הבא.
+        בינתיים אפשר להזין את שם התוכנה ולתאר את המשימה, כדי לשמור אותה.
+      </div>
+      <label class="lbl">שם התוכנה / המשחק</label>
+      <input type="text" id="appName" placeholder="לדוגמה: Minecraft, Chrome, Photoshop" oninput="onAppName()" />
+      <div class="row">
+        <button class="btn" id="deskNext" disabled onclick="deskNext()">המשך →</button>
+      </div>
+    </section>
+
+    <!-- מסך 3: מטרה -->
+    <section class="screen" id="scGoal">
+      <h1 class="h">מה ה-AI צריך <span class="grad">לעשות</span>?</h1>
+      <p class="sub">תאר את המשימה במילים שלך.</p>
+      <div class="target-chip" id="targetChip">
+        <span class="fav" id="targetFav">🌐</span>
+        <div class="tt"><div class="n" id="targetName">—</div><div class="u" id="targetUrl"></div></div>
+      </div>
+      <label class="lbl">המטרה</label>
+      <textarea id="goal" placeholder="לדוגמה: תקנה את המוצר הכי זול" oninput="onGoal()"></textarea>
+      <div class="row">
+        <button class="btn" id="sendBtn" disabled onclick="sendTask()">🚀 שלח</button>
+      </div>
+    </section>
+
+    <!-- מסך 4: מבצע -->
+    <section class="screen" id="scRun">
+      <div class="run-wrap">
+        <div class="spinner"></div>
+        <h2>מבצע את המשימה…</h2>
+        <div class="run-goal" id="runGoal"></div>
+        <div class="log" id="runLog"></div>
+      </div>
+    </section>
+
+    <!-- מסך 5: סיום -->
+    <section class="screen" id="scDone">
+      <div class="run-wrap">
+        <div class="big-emoji">✅</div>
+        <h2>המשימה הושלמה</h2>
+        <div class="run-goal" id="doneMsg"></div>
+        <div class="row" style="justify-content:center">
+          <button class="btn" onclick="resetAll()">🏠 חזרה להתחלה</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+    // ---------- Cookies (ניהול State לפי הדרישה) ----------
+    function setCookie(k, v, days) {
+      var d = new Date(); d.setTime(d.getTime() + (days || 7) * 864e5);
+      document.cookie = k + "=" + encodeURIComponent(v) + ";expires=" + d.toUTCString() + ";path=/;SameSite=Lax";
+    }
+    function getCookie(k) {
+      var m = document.cookie.match("(?:^|; )" + k + "=([^;]*)");
+      return m ? decodeURIComponent(m[1]) : null;
+    }
+    function saveState() { setCookie("agent_state", JSON.stringify(state), 7); }
+    function loadState() { try { return JSON.parse(getCookie("agent_state")) || {}; } catch (e) { return {}; } }
+
+    // ---------- State ----------
+    var state = Object.assign({ step: "choice", mode: null, target: null, goal: "" }, loadState());
+    var history = [];
+    var extReady = false;
+    var tabsCache = [];
+
+    var screens = {
+      choice: "scChoice", tabs: "scTabs", desktop: "scDesktop",
+      goal: "scGoal", run: "scRun", done: "scDone"
+    };
+    function $(id) { return document.getElementById(id); }
+
+    function show(step, pushHistory) {
+      if (pushHistory !== false && state.step !== step) history.push(state.step);
+      state.step = step; saveState();
+      Object.keys(screens).forEach(function (k) { $(screens[k]).classList.toggle("active", k === step); });
+      // כפתור חזרה מופיע בכל מסך שאינו הראשון
+      $("backBtn").hidden = (step === "choice" || step === "run");
+      $("homeBtn").hidden = !$("backBtn").hidden ? false : false;
+      window.scrollTo(0, 0);
+    }
+    window.goBack = function () {
+      var prev = history.pop();
+      if (!prev) { show("choice", false); return; }
+      show(prev, false);
+    };
+
+    // ---------- מסך בחירה ----------
+    window.chooseMode = function (mode) {
+      state.mode = mode; state.target = null; state.goal = ""; saveState();
+      if (mode === "browser") { show("tabs"); refreshTabs(); }
+      else show("desktop");
+    };
+
+    // ---------- טאבים (דרך התוסף) ----------
+    function renderTabs(tabs) {
+      tabsCache = tabs || [];
+      var list = $("tabList"); list.innerHTML = "";
+      if (!extReady) {
+        $("extMissing").hidden = false; $("manualWrap").hidden = false;
+        if (!tabs || !tabs.length) return;
+      } else {
+        $("extMissing").hidden = true; $("manualWrap").hidden = true;
+      }
+      if (extReady && (!tabs || !tabs.length)) {
+        var e = document.createElement("div"); e.className = "empty";
+        e.innerHTML = '<div class="big">🗔</div><div>לא נמצאו טאבים פתוחים.</div>';
+        list.appendChild(e); return;
+      }
+      (tabs || []).forEach(function (t) {
+        var el = document.createElement("div");
+        el.className = "tab-item"; el.setAttribute("data-tabid", t.id);
+        var host = ""; try { host = new URL(t.url).hostname; } catch (e) {}
+        el.innerHTML =
+          '<span class="fav">' + (t.favIconUrl ? '<img src="' + t.favIconUrl + '" alt="" onerror="this.remove()" />' : "🌐") + '</span>' +
+          '<span class="meta"><span class="t-title">' + esc(t.title || host || "טאב") + '</span>' +
+          '<span class="t-url">' + esc(host || t.url || "") + '</span></span>' +
+          '<span class="check">✓</span>';
+        el.onclick = function () { selectTab(t); };
+        list.appendChild(el);
+      });
+    }
+    function selectTab(t) {
+      state.target = { kind: "tab", tabId: t.id, name: t.title || t.url, url: t.url, favIconUrl: t.favIconUrl || "" };
+      saveState();
+      [].forEach.call(document.querySelectorAll(".tab-item"), function (n) {
+        n.classList.toggle("sel", n.getAttribute("data-tabid") == t.id);
+      });
+      $("manualUrl").value = "";
+      $("tabsNext").disabled = false;
+    }
+    window.onManualUrl = function () {
+      var v = $("manualUrl").value.trim();
+      [].forEach.call(document.querySelectorAll(".tab-item"), function (n) { n.classList.remove("sel"); });
+      if (v) {
+        var url = /^https?:\/\//i.test(v) ? v : "https://" + v;
+        state.target = { kind: "url", name: v, url: url, favIconUrl: "" }; saveState();
+        $("tabsNext").disabled = false;
+      } else { state.target = null; $("tabsNext").disabled = true; }
+    };
+    window.refreshTabs = function () {
+      requestTabs();                          // מבקש מהתוסף (אין תגובה = אין תוסף)
+      renderTabs(extReady ? tabsCache : []);  // עד שתגיע תשובה — מצב fallback
+    };
+    window.tabsNext = function () { if (state.target) goToGoal(); };
+
+    // ---------- דסקטופ ----------
+    window.onAppName = function () {
+      var v = $("appName").value.trim();
+      $("deskNext").disabled = !v;
+    };
+    window.deskNext = function () {
+      var v = $("appName").value.trim(); if (!v) return;
+      state.target = { kind: "app", name: v, url: "" }; saveState();
+      goToGoal();
+    };
+
+    // ---------- מטרה ----------
+    function goToGoal() {
+      var t = state.target;
+      $("targetFav").innerHTML = t.favIconUrl ? '<img src="' + t.favIconUrl + '" alt="" onerror="this.parentNode.textContent=&quot;🌐&quot;" />' : (t.kind === "app" ? "🖥️" : "🌐");
+      $("targetName").textContent = t.name || "—";
+      var host = ""; try { host = t.url ? new URL(t.url).hostname : ""; } catch (e) {}
+      $("targetUrl").textContent = host || (t.kind === "app" ? "תוכנה על המחשב" : "");
+      $("goal").value = state.goal || "";
+      $("sendBtn").disabled = !$("goal").value.trim();
+      show("goal");
+      setTimeout(function () { $("goal").focus(); }, 60);
+    }
+    window.onGoal = function () {
+      state.goal = $("goal").value; saveState();
+      $("sendBtn").disabled = !state.goal.trim();
+    };
+
+    // ---------- שליחה + הרצה ----------
+    window.sendTask = function () {
+      if (!state.target || !state.goal.trim()) return;
+      show("run");
+      $("runGoal").textContent = "יעד: " + state.target.name + "  ·  מטרה: " + state.goal.trim();
+      var log = $("runLog"); log.innerHTML = "";
+      logLine("שומר את המשימה…");
+      logTaskToCloud();
+
+      if (state.mode === "browser" && state.target.kind === "tab" && extReady) {
+        logLine("עובר לטאב הנבחר…");
+        sendToExt({ type: "RUN_TASK", tabId: state.target.tabId, goal: state.goal.trim() });
+      } else if (state.mode === "browser") {
+        logLine("פותח את האתר: " + (state.target.url || state.target.name));
+      } else {
+        logLine("מכין את התוכנה: " + state.target.name);
+        logLine("(הרצה בפועל תיתמך עם עוזר הדסקטופ — בקרוב)");
+      }
+
+      // שלב 2 (בהמשך): כאן ה-AI (Gemini) ירוץ בלולאה ויבצע את הצעדים.
+      logLine("ה-AI מנתח את המשימה… (הרצה אמיתית — שלב הבא)");
+      setTimeout(function () { logLine("סימולציה: בוצעו הצעדים."); }, 900);
+      setTimeout(function () { finishTask(); }, 2200);
+    };
+    function logLine(msg) {
+      var log = $("runLog"); var d = document.createElement("div");
+      d.textContent = "• " + msg; log.appendChild(d); log.scrollTop = log.scrollHeight;
+    }
+    function finishTask() {
+      $("doneMsg").textContent = '"' + state.goal.trim() + '" — הושלם עבור ' + state.target.name + ".";
+      // מחזירים את המשתמש הביתה: מאפסים את הזרימה
+      if (state.mode === "browser" && state.target && state.target.kind === "tab" && extReady) {
+        sendToExt({ type: "TASK_DONE" }); // התוסף יכול לחזור/לסגור בעתיד
+      }
+      show("done");
+    }
+    window.resetAll = function () {
+      state = { step: "choice", mode: null, target: null, goal: "" };
+      history = []; saveState();
+      $("goal").value = ""; $("manualUrl").value = ""; $("appName").value = "";
+      $("tabsNext").disabled = true; $("deskNext").disabled = true; $("sendBtn").disabled = true;
+      show("choice", false);
+    };
+
+    // ---------- Firebase (שמירת סשן/משימה — best-effort) ----------
+    var db = null;
+    (async function initFirebase() {
+      try {
+        var appMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+        var fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        var cfg = {
+          apiKey: "AIzaSyBdncYVQdassDDKwvx336WYToqdYWCN21s",
+          authDomain: "portal-chat-d7bd3.firebaseapp.com",
+          projectId: "portal-chat-d7bd3",
+          storageBucket: "portal-chat-d7bd3.firebasestorage.app",
+          messagingSenderId: "627638914418",
+          appId: "1:627638914418:web:30a5b4b94ebcc67fe161eb"
+        };
+        var app = appMod.initializeApp(cfg, "agent");
+        db = fs.getFirestore(app);
+        window._fs = fs;
+      } catch (e) { /* לא חוסם */ }
+    })();
+    async function logTaskToCloud() {
+      try {
+        if (!db || !window._fs) return;
+        var uid = getCookie("portal_uid") || "anon";
+        await window._fs.addDoc(window._fs.collection(db, "agent_tasks"), {
+          uid: uid, mode: state.mode, target: state.target ? state.target.name : "",
+          url: state.target ? (state.target.url || "") : "", goal: state.goal.trim(), t: Date.now()
+        });
+      } catch (e) { /* יעבוד אחרי פרסום כלל /agent_tasks — best-effort */ }
+    }
+
+    // ---------- גשר לתוסף (postMessage) ----------
+    function sendToExt(msg) {
+      window.postMessage(Object.assign({ source: "portal-agent" }, msg), "*");
+    }
+    function requestTabs() { sendToExt({ type: "LIST_TABS" }); }
+    window.addEventListener("message", function (ev) {
+      var d = ev.data;
+      if (!d || d.source !== "portal-agent-ext") return;
+      if (d.type === "READY") { extReady = true; setExtPill(true); if (state.step === "tabs") requestTabs(); }
+      else if (d.type === "TABS") { extReady = true; setExtPill(true); renderTabs(d.tabs || []); }
+    });
+    function setExtPill(on) {
+      var p = $("extPill"); p.classList.toggle("on", !!on);
+      $("extText").textContent = on ? "תוסף מחובר" : "תוסף לא מותקן";
+    }
+
+    function esc(s) { return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+    // ---------- אתחול ----------
+    sendToExt({ type: "PING" }); // מזמין את התוסף להכריז על עצמו
+    // אם התוסף לא הודיע "READY" תוך זמן קצר — מציגים מצב "לא מותקן"
+    setTimeout(function () { if (!extReady) setExtPill(false); }, 1200);
+    // מתחילים תמיד ממסך הבחירה (זרימת onboarding נקייה)
+    show("choice", false);
+    // רישום SW (כדי שהדף יהיה חלק מה-PWA)
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
+  })();
+  </script>
+</body>
+</html>

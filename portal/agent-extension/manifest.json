@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Portal AI Agent Connector",
+  "version": "1.0.0",
+  "description": "מחבר את הסוכן שבפורטל אל הטאבים הפתוחים בדפדפן (זיהוי טאבים + מעבר ביניהם).",
+  "permissions": ["tabs"],
+  "host_permissions": [
+    "https://itaydaniel1000-beep.github.io/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://itaydaniel1000-beep.github.io/BrawlClash/portal/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
