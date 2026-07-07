@@ -134,6 +134,18 @@
     padding: 12px 14px; margin-top: 22px; font-family: monospace; font-size: .8rem; color: #bcffce;
     max-height: 180px; overflow-y: auto; line-height: 1.6; }
   .big-emoji { font-size: 3.4rem; margin-bottom: 8px; }
+
+  .keybox { margin-top: 14px; background: var(--card); border: 1px solid #262e4d; border-radius: 14px; padding: 4px 14px; }
+  .keybox summary { cursor: pointer; padding: 10px 0; font-size: .92rem; color: var(--muted); font-weight: 700; }
+  .keybox .keyhint { color: var(--muted); font-size: .82rem; line-height: 1.5; margin: 4px 0 10px; }
+  .keybox .keyhint a { color: #bcd0ff; font-weight: 700; }
+  .keybox input { margin-bottom: 12px; }
+
+  .confirm-box { background: rgba(255,180,84,.12); border: 1px solid #5a4a2a; border-radius: 16px;
+    padding: 16px; margin: 4px 0 6px; }
+  .confirm-box .cq { color: #ffd9a3; font-weight: 700; line-height: 1.5; }
+  .log .warn { color: var(--warn); }
+  .log .err { color: #ff9a9a; }
 </style>
 </head>
 <body>
@@ -209,6 +221,11 @@
       </div>
       <label class="lbl">המטרה</label>
       <textarea id="goal" placeholder="לדוגמה: תקנה את המוצר הכי זול" oninput="onGoal()"></textarea>
+      <details class="keybox" id="keyBox">
+        <summary>⚙️ מפתח Gemini (חד-פעמי, חינם)</summary>
+        <p class="keyhint">כדי שה-AI יבצע בפועל צריך מפתח חינמי. השג אותו ב-<a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> (חינם) והדבק כאן. נשמר רק במכשיר שלך.</p>
+        <input type="text" id="geminiKey" placeholder="מפתח Gemini API (AIza…)" oninput="onKeyInput()" />
+      </details>
       <div class="row">
         <button class="btn" id="sendBtn" disabled onclick="sendTask()">🚀 שלח</button>
       </div>
@@ -220,14 +237,24 @@
         <div class="spinner"></div>
         <h2>מבצע את המשימה…</h2>
         <div class="run-goal" id="runGoal"></div>
+        <div class="confirm-box" id="confirmBox" hidden>
+          <div class="cq" id="confirmQ"></div>
+          <div class="row" style="justify-content:center; margin-top:12px">
+            <button class="btn" onclick="confirmYes()">✓ אשר</button>
+            <button class="btn ghost" onclick="confirmNo()">בטל</button>
+          </div>
+        </div>
         <div class="log" id="runLog"></div>
+        <div class="row" style="justify-content:center">
+          <button class="btn ghost" onclick="cancelRun()">⏹️ עצור</button>
+        </div>
       </div>
     </section>
 
     <!-- מסך 5: סיום -->
     <section class="screen" id="scDone">
       <div class="run-wrap">
-        <div class="big-emoji">✅</div>
+        <div class="big-emoji" id="doneEmoji">✅</div>
         <h2>המשימה הושלמה</h2>
         <div class="run-goal" id="doneMsg"></div>
         <div class="row" style="justify-content:center">
@@ -357,6 +384,7 @@
       var host = ""; try { host = t.url ? new URL(t.url).hostname : ""; } catch (e) {}
       $("targetUrl").textContent = host || (t.kind === "app" ? "תוכנה על המחשב" : "");
       $("goal").value = state.goal || "";
+      $("geminiKey").value = getKey();
       $("sendBtn").disabled = !$("goal").value.trim();
       show("goal");
       setTimeout(function () { $("goal").focus(); }, 60);
@@ -369,39 +397,52 @@
     // ---------- שליחה + הרצה ----------
     window.sendTask = function () {
       if (!state.target || !state.goal.trim()) return;
+      var realRun = (state.mode === "browser" && state.target.kind === "tab" && extReady);
+      if (realRun && !getKey()) {
+        var kb = $("keyBox"); if (kb) kb.open = true;
+        $("geminiKey").focus();
+        alert("כדי שה-AI יבצע בפועל צריך מפתח Gemini חינמי. פתח את '⚙️ מפתח Gemini' והדבק אותו.");
+        return;
+      }
       show("run");
       $("runGoal").textContent = "יעד: " + state.target.name + "  ·  מטרה: " + state.goal.trim();
-      var log = $("runLog"); log.innerHTML = "";
-      logLine("שומר את המשימה…");
+      $("confirmBox").hidden = true;
+      $("runLog").innerHTML = "";
       logTaskToCloud();
 
-      if (state.mode === "browser" && state.target.kind === "tab" && extReady) {
-        logLine("עובר לטאב הנבחר…");
-        sendToExt({ type: "RUN_TASK", tabId: state.target.tabId, goal: state.goal.trim() });
-      } else if (state.mode === "browser") {
-        logLine("פותח את האתר: " + (state.target.url || state.target.name));
-      } else {
-        logLine("מכין את התוכנה: " + state.target.name);
-        logLine("(הרצה בפועל תיתמך עם עוזר הדסקטופ — בקרוב)");
+      if (realRun) {
+        logLine("שולח את המשימה לסוכן…");
+        sendToExt({ type: "RUN_TASK", tabId: state.target.tabId, goal: state.goal.trim(), apiKey: getKey(), model: "gemini-2.0-flash" });
+        return; // ההמשך מגיע דרך הודעות AGENT_* מהתוסף
       }
-
-      // שלב 2 (בהמשך): כאן ה-AI (Gemini) ירוץ בלולאה ויבצע את הצעדים.
-      logLine("ה-AI מנתח את המשימה… (הרצה אמיתית — שלב הבא)");
-      setTimeout(function () { logLine("סימולציה: בוצעו הצעדים."); }, 900);
-      setTimeout(function () { finishTask(); }, 2200);
+      // אין תוסף/טאב אמיתי — לא ניתן להריץ בפועל
+      if (state.mode === "browser") {
+        logLine("אין חיבור לתוסף או שנבחרה כתובת ידנית — לא ניתן להריץ אוטומטית.", "warn");
+        logLine("התקן את התוסף ובחר טאב פתוח כדי שה-AI יבצע בפועל.", "warn");
+      } else {
+        logLine("שליטה בתוכנות על המחשב דורשת עוזר נייטיב — בפיתוח.", "warn");
+      }
+      setTimeout(function () { finishTask("לא בוצע אוטומטית — ראה הערות בלוג.", false); }, 1500);
     };
-    function logLine(msg) {
+    function logLine(msg, kind) {
       var log = $("runLog"); var d = document.createElement("div");
+      if (kind) d.className = kind;
       d.textContent = "• " + msg; log.appendChild(d); log.scrollTop = log.scrollHeight;
     }
-    function finishTask() {
-      $("doneMsg").textContent = '"' + state.goal.trim() + '" — הושלם עבור ' + state.target.name + ".";
-      // מחזירים את המשתמש הביתה: מאפסים את הזרימה
-      if (state.mode === "browser" && state.target && state.target.kind === "tab" && extReady) {
-        sendToExt({ type: "TASK_DONE" }); // התוסף יכול לחזור/לסגור בעתיד
-      }
+    function finishTask(summary, ok) {
+      $("confirmBox").hidden = true;
+      $("doneEmoji").textContent = (ok === false) ? "⚠️" : "✅";
+      $("doneMsg").textContent = summary || ('"' + state.goal.trim() + '" — טופל עבור ' + (state.target ? state.target.name : "") + ".");
       show("done");
     }
+    // אישור/עצירה בזמן ריצה
+    function showConfirm(q) { $("confirmQ").textContent = "⚠️ " + q; $("confirmBox").hidden = false; }
+    window.confirmYes = function () { $("confirmBox").hidden = true; sendToExt({ type: "CONFIRM_RESULT", approved: true }); logLine("אישרת ✓"); };
+    window.confirmNo = function () { $("confirmBox").hidden = true; sendToExt({ type: "CONFIRM_RESULT", approved: false }); logLine("ביטלת ✗", "warn"); };
+    window.cancelRun = function () { sendToExt({ type: "CANCEL_TASK" }); logLine("מבקש לעצור…", "warn"); };
+    // מפתח Gemini (נשמר מקומית)
+    function getKey() { try { return (localStorage.getItem("gemini_key") || "").trim(); } catch (e) { return ""; } }
+    window.onKeyInput = function () { try { localStorage.setItem("gemini_key", $("geminiKey").value.trim()); } catch (e) {} };
     window.resetAll = function () {
       state = { step: "choice", mode: null, target: null, goal: "" };
       history = []; saveState();
@@ -450,6 +491,9 @@
       if (!d || d.source !== "portal-agent-ext") return;
       if (d.type === "READY") { extReady = true; setExtPill(true); if (state.step === "tabs") requestTabs(); }
       else if (d.type === "TABS") { extReady = true; setExtPill(true); renderTabs(d.tabs || []); }
+      else if (d.type === "AGENT_PROGRESS") { logLine(d.msg, d.kind); }
+      else if (d.type === "AGENT_CONFIRM") { showConfirm(d.question); }
+      else if (d.type === "AGENT_DONE") { finishTask(d.summary, d.ok); }
     });
     function setExtPill(on) {
       var p = $("extPill"); p.classList.toggle("on", !!on);
