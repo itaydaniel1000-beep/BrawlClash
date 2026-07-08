@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>BrawlClash — גלריית דמויות</title>
+    <style>
+        body {
+            font-family: 'Assistant', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ecf0f1;
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+        }
+        h1 { text-align: center; font-size: 2rem; margin-bottom: 8px; }
+        h2 { color: #f1c40f; border-bottom: 2px solid #f1c40f; padding-bottom: 6px; margin-top: 32px; }
+        p.intro { text-align: center; color: #bdc3c7; margin-bottom: 30px; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 16px;
+        }
+        .card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.12); }
+        .card img {
+            width: 128px;
+            height: 128px;
+            object-fit: contain;
+            image-rendering: pixelated;
+            background: transparent;
+        }
+        .card .name { font-weight: bold; font-size: 1.05rem; margin-top: 8px; color: #ecf0f1; }
+        .card .id   { font-size: 0.78rem; color: #7f8c8d; font-family: monospace; direction: ltr; }
+        .card a { color: #74b9ff; font-size: 0.78rem; text-decoration: none; display: block; margin-top: 4px; }
+        .card a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>🎮 BrawlClash — כל הדמויות</h1>
+    <p class="intro">30 דמויות: 11 עם פיקסל-ארט מקורי, 19 עם עיגול-אמוג'י. כל אחת ברקע שקוף, לחץ להורדה.</p>
+
+    <h2>🎨 פיקסל-ארט (11)</h2>
+    <div class="grid" id="pixel"></div>
+
+    <h2>🟣 אמוג'י (19)</h2>
+    <div class="grid" id="emoji"></div>
+
+<script>
+const CHARS = {
+    pixel: [
+        ['amber',   'פייר'],   ['bruce',   'גריזון'],  ['scrappy', 'באדי'],
+        ['max',     'טורבו'],  ['penny',   'קווין'],   ['tara',    'מיסטית'],
+        ['pam',     'מאמא'],   ['bull',    'טאורו'],   ['bubble',  'באב'],
+        ['trunk',   'וויין'],  ['spike',   'תורן'],
+    ],
+    emoji: [
+        ['leon',    'סטאלף'],  ['8bit',    'פיקסל'],   ['emz',     'טוקסה'],
+        ['mr-p',    'פורטר'],  ['gigi',    'טווירל'],  ['sirius',  'אקו'],
+        ['rosa',    'ניבר'],   ['bonnie',  'סנייפר'],  ['libi',    'לאלי'],
+        ['barry',   'פרוסטי'], ['icecream','גלידה'],   ['lumi',    'לומן'],
+        ['cake',    'עוגה'],   ['frank',   'הנק'],     ['raps',    'טיק'],
+        ['willow',  'הקס'],    ['gray',    'גייט'],    ['pang',    'קומבו'],
+        ['mo',      'מו'],
+    ],
+};
+for (const [group, list] of Object.entries(CHARS)) {
+    const container = document.getElementById(group);
+    list.forEach(([id, name]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <img src="${id}.png" alt="${name}">
+            <div class="name">${name}</div>
+            <div class="id">${id}</div>
+            <a href="${id}.png" download>💾 הורד PNG</a>
+        `;
+        container.appendChild(card);
+    });
+}
+</script>
+</body>
+</html>
