@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>צל הדרקון — הרפתקת RPG</title>
+<meta name="theme-color" content="#0b0a13" />
+<style>
+  :root{
+    --bg:#0b0a13; --bg2:#141024; --panel:#1b1730; --panel2:#241e40;
+    --ink:#ece7ff; --muted:#a99fce; --line:#352c58;
+    --gold:#ffcf5c; --red:#ff5c6c; --green:#4fdf9a; --blue:#5cc8ff; --purple:#b98bff;
+    --hp:#ff5c6c; --xp:#7c5cff; --mp:#5cc8ff;
+    --shadow:0 10px 40px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,"Noto Sans Hebrew",Arial,sans-serif;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #2a1f4d 0%, transparent 60%),
+      radial-gradient(1000px 500px at -10% 110%, #1a2440 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100dvh; padding:12px;
+    overflow-x:hidden;
+  }
+  .game{
+    width:100%; max-width:720px; background:linear-gradient(180deg,var(--bg2),var(--bg));
+    border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow);
+    overflow:hidden; position:relative;
+  }
+
+  /* ===== HUD ===== */
+  .hud{display:none; padding:14px 16px 6px; border-bottom:1px solid var(--line);
+       background:linear-gradient(180deg,rgba(255,255,255,.03),transparent);}
+  .hud.on{display:block;}
+  .hud-top{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .avatar{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;
+    font-size:26px; background:var(--panel2); border:1px solid var(--line); flex:0 0 auto;}
+  .who{flex:1; min-width:0;}
+  .who .name{font-weight:800; font-size:16px;}
+  .who .cls{font-size:12px; color:var(--muted);}
+  .lvl{background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+    padding:4px 9px; font-size:12px; font-weight:800;}
+  .gold{color:var(--gold); font-weight:800; font-size:13px; white-space:nowrap;}
+  .bars{display:grid; gap:6px;}
+  .bar{display:flex; align-items:center; gap:8px; font-size:11px;}
+  .bar .lab{width:26px; color:var(--muted); font-weight:700;}
+  .track{flex:1; height:12px; background:#0c0a17; border:1px solid var(--line);
+    border-radius:8px; overflow:hidden; position:relative;}
+  .fill{height:100%; width:100%; border-radius:8px; transition:width .45s cubic-bezier(.3,.9,.3,1);}
+  .fill.hp{background:linear-gradient(90deg,#ff3d55,#ff8a5c);}
+  .fill.xp{background:linear-gradient(90deg,#7c5cff,#b98bff);}
+  .fill.mp{background:linear-gradient(90deg,#2f8fff,#5cc8ff);}
+  .bar .val{width:74px; text-align:left; color:var(--muted); font-variant-numeric:tabular-nums;}
+
+  /* ===== Stage ===== */
+  .stage{padding:18px 18px 6px; min-height:230px;}
+  .scene-title{font-size:13px; letter-spacing:.5px; color:var(--gold); font-weight:800;
+    text-transform:uppercase; margin-bottom:8px; display:flex; align-items:center; gap:7px;}
+  .art{font-size:56px; text-align:center; margin:6px 0 12px; filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));
+    line-height:1;}
+  .text{font-size:16px; line-height:1.75; color:var(--ink); min-height:60px; white-space:pre-wrap;}
+  .text .em{color:var(--gold); font-weight:700;}
+  .log-line{color:var(--muted); font-size:13.5px; margin-top:4px;}
+  .log-line.dmg{color:var(--red);} .log-line.heal{color:var(--green);}
+  .log-line.good{color:var(--gold);} .log-line.info{color:var(--blue);}
+
+  /* ===== Choices / buttons ===== */
+  .choices{padding:12px 16px 18px; display:grid; gap:9px;}
+  button.btn{
+    font-family:inherit; font-size:15px; font-weight:700; color:var(--ink);
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:14px; padding:13px 15px;
+    text-align:right; cursor:pointer; transition:transform .08s, border-color .15s, background .15s;
+    display:flex; align-items:center; gap:10px; width:100%;
+  }
+  button.btn:hover{border-color:var(--purple); background:linear-gradient(180deg,#2c2450,var(--panel2));}
+  button.btn:active{transform:scale(.98);}
+  button.btn .ic{font-size:19px; flex:0 0 auto;}
+  button.btn .sub{margin-inline-start:auto; font-size:12px; color:var(--muted); font-weight:600;}
+  button.btn:disabled{opacity:.4; cursor:not-allowed;}
+  button.btn.g{border-color:#3a6b4d;} button.btn.g:hover{border-color:var(--green);}
+  button.btn.r{border-color:#6b3a44;} button.btn.r:hover{border-color:var(--red);}
+  button.btn.gold{border-color:#6b5a2a;} button.btn.gold:hover{border-color:var(--gold);}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:9px;}
+
+  /* ===== Title screen ===== */
+  .center{padding:34px 22px; text-align:center;}
+  .logo{font-size:60px; margin-bottom:4px; filter:drop-shadow(0 8px 20px rgba(185,139,255,.35));}
+  h1.title{font-size:30px; margin:6px 0 2px; font-weight:900;
+    background:linear-gradient(90deg,#ffcf5c,#b98bff,#5cc8ff); -webkit-background-clip:text;
+    background-clip:text; color:transparent;}
+  .tagline{color:var(--muted); font-size:14px; margin-bottom:22px;}
+  .field{margin:0 auto 16px; max-width:340px; text-align:right;}
+  .field label{font-size:13px; color:var(--muted); display:block; margin-bottom:6px; font-weight:700;}
+  input.name{width:100%; font-family:inherit; font-size:16px; color:var(--ink);
+    background:#0c0a17; border:1px solid var(--line); border-radius:12px; padding:12px 14px; text-align:right;}
+  input.name:focus{outline:none; border-color:var(--purple);}
+  .classes{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; max-width:420px; margin:0 auto 20px;}
+  .cls-card{background:var(--panel); border:1.5px solid var(--line); border-radius:16px; padding:14px 8px;
+    cursor:pointer; transition:.15s; text-align:center;}
+  .cls-card:hover{border-color:var(--purple);}
+  .cls-card.sel{border-color:var(--gold); background:var(--panel2); box-shadow:0 0 0 3px rgba(255,207,92,.12);}
+  .cls-card .ce{font-size:34px;}
+  .cls-card .cn{font-weight:800; font-size:14px; margin-top:4px;}
+  .cls-card .cd{font-size:11px; color:var(--muted); margin-top:5px; line-height:1.5;}
+  .big{font-size:17px; padding:15px; justify-content:center;}
+  .foot{padding:10px 16px 16px; text-align:center;}
+  .link{color:var(--muted); font-size:12.5px; cursor:pointer; text-decoration:underline; background:none; border:none; font-family:inherit;}
+  .link:hover{color:var(--ink);}
+
+  .toast{position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-80px);
+    background:var(--panel2); border:1px solid var(--gold); color:var(--gold);
+    padding:9px 16px; border-radius:12px; font-weight:800; font-size:13px; z-index:50;
+    box-shadow:var(--shadow); transition:transform .35s cubic-bezier(.2,1.2,.3,1); pointer-events:none; max-width:90vw; text-align:center;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  .shake{animation:shake .35s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+  .pulse{animation:pulse .5s;}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.12)}100%{transform:scale(1)}}
+  .fadein{animation:fade .4s;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:none}}
+
+  /* enemy combat card */
+  .enemy{background:linear-gradient(180deg,#2a1424,#1b1024); border:1px solid #5a2a44;
+    border-radius:16px; padding:12px 14px; margin-bottom:12px;}
+  .enemy .etop{display:flex; align-items:center; gap:10px;}
+  .enemy .ea{font-size:34px;}
+  .enemy .en{font-weight:800; flex:1;}
+  .enemy .ehp{width:100%; margin-top:8px;}
+  .divider{height:1px; background:var(--line); margin:12px 0;}
+  .hint{font-size:12px; color:var(--muted); text-align:center; padding:2px 16px 12px;}
+  .inv-item{display:flex; align-items:center; gap:8px; font-size:14px; padding:2px 0;}
+  .badge{background:var(--panel2); border:1px solid var(--line); border-radius:8px; padding:1px 7px; font-size:11px; color:var(--muted); margin-inline-start:auto;}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+  <!-- HUD -->
+  <div class="hud" id="hud">
+    <div class="hud-top">
+      <div class="avatar" id="hAvatar">🗡️</div>
+      <div class="who"><div class="name" id="hName">גיבור</div><div class="cls" id="hCls">לוחם</div></div>
+      <div class="lvl">רמה <span id="hLvl">1</span></div>
+      <div class="gold">💰 <span id="hGold">0</span></div>
+    </div>
+    <div class="bars">
+      <div class="bar"><span class="lab">חיים</span><div class="track"><div class="fill hp" id="fHp"></div></div><span class="val" id="vHp">20/20</span></div>
+      <div class="bar" id="mpRow"><span class="lab">מאנה</span><div class="track"><div class="fill mp" id="fMp"></div></div><span class="val" id="vMp">0/0</span></div>
+      <div class="bar"><span class="lab">נסיון</span><div class="track"><div class="fill xp" id="fXp"></div></div><span class="val" id="vXp">0/20</span></div>
+    </div>
+  </div>
+
+  <!-- Main dynamic area -->
+  <div id="view"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   צל הדרקון — RPG טקסטואלי בעברית (קובץ יחיד)
+   ========================================================= */
+
+const $  = s => document.querySelector(s);
+const el = (t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const rnd = (a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const chance = p => Math.random()<p;
+const view = $("#view");
+const SAVE_KEY = "shadow_dragon_save_v1";
+
+/* ---------- Classes ---------- */
+const CLASSES = {
+  warrior:{ name:"לוחם", emoji:"🗡️", hp:34, atk:8, def:3, mp:0,
+    desc:"חזק ועמיד. מכה ראשונה חזקה.",
+    skill:{name:"מכת ברזל", cost:0, cd:3, ic:"💥", desc:"נזק כפול לאויב"} },
+  mage:{ name:"קוסם", emoji:"🪄", hp:22, atk:6, def:1, mp:14,
+    desc:"קסם רב עוצמה, אבל שביר.",
+    skill:{name:"כדור אש", cost:6, cd:0, ic:"🔥", desc:"נזק קסם גדול (עולה מאנה)"} },
+  rogue:{ name:"גנב", emoji:"🗡", hp:26, atk:7, def:2, mp:6,
+    desc:"זריז, סיכוי גבוה למכת מוות.",
+    skill:{name:"דקירת צל", cost:3, cd:2, ic:"🌙", desc:"נזק גבוה + סיכוי קריטי"} },
+};
+
+/* ---------- Player ---------- */
+let P = null;
+function newPlayer(name, clsKey){
+  const c = CLASSES[clsKey];
+  return {
+    name, cls:clsKey, emoji:c.emoji,
+    lvl:1, xp:0, xpNext:20,
+    hp:c.hp, maxHp:c.hp, mp:c.mp, maxMp:c.mp,
+    atk:c.atk, def:c.def, gold:15,
+    inv:{ potion:2, ether:0, elixir:0 },
+    weapon:{name:"חרב מרוטשת", bonus:0}, armor:{name:"בגדי בד", bonus:0},
+    skillCd:0,
+    flags:{}, defeated:0, node:"village",
+    hasKey:false, hasAmulet:false, potionHeal:14,
+  };
+}
+
+/* ---------- Save / Load ---------- */
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(P)); }catch(e){} }
+function load(){ try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function wipe(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+/* ---------- Toast ---------- */
+let toastT;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1800); }
+
+/* ---------- HUD ---------- */
+function refreshHud(){
+  if(!P){ $("#hud").classList.remove("on"); return; }
+  $("#hud").classList.add("on");
+  $("#hAvatar").textContent = P.emoji;
+  $("#hName").textContent = P.name;
+  $("#hCls").textContent = CLASSES[P.cls].name + "  ·  ⚔️" + totalAtk() + "  🛡️" + totalDef();
+  $("#hLvl").textContent = P.lvl;
+  $("#hGold").textContent = P.gold;
+  setBar("#fHp","#vHp", P.hp, P.maxHp);
+  setBar("#fXp","#vXp", P.xp, P.xpNext);
+  const mpRow=$("#mpRow");
+  if(P.maxMp>0){ mpRow.style.display=""; setBar("#fMp","#vMp", P.mp, P.maxMp); }
+  else mpRow.style.display="none";
+}
+function setBar(fill,val,cur,max){ const pct=Math.max(0,Math.min(100, max? cur/max*100:0));
+  $(fill).style.width=pct+"%"; $(val).textContent=Math.max(0,Math.round(cur))+"/"+max; }
+function totalAtk(){ return P.atk + P.weapon.bonus; }
+function totalDef(){ return P.def + P.armor.bonus; }
+
+/* ---------- Screen builder ---------- */
+function screen({scene, art, text, choices, log, danger}){
+  view.innerHTML="";
+  const stage=el("div","stage fadein");
+  if(scene) stage.appendChild(el("div","scene-title", "◆ "+scene));
+  if(art) stage.appendChild(el("div", danger?"art pulse":"art", art));
+  const tx=el("div","text"); stage.appendChild(tx);
+  if(Array.isArray(log)) log.forEach(l=>{ if(l) stage.appendChild(el("div","log-line "+(l.k||""), l.t)); });
+  view.appendChild(stage);
+
+  const box=el("div","choices");
+  view.appendChild(box);
+
+  // typewriter
+  typeOut(tx, text||"", ()=>{
+    (choices||[]).forEach(ch=>{
+      if(!ch) return;
+      const b=el("button","btn "+(ch.cls||""));
+      b.innerHTML = (ch.ic?`<span class="ic">${ch.ic}</span>`:"") +
+                    `<span>${ch.label}</span>` +
+                    (ch.sub?`<span class="sub">${ch.sub}</span>`:"");
+      if(ch.disabled) b.disabled=true;
+      b.onclick=()=>{ if(ch.confirm && !confirm(ch.confirm)) return; ch.go && ch.go(); };
+      box.appendChild(b);
+    });
+  });
+  refreshHud();
+}
+let typeTimer=null;
+function typeOut(node, html, done){
+  clearInterval(typeTimer);
+  // support **bold** -> em
+  const full = html.replace(/\*\*(.+?)\*\*/g,'<span class="em">$1</span>');
+  // fast reveal by characters ignoring tags
+  const parts = full.split(/(<[^>]+>)/); // keep tags
+  let flat=""; node.innerHTML="";
+  const tokens=[];
+  parts.forEach(p=>{ if(p.startsWith("<")) tokens.push({tag:p}); else for(const ch of p) tokens.push({ch}); });
+  let i=0;
+  const step=()=>{
+    if(i>=tokens.length){ clearInterval(typeTimer); done&&done(); return; }
+    const t=tokens[i++]; flat += t.tag||t.ch; node.innerHTML=flat;
+  };
+  typeTimer=setInterval(step, 12);
+  // allow tap to skip
+  view.onclick=(e)=>{ if(e.target.closest("button")) return; clearInterval(typeTimer); node.innerHTML=full; done&&done(); view.onclick=null; };
+}
+
+/* =========================================================
+   TITLE / CREATION
+   ========================================================= */
+function titleScreen(){
+  P=null; refreshHud();
+  const has = load();
+  const c=el("div","center fadein");
+  c.innerHTML=`
+    <div class="logo">🐉</div>
+    <h1 class="title">צל הדרקון</h1>
+    <div class="tagline">הרפתקת RPG טקסטואלית · הכפר זקוק לגיבור</div>`;
+  const box=el("div","choices");
+  if(has){
+    box.appendChild(mkBtn({ic:"▶️",label:`המשך את המסע — ${has.name} (רמה ${has.lvl})`, cls:"gold big",
+      go:()=>{ P=has; refreshHud(); goNode(P.node||"village"); }}));
+  }
+  box.appendChild(mkBtn({ic:"✨",label:"התחל הרפתקה חדשה", cls:"big", go:createScreen}));
+  box.appendChild(mkBtn({ic:"📜",label:"איך משחקים?", cls:"", go:howTo}));
+  c.appendChild(box);
+  view.innerHTML=""; view.appendChild(c);
+}
+function mkBtn(ch){ const b=el("button","btn "+(ch.cls||""));
+  b.innerHTML=(ch.ic?`<span class="ic">${ch.ic}</span>`:"")+`<span>${ch.label}</span>`+(ch.sub?`<span class="sub">${ch.sub}</span>`:"");
+  b.onclick=ch.go; return b; }
+
+function howTo(){
+  screen({ scene:"מדריך", art:"📜",
+    text:"ברוך הבא ל**צל הדרקון**.\n\nאתה בוחר דמות, מסתובב על המפה, מדבר עם דמויות, נלחם במפלצות ואוסף זהב וחפצים. כל קרב הוא **תורות** — אתה תוקף, האויב תוקף.\n\nעל כל ניצחון תקבל **נסיון (XP)** ובעליית רמה החיים והכוח גדלים. המטרה הסופית: להביס את הדרקון ששוכן בטירה.\n\nהמשחק נשמר אוטומטית בדפדפן.",
+    choices:[ {ic:"↩️",label:"חזרה לתפריט", go:titleScreen} ] });
+}
+
+function createScreen(){
+  let chosen="warrior";
+  const c=el("div","center fadein");
+  c.innerHTML=`<div class="logo" style="font-size:44px">⚔️</div>
+    <h1 class="title" style="font-size:24px">יצירת דמות</h1>
+    <div class="tagline">מי תהיה בהרפתקה?</div>`;
+  const field=el("div","field");
+  field.innerHTML=`<label>שם הגיבור</label>`;
+  const inp=el("input","name"); inp.placeholder="הקלד שם..."; inp.maxLength=14; inp.value="";
+  field.appendChild(inp); c.appendChild(field);
+
+  const grid=el("div","classes");
+  Object.entries(CLASSES).forEach(([k,cl])=>{
+    const card=el("div","cls-card"+(k===chosen?" sel":""));
+    card.innerHTML=`<div class="ce">${cl.emoji}</div><div class="cn">${cl.name}</div><div class="cd">${cl.desc}</div>`;
+    card.onclick=()=>{ chosen=k; grid.querySelectorAll(".cls-card").forEach(x=>x.classList.remove("sel")); card.classList.add("sel"); };
+    grid.appendChild(card);
+  });
+  c.appendChild(grid);
+
+  const box=el("div","choices");
+  box.appendChild(mkBtn({ic:"🚀",label:"התחל את ההרפתקה!", cls:"gold big", go:()=>{
+    const nm=(inp.value||"").trim()||"גיבור";
+    P=newPlayer(nm, chosen); save(); refreshHud();
+    intro();
+  }}));
+  box.appendChild(mkBtn({ic:"↩️",label:"חזרה", go:titleScreen}));
+  c.appendChild(box);
+  view.innerHTML=""; view.appendChild(c);
+  setTimeout(()=>inp.focus(),100);
+}
+
+/* =========================================================
+   STORY INTRO
+   ========================================================= */
+function intro(){
+  screen({ scene:"הפרולוג", art:"🌋",
+    text:`במשך דורות שכן שלום בממלכת **אלדריה**. אך לפני שבוע ירד מן ההרים **הדרקון האפל**, שרף שדות וחטף את אור השמש אל תוך הטירה השחורה.\n\nאתה, **${P.name} ${CLASSES[P.cls].name}**, הגעת אל הכפר האחרון שנותר. הזקנים מביטים בך בתקווה.\n\n"רק גיבור אמיתי יוכל לעצור אותו," לוחשת המרפאה. "אך תחילה — התכונן."`,
+    choices:[ {ic:"🏘️",label:"היכנס לכפר", cls:"gold", go:()=>goNode("village")} ] });
+}
+
+/* =========================================================
+   WORLD MAP NODES
+   ========================================================= */
+const NODES = {
+  village: {
+    scene:"הכפר האחרון", art:"🏘️",
+    text:()=>`אתה עומד בכיכר הכפר. עשן עולה מארובות, ילדים מציצים מבעד לחלונות. משם נפתחות הדרכים אל מעבר לחומה.`,
+    choices:()=>[
+      {ic:"🧪",label:"חנות המרפאה", sub:"קניות", cls:"g", go:()=>goNode("shop")},
+      {ic:"🛡️",label:"הנפח", sub:"נשק ושריון", cls:"gold", go:()=>goNode("smith")},
+      {ic:"🛏️",label:"הפונדק — מנוחה", sub:"ריפוי (5💰)", go:rest},
+      {ic:"👵",label:"דברי עם המרפאה", go:()=>goNode("healer")},
+      {ic:"🌲",label:"צא אל היער האפל", cls:"r", go:()=>goNode("forest")},
+      {ic:"🏰",label:"עלה אל הטירה השחורה", sub: ()=>P.hasKey?"":"נעול 🔒", cls:"r", go:()=>goNode("castleGate")},
+    ]
+  },
+
+  healer:{
+    scene:"בית המרפאה", art:"👵",
+    text:()=>{
+      if(!P.flags.talkedHealer){ P.flags.talkedHealer=true; save(); }
+      if(P.hasAmulet) return `"הבאת את **קמע האור**! " עיני המרפאה נוצצות. "עכשיו יש לך סיכוי מול הדרקון. לך — הכפר סומך עליך."`;
+      return `המרפאה מוזגת לך תה. "מעבר ליער נמצאת **המערה הרטובה**, ובתוכה גובלינים שגנבו את **מפתח הטירה**. בלעדיו לא תיכנס.\n\nובעומק היער — אומרים שיש **קמע אור** עתיק, שיכול לפגוע בדרקון. חפש אותו."`;
+    },
+    choices:()=>[
+      {ic:"❓",label:"שאל על הדרקון", go:()=>screen({scene:"בית המרפאה",art:"🐉",
+        text:`"הדרקון האפל אינו סתם חיה," היא ממלמלת. "הוא ניזון מפחד. אל תילחם בו בלב חלש — ובלי **קמע האור** אין לך סיכוי."`,
+        choices:[{ic:"↩️",label:"חזרה",go:()=>goNode("healer")}]})},
+      {ic:"↩️",label:"חזרה לכיכר", go:()=>goNode("village")},
+    ]
+  },
+
+  shop:{
+    scene:"חנות המרפאה", art:"🧪",
+    text:()=>`מדפים עמוסים בבקבוקונים זוהרים. "קנה בחוכמה, הרפתקן."  יש לך **${P.gold}💰**.`,
+    choices:()=>[
+      {ic:"❤️",label:"שיקוי חיים", sub:"8💰 · +"+P.potionHeal+" חיים", cls:"g", go:()=>buy("potion",8)},
+      {ic:"💧",label:"שיקוי מאנה", sub:"10💰 · +10 מאנה", cls:CLASSES[P.cls].mp>0?"":"", disabled:CLASSES[P.cls].mp===0, go:()=>buy("ether",10)},
+      {ic:"🌟",label:"אליקסיר גדול", sub:"22💰 · ריפוי מלא", cls:"gold", go:()=>buy("elixir",22)},
+      {ic:"↩️",label:"חזרה לכיכר", go:()=>goNode("village")},
+    ]
+  },
+
+  smith:{
+    scene:"מפחיית הנפח", art:"⚒️",
+    text:()=>`הנפח מכה בפטיש. "יש לי דברים שיעזרו לך לשרוד. **${P.gold}💰** יש לך."`,
+    choices:()=>[
+      {ic:"🗡️",label:"חרב פלדה", sub:"20💰 · +4 התקפה", cls:"gold", disabled:P.weapon.bonus>=4, go:()=>buyGear("weapon",{name:"חרב פלדה",bonus:4},20)},
+      {ic:"⚔️",label:"להב הדרקון", sub:"55💰 · +9 התקפה", cls:"gold", disabled:P.weapon.bonus>=9, go:()=>buyGear("weapon",{name:"להב הדרקון",bonus:9},55)},
+      {ic:"🛡️",label:"שריון עור", sub:"18💰 · +3 הגנה", cls:"g", disabled:P.armor.bonus>=3, go:()=>buyGear("armor",{name:"שריון עור",bonus:3},18)},
+      {ic:"🛡️",label:"שריון פלדה", sub:"50💰 · +7 הגנה", cls:"g", disabled:P.armor.bonus>=7, go:()=>buyGear("armor",{name:"שריון פלדה",bonus:7},50)},
+      {ic:"↩️",label:"חזרה לכיכר", go:()=>goNode("village")},
+    ]
+  },
+
+  forest:{
+    scene:"היער האפל", art:"🌲",
+    text:()=>`עצים עתיקים חוסמים את השמש. משהו זז בין השיחים. שני שבילים נפתחים לפניך.`,
+    choices:()=>[
+      {ic:"🕳️",label:"רד אל המערה הרטובה", sub: P.hasKey?"נוקתה ✓":"מפתח הטירה", cls:"r", go:()=>goNode("cave")},
+      {ic:"🌿",label:"חדור עמוק אל הסבך", sub: P.hasAmulet?"נמצא ✓":"קמע האור", cls:"r", go:()=>goNode("grove")},
+      {ic:"⚔️",label:"חפש קרב וזהב", go:()=>forestFight()},
+      {ic:"🏘️",label:"חזור לכפר", cls:"g", go:()=>goNode("village")},
+    ]
+  },
+
+  cave:{
+    scene:"המערה הרטובה", art:"🕳️",
+    text:()=>{
+      if(P.hasKey) return `המערה שקטה עכשיו. המים מטפטפים. כבר ניקית את מאורת הגובלינים והשגת את **מפתח הטירה**.`;
+      return `ריח לחות וגופרית. בקצה המנהרה מהבהב אור — מאורת **הגובלינים**. אחד מהם עונד מפתח ברזל חלוד סביב צווארו.`;
+    },
+    choices:()=>P.hasKey?[
+      {ic:"↩️",label:"חזור אל היער", go:()=>goNode("forest")},
+    ]:[
+      {ic:"⚔️",label:"תקוף את מאורת הגובלינים", cls:"r", go:()=>startCombat(makeEnemy("goblinChief"),{ onWin:()=>{ P.hasKey=true; save();
+        screen({scene:"המערה הרטובה",art:"🗝️",text:"הגובלין האחרון נופל. אתה תולש את **מפתח הטירה** מצווארו. השער אל הטירה השחורה פתוח בפניך!",
+          choices:[{ic:"✔️",label:"מצוין",cls:"gold",go:()=>goNode("forest")}]}); },
+        back:()=>goNode("cave") })},
+      {ic:"↩️",label:"נסוג אל היער", cls:"g", go:()=>goNode("forest")},
+    ]
+  },
+
+  grove:{
+    scene:"סבך הקסמים", art:"🌿",
+    text:()=>{
+      if(P.hasAmulet) return `הקרחת זוהרת באור רך. כבר נטלת מכאן את **קמע האור**.`;
+      return `הגעת לקרחת נסתרת. במרכזה, על כן אבן, מרחף **קמע אור** זוהר — אך רוח שומרת עתיקה מתעוררת להגן עליו!`;
+    },
+    choices:()=>P.hasAmulet?[
+      {ic:"↩️",label:"חזור אל היער", go:()=>goNode("forest")},
+    ]:[
+      {ic:"👻",label:"התמודד עם רוח השומרת", cls:"r", go:()=>startCombat(makeEnemy("guardian"),{ onWin:()=>{ P.hasAmulet=true; save();
+        screen({scene:"סבך הקסמים",art:"🔆",text:"הרוח מתפוגגת בברכה. אתה נוטל את **קמע האור** — הוא פועם בחום נגד כף ידך. עכשיו יש לך נשק אמיתי נגד הדרקון!",
+          choices:[{ic:"✨",label:"עוצמה!",cls:"gold",go:()=>goNode("forest")}]}); },
+        back:()=>goNode("grove") })},
+      {ic:"↩️",label:"נסוג", cls:"g", go:()=>goNode("forest")},
+    ]
+  },
+
+  castleGate:{
+    scene:"שער הטירה השחורה", art:"🏰",
+    text:()=>{
+      if(!P.hasKey) return `שער ברזל ענק, אטום ומכוסה קרח שחור. **חסר לך המפתח**. אומרים שהוא במאורת הגובלינים במערה.`;
+      if(!P.hasAmulet) return `המפתח מסתובב בחריקה והשער נפתח. אך רוח קרה לוחשת: "בלי **קמע האור** תישרף לאפר." אולי כדאי למצוא אותו קודם ביער.`;
+      return `השער פתוח. קמע האור פועם על חזך. במעלה המדרגות ממתין **הדרקון האפל**. זהו זה.`;
+    },
+    choices:()=>{
+      if(!P.hasKey) return [{ic:"↩️",label:"חזור לכפר", cls:"g", go:()=>goNode("village")}];
+      const arr=[];
+      arr.push({ic:"🐉",label: P.hasAmulet?"עלה אל אולם הדרקון":"היכנס בכל זאת (מסוכן!)", cls:"r",
+        confirm: P.hasAmulet?null:"בלי קמע האור הדרקון חזק בהרבה. להיכנס בכל זאת?",
+        go:()=>bossIntro()});
+      arr.push({ic:"↩️",label:"חזור לכפר להתכונן", cls:"g", go:()=>goNode("village")});
+      return arr;
+    }
+  },
+};
+
+function goNode(key){
+  P.node=key; save();
+  const n=NODES[key];
+  const text = typeof n.text==="function"? n.text() : n.text;
+  const choices = (typeof n.choices==="function"? n.choices() : n.choices)
+    .map(ch=>ch?{...ch, sub: typeof ch.sub==="function"?ch.sub():ch.sub }:ch);
+  screen({ scene:n.scene, art:n.art, text, choices });
+}
+
+/* ---------- Village services ---------- */
+function rest(){
+  if(P.gold<5){ toast("אין מספיק זהב (5💰)"); return; }
+  P.gold-=5; P.hp=P.maxHp; P.mp=P.maxMp; if(P.skillCd>0)P.skillCd=0; save();
+  screen({scene:"הפונדק",art:"🛏️",text:"אתה ישן שנת ישרים על מיטת קש. עם עלות השחר אתה מתעורר **מלא כוח**. החיים והמאנה התמלאו.",
+    choices:[{ic:"↩️",label:"חזרה לכיכר",cls:"g",go:()=>goNode("village")}]});
+}
+function buy(item, price){
+  if(P.gold<price){ toast("אין מספיק זהב"); return; }
+  P.gold-=price; P.inv[item]=(P.inv[item]||0)+1; save(); toast("נקנה! ✓"); refreshHud(); goNode("shop");
+}
+function buyGear(slot, gear, price){
+  if(P.gold<price){ toast("אין מספיק זהב"); return; }
+  P.gold-=price; P[slot]=gear; save(); toast(gear.name+" מצויד! ✓"); refreshHud(); goNode("smith");
+}
+
+/* ---------- Random forest fight ---------- */
+function forestFight(){
+  const pool=["wolf","goblin","slime","bandit"];
+  const e=makeEnemy(pool[rnd(0,pool.length-1)]);
+  startCombat(e,{ onWin:()=>goNode("forest"), back:()=>goNode("forest") });
+}
+
+/* =========================================================
+   ENEMIES
+   ========================================================= */
+const ENEMIES = {
+  slime:   {name:"סליים ירוק", emoji:"🟢", hp:16, atk:5, xp:8,  gold:[3,7]},
+  wolf:    {name:"זאב פרא",    emoji:"🐺", hp:22, atk:8, xp:12, gold:[4,9]},
+  goblin:  {name:"גובלין",     emoji:"👺", hp:20, atk:7, xp:11, gold:[5,12]},
+  bandit:  {name:"שודד דרכים", emoji:"🥷", hp:28, atk:9, xp:16, gold:[8,18]},
+  goblinChief:{name:"מנהיג הגובלינים", emoji:"👹", hp:42, atk:11, xp:30, gold:[15,25], boss:true},
+  guardian:{name:"רוח השומרת", emoji:"👻", hp:50, atk:12, xp:35, gold:[10,20], boss:true},
+  dragon:  {name:"הדרקון האפל", emoji:"🐉", hp:120, atk:18, xp:0, gold:[0,0], boss:true, final:true},
+};
+function makeEnemy(key){ const b=ENEMIES[key]; return {key, ...b, maxHp:b.hp, hp:b.hp}; }
+
+/* =========================================================
+   COMBAT ENGINE
+   ========================================================= */
+let CB=null; // combat state
+function startCombat(enemy, {onWin, back, boss}={}){
+  CB={ enemy, onWin, back, turn:"player", boss:boss||enemy.boss };
+  renderCombat("**"+enemy.name+"** חוסם את דרכך! (חיים "+enemy.hp+")");
+}
+
+function renderCombat(msg, logLines){
+  const e=CB.enemy;
+  view.innerHTML="";
+  const stage=el("div","stage fadein");
+  stage.appendChild(el("div","scene-title","◆ קרב"));
+
+  const card=el("div","enemy");
+  card.innerHTML=`<div class="etop"><div class="ea">${e.emoji}</div><div class="en">${e.name}</div>
+      <span class="badge">⚔️ ${e.atk}</span></div>
+      <div class="track ehp"><div class="fill hp" id="eHp"></div></div>
+      <div style="text-align:left;font-size:11px;color:var(--muted);margin-top:3px" id="eHpV"></div>`;
+  stage.appendChild(card);
+
+  const tx=el("div","text"); stage.appendChild(tx);
+  if(Array.isArray(logLines)) logLines.forEach(l=>l&&stage.appendChild(el("div","log-line "+(l.k||""),l.t)));
+  view.appendChild(stage);
+
+  // enemy hp bar
+  const pct=Math.max(0,e.hp/e.maxHp*100);
+  view.querySelector("#eHp").style.width=pct+"%";
+  view.querySelector("#eHpV").textContent=Math.max(0,e.hp)+"/"+e.maxHp;
+
+  const box=el("div","choices"); view.appendChild(box);
+  const skill=CLASSES[P.cls].skill;
+  const skillReady = P.skillCd<=0 && P.mp>=skill.cost;
+  const skillSub = P.skillCd>0? "טעינה: "+P.skillCd : (skill.cost>0? skill.cost+" מאנה":"מוכן");
+
+  const row=el("div","row2");
+  row.appendChild(cBtn({ic:"⚔️",label:"התקפה", cls:"", go:()=>playerAttack("attack")}));
+  row.appendChild(cBtn({ic:skill.ic,label:skill.name, sub:skillSub, cls:"gold", disabled:!skillReady, go:()=>playerAttack("skill")}));
+  box.appendChild(row);
+
+  const row2=el("div","row2");
+  row2.appendChild(cBtn({ic:"🧪",label:"שיקוי", sub:"×"+(P.inv.potion||0), cls:"g", disabled:!(P.inv.potion>0), go:()=>useItemCombat("potion")}));
+  row2.appendChild(cBtn({ic:"🏃",label: CB.boss?"בריחה חסומה":"ברח", cls:"r", disabled:CB.boss, go:fleeCombat}));
+  box.appendChild(row2);
+
+  // more items
+  if(P.inv.ether>0 || P.inv.elixir>0){
+    const row3=el("div","row2");
+    if(P.inv.ether>0) row3.appendChild(cBtn({ic:"💧",label:"מאנה",sub:"×"+P.inv.ether,cls:"",go:()=>useItemCombat("ether")}));
+    if(P.inv.elixir>0) row3.appendChild(cBtn({ic:"🌟",label:"אליקסיר",sub:"×"+P.inv.elixir,cls:"gold",go:()=>useItemCombat("elixir")}));
+    box.appendChild(row3);
+  }
+
+  typeOut(tx, msg, null);
+  refreshHud();
+}
+function cBtn(ch){ const b=el("button","btn "+(ch.cls||""));
+  b.innerHTML=`<span class="ic">${ch.ic}</span><span>${ch.label}</span>`+(ch.sub?`<span class="sub">${ch.sub}</span>`:"");
+  if(ch.disabled) b.disabled=true; b.onclick=ch.go; return b; }
+
+function playerAttack(kind){
+  const e=CB.enemy; const skill=CLASSES[P.cls].skill;
+  let dmg, txt, crit=false;
+  if(kind==="skill"){
+    if(P.mp<skill.cost){ toast("אין מספיק מאנה"); return; }
+    P.mp-=skill.cost;
+    if(P.cls==="warrior"){ dmg=totalAtk()*2 + rnd(0,3); txt=`אתה משסף ב**מכת ברזל**!`; P.skillCd=skill.cd; }
+    else if(P.cls==="mage"){ dmg=totalAtk()+rnd(9,15); txt=`**כדור אש** מתפוצץ על ${e.name}!`; }
+    else { crit=chance(0.6); dmg=totalAtk()+rnd(4,8); if(crit)dmg=Math.round(dmg*2); txt=`**דקירת צל**${crit?" — קריטי! 💥":""}`; P.skillCd=skill.cd; }
+  } else {
+    crit=chance(P.cls==="rogue"?0.28:0.15);
+    dmg=totalAtk()+rnd(0,4); if(crit)dmg=Math.round(dmg*1.8);
+    txt=`אתה תוקף${crit?" — מכה קריטית! 💥":""}.`;
+  }
+  e.hp-=dmg;
+  const log=[{t:`➤ ${txt} ${e.name} סופג **${dmg}** נזק.`, k:"dmg"}];
+  if(P.skillCd>0 && kind!=="skill"){} // keep
+  save();
+
+  // shake enemy art region
+  if(e.hp<=0){ return victory(log); }
+  // enemy turn
+  enemyTurn(log);
+}
+
+function enemyTurn(log){
+  const e=CB.enemy;
+  // boss occasionally does heavy attack
+  let raw=e.atk+rnd(0,4);
+  let special="";
+  if(e.boss && chance(0.25)){ raw=Math.round(raw*1.6); special=" (מתקפה אדירה!)"; }
+  let dmg=Math.max(1, raw - totalDef());
+  P.hp-=dmg;
+  log.push({t:`✦ ${e.name} תוקף${special} — אתה סופג **${dmg}** נזק.`, k:"dmg"});
+  if(P.skillCd>0) P.skillCd--;
+  save();
+  if(P.hp<=0){ return defeat(); }
+  renderCombat(`תורך.`, log);
+  const g=$("#game"); g.classList.remove("shake"); void g.offsetWidth; g.classList.add("shake");
+}
+
+function useItemCombat(item){
+  if(!(P.inv[item]>0)){ toast("אין פריט"); return; }
+  P.inv[item]--; let log=[];
+  if(item==="potion"){ const h=P.potionHeal; P.hp=Math.min(P.maxHp,P.hp+h); log=[{t:`🧪 שתית שיקוי — **+${h}** חיים.`,k:"heal"}]; }
+  else if(item==="ether"){ P.mp=Math.min(P.maxMp,P.mp+10); log=[{t:`💧 שיקוי מאנה — **+10** מאנה.`,k:"info"}]; }
+  else if(item==="elixir"){ P.hp=P.maxHp; P.mp=P.maxMp; log=[{t:`🌟 אליקסיר! חיים ומאנה **מלאים**.`,k:"heal"}]; }
+  save();
+  enemyTurn(log); // using item costs a turn
+}
+
+function fleeCombat(){
+  if(CB.boss){ toast("אי אפשר לברוח!"); return; }
+  if(chance(0.6)){
+    screen({scene:"בריחה",art:"🏃",text:"הצלחת להתחמק ולברוח בשלום!",
+      choices:[{ic:"↩️",label:"המשך",cls:"g",go:CB.back||titleScreen}]});
+  } else {
+    const log=[{t:"❌ הבריחה נכשלה!",k:"dmg"}];
+    enemyTurn(log);
+  }
+}
+
+function victory(log){
+  const e=CB.enemy;
+  const gold=e.gold?rnd(e.gold[0],e.gold[1]):0;
+  P.gold+=gold; P.defeated++;
+  if(e.final){ return dragonSlain(); }
+  P.skillCd=0;
+  let leveled=gainXp(e.xp);
+  save();
+  const lines=[...log,
+    {t:`🏆 ניצחת את ${e.name}!`, k:"good"},
+    gold>0?{t:`💰 +${gold} זהב · ⭐ +${e.xp} נסיון`, k:"good"}:null,
+  ];
+  screen({scene:"ניצחון!", art:"🎉", danger:false,
+    text: leveled? `**${e.name}** מובס!\n\n✨ **עלית לרמה ${P.lvl}!** החיים והכוח שלך גדלו.` : `**${e.name}** מובס! אתה נושם עמוק ומנקה את הלהב.`,
+    log:lines,
+    choices:[{ic:"➡️",label:"המשך", cls:"gold", go:CB.onWin||(()=>goNode(P.node))}] });
+  refreshHud();
+}
+function gainXp(amt){
+  P.xp+=amt; let leveled=false;
+  while(P.xp>=P.xpNext){
+    P.xp-=P.xpNext; P.lvl++; leveled=true;
+    P.xpNext=Math.round(P.xpNext*1.5);
+    const c=CLASSES[P.cls];
+    P.maxHp+=8; P.hp=P.maxHp; P.atk+=3; P.def+=1;
+    if(c.mp>0){ P.maxMp+=4; P.mp=P.maxMp; }
+    P.potionHeal+=2;
+  }
+  return leveled;
+}
+
+function defeat(){
+  save();
+  screen({scene:"תבוסה", art:"💀", danger:true,
+    text:"העולם משחיר לנגד עיניך... נפלת בקרב.\n\nאך רוחו של גיבור אינה כלה — המרפאה מוצאת אותך ומשקמת אותך בכפר. איבדת מחצית מזהבך.",
+    choices:[{ic:"🏘️",label:"התעורר בכפר", cls:"g", go:()=>{ P.hp=Math.max(1,Math.round(P.maxHp*0.5)); P.mp=P.maxMp; P.gold=Math.round(P.gold/2); P.skillCd=0; save(); goNode("village"); }}]});
+}
+
+/* =========================================================
+   BOSS: DRAGON
+   ========================================================= */
+function bossIntro(){
+  screen({scene:"אולם הדרקון", art:"🐉", danger:true,
+    text:`אתה נכנס לאולם ענק. עצמות מפוזרות על הרצפה. עשן שחור מיתמר.\n\nמעליך פוקח **הדרקון האפל** עין זוהבת ושואג שאגה שמרעידה את הקירות.\n\n${P.hasAmulet?"**קמע האור** על חזך פורץ באור לבן — הדרקון נרתע! יש לך סיכוי.":"אין עליך את קמע האור... הדרקון חזק פי כמה. זו תהיה מלחמה נואשת."}`,
+    choices:[
+      {ic:"⚔️",label:"הרם את הלהב — הילחם!", cls:"r", go:startDragon},
+      {ic:"🏃",label:"סוג — עדיין לא מוכן", cls:"g", go:()=>goNode("castleGate")},
+    ]});
+}
+function startDragon(){
+  const d=makeEnemy("dragon");
+  if(P.hasAmulet){ d.hp=Math.round(d.hp*0.7); d.maxHp=d.hp; d.atk=Math.round(d.atk*0.7); }
+  startCombat(d,{ boss:true, onWin:dragonSlain, back:()=>goNode("castleGate") });
+}
+function dragonSlain(){
+  P.flags.won=true; save();
+  view.innerHTML="";
+  const c=el("div","center fadein");
+  c.innerHTML=`
+    <div class="logo">🌅</div>
+    <h1 class="title">ניצחון!</h1>
+    <div class="tagline" style="line-height:1.7">הדרקון האפל מתמוטט ומתפוגג לאבק.<br>אור השמש חוזר לזרום אל אלדריה.</div>`;
+  const stage=el("div","stage");
+  stage.appendChild(el("div","text",
+    `הכפר כולו יוצא לרחובות. הזקנים כורעים ברך. הילדים קוראים בשמך: **${P.name}**!\n\nהצלת את הממלכה. סיימת את **צל הדרקון**.\n\n📊 סיכום: רמה ${P.lvl} · ${P.defeated} אויבים הובסו · ${P.gold} זהב.`));
+  c.appendChild(stage);
+  const box=el("div","choices");
+  box.appendChild(mkBtn({ic:"🔁",label:"שחק שוב (הרפתקה חדשה)", cls:"gold big", go:()=>{ wipe(); titleScreen(); }}));
+  box.appendChild(mkBtn({ic:"🗺️",label:"המשך לשוטט בממלכה", cls:"g", go:()=>goNode("village")}));
+  c.appendChild(box);
+  view.appendChild(c);
+  refreshHud();
+  toast("🏆 ניצחת במשחק!");
+}
+
+/* ---------- Menu link (always) ---------- */
+window.addEventListener("keydown",e=>{ if(e.key==="Escape" && P) if(confirm("לחזור לתפריט הראשי? (המשחק נשמר)")){ save(); titleScreen(); } });
+
+/* ---------- Boot ---------- */
+titleScreen();
+</script>
+</body>
+</html>
