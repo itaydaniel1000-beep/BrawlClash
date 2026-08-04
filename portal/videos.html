@@ -42,6 +42,13 @@
   }
   .video-item .meta .ico { font-size: 1.4rem; }
   .video-item .meta h3 { font-size: 1.05rem; font-weight: 700; }
+  .section-label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.15rem; font-weight: 800; color: var(--text);
+    margin: 6px 0 16px;
+  }
+  .section-label .line { flex: 1; height: 1px; background: linear-gradient(90deg, #2c3556, transparent); }
+  .section-block { margin-bottom: 34px; }
 </style>
 </head>
 <body>
@@ -51,11 +58,27 @@
       <span class="title"><span class="emoji">🎬</span> סרטונים</span>
     </div>
 
-    <div class="video-grid" id="grid"></div>
+    <!-- קבוצה חופשית — כולם רואים, בלי קוד -->
+    <div class="section-block">
+      <div class="section-label">🔓 הדרכות (לכולם)<span class="line"></span></div>
+      <div class="video-grid" id="free-grid"></div>
+    </div>
+
+    <!-- קבוצה פרטית — דורש קוד 102 -->
+    <div class="section-block">
+      <div class="section-label">🔒 הסרטונים שלי<span class="line"></span></div>
+      <div class="video-grid" id="grid"></div>
+    </div>
   </div>
 
   <script src="access.js?v=4"></script>
   <script>
+    // סרטונים חופשיים — מוצגים תמיד, בלי קוד גישה
+    const FREE_VIDEOS = [
+      { src: "videos/tutorial-brawl.mp4", title: "איך משחקים ב-PixelArena", ico: "🎓" },
+    ];
+
+    // סרטונים פרטיים — מאחורי קוד 102
     const VIDEOS = [
       { src: "videos/vid1.mp4", title: "סרטון 1" },
       { src: "videos/vid2.mp4", title: "סרטון 2" },
@@ -67,22 +90,27 @@
       { src: "videos/vid8.mp4", title: "סרטון 8" },
     ];
 
-    function renderVideos() {
-      document.getElementById("grid").innerHTML = VIDEOS.map((v) => `
+    function videoCard(v) {
+      return `
         <div class="video-item">
           <video controls preload="metadata" playsinline>
             <source src="${v.src}#t=0.1" type="video/mp4" />
             הדפדפן שלך לא תומך בנגן הווידאו.
           </video>
           <div class="meta">
-            <span class="ico">🎬</span>
+            <span class="ico">${v.ico || "🎬"}</span>
             <h3>${v.title}</h3>
           </div>
-        </div>
-      `).join("");
+        </div>`;
     }
 
-    // נדרש קוד גישה 102 כדי לצפות בסרטונים
+    // חופשי — מיד
+    document.getElementById("free-grid").innerHTML = FREE_VIDEOS.map(videoCard).join("");
+
+    // פרטי — דורש קוד גישה 102
+    function renderVideos() {
+      document.getElementById("grid").innerHTML = VIDEOS.map(videoCard).join("");
+    }
     AccessGate.guard(document.getElementById("grid"), "videos", renderVideos);
   </script>
   <script src="cookies.js?v=4"></script>
