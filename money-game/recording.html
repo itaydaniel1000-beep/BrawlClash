@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="תסריט ההקלטה לסרטון צורך או רצון - 28 שורות לשני קולות.">
+<title>צורך או רצון</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+
+<style>
+  :root {
+    --ground: #f4f6f8;
+    --panel: #ffffff;
+    --panel-sunk: #eceff3;
+    --line: #d9dee5;
+    --line-soft: #e8ecf1;
+    --ink: #171d26;
+    --ink-mid: #4a5563;
+    --ink-soft: #77828f;
+
+    --narrator: #0f6d67;
+    --narrator-wash: #e2efee;
+    --shopper: #a95713;
+    --shopper-wash: #f7ebdd;
+
+    --done: #6b7684;
+
+    --f-display: "Frank Ruhl Libre", "Times New Roman", serif;
+    --f-body: "Assistant", "Segoe UI", system-ui, sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #10151c;
+      --panel: #1a212b;
+      --panel-sunk: #151b24;
+      --line: #2c3644;
+      --line-soft: #232c38;
+      --ink: #eef2f6;
+      --ink-mid: #b3bdc9;
+      --ink-soft: #7f8b99;
+
+      --narrator: #5cc4bb;
+      --narrator-wash: #14302f;
+      --shopper: #e8a15c;
+      --shopper-wash: #332415;
+
+      --done: #6b7684;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #10151c;
+    --panel: #1a212b;
+    --panel-sunk: #151b24;
+    --line: #2c3644;
+    --line-soft: #232c38;
+    --ink: #eef2f6;
+    --ink-mid: #b3bdc9;
+    --ink-soft: #7f8b99;
+
+    --narrator: #5cc4bb;
+    --narrator-wash: #14302f;
+    --shopper: #e8a15c;
+    --shopper-wash: #332415;
+
+    --done: #6b7684;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 17px;
+    line-height: 1.6;
+    direction: rtl;
+  }
+
+  .wrap {
+    width: min(880px, 100%);
+    margin: 0 auto;
+    padding: 40px 20px 90px;
+  }
+
+  /* ---------- head ---------- */
+
+  .masthead { margin-bottom: 34px; }
+
+  .kicker {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    letter-spacing: .16em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+
+  h1 {
+    font-family: var(--f-display);
+    font-weight: 900;
+    font-size: clamp(2.1rem, 6vw, 3.1rem);
+    line-height: 1.1;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 1.06rem;
+    color: var(--ink-mid);
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .fact {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 8px 13px;
+  }
+
+  .fact b {
+    font-family: var(--f-mono);
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .fact span { font-size: .86rem; color: var(--ink-soft); }
+
+  /* ---------- cast ---------- */
+
+  .cast {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 30px 0 12px;
+  }
+
+  .role {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+
+  .role-top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 7px;
+  }
+
+  .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
+  .dot.n { background: var(--narrator); }
+  .dot.s { background: var(--shopper); }
+
+  .role h3 {
+    font-family: var(--f-display);
+    font-weight: 700;
+    font-size: 1.14rem;
+    margin: 0;
+  }
+
+  .role .count {
+    font-family: var(--f-mono);
+    font-size: .82rem;
+    color: var(--ink-soft);
+    margin-inline-start: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .role p { margin: 0; font-size: .93rem; color: var(--ink-mid); }
+
+  /* ---------- rules ---------- */
+
+  .rules {
+    background: var(--panel-sunk);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin: 22px 0 40px;
+  }
+
+  .rules h2 {
+    font-family: var(--f-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+
+  .rules ol { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; }
+  .rules li { font-size: .96rem; color: var(--ink-mid); }
+  .rules li strong { color: var(--ink); }
+
+  code {
+    font-family: var(--f-mono);
+    font-size: .88em;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 6px;
+    direction: ltr;
+    unicode-bidi: isolate;
+    display: inline-block;
+  }
+
+  /* ---------- scenes ---------- */
+
+  .scene { margin-bottom: 38px; }
+
+  .scene-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding-bottom: 9px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 3px;
+  }
+
+  .scene-num {
+    font-family: var(--f-mono);
+    font-size: .95rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+  }
+
+  .scene-head h2 {
+    font-family: var(--f-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .scene-vis {
+    font-size: .87rem;
+    color: var(--ink-soft);
+    margin-inline-start: auto;
+    text-align: start;
+  }
+
+  /* ---------- lines ---------- */
+
+  .line {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    align-items: start;
+    gap: 14px;
+    padding: 16px 14px;
+    border-bottom: 1px solid var(--line-soft);
+    background: transparent;
+    transition: background .15s ease;
+  }
+
+  .line.narrator { background: var(--narrator-wash); }
+  .line.shopper  { background: var(--shopper-wash); }
+
+  .tick {
+    appearance: none;
+    width: 22px; height: 22px;
+    margin: 4px 0 0;
+    border: 2px solid var(--ink-soft);
+    border-radius: 6px;
+    background: var(--panel);
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+  }
+
+  .tick:checked { border-color: var(--narrator); background: var(--narrator); }
+  .tick:checked::after {
+    content: "";
+    width: 11px; height: 6px;
+    border: 2.5px solid var(--panel);
+    border-top: 0; border-inline-end: 0;
+    transform: rotate(-45deg) translateY(-1px);
+  }
+  .tick:focus-visible { outline: 3px solid var(--shopper); outline-offset: 2px; }
+
+  .body { min-width: 0; }
+
+  .speaker {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 7px;
+  }
+
+  .narrator .speaker { color: var(--narrator); border: 1px solid var(--narrator); }
+  .shopper  .speaker { color: var(--shopper);  border: 1px solid var(--shopper); }
+
+  .say {
+    font-size: 1.28rem;
+    font-weight: 600;
+    line-height: 1.45;
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    padding-top: 2px;
+  }
+
+  .file {
+    font-family: var(--f-mono);
+    font-size: .8rem;
+    direction: ltr;
+    unicode-bidi: isolate;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  .secs {
+    font-family: var(--f-mono);
+    font-size: .78rem;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .secs b { color: var(--ink-mid); font-weight: 500; }
+
+  .line:has(.tick:checked) .say { color: var(--done); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .line:has(.tick:checked) { background: transparent; }
+
+  /* ---------- foot ---------- */
+
+  .foot {
+    margin-top: 46px;
+    padding-top: 22px;
+    border-top: 2px solid var(--ink);
+  }
+
+  .foot h2 {
+    font-family: var(--f-display);
+    font-size: 1.2rem;
+    margin: 0 0 10px;
+  }
+
+  .foot p { color: var(--ink-mid); margin: 0 0 10px; max-width: 62ch; }
+
+  @media (max-width: 560px) {
+    .line { grid-template-columns: 26px 1fr; }
+    .meta { grid-column: 2; flex-direction: row; align-items: center; gap: 10px; }
+    .say { font-size: 1.16rem; }
+    .scene-vis { flex-basis: 100%; margin-inline-start: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="kicker">כסף חכם · תסריט הקלטה</p>
+    <h1>צורך או רצון?</h1>
+    <p class="standfirst">
+      28 שורות לשני קולות. סמנו כל שורה אחרי שהקלטתם אותה — הסימון נשמר כל עוד הדף פתוח.
+    </p>
+
+    <div class="facts">
+      <div class="fact"><b>28</b><span>שורות</span></div>
+      <div class="fact"><b>7</b><span>סצנות</span></div>
+      <div class="fact"><b>1:35</b><span>אורך הסרטון</span></div>
+      <div class="fact"><b>2</b><span>מקליטים</span></div>
+    </div>
+  </header>
+
+  <section class="cast">
+    <div class="role">
+      <div class="role-top">
+        <span class="dot n"></span>
+        <h3>הקריין</h3>
+        <span class="count">21 שורות</span>
+      </div>
+      <p>מסביר בשקט ובביטחון. אחד מכם לוקח את <em>כל</em> השורות האלה — אם תתחלקו, הקול יתחלף באמצע.</p>
+    </div>
+    <div class="role">
+      <div class="role-top">
+        <span class="dot s"></span>
+        <h3>הקונה</h3>
+        <span class="count">7 שורות</span>
+      </div>
+      <p>הילד שמתלבט בחנות. מדבר בהתלהבות, קצת מתווכח עם עצמו. זה התפקיד השני.</p>
+    </div>
+  </section>
+
+  <section class="rules">
+    <h2>לפני שמתחילים</h2>
+    <ol>
+      <li><strong>קובץ נפרד לכל שורה</strong> — לא הקלטה אחת ארוכה.</li>
+      <li><strong>פורמט MP3</strong>, ושם הקובץ בדיוק כמו שכתוב. שם לא מדויק פשוט לא יימצא, בלי הודעת שגיאה.</li>
+      <li>שומרים הכול בתיקייה <code>money-game/voice/</code></li>
+      <li>חדר שקט, אותו מרחק מהמיקרופון בכל השורות, בלי מוזיקה ברקע.</li>
+      <li><strong>"עד"</strong> הוא הזמן עד שהשורה הבאה מתחילה. אל תילחצו — תקליטו טבעי, ואני אתאים את הסרטון לאורך שיצא לכם.</li>
+    </ol>
+  </section>
+
+  <div id="scenes"></div>
+
+  <footer class="foot">
+    <h2>כשמסיימים</h2>
+    <p>תגידו לי, ואני מחבר את ההקלטות לסרטון, מודד את האורך של כל אחת ומתזמן מחדש את מה שצריך.</p>
+    <p>אחר כך נעבור לסרטון הבא — נשארו עוד שמונה.</p>
+  </footer>
+
+</div>
+
+<script>
+  const SCENES = [
+    { title: "הפתיחה", vis: "אדם עומד בין תפוח לנעל, סימן שאלה גדול", lines: [
+      ["needs-wants-01","narrator","כל יום אנחנו מחליטים על מה להוציא כסף.",2.9,3.3],
+      ["needs-wants-02","narrator","ויש שאלה אחת שעוזרת בכל החלטה כזאת.",2.6,3.1],
+      ["needs-wants-03","narrator","וההבדל בין שתי התשובות שווה הרבה כסף.",2.8,3.2],
+      ["needs-wants-04","shopper","רגע. אני חייב את זה, או שאני רק רוצה?",2.8,4.4]
+    ]},
+    { title: "מה זה צורך", vis: "תפוח, גבינה ובית על רקע ירוק", lines: [
+      ["needs-wants-05","narrator","צורך הוא משהו שאנחנו חייבים כדי לחיות.",2.9,3.3],
+      ["needs-wants-06","narrator","אוכל, מים, בגדים וקורת גג.",2.0,2.4],
+      ["needs-wants-07","narrator","בלי אלה פשוט אי אפשר להסתדר.",2.1,2.6],
+      ["needs-wants-08","shopper","אוקיי, את אלה אני באמת צריך.",2.1,3.7]
+    ]},
+    { title: "מה זה רצון", vis: "נעל, אופניים ותווית מחיר על רקע סגול", lines: [
+      ["needs-wants-09","narrator","רצון הוא משהו שנעים שיהיה לנו, אבל אפשר גם בלי.",3.5,4.0],
+      ["needs-wants-10","narrator","צעצוע חדש, ממתק, או נעליים יפות יותר.",2.8,3.2],
+      ["needs-wants-11","narrator","וזה בסדר גמור לרצות דברים כאלה.",2.3,2.8],
+      ["needs-wants-12","shopper","אבל אני ממש רוצה את האופניים האלה!",2.6,4.0]
+    ]},
+    { title: "בחנות", vis: "עגלת קניות, תוויות מחיר, אדם מתלבט", lines: [
+      ["needs-wants-13","narrator","בחנות זה מתערבב. הכול נראה כמו משהו שאנחנו חייבים.",3.8,4.2],
+      ["needs-wants-14","narrator","אז לפני שקונים, עוצרים ושואלים.",2.3,2.8],
+      ["needs-wants-15","narrator","השלטים והמוזיקה בנויים בדיוק בשביל זה.",2.9,3.3],
+      ["needs-wants-16","shopper","פתאום הכול נראה לי חשוב.",1.8,3.7]
+    ]},
+    { title: "הטריק של יום אחד", vis: "שעון גדול שהמחוגים שלו מסתובבים", lines: [
+      ["needs-wants-17","narrator","יש טריק פשוט: מחכים יום אחד.",2.1,2.6],
+      ["needs-wants-18","narrator","אם למחרת עדיין רוצים את זה, כנראה באמת התכוונו.",3.5,3.9],
+      ["needs-wants-19","narrator","רוב הפעמים מגלים שכבר לא כל כך רצינו.",2.8,3.3],
+      ["needs-wants-20","shopper","טוב. אני מחכה יום אחד ונראה.",2.1,4.2]
+    ]},
+    { title: "הסדר הנכון", vis: "שתי צנצנות שמתמלאות אחת אחרי השנייה", lines: [
+      ["needs-wants-21","narrator","קודם מכסים את הצרכים, ורק אחר כך את הרצונות.",3.3,3.8],
+      ["needs-wants-22","narrator","ככה אף פעם לא נשארים בלי מה שחשוב באמת.",2.9,3.3],
+      ["needs-wants-23","narrator","והחיסכון לא נשאר אחרון בתור.",2.1,2.6],
+      ["needs-wants-24","shopper","קודם מה שחייבים, ואז הכיף.",2.0,3.3]
+    ]},
+    { title: "הסיום", vis: "שקיעה, הדמות מרימה ידיים, סימן וי", lines: [
+      ["needs-wants-25","narrator","שני הסוגים בסדר גמור. מותר גם ליהנות.",2.8,3.2],
+      ["needs-wants-26","narrator","העיקר לדעת מה זה מה, לפני שמוציאים.",2.6,3.1],
+      ["needs-wants-27","narrator","וזו כל התשובה: לא לוותר, רק לדעת.",2.5,2.9],
+      ["needs-wants-28","shopper","עכשיו אני יודע מה לשאול לפני שאני קונה!",2.9,4.3]
+    ]}
+  ];
+
+  const LABEL = { narrator: "קריין", shopper: "הקונה" };
+
+  document.getElementById("scenes").innerHTML = SCENES.map((sc, i) => `
+    <section class="scene">
+      <div class="scene-head">
+        <span class="scene-num">${String(i + 1).padStart(2, "0")}</span>
+        <h2>${sc.title}</h2>
+        <span class="scene-vis">${sc.vis}</span>
+      </div>
+      ${sc.lines.map(([id, who, text, target, room]) => `
+        <div class="line ${who}">
+          <input class="tick" type="checkbox" id="${id}" aria-label="סמן ש-${id} הוקלט">
+          <div class="body">
+            <span class="speaker">${LABEL[who]}</span>
+            <p class="say">${text}</p>
+          </div>
+          <div class="meta">
+            <span class="file">${id}.mp3</span>
+            <span class="secs">יעד <b>${target.toFixed(1)}</b> · עד <b>${room.toFixed(1)}</b></span>
+          </div>
+        </div>
+      `).join("")}
+    </section>
+  `).join("");
+</script>
+</body>
+</html>

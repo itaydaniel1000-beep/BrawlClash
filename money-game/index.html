@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>כסף חכם - חינוך פיננסי</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">₪</span>
+      <div>
+        <h1>כסף חכם</h1>
+        <small>לומדים לנהל את העתיד</small>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <button class="download-button" onclick="downloadGame()">⬇ הורדת המשחק</button>
+      <button class="home-button" onclick="showScreen('home')">⌂ מסך ראשי</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="screen active">
+      <div class="hero">
+        <div>
+          <span class="eyebrow">חינוך פיננסי בגובה העיניים</span>
+          <h2>הדרך שלך לעצמאות כלכלית מתחילה כאן</h2>
+          <p>למדו איך לנהל כסף, לחסוך, להשקיע ולקבל החלטות פיננסיות חכמות.</p>
+        </div>
+        <div class="hero-illustration">📈</div>
+      </div>
+
+      <div class="daily-tip">
+        <span>💡</span>
+        <div>
+          <strong>טיפ יומי</strong>
+          <p id="homeTip"></p>
+        </div>
+      </div>
+
+      <div class="choice-grid">
+        <button class="choice-card videos-choice" onclick="showScreen('videos')">
+          <span class="choice-icon">🎬</span>
+          <h3>סרטונים</h3>
+          <p>צפו בשיעורים מונפשים עם ינשוף ומובי.</p>
+          <span class="card-link">לצפייה בסרטונים ←</span>
+        </button>
+
+        <button class="choice-card quiz-choice" onclick="showScreen('quiz')">
+          <span class="choice-icon">🧠</span>
+          <h3>חידון</h3>
+          <p>בדקו את הידע שלכם וגלו כמה אתם יודעים על כסף.</p>
+          <span class="card-link">התחילו את החידון ←</span>
+        </button>
+
+        <button class="choice-card lesson-choice" onclick="showScreen('lesson')">
+          <span class="choice-icon">📚</span>
+          <h3>שיעור יומי</h3>
+          <p>רעיון פיננסי חדש בכל יום, עם משימה קצרה לתרגול.</p>
+          <span class="card-link">לשיעור היומי ←</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="videos" class="screen">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">ספריית שיעורים מונפשים</span>
+          <h2>בחרו סרטון לצפייה</h2>
+          <p>לחצו על אחד השיעורים כדי לפתוח אנימציה בנושא שבחרתם.</p>
+        </div>
+        <button class="back-button" onclick="showScreen('home')">חזרה</button>
+      </div>
+
+      <div class="filters">
+        <button class="filter active" data-filter="all">הכול</button>
+        <button class="filter" data-filter="basics">יסודות</button>
+        <button class="filter" data-filter="saving">חיסכון</button>
+        <button class="filter" data-filter="investing">השקעות</button>
+        <button class="filter" data-filter="smart">צרכנות חכמה</button>
+      </div>
+
+      <div id="videoGrid" class="video-grid"></div>
+    </section>
+
+    <section id="videoPlayer" class="screen">
+      <button class="back-button" onclick="showScreen('videos')">← חזרה לסרטונים</button>
+
+      <div class="player-layout">
+        <div id="movieStage" class="animation-stage hidden">
+          <div class="stage-title">🎬 סרטון אנימציה</div>
+          <div class="movie-frame">
+            <canvas id="movieCanvas" width="960" height="540"></canvas>
+          </div>
+          <div class="movie-bar" onclick="seekMovie(event)">
+            <span id="movieProgress"></span>
+          </div>
+          <div class="animation-controls">
+            <button id="movieToggle" class="primary-button" onclick="toggleMovie()">▶ הפעלה</button>
+            <button class="back-button" onclick="restartMovie()">🔄 מהתחלה</button>
+            <button id="movieVoice" class="back-button" onclick="toggleVoice()">🔊 קול פועל</button>
+            <span id="movieTime">0:00 / 0:00</span>
+          </div>
+        </div>
+
+        <div id="dialogueStage" class="animation-stage">
+          <div class="stage-title">🎬 השיעור המונפש של ינשוף ומובי</div>
+
+          <div class="characters">
+            <div class="character owl">
+              <div id="owlSpeech" class="speech">לחצו על הפעלה כדי להתחיל</div>
+              <div class="character-face">🦉</div>
+              <strong>ינשוף</strong>
+            </div>
+
+            <div class="character mobi">
+              <div id="mobiSpeech" class="speech">אני מוכן ללמוד!</div>
+              <div class="character-face">🐭</div>
+              <strong>מובי</strong>
+            </div>
+          </div>
+
+          <div class="animation-controls">
+            <button class="primary-button" onclick="playAnimation()">▶ הפעלת הסרטון</button>
+            <button class="back-button" onclick="stopAnimation()">⏹ עצירה</button>
+            <button id="voiceToggle" class="back-button" onclick="toggleVoice()">🔊 קול פועל</button>
+            <span id="animationStatus">השיעור מוכן להפעלה</span>
+          </div>
+          <p id="voiceNote" class="voice-note hidden"></p>
+        </div>
+
+        <div class="player-info">
+          <span id="playerCategory" class="tag"></span>
+          <h2 id="playerTitle"></h2>
+          <p id="playerDescription"></p>
+
+          <div class="lesson-note">
+            ✏️ בזמן הצפייה חשבו איך הנושא קשור לחיים שלכם.
+          </div>
+
+          <div class="sources">
+            <strong>למידע נוסף:</strong>
+            <a id="wikiLink" href="#" target="_blank" rel="noopener">ויקיפדיה</a>
+            <a id="googleLink" href="#" target="_blank" rel="noopener">חיפוש Google</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="quiz" class="screen">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">בדיקת ידע</span>
+          <h2>חידון הכסף החכם</h2>
+          <p id="questionProgress"></p>
+        </div>
+        <button class="back-button" onclick="showScreen('home')">חזרה</button>
+      </div>
+
+      <div id="quizBox" class="quiz-box">
+        <div class="progress-bar"><span id="progress"></span></div>
+        <h3 id="questionText"></h3>
+        <div id="answers" class="answers"></div>
+        <button id="nextQuestion" class="primary-button" onclick="nextQuestion()" disabled>השאלה הבאה</button>
+      </div>
+
+      <div id="quizResult" class="result-box hidden">
+        <div class="result-icon">🏆</div>
+        <h2>סיימתם את החידון!</h2>
+        <p id="scoreText"></p>
+        <button class="primary-button" onclick="startQuiz()">נסו שוב</button>
+      </div>
+    </section>
+
+    <section id="lesson" class="screen">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">לומדים כל יום</span>
+          <h2>השיעור היומי</h2>
+          <p>כמה דקות ביום יכולות לשנות את הדרך שבה אתם מנהלים כסף.</p>
+        </div>
+        <button class="back-button" onclick="showScreen('home')">חזרה</button>
+      </div>
+
+      <article class="lesson-card">
+        <div class="lesson-number">01</div>
+        <div>
+          <span class="tag">נושא היום: תקציב</span>
+          <h2>לתת לכל שקל תפקיד</h2>
+          <p>
+            תקציב הוא תכנית פשוטה שמראה כמה כסף נכנס וכמה כסף יוצא.
+            כשאנחנו יודעים לאן הכסף הולך, קל יותר לשלוט בהוצאות ולהגיע למטרות שלנו.
+          </p>
+          <h3>איך מתחילים?</h3>
+          <ol>
+            <li>רשמו את כל ההכנסות החודשיות.</li>
+            <li>רשמו את ההוצאות הקבועות והמשתנות.</li>
+            <li>הגדירו סכום קבוע לחיסכון.</li>
+            <li>בדקו פעם בשבוע אם אתם עומדים בתכנית.</li>
+          </ol>
+          <div class="task">
+            <strong>🎯 משימת היום:</strong>
+            כתבו שלוש הוצאות שהיו לכם השבוע וסמנו ליד כל אחת: צורך או רצון.
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
+  </footer>
+
+  <script src="movie.js"></script>
+  <script src="movies.js"></script>
+  <script src="script.js"></script>
+
+  <script>
+    async function downloadGame() {
+      const button = document.querySelector(".download-button");
+      const originalText = button.textContent;
+
+      try {
+        button.disabled = true;
+        button.textContent = "⏳ מכין את הקובץ...";
+
+        // נאספים כל הסקריפטים לפי הסדר שבו הם מופיעים בדף,
+        // כדי שקובץ חדש שנוסיף בעתיד ייכנס להורדה מעצמו
+        const scriptFiles = [...document.querySelectorAll("script[src]")]
+          .map(tag => tag.getAttribute("src"));
+
+        const [stylesResponse, ...scriptResponses] = await Promise.all([
+          fetch("styles.css"),
+          ...scriptFiles.map(file => fetch(file))
+        ]);
+
+        if (!stylesResponse.ok || scriptResponses.some(response => !response.ok)) {
+          throw new Error("לא ניתן לקרוא את קבצי המשחק");
+        }
+
+        const styles = await stylesResponse.text();
+        const scripts = await Promise.all(scriptResponses.map(response => response.text()));
+
+        const copy = document.documentElement.cloneNode(true);
+
+        copy.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
+        copy.querySelectorAll("script[src]").forEach(scriptTag => scriptTag.remove());
+
+        const styleTag = document.createElement("style");
+        styleTag.textContent = styles;
+        copy.querySelector("head").appendChild(styleTag);
+
+        scripts.forEach(source => {
+          const scriptTag = document.createElement("script");
+          scriptTag.textContent = source;
+          copy.querySelector("body").appendChild(scriptTag);
+        });
+
+        const html = "<!DOCTYPE html>\n" + copy.outerHTML;
+        const blob = new Blob([html], {type: "text/html;charset=utf-8"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download = "kesef-hacham.html";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        alert("אירעה שגיאה בהורדת המשחק. נסו שוב.");
+        console.error(error);
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    }
+  </script>
+</body>
+</html>
