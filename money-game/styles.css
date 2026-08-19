@@ -850,6 +850,155 @@ main {
   display: none !important;
 }
 
+
+/* ===== מסע הגיבור ===== */
+
+.quest {
+  display: grid;
+  gap: 16px;
+}
+
+.quest-hud {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.quest-map {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.quest-map .node {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d5dbe4;
+  border: 2px solid #b9c2ce;
+  flex: none;
+}
+
+.quest-map .node.done {
+  background: var(--brand);
+  border-color: var(--brand-strong);
+}
+
+.quest-map .node.here {
+  background: var(--accent);
+  border-color: #c98a12;
+  box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.25);
+}
+
+.quest-map .link {
+  flex: 1;
+  height: 3px;
+  background: #dfe4eb;
+  border-radius: 2px;
+}
+
+.lanterns {
+  display: flex;
+  gap: 7px;
+}
+
+.lanterns .lamp {
+  width: 15px;
+  height: 20px;
+  border-radius: 4px 4px 7px 7px;
+  background: #d5dbe4;
+  border: 2px solid #b9c2ce;
+}
+
+.lanterns .lamp.on {
+  background: #ffd85e;
+  border-color: #c99a1f;
+  box-shadow: 0 0 9px rgba(255, 216, 94, 0.75);
+}
+
+.quest-stage {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  background: #1d1b34;
+  line-height: 0;
+}
+
+#questCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.quest-place {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-start: 14px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(21, 26, 38, 0.72);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.4;
+  backdrop-filter: blur(3px);
+}
+
+.quest-panel {
+  padding: 22px 24px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.quest-intro {
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  margin: 0 0 12px;
+}
+
+.quest-panel h3 {
+  font-size: 1.2rem;
+  margin: 0 0 16px;
+}
+
+.quest-result {
+  margin: 4px 0 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+}
+
+.quest-result.good {
+  background: var(--brand-soft);
+  border-right: 4px solid var(--brand);
+  color: var(--brand-strong);
+}
+
+.quest-result.bad {
+  background: var(--danger-soft);
+  border-right: 4px solid var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 640px) {
+  .quest-hud { gap: 12px; padding: 12px 14px; }
+  .quest-panel { padding: 18px 16px; }
+  .quest-place { font-size: 0.82rem; padding: 5px 11px; }
+}
+
 /* ===== שיעור יומי ===== */
 
 .lesson-card {

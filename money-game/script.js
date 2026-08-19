@@ -214,111 +214,6 @@ const videos = [
   }
 ];
 
-/* ---------- שאלות החידון ---------- */
-
-const quizQuestions = [
-  {
-    question: "מה ההבדל בין צורך לבין רצון?",
-    answers: [
-      "צורך הוא משהו שאנחנו חייבים כדי לחיות, רצון הוא משהו שנעים לנו שיהיה",
-      "אין הבדל אמיתי, זו רק מילה אחרת",
-      "צורך הוא משהו יקר, רצון הוא משהו זול",
-      "רצון הוא משהו שקונים במבצע"
-    ],
-    correct: 0,
-    explain: "צרכים (אוכל, קורת גג) באים קודם. רצונות זה מה שמתפנקים בו ממה שנשאר."
-  },
-  {
-    question: "לפי כלל 50-30-20, כמה מההכנסה הולך לחיסכון?",
-    answers: ["50 אחוז", "30 אחוז", "20 אחוז", "10 אחוז"],
-    correct: 2,
-    explain: "50 לצרכים, 30 לרצונות ו-20 לחיסכון - כלל אצבע פשוט שקל לזכור."
-  },
-  {
-    question: "מה זו ריבית דריבית?",
-    answers: [
-      "ריבית שמשלמים פעמיים בשנה",
-      "ריבית שמחושבת גם על הרווחים הקודמים, לא רק על הסכום ההתחלתי",
-      "ריבית שהבנק מחזיר בסוף השנה",
-      "עמלה שגובים על העברת כספים"
-    ],
-    correct: 1,
-    explain: "הרווחים עצמם מתחילים להרוויח. לכן הזמן הוא הגורם החשוב ביותר בהשקעה."
-  },
-  {
-    question: "כמה כסף מומלץ שיהיה בקרן חירום של משק בית?",
-    answers: [
-      "הוצאות של 3 עד 6 חודשים",
-      "בדיוק 1000 שקל",
-      "הוצאות של שנתיים",
-      "לא צריך קרן חירום אם יש כרטיס אשראי"
-    ],
-    correct: 0,
-    explain: "3-6 חודשי הוצאות נותנים מספיק זמן להתאושש מאובדן הכנסה או מהוצאה מפתיעה."
-  },
-  {
-    question: "מישהו מציע לכם השקעה עם 300 אחוז רווח מובטח ובלי סיכון. מה עושים?",
-    answers: [
-      "משקיעים מיד לפני שנגמר",
-      "משקיעים חצי מהכסף, ליתר ביטחון",
-      "נמנעים - תשואה גבוהה בלי סיכון היא סימן מובהק להונאה",
-      "לוקחים הלוואה כדי להשקיע יותר"
-    ],
-    correct: 2,
-    explain: "אין תשואה גבוהה בלי סיכון. הבטחה כזו היא כמעט תמיד הונאה."
-  },
-  {
-    question: "מה קורה כשלא מחזירים את מלוא חוב כרטיס האשראי בסוף החודש?",
-    answers: [
-      "כלום, זה שירות חינם",
-      "מצטברת ריבית, ולעיתים גם ריבית על הריבית",
-      "הבנק מוחק את החוב אחרי שנה",
-      "מקבלים הנחה בחודש הבא"
-    ],
-    correct: 1,
-    explain: "חוב אשראי הוא ריבית דריבית שעובדת נגדכם. משתלם לסגור אותו כל חודש."
-  },
-  {
-    question: "מבצע 1+1 על מוצר שלא תכננתם לקנות. האם חסכתם כסף?",
-    answers: [
-      "כן, חסכתם 50 אחוז",
-      "כן, תמיד כדאי לנצל מבצעים",
-      "לא - הוצאתם כסף על משהו שלא היה בתוכנית",
-      "תלוי אם שילמתם באשראי"
-    ],
-    correct: 2,
-    explain: "מבצע חוסך כסף רק כשהייתם קונים את המוצר גם בלעדיו."
-  },
-  {
-    question: "מה המשמעות של פיזור השקעות?",
-    answers: [
-      "לחלק את הכסף בין השקעות שונות כדי להקטין סיכון",
-      "להשקיע רק במניה אחת שמאמינים בה",
-      "לפזר את הכסף בין כמה בנקים",
-      "למכור הכול כשהשוק יורד"
-    ],
-    correct: 0,
-    explain: "פיזור מקטין את הנזק אם השקעה אחת נכשלת. לא שמים כל הביצים בסל אחד."
-  },
-  {
-    question: "מהו הצעד הראשון בבניית תקציב?",
-    answers: [
-      "לקצץ בכל ההוצאות",
-      "לפתוח תוכנית חיסכון בבנק",
-      "לרשום את כל ההכנסות וההוצאות בפועל",
-      "לבקש העלאה בשכר"
-    ],
-    correct: 2,
-    explain: "בלי לדעת לאן הכסף הולך אי אפשר לנהל אותו. מדידה קודמת לשינוי."
-  },
-  {
-    question: "רוצים לקנות משהו ב-1200 שקל בעוד שנה. כמה צריך לחסוך בחודש?",
-    answers: ["50 שקל", "100 שקל", "120 שקל", "200 שקל"],
-    correct: 1,
-    explain: "1200 חלקי 12 חודשים = 100 שקל בחודש. כך מטרה גדולה הופכת לצעד קטן."
-  }
-];
-
 /* ---------- ניווט בין מסכים ---------- */
 
 function showScreen(id) {
@@ -330,9 +225,8 @@ function showScreen(id) {
     stopAnimation();
   }
 
-  if (id === "quiz" && !quizStarted) {
-    startQuiz();
-  }
+  if (id === "quiz") startQuest();
+  else if (typeof stopQuestLoop === "function") stopQuestLoop();
 
   window.scrollTo({top: 0, behavior: "smooth"});
 }
@@ -938,107 +832,152 @@ function stopAnimation() {
   }
 }
 
-/* ---------- חידון ---------- */
+/* ---------- מסע הגיבור ---------- */
 
-let quizStarted = false;
-let questionIndex = 0;
-let score = 0;
-let answered = false;
+let quest = null;
+let questRaf = null;
+let questLast = 0;
+let questLocked = false;
 
-function startQuiz() {
-  quizStarted = true;
-  questionIndex = 0;
-  score = 0;
-
-  document.getElementById("quizBox").classList.remove("hidden");
-  document.getElementById("quizResult").classList.add("hidden");
-
-  renderQuestion();
+function questLoop(now) {
+  if (!quest) return;
+  const dt = Math.min(0.1, (now - questLast) / 1000);
+  questLast = now;
+  quest.render(dt);
+  questRaf = requestAnimationFrame(questLoop);
 }
 
-function renderQuestion() {
-  answered = false;
+function startQuest() {
+  const canvas = document.getElementById("questCanvas");
+  if (!canvas) return;
 
-  const current = quizQuestions[questionIndex];
-  const answersBox = document.getElementById("answers");
-  const nextButton = document.getElementById("nextQuestion");
+  if (!quest) quest = new Quest(canvas);
+  quest.reset();
+  questLocked = false;
 
-  document.getElementById("questionText").textContent = current.question;
-  document.getElementById("questionProgress").textContent =
-    `שאלה ${questionIndex + 1} מתוך ${quizQuestions.length} · ניקוד: ${score}`;
-  document.getElementById("progress").style.width =
-    (questionIndex / quizQuestions.length) * 100 + "%";
+  document.getElementById("questBoard").classList.remove("hidden");
+  document.getElementById("questEnd").classList.add("hidden");
 
-  answersBox.innerHTML = current.answers
-    .map((answer, index) => `<button class="answer" data-index="${index}">${answer}</button>`)
+  renderStage();
+  stopQuestLoop();
+  quest.render(0);
+  questLast = performance.now();
+  questRaf = requestAnimationFrame(questLoop);
+}
+
+function stopQuestLoop() {
+  if (questRaf) cancelAnimationFrame(questRaf);
+  questRaf = null;
+}
+
+function renderHud() {
+  const map = document.getElementById("questMap");
+  map.innerHTML = QUEST.map((stage, i) => {
+    const state = quest.cleared[i] ? "done" : i === quest.stage ? "here" : "";
+    return `<span class="node ${state}" title="${stage.place}"></span>`;
+  }).join('<span class="link"></span>');
+
+  const lamps = document.getElementById("questLanterns");
+  lamps.innerHTML = [0, 1, 2]
+    .map(i => `<span class="lamp ${i < quest.lanterns ? "on" : ""}"></span>`)
+    .join("");
+}
+
+function renderStage() {
+  const stage = quest.current;
+
+  document.getElementById("questPlace").textContent = stage.place;
+  document.getElementById("questIntro").textContent = stage.intro;
+  document.getElementById("questQuestion").textContent = stage.question;
+
+  const result = document.getElementById("questResult");
+  result.className = "quest-result hidden";
+  result.textContent = "";
+
+  document.getElementById("questNext").classList.add("hidden");
+
+  const box = document.getElementById("questAnswers");
+  box.innerHTML = stage.answers
+    .map((text, i) => `<button class="answer" data-pick="${i}">${text}</button>`)
     .join("");
 
-  answersBox.querySelectorAll(".answer").forEach(button => {
-    button.addEventListener("click", () => checkAnswer(Number(button.dataset.index)));
+  box.querySelectorAll(".answer").forEach(button => {
+    button.addEventListener("click", () => pickAnswer(Number(button.dataset.pick)));
   });
 
-  nextButton.disabled = true;
-  nextButton.textContent =
-    questionIndex === quizQuestions.length - 1 ? "לסיום החידון" : "השאלה הבאה";
+  renderHud();
+  quest.render(0);
 }
 
-function checkAnswer(index) {
-  if (answered) return;
-  answered = true;
+function pickAnswer(index) {
+  if (questLocked) return;
+  questLocked = true;
 
-  const current = quizQuestions[questionIndex];
-  const buttons = document.querySelectorAll("#answers .answer");
+  const stage = quest.current;
+  const right = index === stage.correct;
+  const buttons = document.querySelectorAll("#questAnswers .answer");
 
   buttons.forEach((button, i) => {
     button.disabled = true;
-    if (i === current.correct) button.classList.add("correct");
+    if (i === stage.correct) button.classList.add("correct");
     else if (i === index) button.classList.add("wrong");
   });
 
-  if (index === current.correct) score++;
+  const result = document.getElementById("questResult");
+  result.textContent = right ? stage.win : stage.lose;
+  result.className = "quest-result " + (right ? "good" : "bad");
 
-  const explain = document.createElement("div");
-  explain.className = "answer-explain";
-  explain.textContent =
-    (index === current.correct ? "✅ נכון! " : "❌ לא מדויק. ") + current.explain;
-  document.getElementById("answers").after(explain);
+  if (right) quest.clearStage();
+  else quest.missStage();
 
-  document.getElementById("questionProgress").textContent =
-    `שאלה ${questionIndex + 1} מתוך ${quizQuestions.length} · ניקוד: ${score}`;
-  document.getElementById("nextQuestion").disabled = false;
-}
+  renderHud();
 
-function nextQuestion() {
-  document.querySelectorAll(".answer-explain").forEach(node => node.remove());
+  const next = document.getElementById("questNext");
 
-  questionIndex++;
-
-  if (questionIndex >= quizQuestions.length) {
-    showQuizResult();
+  if (!right && quest.lanterns <= 0) {
+    next.textContent = "הקללה ניצחה";
+    next.classList.remove("hidden");
     return;
   }
 
-  renderQuestion();
+  if (right && quest.stage === QUEST.length - 1) {
+    next.textContent = "לסיום המסע";
+    next.classList.remove("hidden");
+    return;
+  }
+
+  next.textContent = right ? "ממשיכים" : "לנסות שוב";
+  next.classList.remove("hidden");
 }
 
-function showQuizResult() {
-  document.getElementById("progress").style.width = "100%";
-  document.getElementById("quizBox").classList.add("hidden");
-  document.getElementById("quizResult").classList.remove("hidden");
-  document.getElementById("questionProgress").textContent = "סיימתם את כל השאלות!";
+function questNext() {
+  const stage = quest.current;
+  const lastStage = quest.stage === QUEST.length - 1;
 
-  const percent = Math.round((score / quizQuestions.length) * 100);
-  let message;
+  if (quest.lanterns <= 0) return finishQuest(false);
+  if (quest.cleared[quest.stage] && lastStage) return finishQuest(true);
 
-  if (percent === 100) message = "מושלם! אתם מומחי כסף אמיתיים.";
-  else if (percent >= 80) message = "מצוין! יש לכם בסיס פיננסי חזק.";
-  else if (percent >= 60) message = "יפה מאוד. עוד קצת תרגול ותהיו שם.";
-  else message = "התחלה טובה! שווה לצפות בכמה שיעורים ולנסות שוב.";
+  if (quest.cleared[quest.stage]) quest.goTo(quest.stage + 1);
+  else quest.goTo(quest.stage);
 
-  document.getElementById("scoreText").textContent =
-    `ענית נכון על ${score} מתוך ${quizQuestions.length} שאלות (${percent}%). ${message}`;
+  questLocked = false;
+  renderStage();
+}
 
-  quizStarted = false;
+function finishQuest(won) {
+  stopQuestLoop();
+  document.getElementById("questBoard").classList.add("hidden");
+
+  const end = document.getElementById("questEnd");
+  end.classList.remove("hidden");
+
+  document.getElementById("questEndTitle").textContent = won
+    ? "המכשף נתפס!"
+    : "הקללה גברה הפעם";
+
+  document.getElementById("questEndText").textContent = won
+    ? `שחררתם את כל ${QUEST.length} האזורים והחזרתם את הצבע לממלכה. עכשיו התושבים יודעים מה זה צורך, איך מחלקים כסף, ולמה אין רווח בלי סיכון.`
+    : `הגעתם ל-${quest.solved} אזורים מתוך ${QUEST.length}. כל תשובה נכונה החזירה צבע לממלכה — נסו שוב והפעם תגיעו רחוק יותר.`;
 }
 
 /* ---------- אתחול ---------- */

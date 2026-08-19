@@ -50,10 +50,10 @@
         </button>
 
         <button class="choice-card quiz-choice" onclick="showScreen('quiz')">
-          <span class="choice-icon">🧠</span>
-          <h3>חידון</h3>
-          <p>בדקו את הידע שלכם וגלו כמה אתם יודעים על כסף.</p>
-          <span class="card-link">התחילו את החידון ←</span>
+          <span class="choice-icon">🗡️</span>
+          <h3>קללת המכשף</h3>
+          <p>משחק שלבים: תפסו את המכשף והחזירו את הצבע לממלכה.</p>
+          <span class="card-link">להתחלת המסע ←</span>
         </button>
 
         <button class="choice-card lesson-choice" onclick="showScreen('lesson')">
@@ -153,25 +153,37 @@
     <section id="quiz" class="screen">
       <div class="section-heading">
         <div>
-          <span class="eyebrow">בדיקת ידע</span>
-          <h2>חידון הכסף החכם</h2>
-          <p id="questionProgress"></p>
+          <span class="eyebrow">מסע הגיבור</span>
+          <h2>קללת המכשף</h2>
+          <p>המכשף גנב את הצבע מהממלכה. כל תשובה נכונה מחזירה אותו.</p>
         </div>
         <button class="back-button" onclick="showScreen('home')">חזרה</button>
       </div>
 
-      <div id="quizBox" class="quiz-box">
-        <div class="progress-bar"><span id="progress"></span></div>
-        <h3 id="questionText"></h3>
-        <div id="answers" class="answers"></div>
-        <button id="nextQuestion" class="primary-button" onclick="nextQuestion()" disabled>השאלה הבאה</button>
+      <div id="questBoard" class="quest">
+        <div class="quest-hud">
+          <div id="questMap" class="quest-map"></div>
+          <div id="questLanterns" class="lanterns" aria-label="פנסים שנותרו"></div>
+        </div>
+
+        <div class="quest-stage">
+          <canvas id="questCanvas" width="960" height="420"></canvas>
+          <div id="questPlace" class="quest-place"></div>
+        </div>
+
+        <div class="quest-panel">
+          <p id="questIntro" class="quest-intro"></p>
+          <h3 id="questQuestion"></h3>
+          <div id="questAnswers" class="answers"></div>
+          <p id="questResult" class="quest-result hidden"></p>
+          <button id="questNext" class="primary-button hidden" onclick="questNext()">הלאה</button>
+        </div>
       </div>
 
-      <div id="quizResult" class="result-box hidden">
-        <div class="result-icon">🏆</div>
-        <h2>סיימתם את החידון!</h2>
-        <p id="scoreText"></p>
-        <button class="primary-button" onclick="startQuiz()">נסו שוב</button>
+      <div id="questEnd" class="result-box hidden">
+        <h2 id="questEndTitle"></h2>
+        <p id="questEndText"></p>
+        <button class="primary-button" onclick="startQuest()">למסע חדש</button>
       </div>
     </section>
 
@@ -216,6 +228,7 @@
 
   <script src="movie.js"></script>
   <script src="movies.js"></script>
+  <script src="game.js"></script>
   <script src="script.js"></script>
 
   <script>
