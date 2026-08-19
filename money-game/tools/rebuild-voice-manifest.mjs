@@ -59,19 +59,39 @@ function loadCues() {
 
 fs.mkdirSync(voiceDir, {recursive: true});
 
+/* כל פורמט שדפדפן יודע לנגן - כדי שלא תצטרכו להמיר כלום */
+const AUDIO_EXT = ["mp3", "m4a", "wav", "ogg", "oga", "webm", "aac", "flac"];
+
 const cues = loadCues();
 const found = [];
 const missing = [];
+const files = {};
+
+const onDisk = fs.existsSync(voiceDir) ? fs.readdirSync(voiceDir) : [];
 
 cues.forEach(cue => {
-  const file = path.join(voiceDir, `${cue.id}.mp3`);
-  if (fs.existsSync(file) && fs.statSync(file).size > 0) found.push(cue.id);
-  else missing.push(cue.id);
+  /* מחפשים את המזהה עם כל סיומת מוכרת */
+  const match = onDisk.find(name => {
+    const dot = name.lastIndexOf(".");
+    if (dot === -1) return false;
+    return (
+      name.slice(0, dot) === cue.id &&
+      AUDIO_EXT.includes(name.slice(dot + 1).toLowerCase()) &&
+      fs.statSync(path.join(voiceDir, name)).size > 0
+    );
+  });
+
+  if (match) {
+    found.push(cue.id);
+    files[cue.id] = match;
+  } else {
+    missing.push(cue.id);
+  }
 });
 
 fs.writeFileSync(
   path.join(voiceDir, "manifest.json"),
-  JSON.stringify({source: "speechgen", lines: found}, null, 2)
+  JSON.stringify({lines: found, files: files}, null, 2)
 );
 
 console.log(`\n✅ נמצאו הקלטות ל-${found.length} מתוך ${cues.length} שורות.`);

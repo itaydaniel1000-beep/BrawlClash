@@ -396,6 +396,7 @@ const speech = {
   /* קבצי קול מוקלטים מראש (AI). אם קיימים - הם עדיפים על קול הדפדפן */
   files: null,
   lines: null,
+  lineFiles: null,
   audio: null
 };
 
@@ -425,6 +426,8 @@ async function loadMovieVoices() {
     const manifest = await response.json();
     if (Array.isArray(manifest.lines) && manifest.lines.length) {
       speech.lines = new Set(manifest.lines);
+      /* המניפסט שומר את שם הקובץ האמיתי, כך שכל פורמט עובד */
+      speech.lineFiles = manifest.files || null;
     }
   } catch (error) {
     /* אין הקלטות - ממשיכים עם קול הדפדפן */
@@ -703,7 +706,8 @@ function narrate(text, who, id) {
   /* הקלטה אמיתית, אם הופקה מראש */
   if (id && speech.lines && speech.lines.has(id)) {
     cancelSpeech();
-    const audio = new Audio(`voice/${id}.mp3`);
+    const name = (speech.lineFiles && speech.lineFiles[id]) || `${id}.mp3`;
+    const audio = new Audio(`voice/${name}`);
     speech.audio = audio;
     audio.play().catch(() => {});
     return true;

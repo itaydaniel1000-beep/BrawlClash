@@ -204,6 +204,8 @@
     margin: 0 0 12px;
   }
 
+  .rules-lead { margin: 0 0 14px; font-size: .96rem; color: var(--ink-mid); }
+  .rules-more { margin-top: 22px !important; }
   .rules ol { margin: 0; padding-inline-start: 20px; display: grid; gap: 8px; }
   .rules li { font-size: .96rem; color: var(--ink-mid); }
   .rules li strong { color: var(--ink); }
@@ -415,11 +417,24 @@
   </section>
 
   <section class="rules">
-    <h2>לפני שמתחילים</h2>
+    <h2>איפה מקליטים</h2>
+    <p class="rules-lead">
+      אפליקציית <strong>מקליט הקול</strong> כבר מותקנת אצלכם, וגם המיקרופון של המחשב עובד.
+      לא צריך להתקין שום דבר.
+    </p>
+    <ol>
+      <li>לוחצים על <strong>התחל</strong> וכותבים <code>מקליט הקול</code> (או <code>Sound Recorder</code>).</li>
+      <li>לוחצים על כפתור ההקלטה העגול, אומרים <em>שורה אחת</em>, ועוצרים.</li>
+      <li>לוחצים ימני על ההקלטה ← <strong>שנה שם</strong>, ונותנים לה את השם מהטבלה למטה.</li>
+      <li>לוחצים ימני שוב ← <strong>פתח מיקום קובץ</strong>, וגוררים את הקובץ לתיקייה
+        <code>money-game/voice/</code></li>
+    </ol>
+
+    <h2 class="rules-more">כללים שחשוב לא לפספס</h2>
     <ol>
       <li><strong>קובץ נפרד לכל שורה</strong> — לא הקלטה אחת ארוכה.</li>
-      <li><strong>פורמט MP3</strong>, ושם הקובץ בדיוק כמו שכתוב. שם לא מדויק פשוט לא יימצא, בלי הודעת שגיאה.</li>
-      <li>שומרים הכול בתיקייה <code>money-game/voice/</code></li>
+      <li><strong>השם בדיוק כמו בטבלה.</strong> שם לא מדויק פשוט לא יימצא, בלי שום הודעת שגיאה.</li>
+      <li><strong>הפורמט לא משנה.</strong> m4a, mp3, wav — האתר מזהה הכול לבד. אל תבזבזו זמן על המרות.</li>
       <li>חדר שקט, אותו מרחק מהמיקרופון בכל השורות, בלי מוזיקה ברקע.</li>
       <li><strong>"עד"</strong> הוא הזמן עד שהשורה הבאה מתחילה. אל תילחצו — תקליטו טבעי, ואני אתאים את הסרטון לאורך שיצא לכם.</li>
     </ol>
