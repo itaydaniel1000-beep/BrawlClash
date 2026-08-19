@@ -4,7 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>כסף חכם - חינוך פיננסי</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css?v=ffd7fabb">
 </head>
 <body>
   <header class="topbar">
@@ -17,8 +20,8 @@
     </div>
 
     <div class="topbar-actions">
-      <button class="download-button" onclick="downloadGame()">⬇ הורדת המשחק</button>
-      <button class="home-button" onclick="showScreen('home')">⌂ מסך ראשי</button>
+      <button class="download-button" onclick="downloadGame()">הורדת המשחק</button>
+      <button class="home-button" onclick="showScreen('home')">מסך ראשי</button>
     </div>
   </header>
 
@@ -30,11 +33,33 @@
           <h2>הדרך שלך לעצמאות כלכלית מתחילה כאן</h2>
           <p>למדו איך לנהל כסף, לחסוך, להשקיע ולקבל החלטות פיננסיות חכמות.</p>
         </div>
-        <div class="hero-illustration">📈</div>
+        <svg class="hero-art" viewBox="0 0 240 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="#1a1f2e" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+            <rect x="128" y="118" width="26" height="54" rx="6" fill="#4f9e5c"/>
+            <rect x="162" y="94" width="26" height="78" rx="6" fill="#4f9e5c"/>
+            <rect x="196" y="62" width="26" height="110" rx="6" fill="#4f9e5c"/>
+            <ellipse cx="72" cy="126" rx="52" ry="38" fill="#f0a0b8"/>
+            <path d="M118 118c10 2 16 8 16 8" />
+            <ellipse cx="116" cy="124" rx="16" ry="13" fill="#f0a0b8"/>
+            <circle cx="124" cy="120" r="3" fill="#1a1f2e"/>
+            <path d="M62 92h26" stroke-width="8"/>
+            <rect x="52" y="160" width="16" height="16" rx="4" fill="#e0819c"/>
+            <rect x="82" y="160" width="16" height="16" rx="4" fill="#e0819c"/>
+            <path d="M22 116l-14-6" />
+            <circle cx="74" cy="46" r="30" fill="#f5c542"/>
+            <circle cx="74" cy="46" r="15" fill="#ffe08a"/>
+          </g>
+        </svg>
       </div>
 
       <div class="daily-tip">
-        <span>💡</span>
+        <svg class="tip-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g stroke="#1a1f2e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="20" cy="17" r="11" fill="#f5c542"/>
+              <path d="M15 30h10M16 35h8"/>
+              <path d="M20 2v3M33 17h3M4 17h3M30 7l2-2M8 7L6 5"/>
+            </g>
+          </svg>
         <div>
           <strong>טיפ יומי</strong>
           <p id="homeTip"></p>
@@ -43,21 +68,39 @@
 
       <div class="choice-grid">
         <button class="choice-card videos-choice" onclick="showScreen('videos')">
-          <span class="choice-icon">🎬</span>
+          <svg class="card-icon" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g stroke="#1a1f2e" stroke-width="4" stroke-linejoin="round">
+              <rect x="4" y="12" width="40" height="32" rx="6" fill="#3f8fd8"/>
+              <path d="M44 24l8-6v20l-8-6z" fill="#3f8fd8"/>
+              <path d="M20 22l10 6-10 6z" fill="#fff" stroke-linejoin="round"/>
+            </g>
+          </svg>
           <h3>סרטונים</h3>
           <p>צפו בשיעורים מונפשים עם ינשוף ומובי.</p>
           <span class="card-link">לצפייה בסרטונים ←</span>
         </button>
 
         <button class="choice-card quiz-choice" onclick="showScreen('quiz')">
-          <span class="choice-icon">🗡️</span>
+          <svg class="card-icon" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g stroke="#1a1f2e" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+              <path d="M28 4c4 10 9 22 14 33H14C19 26 24 14 28 4z" fill="#7a5cc9"/>
+              <path d="M10 37h36v7H10z" fill="#4a2f7a"/>
+              <path d="M28 15l2.6 5.4 6 .8-4.4 4.1 1.1 5.9-5.3-2.9-5.3 2.9 1.1-5.9-4.4-4.1 6-.8z" fill="#f5c542"/>
+            </g>
+          </svg>
           <h3>קללת המכשף</h3>
           <p>משחק שלבים: תפסו את המכשף והחזירו את הצבע לממלכה.</p>
           <span class="card-link">להתחלת המסע ←</span>
         </button>
 
         <button class="choice-card lesson-choice" onclick="showScreen('lesson')">
-          <span class="choice-icon">📚</span>
+          <svg class="card-icon" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <g stroke="#1a1f2e" stroke-width="4" stroke-linejoin="round">
+              <path d="M6 12h18a4 4 0 014 4v30a6 6 0 00-6-4H6z" fill="#16785c"/>
+              <path d="M50 12H32a4 4 0 00-4 4v30a6 6 0 016-4h16z" fill="#d8efe6"/>
+              <path d="M36 24h9M36 32h9" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+          </svg>
           <h3>שיעור יומי</h3>
           <p>רעיון פיננסי חדש בכל יום, עם משימה קצרה לתרגול.</p>
           <span class="card-link">לשיעור היומי ←</span>
@@ -91,7 +134,7 @@
 
       <div class="player-layout">
         <div id="movieStage" class="animation-stage hidden">
-          <div class="stage-title">🎬 סרטון אנימציה</div>
+          <div class="stage-title">סרטון אנימציה</div>
           <div class="movie-frame">
             <canvas id="movieCanvas" width="960" height="540"></canvas>
           </div>
@@ -107,7 +150,7 @@
         </div>
 
         <div id="dialogueStage" class="animation-stage">
-          <div class="stage-title">🎬 השיעור המונפש של ינשוף ומובי</div>
+          <div class="stage-title">השיעור המונפש של ינשוף ומובי</div>
 
           <div class="characters">
             <div class="character owl">
@@ -138,7 +181,7 @@
           <p id="playerDescription"></p>
 
           <div class="lesson-note">
-            ✏️ בזמן הצפייה חשבו איך הנושא קשור לחיים שלכם.
+            בזמן הצפייה חשבו איך הנושא קשור לחיים שלכם.
           </div>
 
           <div class="sources">
@@ -214,7 +257,7 @@
             <li>בדקו פעם בשבוע אם אתם עומדים בתכנית.</li>
           </ol>
           <div class="task">
-            <strong>🎯 משימת היום:</strong>
+            <strong>משימת היום:</strong>
             כתבו שלוש הוצאות שהיו לכם השבוע וסמנו ליד כל אחת: צורך או רצון.
           </div>
         </div>
@@ -226,10 +269,10 @@
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="movie.js"></script>
-  <script src="movies.js"></script>
-  <script src="game.js"></script>
-  <script src="script.js"></script>
+  <script src="movie.js?v=ffd7fabb"></script>
+  <script src="movies.js?v=ffd7fabb"></script>
+  <script src="game.js?v=ffd7fabb"></script>
+  <script src="script.js?v=ffd7fabb"></script>
 
   <script>
     async function downloadGame() {

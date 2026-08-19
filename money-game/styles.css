@@ -1113,3 +1113,375 @@ footer p {
     transition: none !important;
   }
 }
+
+
+/* ===================================================================
+   שכבת עיצוב — האתר לובש את השפה של הציורים שבתוכו:
+   קו מתאר שחור קשיח, צל חד בלי טשטוש, צבעים שטוחים.
+   =================================================================== */
+
+:root {
+  /* הדיו הוא בדיוק אותו שחור שמקיף כל צורה בקנבס */
+  --ink: #1a1f2e;
+  --ink-soft: #5c6478;
+  --ink-faint: #8b93a6;
+
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --surface-warm: #fdf8ec;
+
+  --brand: #16785c;
+  --brand-strong: #0f5943;
+  --brand-soft: #d8efe6;
+
+  --gold: #f5c542;
+  --gold-deep: #c99a1f;
+  --accent: var(--gold);
+  --accent-soft: #fdf0cd;
+
+  --sky: #3f8fd8;
+  --blue: var(--sky);
+  --blue-soft: #dbeaf8;
+
+  --berry: #d8503f;
+  --danger: var(--berry);
+  --danger-soft: #fbe3df;
+
+  --purple: #7a5cc9;
+  --purple-soft: #e9e2f9;
+
+  --line: var(--ink);
+  --radius: 16px;
+
+  /* צל חד, לא מטושטש — זה מה שהופך את זה למדבקה ולא לכרטיס */
+  --shadow: 5px 5px 0 var(--ink);
+  --shadow-lift: 8px 8px 0 var(--ink);
+
+  --f-display: "Heebo", "Arial Hebrew", system-ui, sans-serif;
+  --f-body: "Assistant", "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--f-body);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(26, 31, 46, .07) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+}
+
+h1, h2, h3 {
+  font-family: var(--f-display);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- סרגל עליון ---------- */
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 3px solid var(--ink);
+  backdrop-filter: none;
+}
+
+.brand-icon {
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--gold);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-family: var(--f-display);
+  font-weight: 800;
+}
+
+.brand h1 { font-size: 1.3rem; letter-spacing: -0.02em; }
+.brand small { color: var(--ink-soft); }
+
+/* ---------- כפתורים ---------- */
+
+.download-button,
+.home-button,
+.back-button,
+.primary-button,
+.filter {
+  font-family: var(--f-body);
+  font-weight: 700;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.download-button { background: var(--gold); color: var(--ink); }
+.home-button,
+.back-button { background: var(--surface); color: var(--ink); }
+.primary-button { background: var(--brand); color: #fff; }
+.filter { background: var(--surface); color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
+.filter.active { background: var(--ink); color: #fff; }
+
+.download-button:hover:not(:disabled),
+.home-button:hover,
+.back-button:hover,
+.primary-button:hover:not(:disabled),
+.filter:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.primary-button:hover:not(:disabled) { background: var(--brand-strong); }
+.back-button:hover { background: var(--surface); }
+
+.download-button:disabled,
+.primary-button:disabled {
+  transform: none;
+  box-shadow: 3px 3px 0 var(--ink-faint);
+  border-color: var(--ink-faint);
+}
+
+/* ---------- כותרת ראשית ---------- */
+
+.eyebrow {
+  font-family: var(--f-display);
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+
+.hero {
+  background: var(--surface-warm);
+  border: 3px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: var(--shadow-lift);
+  padding: 36px 38px;
+  align-items: center;
+}
+
+.hero h2 {
+  font-size: clamp(1.7rem, 3.6vw, 2.6rem);
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.hero p { color: var(--ink-soft); }
+
+.hero-art {
+  width: clamp(180px, 26vw, 260px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(5px 5px 0 var(--ink));
+}
+
+/* ---------- טיפ יומי ---------- */
+
+.daily-tip {
+  background: var(--accent-soft);
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  align-items: center;
+}
+
+.daily-tip .tip-icon { width: 34px; height: 34px; flex: none; }
+.daily-tip strong { font-family: var(--f-display); font-weight: 800; }
+.daily-tip p { color: #6d5310; }
+
+/* ---------- כרטיסי בחירה ---------- */
+
+.choice-card {
+  background: var(--surface);
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 24px 22px;
+  gap: 10px;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.choice-card:hover {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--ink);
+  border-color: var(--ink);
+}
+
+.card-icon { width: 54px; height: 54px; display: block; }
+.choice-card h3 { font-size: 1.3rem; }
+.choice-card p { color: var(--ink-soft); }
+
+.card-link { color: var(--ink) !important; font-weight: 800; }
+
+.videos-choice { background: var(--blue-soft); }
+.quiz-choice { background: var(--purple-soft); }
+.lesson-choice { background: var(--brand-soft); }
+
+/* ---------- ספריית הסרטונים ---------- */
+
+.video-card {
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  background: var(--surface);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.video-card:hover {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.video-thumb {
+  height: 132px;
+  border-bottom: 3px solid var(--ink);
+  font-size: 0;
+}
+
+.video-thumb .thumb-art { width: 100%; height: 100%; display: block; }
+
+.video-duration {
+  background: var(--ink);
+  border-radius: 999px;
+  font-weight: 700;
+  inset-inline-start: 10px;
+  inset-inline-end: auto;
+}
+
+.tag {
+  background: var(--gold);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.video-body h3 { font-size: 1.08rem; }
+
+/* ---------- נגן ולוחות ---------- */
+
+.animation-stage,
+.player-info,
+.quest-hud,
+.quest-panel,
+.lesson-card,
+.result-box,
+.quiz-box {
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.movie-frame,
+.quest-stage { border: 3px solid var(--ink); }
+
+.stage-title {
+  font-family: var(--f-display);
+  font-weight: 800;
+}
+
+.movie-bar,
+.progress-bar {
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  height: 14px;
+}
+
+.movie-bar span,
+.progress-bar span { background: var(--gold); }
+
+.lesson-note,
+.task,
+.quest-intro { color: var(--ink-soft); }
+
+.lesson-note,
+.task {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  border-inline-start: 6px solid var(--gold);
+}
+
+.lesson-number {
+  font-family: var(--f-display);
+  font-weight: 800;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 3px 3px 0 var(--ink);
+  background: var(--gold);
+  color: var(--ink);
+}
+
+/* ---------- תשובות ---------- */
+
+.answer {
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--surface);
+  font-weight: 600;
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.answer:hover:not(:disabled) {
+  background: var(--gold);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.answer.correct { background: var(--brand); color: #fff; }
+.answer.wrong { background: var(--berry); color: #fff; }
+.answer:disabled { opacity: 1; }
+
+/* ---------- המשחק ---------- */
+
+.quest-map .node {
+  border: 3px solid var(--ink);
+  background: var(--surface);
+}
+.quest-map .node.done { background: var(--brand); }
+.quest-map .node.here { background: var(--gold); box-shadow: 0 0 0 4px rgba(245,197,66,.4); }
+.quest-map .link { background: var(--ink); height: 3px; }
+
+.lanterns .lamp { border: 3px solid var(--ink); background: var(--surface); }
+.lanterns .lamp.on { background: var(--gold); box-shadow: none; }
+
+.quest-place {
+  font-family: var(--f-display);
+  font-weight: 800;
+  background: var(--ink);
+  border-radius: 999px;
+  backdrop-filter: none;
+}
+
+.quest-result {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+}
+.quest-result.good { background: var(--brand-soft); color: var(--brand-strong); border-inline-start: 6px solid var(--brand); }
+.quest-result.bad { background: var(--danger-soft); color: #9c3325; border-inline-start: 6px solid var(--berry); }
+
+/* ---------- כותרת תחתונה ---------- */
+
+footer {
+  background: var(--ink);
+  color: #cfd6e2;
+  border-top: none;
+}
+
+/* ---------- נגישות ותנועה ---------- */
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice-card, .video-card, .answer, .primary-button,
+  .back-button, .home-button, .download-button, .filter {
+    transition: none;
+  }
+  .hero-illustration, .hero-art { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .hero { padding: 26px 22px; }
+  :root { --shadow: 4px 4px 0 var(--ink); --shadow-lift: 5px 5px 0 var(--ink); }
+}

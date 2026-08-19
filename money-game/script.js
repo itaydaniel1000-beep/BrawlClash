@@ -251,7 +251,7 @@ function renderVideos() {
       video => `
       <button class="video-card" data-category="${video.category}" data-id="${video.id}">
         <div class="video-thumb">
-          <span>${video.icon}</span>
+          <canvas class="thumb-art" width="384" height="158" data-thumb="${video.id}"></canvas>
           <span class="video-duration">${video.duration}</span>
         </div>
         <div class="video-body">
@@ -265,6 +265,42 @@ function renderVideos() {
 
   grid.querySelectorAll(".video-card").forEach(card => {
     card.addEventListener("click", () => openVideo(card.dataset.id));
+  });
+
+  paintThumbnails();
+}
+
+/* כל כרטיס מקבל פריים אמיתי מהסרטון שלו במקום אייקון */
+function paintThumbnails() {
+  const stage = document.createElement("canvas");
+  stage.width = 960;
+  stage.height = 540;
+  const scene = stage.getContext("2d");
+  scene.imageSmoothingEnabled = false;
+
+  document.querySelectorAll("canvas[data-thumb]").forEach(thumb => {
+    const movie = movieFor(thumb.dataset.thumb);
+    const ctx = thumb.getContext("2d");
+
+    if (!movie) {
+      ctx.fillStyle = "#dbeaf8";
+      ctx.fillRect(0, 0, thumb.width, thumb.height);
+      return;
+    }
+
+    /* השוט השני בדרך כלל מציג את הנושא, לא רק נוף פתיחה */
+    const shot = movie.shots[Math.min(1, movie.shots.length - 1)];
+    scene.fillStyle = "#ffffff";
+    scene.fillRect(0, 0, 960, 540);
+
+    try {
+      shot.draw(scene, shot.duration * 0.55, 960, 540);
+    } catch (error) {
+      shot.draw(scene, 0.5, 960, 540);
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(stage, 0, 0, thumb.width, thumb.height);
   });
 }
 
