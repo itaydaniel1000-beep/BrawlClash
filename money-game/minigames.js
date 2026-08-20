@@ -218,10 +218,20 @@ const MG_SORT = {
   }
 };
 
-/* ---------- 2. השוואה: מה משתלם יותר ---------- */
+/* ---------- 2. השוואה: מחיר ליחידה ---------- */
+
+/* המחיר של יחידה אחת. זה כל מה שמכריע כאן. */
+function unitPrice(option) {
+  return option.price / option.size;
+}
+
+/* מדד מספרי קצר, בלי שברים מיותרים */
+function num(n) {
+  return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);
+}
 
 const MG_COMPARE = {
-  howto: "איזו אריזה משתלמת יותר?",
+  howto: "איזו אריזה זולה יותר לכל יחידה? חלקו את המחיר בכמות.",
   build(host, cfg, api) {
     const rounds = shuffled(cfg.rounds).slice(0, cfg.count || 5);
     mgHead(host, this.howto, cfg.need, rounds.length);
@@ -235,6 +245,11 @@ const MG_COMPARE = {
       feedback.clear();
       board.innerHTML = "";
 
+      /* התשובה הנכונה מחושבת מהמספרים, לא נכתבת ביד */
+      const prices = round.options.map(unitPrice);
+      const best = prices[0] <= prices[1] ? 0 : 1;
+      const biggest = Math.max.apply(null, round.options.map(o => o.size));
+
       /* סדר אקראי, כדי שהזול לא יהיה תמיד באותו צד */
       const order = shuffled([0, 1]);
       const cards = order.map(which => {
@@ -242,17 +257,19 @@ const MG_COMPARE = {
         const card = mgEl("button", "mg-product");
         const canvas = mgCanvas(110, 110, "mg-product-art");
         card.appendChild(canvas);
-        card.appendChild(mgEl("strong", "mg-product-name", item.name));
-        card.appendChild(mgEl("span", "mg-product-size", item.size));
-        card.appendChild(mgEl("span", "mg-product-price", item.price));
+        card.appendChild(mgEl("strong", "mg-product-name", round.name));
+        card.appendChild(mgEl("span", "mg-product-size", `${num(item.size)} ${round.unitName}`));
+        card.appendChild(mgEl("span", "mg-product-price", `${item.price} שקלים`));
         const unit = mgEl("span", "mg-product-unit", "");
         card.appendChild(unit);
         board.appendChild(card);
-        paintItem(canvas, item.art, 1);
+
+        /* האריזה הגדולה גם מצוירת גדולה יותר */
+        paintItem(canvas, round.art, 0.8 + 0.5 * (item.size / biggest));
+
         card._item = item;
         card._unit = unit;
-        card._which = which;
-        card._right = which === round.better;
+        card._right = which === best;
         return card;
       });
 
@@ -261,12 +278,17 @@ const MG_COMPARE = {
           const ok = card._right;
           cards.forEach(c => {
             c.disabled = true;
-            c._unit.textContent = c._item.unit;
+            c._unit.textContent =
+              `${num(unitPrice(c._item))} שקלים ל${round.unitName}`;
             c.className = "mg-product " +
-              (c._which === round.better ? "right" : c === card ? "wrong" : "dim");
+              (c._right ? "right" : c === card ? "wrong" : "dim");
           });
           dots.mark(index, ok);
-          feedback.show(ok, round.why);
+
+          /* מראים את החשבון עצמו, לא רק מי ניצח */
+          const win = round.options[best];
+          const sum = `${win.price} חלקי ${num(win.size)} זה ${num(unitPrice(win))} ל${round.unitName}.`;
+          feedback.show(ok, `${sum} ${round.why}`);
           answer(ok, round.why);
         };
       });
@@ -277,7 +299,7 @@ const MG_COMPARE = {
 /* ---------- 3. תקציב: חמישים־שלושים־עשרים ---------- */
 
 const MG_BUDGET = {
-  howto: "חלקו את המטבעות לפי הכלל: חצי לצרכים, שלושים אחוז לרצונות, עשרים לחיסכון.",
+  howto: "חלקו את המטבעות לפי כלל 50־30־20: חצי לצרכים, 30 אחוז לרצונות, 20 לחיסכון.",
   build(host, cfg, api) {
     const rounds = cfg.rounds.slice(0, cfg.count || 3);
     mgHead(host, this.howto, cfg.need, rounds.length);
