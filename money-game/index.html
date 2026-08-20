@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=3cbea462">
+  <link rel="stylesheet" href="styles.css?v=f51f6b98">
 </head>
 <body>
   <header class="topbar">
@@ -20,7 +20,6 @@
     </div>
 
     <div class="topbar-actions">
-      <button class="download-button" onclick="downloadGame()">הורדת המשחק</button>
       <button class="home-button" onclick="showScreen('home')">מסך ראשי</button>
     </div>
   </header>
@@ -206,7 +205,10 @@
       <div id="questBoard" class="quest">
         <div class="quest-hud">
           <div id="questMap" class="quest-map"></div>
-          <div id="questLanterns" class="lanterns" aria-label="פנסים שנותרו"></div>
+          <div class="quest-hud-side">
+            <div id="questLanterns" class="lanterns" aria-label="פנסים שנותרו"></div>
+            <button class="quest-restart" onclick="startQuest(true)">מסע חדש</button>
+          </div>
         </div>
 
         <div class="quest-stage">
@@ -215,18 +217,24 @@
         </div>
 
         <div class="quest-panel">
-          <p id="questIntro" class="quest-intro"></p>
+          <div class="quest-intro-row">
+            <p id="questIntro" class="quest-intro"></p>
+            <button class="quest-speak" onclick="speakIntro()" aria-label="להקריא את הסיפור">🔊</button>
+          </div>
           <h3 id="questQuestion"></h3>
           <div id="questAnswers" class="answers"></div>
-          <p id="questResult" class="quest-result hidden"></p>
+          <p id="questResult" class="quest-result hidden" role="status" aria-live="polite"></p>
           <button id="questNext" class="primary-button hidden" onclick="questNext()">הלאה</button>
         </div>
       </div>
 
       <div id="questEnd" class="result-box hidden">
         <h2 id="questEndTitle"></h2>
+        <div id="questStars" class="quest-stars"></div>
         <p id="questEndText"></p>
-        <button class="primary-button" onclick="startQuest()">למסע חדש</button>
+        <h3 id="questRecapTitle" class="quest-recap-title hidden">מה שחררתם במסע</h3>
+        <ul id="questRecap" class="quest-recap"></ul>
+        <button class="primary-button" onclick="startQuest(true)">למסע חדש</button>
       </div>
     </section>
 
@@ -269,72 +277,10 @@
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="movie.js?v=3cbea462"></script>
-  <script src="movies.js?v=3cbea462"></script>
-  <script src="game.js?v=3cbea462"></script>
-  <script src="script.js?v=3cbea462"></script>
+  <script src="movie.js?v=f51f6b98"></script>
+  <script src="movies.js?v=f51f6b98"></script>
+  <script src="game.js?v=f51f6b98"></script>
+  <script src="script.js?v=f51f6b98"></script>
 
-  <script>
-    async function downloadGame() {
-      const button = document.querySelector(".download-button");
-      const originalText = button.textContent;
-
-      try {
-        button.disabled = true;
-        button.textContent = "⏳ מכין את הקובץ...";
-
-        // נאספים כל הסקריפטים לפי הסדר שבו הם מופיעים בדף,
-        // כדי שקובץ חדש שנוסיף בעתיד ייכנס להורדה מעצמו
-        const scriptFiles = [...document.querySelectorAll("script[src]")]
-          .map(tag => tag.getAttribute("src"));
-
-        const [stylesResponse, ...scriptResponses] = await Promise.all([
-          fetch("styles.css"),
-          ...scriptFiles.map(file => fetch(file))
-        ]);
-
-        if (!stylesResponse.ok || scriptResponses.some(response => !response.ok)) {
-          throw new Error("לא ניתן לקרוא את קבצי המשחק");
-        }
-
-        const styles = await stylesResponse.text();
-        const scripts = await Promise.all(scriptResponses.map(response => response.text()));
-
-        const copy = document.documentElement.cloneNode(true);
-
-        copy.querySelectorAll('link[rel="stylesheet"]').forEach(link => link.remove());
-        copy.querySelectorAll("script[src]").forEach(scriptTag => scriptTag.remove());
-
-        const styleTag = document.createElement("style");
-        styleTag.textContent = styles;
-        copy.querySelector("head").appendChild(styleTag);
-
-        scripts.forEach(source => {
-          const scriptTag = document.createElement("script");
-          scriptTag.textContent = source;
-          copy.querySelector("body").appendChild(scriptTag);
-        });
-
-        const html = "<!DOCTYPE html>\n" + copy.outerHTML;
-        const blob = new Blob([html], {type: "text/html;charset=utf-8"});
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-
-        link.href = url;
-        link.download = "kesef-hacham.html";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        alert("אירעה שגיאה בהורדת המשחק. נסו שוב.");
-        console.error(error);
-      } finally {
-        button.disabled = false;
-        button.textContent = originalText;
-      }
-    }
-  </script>
 </body>
 </html>

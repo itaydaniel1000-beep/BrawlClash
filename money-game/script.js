@@ -875,6 +875,105 @@ let questRaf = null;
 let questLast = 0;
 let questLocked = false;
 
+const QUEST_SAVE_KEY = "kesef-hacham-quest";
+
+/* ---------- צלילי המשחק ---------- */
+
+/* הצלילים מסונתזים בדפדפן, בלי קבצים. מכבדים את מתג הקול הראשי. */
+let sfxCtx = null;
+
+function sfxAudio() {
+  if (!speech.enabled) return null;
+  try {
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    if (!sfxCtx) sfxCtx = new Ctor();
+    if (sfxCtx.state === "suspended") sfxCtx.resume();
+    return sfxCtx;
+  } catch (error) {
+    return null;
+  }
+}
+
+/* צליל אחד: תדר, מתי מתחיל, כמה נמשך */
+function tone(ctx, freq, start, dur, type, peak, endFreq) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const at = ctx.currentTime + start;
+
+  osc.type = type || "triangle";
+  osc.frequency.setValueAtTime(freq, at);
+  if (endFreq) osc.frequency.exponentialRampToValueAtTime(endFreq, at + dur);
+
+  /* עלייה מהירה ודעיכה רכה, כדי שלא יישמע נקישה */
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peak || 0.16, at + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(at);
+  osc.stop(at + dur + 0.03);
+}
+
+function playSfx(name) {
+  const ctx = sfxAudio();
+  if (!ctx) return;
+
+  if (name === "good") {
+    /* שלושה צלילים עולים: הצבע חוזר */
+    tone(ctx, 523.25, 0, 0.13, "triangle", 0.15);
+    tone(ctx, 659.25, 0.09, 0.13, "triangle", 0.15);
+    tone(ctx, 783.99, 0.18, 0.26, "triangle", 0.17);
+  } else if (name === "bad") {
+    /* שני צלילים יורדים, רכים - טעות היא לא עונש */
+    tone(ctx, 311.13, 0, 0.16, "sine", 0.13);
+    tone(ctx, 233.08, 0.12, 0.3, "sine", 0.12);
+  } else if (name === "lantern") {
+    /* פנס נכבה */
+    tone(ctx, 420, 0, 0.34, "sine", 0.12, 90);
+  } else if (name === "step") {
+    tone(ctx, 180, 0, 0.09, "sine", 0.07, 120);
+    tone(ctx, 180, 0.22, 0.09, "sine", 0.06, 120);
+  } else if (name === "win") {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+      tone(ctx, f, i * 0.12, i === 3 ? 0.5 : 0.16, "triangle", 0.17);
+    });
+    tone(ctx, 1318.5, 0.52, 0.5, "triangle", 0.12);
+  } else if (name === "fail") {
+    tone(ctx, 392, 0, 0.22, "sawtooth", 0.09, 330);
+    tone(ctx, 294, 0.18, 0.26, "sawtooth", 0.09, 233);
+    tone(ctx, 196, 0.4, 0.6, "sine", 0.11, 130);
+  }
+}
+
+/* ---------- שמירת ההתקדמות ---------- */
+
+function saveQuest() {
+  try {
+    localStorage.setItem(QUEST_SAVE_KEY, JSON.stringify(quest.save()));
+  } catch (error) {
+    /* מצב גלישה פרטית או אחסון מלא - המשחק ממשיך בלי שמירה */
+  }
+}
+
+function clearQuestSave() {
+  try {
+    localStorage.removeItem(QUEST_SAVE_KEY);
+  } catch (error) {}
+}
+
+function loadQuestSave() {
+  try {
+    const raw = localStorage.getItem(QUEST_SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+/* ---------- לולאת הציור ---------- */
+
 function questLoop(now) {
   if (!quest) return;
   const dt = Math.min(0.1, (now - questLast) / 1000);
@@ -883,13 +982,27 @@ function questLoop(now) {
   questRaf = requestAnimationFrame(questLoop);
 }
 
-function startQuest() {
+function stopQuestLoop() {
+  if (questRaf) cancelAnimationFrame(questRaf);
+  questRaf = null;
+}
+
+/* fresh - מסע חדש לגמרי. אחרת ממשיכים מהמקום שנשמר, אם יש. */
+function startQuest(fresh) {
   const canvas = document.getElementById("questCanvas");
   if (!canvas) return;
 
   if (!quest) quest = new Quest(canvas);
-  quest.reset();
+
+  if (fresh) {
+    quest.reset();
+    clearQuestSave();
+  } else if (!quest.load(loadQuestSave())) {
+    quest.reset();
+  }
+
   questLocked = false;
+  saveQuest();
 
   document.getElementById("questBoard").classList.remove("hidden");
   document.getElementById("questEnd").classList.add("hidden");
@@ -901,16 +1014,13 @@ function startQuest() {
   questRaf = requestAnimationFrame(questLoop);
 }
 
-function stopQuestLoop() {
-  if (questRaf) cancelAnimationFrame(questRaf);
-  questRaf = null;
-}
+/* ---------- לוח המצב ---------- */
 
 function renderHud() {
   const map = document.getElementById("questMap");
-  map.innerHTML = QUEST.map((stage, i) => {
+  map.innerHTML = quest.order.map((stageIndex, i) => {
     const state = quest.cleared[i] ? "done" : i === quest.stage ? "here" : "";
-    return `<span class="node ${state}" title="${stage.place}"></span>`;
+    return `<span class="node ${state}" title="${QUEST[stageIndex].place}"></span>`;
   }).join('<span class="link"></span>');
 
   const lamps = document.getElementById("questLanterns");
@@ -919,12 +1029,27 @@ function renderHud() {
     .join("");
 }
 
+/* הטקסט שנקרא בקול: המקום, הסיפור והשאלה */
+function stageSpeech() {
+  const stage = quest.current;
+  const intro = quest.stage === 0 ? QUEST_PROLOGUE + " " + stage.intro : stage.intro;
+  return `${stage.place}. ${intro} ${quest.currentQuestion.question}`;
+}
+
+function speakIntro() {
+  if (!quest) return;
+  cancelSpeech();
+  narrate(stageSpeech(), "narrator");
+}
+
 function renderStage() {
   const stage = quest.current;
+  const q = quest.currentQuestion;
 
   document.getElementById("questPlace").textContent = stage.place;
-  document.getElementById("questIntro").textContent = stage.intro;
-  document.getElementById("questQuestion").textContent = stage.question;
+  document.getElementById("questIntro").textContent =
+    quest.stage === 0 ? QUEST_PROLOGUE + " " + stage.intro : stage.intro;
+  document.getElementById("questQuestion").textContent = q.question;
 
   const result = document.getElementById("questResult");
   result.className = "quest-result hidden";
@@ -933,8 +1058,8 @@ function renderStage() {
   document.getElementById("questNext").classList.add("hidden");
 
   const box = document.getElementById("questAnswers");
-  box.innerHTML = stage.answers
-    .map((text, i) => `<button class="answer" data-pick="${i}">${text}</button>`)
+  box.innerHTML = q.answers
+    .map((text, i) => `<button class="answer" data-pick="${i}"><span class="answer-key">${i + 1}</span>${text}</button>`)
     .join("");
 
   box.querySelectorAll(".answer").forEach(button => {
@@ -949,13 +1074,14 @@ function pickAnswer(index) {
   if (questLocked) return;
   questLocked = true;
 
+  const q = quest.currentQuestion;
   const stage = quest.current;
-  const right = index === stage.correct;
+  const right = index === q.correct;
   const buttons = document.querySelectorAll("#questAnswers .answer");
 
   buttons.forEach((button, i) => {
     button.disabled = true;
-    if (i === stage.correct) button.classList.add("correct");
+    if (i === q.correct) button.classList.add("correct");
     else if (i === index) button.classList.add("wrong");
   });
 
@@ -963,45 +1089,60 @@ function pickAnswer(index) {
   result.textContent = right ? stage.win : stage.lose;
   result.className = "quest-result " + (right ? "good" : "bad");
 
-  if (right) quest.clearStage();
-  else quest.missStage();
+  if (right) {
+    quest.clearStage();
+    playSfx("good");
+  } else {
+    quest.missStage();
+    playSfx("bad");
+    if (quest.lanterns > 0) setTimeout(() => playSfx("lantern"), 260);
+  }
 
   renderHud();
+  saveQuest();
 
   const next = document.getElementById("questNext");
 
   if (!right && quest.lanterns <= 0) {
     next.textContent = "הקללה ניצחה";
     next.classList.remove("hidden");
+    next.focus();
     return;
   }
 
-  if (right && quest.stage === QUEST.length - 1) {
+  if (right && quest.isFinale) {
     next.textContent = "לסיום המסע";
     next.classList.remove("hidden");
+    next.focus();
     return;
   }
 
   next.textContent = right ? "ממשיכים" : "לנסות שוב";
   next.classList.remove("hidden");
+  next.focus();
 }
 
 function questNext() {
-  const stage = quest.current;
-  const lastStage = quest.stage === QUEST.length - 1;
-
   if (quest.lanterns <= 0) return finishQuest(false);
-  if (quest.cleared[quest.stage] && lastStage) return finishQuest(true);
+  if (quest.cleared[quest.stage] && quest.isFinale) return finishQuest(true);
 
-  if (quest.cleared[quest.stage]) quest.goTo(quest.stage + 1);
-  else quest.goTo(quest.stage);
+  if (quest.cleared[quest.stage]) {
+    /* ממשיכים בדרך: הסצנה הנוכחית יוצאת והבאה נכנסת */
+    quest.travelTo(quest.stage + 1);
+    playSfx("step");
+  } else {
+    /* נשארים באותו מקום, אבל עם שאלה אחרת מהמאגר */
+    quest.reroll();
+  }
 
   questLocked = false;
+  saveQuest();
   renderStage();
 }
 
 function finishQuest(won) {
   stopQuestLoop();
+  clearQuestSave();
   document.getElementById("questBoard").classList.add("hidden");
 
   const end = document.getElementById("questEnd");
@@ -1011,10 +1152,61 @@ function finishQuest(won) {
     ? "המכשף נתפס!"
     : "הקללה גברה הפעם";
 
+  /* כוכב על כל פנס ששרד. שלושה כוכבים הם מסע בלי טעות אחת. */
+  const stars = document.getElementById("questStars");
+  stars.innerHTML = won
+    ? [0, 1, 2].map(i => `<span class="star ${i < quest.lanterns ? "on" : ""}">★</span>`).join("")
+    : "";
+
   document.getElementById("questEndText").textContent = won
-    ? `שחררתם את כל ${QUEST.length} האזורים והחזרתם את הצבע לממלכה. עכשיו התושבים יודעים מה זה צורך, איך מחלקים כסף, ולמה אין רווח בלי סיכון.`
-    : `הגעתם ל-${quest.solved} אזורים מתוך ${QUEST.length}. כל תשובה נכונה החזירה צבע לממלכה — נסו שוב והפעם תגיעו רחוק יותר.`;
+    ? (quest.lanterns === 3
+        ? `מסע מושלם: כל שמונת האזורים שוחררו בלי טעות אחת, והצבע חזר לממלכה כולה.`
+        : `שחררתם את כל ${QUEST.length} האזורים והחזרתם את הצבע לממלכה.`)
+    : `הגעתם ל-${quest.solved} אזורים מתוך ${QUEST.length}. כל תשובה נכונה החזירה צבע לממלכה — נסו שוב, והפעם המסע יהיה בסדר אחר.`;
+
+  /* הסיכום: מה באמת נלמד בדרך */
+  const recap = document.getElementById("questRecap");
+  const recapTitle = document.getElementById("questRecapTitle");
+  const learned = quest.order
+    .map((stageIndex, i) => (quest.cleared[i] ? QUEST[stageIndex] : null))
+    .filter(Boolean);
+
+  recap.innerHTML = learned
+    .map(stage => `<li><strong>${stage.place}</strong><span>${stage.lesson}</span></li>`)
+    .join("");
+  recapTitle.classList.toggle("hidden", learned.length === 0);
+
+  playSfx(won ? "win" : "fail");
 }
+
+/* ---------- מקלדת ---------- */
+
+/* 1 עד 4 בוחרים תשובה, Enter ממשיך */
+document.addEventListener("keydown", event => {
+  const board = document.getElementById("questBoard");
+  if (!quest || !board || board.classList.contains("hidden")) return;
+  if (!document.getElementById("quiz").classList.contains("active")) return;
+
+  const tag = (event.target.tagName || "").toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+
+  if (event.key >= "1" && event.key <= "4") {
+    const button = document.querySelector(`#questAnswers .answer[data-pick="${Number(event.key) - 1}"]`);
+    if (button && !button.disabled) {
+      event.preventDefault();
+      pickAnswer(Number(event.key) - 1);
+    }
+    return;
+  }
+
+  if (event.key === "Enter") {
+    const next = document.getElementById("questNext");
+    if (next && !next.classList.contains("hidden")) {
+      event.preventDefault();
+      questNext();
+    }
+  }
+});
 
 /* ---------- אתחול ---------- */
 

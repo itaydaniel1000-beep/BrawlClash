@@ -110,7 +110,6 @@ button {
   flex-wrap: wrap;
 }
 
-.download-button,
 .home-button {
   border: 1px solid var(--line);
   background: var(--surface);
@@ -122,23 +121,12 @@ button {
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.download-button {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: #fff;
-}
 
-.download-button:hover:not(:disabled),
 .home-button:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow);
 }
 
-.download-button:disabled {
-  opacity: 0.65;
-  cursor: progress;
-  transform: none;
-}
 
 /* ===== מסכים ===== */
 
@@ -1197,7 +1185,6 @@ h1, h2, h3 {
 
 /* ---------- כפתורים ---------- */
 
-.download-button,
 .home-button,
 .back-button,
 .primary-button,
@@ -1210,14 +1197,12 @@ h1, h2, h3 {
   transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
 }
 
-.download-button { background: var(--gold); color: var(--ink); }
 .home-button,
 .back-button { background: var(--surface); color: var(--ink); }
 .primary-button { background: var(--brand); color: #fff; }
 .filter { background: var(--surface); color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
 .filter.active { background: var(--ink); color: #fff; }
 
-.download-button:hover:not(:disabled),
 .home-button:hover,
 .back-button:hover,
 .primary-button:hover:not(:disabled),
@@ -1229,7 +1214,6 @@ h1, h2, h3 {
 .primary-button:hover:not(:disabled) { background: var(--brand-strong); }
 .back-button:hover { background: var(--surface); }
 
-.download-button:disabled,
 .primary-button:disabled {
   transform: none;
   box-shadow: 3px 3px 0 var(--ink-faint);
@@ -1475,7 +1459,7 @@ button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .choice-card, .video-card, .answer, .primary-button,
-  .back-button, .home-button, .download-button, .filter {
+  .back-button, .home-button, .filter {
     transition: none;
   }
   .hero-illustration, .hero-art { animation: none; }
@@ -1484,4 +1468,158 @@ button:focus-visible {
 @media (max-width: 640px) {
   .hero { padding: 26px 22px; }
   :root { --shadow: 4px 4px 0 var(--ink); --shadow-lift: 5px 5px 0 var(--ink); }
+}
+
+/* ===== תוספות המסע: מקלדת, קול, כוכבים וסיכום ===== */
+
+/* --- לוח המצב --- */
+
+.quest-hud-side {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-inline-start: auto;
+}
+
+.quest-restart {
+  font-family: var(--f-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.quest-restart:hover {
+  background: var(--gold);
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* --- שורת הסיפור עם כפתור ההקראה --- */
+
+.quest-intro-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.quest-intro-row .quest-intro {
+  flex: 1;
+}
+
+.quest-speak {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.quest-speak:hover {
+  background: var(--gold);
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* --- מספר התשובה, לבחירה במקלדת --- */
+
+.answer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.answer-key {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 2px solid currentColor;
+  font-size: 0.78rem;
+  font-weight: 800;
+  opacity: 0.45;
+}
+
+.answer:hover:not(:disabled) .answer-key { opacity: 0.75; }
+.answer.correct .answer-key,
+.answer.wrong .answer-key { opacity: 0.9; }
+
+/* --- מסך הסיום --- */
+
+.quest-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 14px;
+  font-size: 2.1rem;
+  line-height: 1;
+}
+
+.quest-stars .star {
+  color: var(--ink-faint);
+  opacity: 0.35;
+}
+
+.quest-stars .star.on {
+  color: var(--gold);
+  opacity: 1;
+  text-shadow: 2px 2px 0 var(--ink);
+}
+
+.quest-recap-title {
+  margin: 22px 0 12px;
+  font-size: 1.05rem;
+}
+
+.quest-recap {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+  text-align: start;
+}
+
+.quest-recap li {
+  display: grid;
+  gap: 3px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.quest-recap strong {
+  font-family: var(--f-display);
+  font-size: 0.93rem;
+  color: var(--brand-strong);
+}
+
+.quest-recap span {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quest-restart, .quest-speak { transition: none; }
+}
+
+@media (max-width: 640px) {
+  .quest-hud-side { margin-inline-start: 0; }
+  .quest-recap li { padding: 11px 13px; }
+  .quest-stars { font-size: 1.8rem; }
 }
