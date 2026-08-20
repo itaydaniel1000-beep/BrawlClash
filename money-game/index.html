@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=f51f6b98">
+  <link rel="stylesheet" href="styles.css?v=eb8d403a">
 </head>
 <body>
   <header class="topbar">
@@ -197,13 +197,47 @@
         <div>
           <span class="eyebrow">מסע הגיבור</span>
           <h2>קללת המכשף</h2>
-          <p>המכשף גנב את הצבע מהממלכה. כל תשובה נכונה מחזירה אותו.</p>
+          <p>שלושה עולמות, תשעה שלבים, ודרקון בסוף. כל ניצחון מחזיר צבע לממלכה.</p>
         </div>
         <button class="back-button" onclick="showScreen('home')">חזרה</button>
       </div>
 
-      <div id="questBoard" class="quest">
+      <!-- כרטיס פתיחת עולם -->
+      <div id="questWorld" class="quest-card hidden">
+        <canvas id="questWorldArt" class="quest-card-art" width="720" height="180"></canvas>
+        <span class="quest-card-eyebrow">עולם <span id="questWorldNum"></span> מתוך <span id="questWorldTotal"></span></span>
+        <h2 id="questWorldName"></h2>
+        <p id="questWorldTag"></p>
+        <ul id="questWorldStages" class="quest-card-list"></ul>
+        <button class="primary-button" onclick="enterWorld()">יוצאים לדרך</button>
+      </div>
+
+      <!-- כרטיס סיום עולם -->
+      <div id="questWorldDone" class="quest-card freed hidden">
+        <canvas id="questWorldDoneArt" class="quest-card-art" width="720" height="180"></canvas>
+        <span class="quest-card-eyebrow">העולם שוחרר</span>
+        <h2 id="questWorldDoneName"></h2>
+        <p id="questWorldDoneText"></p>
+        <ul id="questWorldDoneLessons" class="quest-recap"></ul>
+        <button id="questWorldDoneNext" class="primary-button" onclick="questWorldDoneNext()">אל העולם הבא</button>
+      </div>
+
+      <!-- מסך נסיגה -->
+      <div id="questSetback" class="quest-card setback hidden">
+        <div class="setback-lamps"><span></span><span></span><span></span></div>
+        <h2>הפנסים כבו</h2>
+        <p id="questSetbackText"></p>
+        <p class="setback-place">חוזרים אל <strong id="questSetbackPlace"></strong></p>
+        <button class="primary-button" onclick="questSetbackNext()">ממשיכים משם</button>
+      </div>
+
+      <!-- לוח המשחק -->
+      <div id="questBoard" class="quest hidden">
         <div class="quest-hud">
+          <div class="quest-hud-world">
+            <span class="quest-hud-eyebrow">עולם</span>
+            <strong id="questWorldLabel"></strong>
+          </div>
           <div id="questMap" class="quest-map"></div>
           <div class="quest-hud-side">
             <div id="questLanterns" class="lanterns" aria-label="פנסים שנותרו"></div>
@@ -221,13 +255,45 @@
             <p id="questIntro" class="quest-intro"></p>
             <button class="quest-speak" onclick="speakIntro()" aria-label="להקריא את הסיפור">🔊</button>
           </div>
-          <h3 id="questQuestion"></h3>
-          <div id="questAnswers" class="answers"></div>
+          <div id="questGame" class="quest-game"></div>
           <p id="questResult" class="quest-result hidden" role="status" aria-live="polite"></p>
           <button id="questNext" class="primary-button hidden" onclick="questNext()">הלאה</button>
         </div>
       </div>
 
+      <!-- קרב הדרקון -->
+      <div id="questBoss" class="quest-boss hidden">
+        <div class="boss-hud">
+          <div class="boss-side">
+            <span class="boss-label">הגיבור</span>
+            <div id="bossHearts" class="boss-hearts" aria-label="לבבות שנותרו"></div>
+          </div>
+          <div class="boss-middle">
+            <strong id="bossScore">0 / 10</strong>
+            <span id="bossRound"></span>
+          </div>
+          <div class="boss-side dragon">
+            <span class="boss-label">הדרקון</span>
+            <div id="bossHealth" class="boss-health"><span></span></div>
+          </div>
+        </div>
+
+        <div class="quest-stage">
+          <canvas id="bossCanvas" width="960" height="420"></canvas>
+          <div class="quest-place boss-place">קרב הדרקון</div>
+        </div>
+
+        <div class="quest-panel">
+          <p id="bossIntro" class="quest-intro"></p>
+          <p id="bossStatus" class="boss-status" role="status" aria-live="polite"></p>
+          <div id="bossQuestionBox" class="hidden">
+            <h3 id="bossQuestion" class="quest-question"></h3>
+            <div id="bossAnswers" class="answers"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- סיום המסע -->
       <div id="questEnd" class="result-box hidden">
         <h2 id="questEndTitle"></h2>
         <div id="questStars" class="quest-stars"></div>
@@ -277,10 +343,14 @@
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="movie.js?v=f51f6b98"></script>
-  <script src="movies.js?v=f51f6b98"></script>
-  <script src="game.js?v=f51f6b98"></script>
-  <script src="script.js?v=f51f6b98"></script>
+  <script src="movie.js?v=eb8d403a"></script>
+  <script src="movies.js?v=eb8d403a"></script>
+  <script src="game.js?v=eb8d403a"></script>
+  <script src="items.js?v=eb8d403a"></script>
+  <script src="minigames.js?v=eb8d403a"></script>
+  <script src="boss.js?v=eb8d403a"></script>
+  <script src="worlds.js?v=eb8d403a"></script>
+  <script src="script.js?v=eb8d403a"></script>
 
 </body>
 </html>

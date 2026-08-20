@@ -1623,3 +1623,566 @@ button:focus-visible {
   .quest-recap li { padding: 11px 13px; }
   .quest-stars { font-size: 1.8rem; }
 }
+
+/* ===== עולמות, משחקונים וקרב הדרקון ===== */
+
+/* ---------- כרטיסי ביניים ---------- */
+
+.quest-card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 0 0 28px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.quest-card-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-block-end: 3px solid var(--ink);
+  image-rendering: pixelated;
+}
+
+.quest-card-eyebrow {
+  margin-block-start: 18px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--gold);
+  font-family: var(--f-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.quest-card h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.quest-card > p {
+  max-width: 54ch;
+  margin: 0;
+  padding: 0 22px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.quest-card-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.quest-card-list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--surface-warm);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.quest-card-list .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+}
+
+.quest-card .primary-button { margin-block-start: 6px; }
+.quest-card .quest-recap { width: min(100%, 640px); padding: 0 22px; }
+
+/* --- נסיגה --- */
+
+.quest-card.setback { padding-block-start: 30px; }
+
+.setback-lamps {
+  display: flex;
+  gap: 12px;
+}
+
+.setback-lamps span {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  opacity: 0.5;
+}
+
+.setback-place {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 2px dashed var(--ink);
+  font-size: 0.92rem;
+}
+
+.setback-place strong { color: var(--brand-strong); }
+
+/* ---------- לוח המצב ---------- */
+
+.quest-hud-world {
+  display: grid;
+  gap: 1px;
+  padding-inline-end: 14px;
+  border-inline-end: 2px solid var(--line);
+}
+
+.quest-hud-eyebrow {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+
+.quest-hud-world strong {
+  font-family: var(--f-display);
+  font-size: 0.95rem;
+}
+
+.quest-map .node {
+  background: var(--surface);
+  border: 3px solid var(--ink);
+}
+
+.quest-map .node.done { background: var(--node-color, var(--brand)); }
+.quest-map .node.here {
+  background: var(--gold);
+  box-shadow: 0 0 0 4px rgba(245, 197, 66, .4);
+}
+
+/* רווח בין עולמות, כדי שרואים איפה עולם נגמר */
+.quest-map .node.gap { margin-inline-start: 16px; position: relative; }
+.quest-map .node.gap::before {
+  content: "";
+  position: absolute;
+  inset-inline-end: 100%;
+  inset-block-start: 50%;
+  width: 14px;
+  height: 3px;
+  margin-inline-end: 3px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, var(--ink) 0 3px, transparent 3px 6px);
+}
+
+/* השלב האחרון: הדרקון */
+.quest-map .node.boss {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  transform: rotate(45deg);
+  background: var(--surface);
+}
+.quest-map .node.boss.done { background: var(--berry); }
+.quest-map .node.boss.here { background: var(--danger); }
+
+/* ---------- אזור המשחקון ---------- */
+
+.quest-game { display: grid; gap: 14px; }
+.quest-question { margin: 0 0 4px; font-size: 1.15rem; }
+
+.mg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mg-howto {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.mg-goal {
+  flex: none;
+  padding: 5px 13px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mg-dots { display: flex; gap: 7px; }
+
+.mg-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  transition: background .2s ease;
+}
+
+.mg-dot.right { background: var(--brand); }
+.mg-dot.wrong { background: var(--berry); }
+
+.mg-feedback {
+  min-height: 1.5em;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.mg-feedback.good { color: var(--brand-strong); font-weight: 600; }
+.mg-feedback.bad { color: #9c3325; font-weight: 600; }
+
+/* --- כפתורי בחירה גדולים --- */
+
+.mg-choices { display: grid; gap: 12px; }
+.mg-choices.two { grid-template-columns: 1fr 1fr; }
+
+.mg-choice {
+  padding: 16px 12px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 3px 3px 0 var(--ink);
+  font-family: var(--f-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.mg-choice:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.mg-choice.need:hover:not(:disabled) { background: var(--brand-soft); }
+.mg-choice.want:hover:not(:disabled) { background: var(--purple-soft); }
+.mg-choice.right { background: var(--brand); color: #fff; }
+.mg-choice.wrong { background: var(--berry); color: #fff; }
+.mg-choice:disabled { cursor: default; }
+
+/* --- מיון פריטים --- */
+
+.mg-item-stage {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 3px solid var(--ink);
+  background: var(--surface-warm);
+  transition: background .2s ease;
+}
+
+.mg-item-stage.good { background: var(--brand-soft); }
+.mg-item-stage.bad { background: var(--danger-soft); }
+
+.mg-item-art { image-rendering: pixelated; }
+
+.mg-item-label {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+/* --- השוואת מוצרים --- */
+
+.mg-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.mg-product {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 14px 10px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 3px 3px 0 var(--ink);
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.mg-product:hover:not(:disabled) {
+  background: var(--gold);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.mg-product-art { image-rendering: pixelated; }
+.mg-product-name { font-family: var(--f-display); font-size: 1rem; }
+.mg-product-size { font-size: 0.86rem; color: var(--ink-soft); }
+.mg-product-price { font-size: 1rem; font-weight: 800; }
+
+.mg-product-unit {
+  min-height: 1.3em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.mg-product.right { background: var(--brand-soft); border-color: var(--brand); }
+.mg-product.wrong { background: var(--danger-soft); border-color: var(--berry); }
+.mg-product.dim { opacity: 0.55; }
+.mg-product:disabled { cursor: default; }
+
+/* --- צנצנות התקציב --- */
+
+.mg-budget { display: grid; gap: 12px; justify-items: center; }
+
+.mg-budget-total {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.mg-jars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; }
+
+.mg-jar {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 10px 6px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  background: var(--surface-warm);
+}
+
+.mg-jar.right { background: var(--brand-soft); }
+.mg-jar.wrong { background: var(--danger-soft); }
+.mg-jar-art { image-rendering: pixelated; }
+.mg-jar-name { font-family: var(--f-display); font-size: 0.95rem; }
+
+.mg-jar-controls { display: flex; align-items: center; gap: 8px; }
+
+.mg-jar-count {
+  min-width: 3ch;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.mg-step {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mg-step:hover:not(:disabled) { background: var(--gold); }
+.mg-step:disabled { opacity: 0.45; }
+
+.mg-submit {
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: 3px solid var(--ink);
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 3px 3px 0 var(--ink);
+  font-family: var(--f-display);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mg-submit:disabled { background: var(--ink-faint); box-shadow: 3px 3px 0 var(--ink-faint); }
+
+/* --- מגילת ההצעה --- */
+
+.mg-scroll-stage {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 3px solid var(--ink);
+  background: var(--surface-warm);
+  transition: background .2s ease;
+}
+
+.mg-scroll-stage.good { background: var(--brand-soft); }
+.mg-scroll-stage.bad { background: var(--danger-soft); }
+
+.mg-scroll-art { width: 100%; max-width: 430px; height: auto; image-rendering: pixelated; }
+
+.mg-scroll-text {
+  margin: 0;
+  max-width: 46ch;
+  font-family: var(--f-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* --- סדר החובות --- */
+
+.mg-debts { display: grid; gap: 10px; }
+
+.mg-debt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 3px 3px 0 var(--ink);
+  text-align: start;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+
+.mg-debt:hover:not(:disabled) {
+  background: var(--gold);
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.mg-debt-art { flex: none; image-rendering: pixelated; }
+.mg-debt-info { display: grid; gap: 1px; flex: 1; }
+.mg-debt-info strong { font-family: var(--f-display); font-size: 0.98rem; }
+.mg-debt-sum { font-size: 0.84rem; color: var(--ink-soft); }
+.mg-debt-rate { font-size: 0.84rem; font-weight: 800; color: var(--berry); }
+
+.mg-debt-rank {
+  flex: none;
+  min-width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.mg-debt.right { background: var(--brand-soft); border-color: var(--brand); }
+.mg-debt.right .mg-debt-rank { background: var(--brand); color: #fff; }
+.mg-debt.wrong { background: var(--danger-soft); border-color: var(--berry); }
+.mg-debt:disabled { cursor: default; }
+
+/* ---------- קרב הדרקון ---------- */
+
+.quest-boss { display: grid; gap: 16px; }
+
+.boss-hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  border: 3px solid var(--ink);
+  background: #2a2136;
+  color: #f2ead6;
+  box-shadow: var(--shadow);
+}
+
+.boss-side { display: grid; gap: 6px; }
+.boss-side.dragon { justify-items: end; }
+
+.boss-label {
+  font-family: var(--f-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #c9bcd8;
+}
+
+.boss-hearts { display: flex; gap: 6px; }
+
+/* לב מצויר משני ריבועים ופינה מסובבת, בלי אמוג׳י */
+.heart {
+  position: relative;
+  width: 20px;
+  height: 18px;
+  filter: grayscale(1) brightness(.5);
+  transition: filter .25s ease;
+}
+
+.heart::before,
+.heart::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  width: 11px;
+  height: 17px;
+  border-radius: 11px 11px 0 0;
+  background: #e8394a;
+}
+
+.heart::before { inset-inline-start: 0; transform: rotate(-45deg); transform-origin: 50% 100%; }
+.heart::after { inset-inline-end: 0; transform: rotate(45deg); transform-origin: 50% 100%; }
+.heart.on { filter: none; }
+
+.boss-middle { display: grid; justify-items: center; gap: 1px; }
+.boss-middle strong { font-family: var(--f-display); font-size: 1.5rem; color: var(--gold); }
+.boss-middle span { font-size: 0.74rem; color: #c9bcd8; }
+
+.boss-health {
+  width: min(220px, 40vw);
+  height: 16px;
+  border-radius: 999px;
+  border: 3px solid #f2ead6;
+  background: #7a1f2a;
+  overflow: hidden;
+}
+
+.boss-health span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #e8394a, #ff8a5e);
+  transition: width .45s ease;
+}
+
+.boss-place { background: #7a1f2a !important; }
+
+.boss-status {
+  margin: 0 0 10px;
+  font-family: var(--f-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--berry);
+}
+
+/* ---------- מובייל ---------- */
+
+@media (max-width: 640px) {
+  .quest-card h2 { font-size: 1.3rem; }
+  .quest-card > p { padding: 0 16px; font-size: 0.92rem; }
+  .quest-hud-world { padding-inline-end: 0; border-inline-end: none; }
+  .mg-choices.two { grid-template-columns: 1fr; }
+  .mg-compare { grid-template-columns: 1fr; }
+  .mg-jars { gap: 6px; }
+  .mg-jar { padding: 8px 3px; }
+  .mg-jar-art { width: 92px; height: 115px; }
+  .mg-jar-name { font-size: 0.82rem; }
+  .mg-step { width: 28px; height: 28px; }
+  .mg-scroll-text { font-size: 0.95rem; }
+  .mg-debt { padding: 9px 10px; gap: 8px; }
+  .mg-debt-art { width: 52px; height: 45px; }
+  .boss-hud { grid-template-columns: 1fr; justify-items: center; gap: 10px; }
+  .boss-side, .boss-side.dragon { justify-items: center; }
+  .boss-health { width: min(260px, 70vw); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-choice, .mg-product, .mg-debt, .mg-dot, .boss-health span, .heart { transition: none; }
+}

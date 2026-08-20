@@ -1032,11 +1032,12 @@ const QUEST = [
 
 /* ---------- מנוע המשחק ---------- */
 
-/* ההקדמה נאמרת פעם אחת, בשלב הראשון של המסע, יהיה אשר יהיה */
+/* ההקדמה נאמרת פעם אחת, בשלב הראשון של המסע */
 const QUEST_PROLOGUE = "המכשף קילל את הממלכה וגנב ממנה את הצבע.";
 
-/* המגדל הוא תמיד הסיום. שאר השלבים מתערבבים בכל מסע מחדש. */
-const FINALE = QUEST.length - 1;
+/* כמה שלבים נסוגים כשנגמרים הפנסים */
+const SETBACK = 3;
+const TRAVEL_TIME = 0.62;
 
 function shuffled(list) {
   const a = list.slice();
@@ -1051,11 +1052,15 @@ function shuffled(list) {
 
 /* בוחר שאלה אקראית מהמאגר של השלב ומערבב את סדר התשובות */
 function rollQuestion(stage, poolIndex, answerOrder) {
-  const pick = poolIndex != null
+  if (!stage.pool || !stage.pool.length) return null;
+
+  const pick = poolIndex != null && stage.pool[poolIndex]
     ? poolIndex
     : Math.floor(Math.random() * stage.pool.length);
   const q = stage.pool[pick];
-  const order = answerOrder || shuffled(q.answers.map((_, i) => i));
+  const order = answerOrder && answerOrder.length === q.answers.length
+    ? answerOrder
+    : shuffled(q.answers.map((_, i) => i));
 
   return {
     pick: pick,
@@ -1067,18 +1072,18 @@ function rollQuestion(stage, poolIndex, answerOrder) {
 }
 
 /* מצלם סצנה שלמה לקנבס נפרד, לשימוש במעבר בין שלבים */
-function snapshotScene(stageIndex, t, curse) {
+function snapshotScene(stage, t, curse) {
   const c = document.createElement("canvas");
   c.width = GAME_W;
   c.height = GAME_H;
   const ctx = c.getContext("2d");
   ctx.imageSmoothingEnabled = false;
-  QUEST[stageIndex].draw(ctx, t, curse);
-  applyCurse(ctx, curse);
+  if (stage && stage.draw) {
+    stage.draw(ctx, t, curse);
+    applyCurse(ctx, curse);
+  }
   return c;
 }
-
-const TRAVEL_TIME = 0.62;
 
 class Quest {
   constructor(canvas) {
@@ -1089,75 +1094,69 @@ class Quest {
   }
 
   reset() {
-    const rest = shuffled(QUEST.map((_, i) => i).filter(i => i !== FINALE));
-    this.order = rest.concat([FINALE]);
-    this.picks = this.order.map(i => rollQuestion(QUEST[i]));
-
-    this.stage = 0;
+    this.run = buildRun();
+    this.picks = this.run.map(step => rollQuestion(step.stage));
+    this.pos = 0;
     this.lanterns = 3;
-    this.solved = 0;
-    this.cleared = new Array(QUEST.length).fill(false);
+    this.cleared = new Array(this.run.length).fill(false);
+    this.worldsDone = [];
     this.curse = 1;
     this.targetCurse = 1;
     this.travel = null;
     this.t = 0;
   }
 
-  /* משחזר מסע שנשמר, כדי שרענון דף לא יאבד את ההתקדמות */
-  load(save) {
-    if (!save || !Array.isArray(save.order) || save.order.length !== QUEST.length) return false;
-    if (save.order.indexOf(FINALE) !== QUEST.length - 1) return false;
-    if (!Array.isArray(save.picks) || save.picks.length !== QUEST.length) return false;
+  /* ---------- מצב נוכחי ---------- */
 
-    try {
-      this.order = save.order.slice();
-      this.picks = this.order.map((stageIndex, i) => {
-        const saved = save.picks[i];
-        return rollQuestion(QUEST[stageIndex], saved.pick, saved.order);
-      });
-    } catch (e) {
-      return false;
-    }
-
-    this.stage = Math.min(QUEST.length - 1, Math.max(0, save.stage | 0));
-    this.lanterns = Math.min(3, Math.max(0, save.lanterns | 0));
-    this.cleared = QUEST.map((_, i) => !!(save.cleared && save.cleared[i]));
-    this.solved = this.cleared.filter(Boolean).length;
-    this.curse = this.cleared[this.stage] ? 0 : 1;
-    this.targetCurse = this.curse;
-    this.travel = null;
-    this.t = 0;
-    return this.lanterns > 0;
+  get step() {
+    return this.run[this.pos];
   }
 
-  save() {
-    return {
-      order: this.order,
-      picks: this.picks.map(p => ({pick: p.pick, order: p.order})),
-      stage: this.stage,
-      lanterns: this.lanterns,
-      cleared: this.cleared
-    };
-  }
-
-  /* השלב במיקום הנוכחי במסע, ולא במיקומו בקובץ */
   get current() {
-    return QUEST[this.order[this.stage]];
+    return this.step.stage;
   }
 
-  /* השאלה שנבחרה לשלב הזה במסע הזה */
   get currentQuestion() {
-    return this.picks[this.stage];
+    return this.picks[this.pos];
   }
 
-  get isFinale() {
-    return this.stage === QUEST.length - 1;
+  get world() {
+    return WORLDS[this.step.world];
   }
 
-  /* תשובה נכונה מפוגגת את הקללה בשלב הזה */
+  get isBoss() {
+    return !!this.step.boss;
+  }
+
+  get isLast() {
+    return this.pos === this.run.length - 1;
+  }
+
+  /* השלב האחרון בעולם הנוכחי */
+  get endsWorld() {
+    return !this.step.boss && this.step.indexInWorld === this.step.worldSize - 1;
+  }
+
+  get solved() {
+    return this.cleared.filter(Boolean).length;
+  }
+
+  /* כמה שלבים הושלמו בעולם מסוים */
+  worldProgress(worldIndex) {
+    let done = 0;
+    let total = 0;
+    this.run.forEach((step, i) => {
+      if (step.boss || step.world !== worldIndex) return;
+      total++;
+      if (this.cleared[i]) done++;
+    });
+    return {done: done, total: total};
+  }
+
+  /* ---------- התקדמות ---------- */
+
   clearStage() {
-    this.cleared[this.stage] = true;
-    this.solved++;
+    this.cleared[this.pos] = true;
     this.targetCurse = 0;
   }
 
@@ -1168,22 +1167,92 @@ class Quest {
 
   /* מגריל מחדש את השאלה בשלב, כדי שניסיון חוזר לא יהיה זהה */
   reroll() {
-    this.picks[this.stage] = rollQuestion(this.current);
+    this.picks[this.pos] = rollQuestion(this.current);
+  }
+
+  /* נגמרו הפנסים: נסוגים שלושה שלבים אחורה ומתחילים משם מחדש.
+     מחזיר כמה שלבים באמת נסוגו. */
+  setback() {
+    const from = this.pos;
+    const to = Math.max(0, this.pos - SETBACK);
+
+    for (let i = to; i <= from && i < this.run.length; i++) {
+      this.cleared[i] = false;
+      this.picks[i] = rollQuestion(this.run[i].stage);
+    }
+
+    this.pos = to;
+    this.lanterns = 3;
+    this.curse = 1;
+    this.targetCurse = 1;
+    this.travel = null;
+    return from - to;
   }
 
   goTo(index) {
-    this.stage = index;
-    this.curse = this.cleared[index] ? 0 : 1;
+    this.pos = Math.max(0, Math.min(this.run.length - 1, index));
+    this.curse = this.cleared[this.pos] ? 0 : 1;
     this.targetCurse = this.curse;
   }
 
   /* מעבר מונפש: הסצנה הנוכחית יוצאת שמאלה והבאה נכנסת אחריה */
   travelTo(index) {
-    const from = snapshotScene(this.order[this.stage], this.t, this.curse);
+    const from = snapshotScene(this.current, this.t, this.curse);
     this.goTo(index);
-    const to = snapshotScene(this.order[this.stage], this.t, this.curse);
+    const to = snapshotScene(this.current, this.t, this.curse);
     this.travel = {from: from, to: to, p: 0};
   }
+
+  /* ---------- שמירה ---------- */
+
+  save() {
+    return {
+      v: 2,
+      places: this.run.map(step => step.stage.place),
+      picks: this.picks.map(p => (p ? {pick: p.pick, order: p.order} : null)),
+      pos: this.pos,
+      lanterns: this.lanterns,
+      cleared: this.cleared,
+      worldsDone: this.worldsDone
+    };
+  }
+
+  load(save) {
+    if (!save || save.v !== 2 || !Array.isArray(save.places)) return false;
+
+    /* בונים מסע חדש ומסדרים אותו לפי השמות ששמורים */
+    const fresh = buildRun();
+    if (save.places.length !== fresh.length) return false;
+
+    const byPlace = {};
+    fresh.forEach(step => { byPlace[step.stage.place] = step; });
+
+    const run = [];
+    for (let i = 0; i < save.places.length; i++) {
+      const step = byPlace[save.places[i]];
+      if (!step) return false;
+      run.push(step);
+    }
+    /* אותו שלב לא יכול להופיע פעמיים */
+    if (new Set(save.places).size !== save.places.length) return false;
+
+    this.run = run;
+    this.picks = run.map((step, i) => {
+      const saved = save.picks && save.picks[i];
+      return rollQuestion(step.stage, saved ? saved.pick : null, saved ? saved.order : null);
+    });
+    this.pos = Math.min(run.length - 1, Math.max(0, save.pos | 0));
+    this.lanterns = Math.min(3, Math.max(1, save.lanterns | 0));
+    this.cleared = run.map((_, i) => !!(save.cleared && save.cleared[i]));
+    this.worldsDone = Array.isArray(save.worldsDone) ? save.worldsDone.slice() : [];
+    this.curse = this.cleared[this.pos] ? 0 : 1;
+    this.targetCurse = this.curse;
+    this.travel = null;
+    this.t = 0;
+    return true;
+  }
+
+  /* ---------- ציור ---------- */
 
   render(dt) {
     this.t += dt;
@@ -1217,8 +1286,10 @@ class Quest {
     this.curse += (this.targetCurse - this.curse) * Math.min(1, dt * 3);
 
     ctx.clearRect(0, 0, GAME_W, GAME_H);
-    this.current.draw(ctx, this.t, this.curse);
-    applyCurse(ctx, this.curse);
-    drawMotes(ctx, this.t, this.curse);
+    if (this.current.draw) {
+      this.current.draw(ctx, this.t, this.curse);
+      applyCurse(ctx, this.curse);
+      drawMotes(ctx, this.t, this.curse);
+    }
   }
 }

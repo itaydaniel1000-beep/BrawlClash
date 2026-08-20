@@ -874,6 +874,7 @@ let quest = null;
 let questRaf = null;
 let questLast = 0;
 let questLocked = false;
+let questPending = null;   /* מה קורה אחרי מסך הביניים שמוצג כרגע */
 
 const QUEST_SAVE_KEY = "kesef-hacham-quest";
 
@@ -916,34 +917,78 @@ function tone(ctx, freq, start, dur, type, peak, endFreq) {
   osc.stop(at + dur + 0.03);
 }
 
+/* רעש לבן קצר - לשאגה ולהתרסקות */
+function noise(ctx, start, dur, peak, filterHz) {
+  const frames = Math.floor(ctx.sampleRate * dur);
+  const buffer = ctx.createBuffer(1, frames, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < frames; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / frames);
+
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(filterHz || 900, ctx.currentTime + start);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(peak || 0.2, ctx.currentTime + start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  src.start(ctx.currentTime + start);
+}
+
 function playSfx(name) {
   const ctx = sfxAudio();
   if (!ctx) return;
 
   if (name === "good") {
-    /* שלושה צלילים עולים: הצבע חוזר */
     tone(ctx, 523.25, 0, 0.13, "triangle", 0.15);
     tone(ctx, 659.25, 0.09, 0.13, "triangle", 0.15);
     tone(ctx, 783.99, 0.18, 0.26, "triangle", 0.17);
   } else if (name === "bad") {
-    /* שני צלילים יורדים, רכים - טעות היא לא עונש */
     tone(ctx, 311.13, 0, 0.16, "sine", 0.13);
     tone(ctx, 233.08, 0.12, 0.3, "sine", 0.12);
   } else if (name === "lantern") {
-    /* פנס נכבה */
     tone(ctx, 420, 0, 0.34, "sine", 0.12, 90);
   } else if (name === "step") {
     tone(ctx, 180, 0, 0.09, "sine", 0.07, 120);
     tone(ctx, 180, 0.22, 0.09, "sine", 0.06, 120);
+  } else if (name === "tick") {
+    tone(ctx, 880, 0, 0.06, "square", 0.06);
+  } else if (name === "world") {
+    /* עולם שוחרר: פנפרה קצרה */
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) =>
+      tone(ctx, f, i * 0.1, i === 4 ? 0.55 : 0.14, "triangle", 0.16));
   } else if (name === "win") {
-    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
-      tone(ctx, f, i * 0.12, i === 3 ? 0.5 : 0.16, "triangle", 0.17);
-    });
-    tone(ctx, 1318.5, 0.52, 0.5, "triangle", 0.12);
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
+      tone(ctx, f, i * 0.12, i === 3 ? 0.5 : 0.16, "triangle", 0.17));
+    tone(ctx, 1318.5, 0.52, 0.6, "triangle", 0.13);
   } else if (name === "fail") {
     tone(ctx, 392, 0, 0.22, "sawtooth", 0.09, 330);
     tone(ctx, 294, 0.18, 0.26, "sawtooth", 0.09, 233);
     tone(ctx, 196, 0.4, 0.6, "sine", 0.11, 130);
+  } else if (name === "roar") {
+    /* שאגת הדרקון */
+    noise(ctx, 0, 0.7, 0.22, 420);
+    tone(ctx, 110, 0, 0.7, "sawtooth", 0.13, 62);
+    tone(ctx, 74, 0.05, 0.75, "square", 0.1, 48);
+  } else if (name === "fire") {
+    noise(ctx, 0, 0.55, 0.18, 1600);
+  } else if (name === "strike") {
+    /* מכה בדרקון */
+    tone(ctx, 1200, 0, 0.09, "square", 0.14, 500);
+    noise(ctx, 0.02, 0.28, 0.16, 2600);
+    tone(ctx, 320, 0.06, 0.34, "triangle", 0.13, 180);
+  } else if (name === "hurt") {
+    noise(ctx, 0, 0.3, 0.2, 700);
+    tone(ctx, 220, 0, 0.34, "sawtooth", 0.12, 96);
+  } else if (name === "setback") {
+    tone(ctx, 392, 0, 0.3, "sine", 0.11, 196);
+    tone(ctx, 262, 0.22, 0.5, "sine", 0.1, 131);
   }
 }
 
@@ -987,6 +1032,24 @@ function stopQuestLoop() {
   questRaf = null;
 }
 
+function startQuestLoop() {
+  stopQuestLoop();
+  quest.render(0);
+  questLast = performance.now();
+  questRaf = requestAnimationFrame(questLoop);
+}
+
+/* ---------- מסכים ---------- */
+
+const QUEST_PANELS = ["questBoard", "questWorld", "questWorldDone", "questSetback", "questBoss", "questEnd"];
+
+function showQuestPanel(id) {
+  QUEST_PANELS.forEach(name => {
+    const el = document.getElementById(name);
+    if (el) el.classList.toggle("hidden", name !== id);
+  });
+}
+
 /* fresh - מסע חדש לגמרי. אחרת ממשיכים מהמקום שנשמר, אם יש. */
 function startQuest(fresh) {
   const canvas = document.getElementById("questCanvas");
@@ -1002,26 +1065,131 @@ function startQuest(fresh) {
   }
 
   questLocked = false;
+  questPending = null;
+  stopBossLoop();
   saveQuest();
 
-  document.getElementById("questBoard").classList.remove("hidden");
-  document.getElementById("questEnd").classList.add("hidden");
-
-  renderStage();
-  stopQuestLoop();
-  quest.render(0);
-  questLast = performance.now();
-  questRaf = requestAnimationFrame(questLoop);
+  /* פותחים בכרטיס העולם אם זה השלב הראשון בעולם, אחרת ישר בשלב */
+  if (quest.step.indexInWorld === 0 && !quest.isBoss && !quest.cleared[quest.pos]) {
+    showWorldCard();
+  } else {
+    enterStage();
+  }
 }
 
-/* ---------- לוח המצב ---------- */
+/* --- כרטיס פתיחת עולם --- */
+
+function showWorldCard() {
+  const world = quest.world;
+  const index = quest.step.world;
+
+  document.getElementById("questWorldNum").textContent = index + 1;
+  document.getElementById("questWorldTotal").textContent = WORLDS.length;
+  document.getElementById("questWorldName").textContent = world.name;
+  document.getElementById("questWorldTag").textContent = world.tagline;
+
+  const list = document.getElementById("questWorldStages");
+  list.innerHTML = worldStages(world)
+    .map(stage => `<li><span class="dot" style="background:${world.color}"></span>${stage.place}</li>`)
+    .join("");
+
+  paintWorldBanner(document.getElementById("questWorldArt"), index);
+  showQuestPanel("questWorld");
+  stopQuestLoop();
+  playSfx("tick");
+}
+
+function enterWorld() {
+  enterStage();
+}
+
+/* --- כרטיס סיום עולם --- */
+
+function showWorldDone(worldIndex, next) {
+  const world = WORLDS[worldIndex];
+  document.getElementById("questWorldDoneName").textContent = world.name;
+  document.getElementById("questWorldDoneText").textContent =
+    `כל ${quest.worldProgress(worldIndex).total} האזורים בעולם הזה שוחררו. הצבע חזר אליהם.`;
+
+  const list = document.getElementById("questWorldDoneLessons");
+  list.innerHTML = worldStages(world)
+    .map(stage => `<li><strong>${stage.place}</strong><span>${stage.lesson}</span></li>`)
+    .join("");
+
+  paintWorldBanner(document.getElementById("questWorldDoneArt"), worldIndex, true);
+
+  const button = document.getElementById("questWorldDoneNext");
+  button.textContent = next === "boss" ? "אל קרב הדרקון" : "אל העולם הבא";
+
+  questPending = next;
+  showQuestPanel("questWorldDone");
+  stopQuestLoop();
+  playSfx("world");
+}
+
+function questWorldDoneNext() {
+  const next = questPending;
+  questPending = null;
+
+  if (next === "boss") {
+    quest.goTo(quest.pos + 1);
+    saveQuest();
+    startBoss();
+    return;
+  }
+
+  quest.goTo(quest.pos + 1);
+  saveQuest();
+  showWorldCard();
+}
+
+/* --- מסך נסיגה --- */
+
+function showSetback(steps) {
+  /* עברית: "שלב אחד", "שני שלבים", "שלושה שלבים" */
+  const backwards = ["", "שלב אחד", "שני שלבים", "שלושה שלבים"][steps] || `${steps} שלבים`;
+
+  document.getElementById("questSetbackText").textContent = steps > 0
+    ? `הפנסים כבו. אתם נסוגים ${backwards} אחורה, אוספים שלושה פנסים חדשים, וממשיכים משם.`
+    : "הפנסים כבו, אבל אתם עדיין בתחילת הדרך. שלושה פנסים חדשים, ומתחילים שוב מכאן.";
+  document.getElementById("questSetbackPlace").textContent = quest.current.place;
+  showQuestPanel("questSetback");
+  stopQuestLoop();
+  playSfx("setback");
+}
+
+function questSetbackNext() {
+  enterStage();
+}
+
+/* ---------- שלב רגיל ---------- */
+
+function enterStage() {
+  if (quest.isBoss) return startBoss();
+
+  questLocked = false;
+  showQuestPanel("questBoard");
+  renderStage();
+  startQuestLoop();
+}
 
 function renderHud() {
+  const step = quest.step;
+  const world = quest.world;
+
+  document.getElementById("questWorldLabel").textContent = world.name;
+  document.getElementById("questWorldLabel").style.color = world.color;
+
+  /* נקודות ההתקדמות: כל השלבים במסע, מקובצים לעולמות */
   const map = document.getElementById("questMap");
-  map.innerHTML = quest.order.map((stageIndex, i) => {
-    const state = quest.cleared[i] ? "done" : i === quest.stage ? "here" : "";
-    return `<span class="node ${state}" title="${QUEST[stageIndex].place}"></span>`;
-  }).join('<span class="link"></span>');
+  map.innerHTML = quest.run.map((runStep, i) => {
+    if (runStep.boss) {
+      return `<span class="node boss ${quest.cleared[i] ? "done" : i === quest.pos ? "here" : ""}" title="קרב הדרקון"></span>`;
+    }
+    const state = quest.cleared[i] ? "done" : i === quest.pos ? "here" : "";
+    const gap = i > 0 && quest.run[i - 1].world !== runStep.world ? " gap" : "";
+    return `<span class="node${gap} ${state}" title="${runStep.stage.place}" style="--node-color:${WORLDS[runStep.world].color}"></span>`;
+  }).join("");
 
   const lamps = document.getElementById("questLanterns");
   lamps.innerHTML = [0, 1, 2]
@@ -1029,11 +1197,12 @@ function renderHud() {
     .join("");
 }
 
-/* הטקסט שנקרא בקול: המקום, הסיפור והשאלה */
+/* הטקסט שנקרא בקול */
 function stageSpeech() {
   const stage = quest.current;
-  const intro = quest.stage === 0 ? QUEST_PROLOGUE + " " + stage.intro : stage.intro;
-  return `${stage.place}. ${intro} ${quest.currentQuestion.question}`;
+  const intro = quest.pos === 0 ? QUEST_PROLOGUE + " " + stage.intro : stage.intro;
+  const q = quest.currentQuestion;
+  return `${stage.place}. ${intro} ${q ? q.question : MINIGAMES[stage.game].howto}`;
 }
 
 function speakIntro() {
@@ -1044,30 +1213,48 @@ function speakIntro() {
 
 function renderStage() {
   const stage = quest.current;
-  const q = quest.currentQuestion;
 
   document.getElementById("questPlace").textContent = stage.place;
   document.getElementById("questIntro").textContent =
-    quest.stage === 0 ? QUEST_PROLOGUE + " " + stage.intro : stage.intro;
-  document.getElementById("questQuestion").textContent = q.question;
+    quest.pos === 0 ? QUEST_PROLOGUE + " " + stage.intro : stage.intro;
 
   const result = document.getElementById("questResult");
   result.className = "quest-result hidden";
   result.textContent = "";
-
   document.getElementById("questNext").classList.add("hidden");
 
-  const box = document.getElementById("questAnswers");
+  const host = document.getElementById("questGame");
+  host.innerHTML = "";
+  host.className = "quest-game game-" + stage.game;
+
+  if (stage.game === "quiz") buildQuizStage(host, stage);
+  else buildMinigameStage(host, stage);
+
+  renderHud();
+  quest.render(0);
+}
+
+/* --- חידון --- */
+
+function buildQuizStage(host, stage) {
+  const q = quest.currentQuestion;
+
+  const title = document.createElement("h3");
+  title.className = "quest-question";
+  title.textContent = q.question;
+  host.appendChild(title);
+
+  const box = document.createElement("div");
+  box.className = "answers";
+  box.id = "questAnswers";
   box.innerHTML = q.answers
     .map((text, i) => `<button class="answer" data-pick="${i}"><span class="answer-key">${i + 1}</span>${text}</button>`)
     .join("");
+  host.appendChild(box);
 
   box.querySelectorAll(".answer").forEach(button => {
     button.addEventListener("click", () => pickAnswer(Number(button.dataset.pick)));
   });
-
-  renderHud();
-  quest.render(0);
 }
 
 function pickAnswer(index) {
@@ -1075,15 +1262,44 @@ function pickAnswer(index) {
   questLocked = true;
 
   const q = quest.currentQuestion;
-  const stage = quest.current;
   const right = index === q.correct;
-  const buttons = document.querySelectorAll("#questAnswers .answer");
 
-  buttons.forEach((button, i) => {
+  document.querySelectorAll("#questAnswers .answer").forEach((button, i) => {
     button.disabled = true;
     if (i === q.correct) button.classList.add("correct");
     else if (i === index) button.classList.add("wrong");
   });
+
+  finishStageAttempt(right);
+}
+
+/* --- משחקון --- */
+
+function buildMinigameStage(host, stage) {
+  const game = MINIGAMES[stage.game];
+  if (!game) return finishStageAttempt(true);
+
+  let settled = false;
+  const api = {
+    finish(won) {
+      if (settled) return;
+      settled = true;
+      questLocked = true;
+      finishStageAttempt(won);
+    },
+    progress(done, total, right, ok) {
+      if (ok === true) playSfx("good");
+      else if (ok === false) playSfx("bad");
+    }
+  };
+
+  game.build(host, stage.config, api);
+}
+
+/* --- סיום ניסיון בשלב --- */
+
+function finishStageAttempt(right) {
+  const stage = quest.current;
 
   const result = document.getElementById("questResult");
   result.textContent = right ? stage.win : stage.lose;
@@ -1102,73 +1318,230 @@ function pickAnswer(index) {
   saveQuest();
 
   const next = document.getElementById("questNext");
+  if (!right && quest.lanterns <= 0) next.textContent = "הפנסים כבו";
+  else if (right && quest.endsWorld) next.textContent = "העולם שוחרר";
+  else if (right && quest.isLast) next.textContent = "לסיום המסע";
+  else next.textContent = right ? "ממשיכים" : "לנסות שוב";
 
-  if (!right && quest.lanterns <= 0) {
-    next.textContent = "הקללה ניצחה";
-    next.classList.remove("hidden");
-    next.focus();
-    return;
-  }
-
-  if (right && quest.isFinale) {
-    next.textContent = "לסיום המסע";
-    next.classList.remove("hidden");
-    next.focus();
-    return;
-  }
-
-  next.textContent = right ? "ממשיכים" : "לנסות שוב";
   next.classList.remove("hidden");
   next.focus();
 }
 
 function questNext() {
-  if (quest.lanterns <= 0) return finishQuest(false);
-  if (quest.cleared[quest.stage] && quest.isFinale) return finishQuest(true);
-
-  if (quest.cleared[quest.stage]) {
-    /* ממשיכים בדרך: הסצנה הנוכחית יוצאת והבאה נכנסת */
-    quest.travelTo(quest.stage + 1);
-    playSfx("step");
-  } else {
-    /* נשארים באותו מקום, אבל עם שאלה אחרת מהמאגר */
-    quest.reroll();
+  /* נגמרו הפנסים - נסיגה */
+  if (quest.lanterns <= 0) {
+    const steps = quest.setback();
+    saveQuest();
+    return showSetback(steps);
   }
 
+  /* השלב לא נפתר - מנסים שוב, עם תוכן מוגרל מחדש */
+  if (!quest.cleared[quest.pos]) {
+    quest.reroll();
+    questLocked = false;
+    saveQuest();
+    return renderStage();
+  }
+
+  /* השלב האחרון במסע */
+  if (quest.isLast) return finishQuest(true);
+
+  /* סיום עולם */
+  if (quest.endsWorld) {
+    const worldIndex = quest.step.world;
+    const nextStep = quest.run[quest.pos + 1];
+    return showWorldDone(worldIndex, nextStep && nextStep.boss ? "boss" : "world");
+  }
+
+  /* ממשיכים בדרך */
+  quest.travelTo(quest.pos + 1);
+  playSfx("step");
   questLocked = false;
   saveQuest();
   renderStage();
 }
 
+/* ---------- קרב הדרקון ---------- */
+
+let boss = null;
+let bossRaf = null;
+let bossLast = 0;
+let bossLocked = false;
+
+function stopBossLoop() {
+  if (bossRaf) cancelAnimationFrame(bossRaf);
+  bossRaf = null;
+}
+
+function startBoss() {
+  const canvas = document.getElementById("bossCanvas");
+  if (!canvas) return;
+
+  boss = new DragonFight(canvas);
+  bossLocked = true;
+
+  showQuestPanel("questBoss");
+  stopQuestLoop();
+
+  document.getElementById("bossIntro").textContent = BOSS_STAGE.intro;
+  document.getElementById("bossQuestionBox").classList.add("hidden");
+  document.getElementById("bossStatus").textContent = "הדרקון נוחת על הבמה…";
+  renderBossHud();
+
+  boss.render(0);
+  bossLast = performance.now();
+  bossRaf = requestAnimationFrame(bossLoop);
+  playSfx("roar");
+}
+
+function renderBossHud() {
+  const hearts = document.getElementById("bossHearts");
+  hearts.innerHTML = [];
+  let html = "";
+  for (let i = 0; i < BOSS_HEARTS; i++) {
+    html += `<span class="heart ${i < boss.hearts ? "on" : ""}"></span>`;
+  }
+  hearts.innerHTML = html;
+
+  document.getElementById("bossScore").textContent = `${boss.correct} / ${BOSS_TARGET}`;
+  document.getElementById("bossRound").textContent =
+    `שאלה ${Math.min(boss.round + 1, BOSS_ROUNDS)} מתוך ${BOSS_ROUNDS}`;
+
+  const bar = document.querySelector("#bossHealth span");
+  bar.style.width = Math.max(0, 100 - (boss.correct / BOSS_TARGET) * 100) + "%";
+}
+
+function bossLoop(now) {
+  if (!boss) return;
+  const dt = Math.min(0.1, (now - bossLast) / 1000);
+  bossLast = now;
+  boss.render(dt);
+
+  /* מחזור ההתקפה: צובר כוח, תוקף, מתעייף - ואז נפתחת שאלה */
+  if (boss.phase === "intro" && boss.phaseT > 1.9) {
+    boss.setPhase("wind");
+  } else if (boss.phase === "wind" && boss.phaseT > 0.65) {
+    boss.setPhase("attack");
+    playSfx("fire");
+    document.getElementById("bossStatus").textContent = "הדרקון יורק אש!";
+  } else if (boss.phase === "attack" && boss.phaseT > 1) {
+    boss.setPhase("tired");
+    openBossQuestion();
+  } else if ((boss.phase === "strike" || boss.phase === "hit") && boss.phaseT > 1.35) {
+    if (boss.correct >= BOSS_TARGET) return endBoss(true);
+    if (boss.hearts <= 0) return endBoss(false);
+    if (boss.round >= BOSS_ROUNDS) return endBoss(boss.correct >= BOSS_TARGET);
+    boss.setPhase("wind");
+    document.getElementById("bossQuestionBox").classList.add("hidden");
+    document.getElementById("bossStatus").textContent = "הדרקון אוסף אוויר…";
+  }
+
+  bossRaf = requestAnimationFrame(bossLoop);
+}
+
+function openBossQuestion() {
+  const q = boss.question;
+  bossLocked = false;
+
+  document.getElementById("bossStatus").textContent = "הדרקון מתנשם. עכשיו!";
+  document.getElementById("bossQuestion").textContent = q.question;
+
+  const box = document.getElementById("bossAnswers");
+  box.innerHTML = q.answers
+    .map((text, i) => `<button class="answer" data-pick="${i}"><span class="answer-key">${i + 1}</span>${text}</button>`)
+    .join("");
+  box.querySelectorAll(".answer").forEach(button => {
+    button.addEventListener("click", () => bossAnswer(Number(button.dataset.pick)));
+  });
+
+  document.getElementById("bossQuestionBox").classList.remove("hidden");
+  renderBossHud();
+  playSfx("tick");
+}
+
+function bossAnswer(index) {
+  if (bossLocked || !boss) return;
+  bossLocked = true;
+
+  const q = boss.question;
+  const right = index === q.correct;
+
+  document.querySelectorAll("#bossAnswers .answer").forEach((button, i) => {
+    button.disabled = true;
+    if (i === q.correct) button.classList.add("correct");
+    else if (i === index) button.classList.add("wrong");
+  });
+
+  boss.answer(right);
+  playSfx(right ? "strike" : "hurt");
+  document.getElementById("bossStatus").textContent = right
+    ? "פגיעה! הדרקון נרתע."
+    : "הדרקון פגע בכם.";
+  renderBossHud();
+}
+
+function endBoss(won) {
+  stopBossLoop();
+  boss.finish(won);
+
+  /* נותנים לאנימציית הקריסה לרוץ לפני מסך הסיום */
+  bossLast = performance.now();
+  const outro = now => {
+    const dt = Math.min(0.1, (now - bossLast) / 1000);
+    bossLast = now;
+    boss.render(dt);
+    if (boss.deadP < 1 && won) {
+      bossRaf = requestAnimationFrame(outro);
+      return;
+    }
+    setTimeout(() => {
+      if (won) {
+        quest.cleared[quest.pos] = true;
+        saveQuest();
+        finishQuest(true);
+      } else {
+        const steps = quest.setback();
+        saveQuest();
+        showSetback(steps);
+      }
+    }, won ? 700 : 900);
+  };
+
+  document.getElementById("bossQuestionBox").classList.add("hidden");
+  document.getElementById("bossStatus").textContent = won
+    ? "הדרקון קורס!"
+    : "הדרקון גבר עליכם.";
+
+  if (won) bossRaf = requestAnimationFrame(outro);
+  else setTimeout(() => outro(performance.now()), 500);
+}
+
+/* ---------- סיום המסע ---------- */
+
 function finishQuest(won) {
   stopQuestLoop();
+  stopBossLoop();
   clearQuestSave();
-  document.getElementById("questBoard").classList.add("hidden");
-
-  const end = document.getElementById("questEnd");
-  end.classList.remove("hidden");
+  showQuestPanel("questEnd");
 
   document.getElementById("questEndTitle").textContent = won
-    ? "המכשף נתפס!"
+    ? "הקללה נשברה!"
     : "הקללה גברה הפעם";
 
-  /* כוכב על כל פנס ששרד. שלושה כוכבים הם מסע בלי טעות אחת. */
   const stars = document.getElementById("questStars");
   stars.innerHTML = won
     ? [0, 1, 2].map(i => `<span class="star ${i < quest.lanterns ? "on" : ""}">★</span>`).join("")
     : "";
 
+  const total = quest.run.length;
   document.getElementById("questEndText").textContent = won
-    ? (quest.lanterns === 3
-        ? `מסע מושלם: כל שמונת האזורים שוחררו בלי טעות אחת, והצבע חזר לממלכה כולה.`
-        : `שחררתם את כל ${QUEST.length} האזורים והחזרתם את הצבע לממלכה.`)
-    : `הגעתם ל-${quest.solved} אזורים מתוך ${QUEST.length}. כל תשובה נכונה החזירה צבע לממלכה — נסו שוב, והפעם המסע יהיה בסדר אחר.`;
+    ? `הדרקון הובס, המכשף איבד את כוחו, והצבע חזר לשלושת העולמות. עברתם ${total} שלבים.`
+    : `הגעתם ל-${quest.solved} שלבים מתוך ${total}.`;
 
-  /* הסיכום: מה באמת נלמד בדרך */
   const recap = document.getElementById("questRecap");
   const recapTitle = document.getElementById("questRecapTitle");
-  const learned = quest.order
-    .map((stageIndex, i) => (quest.cleared[i] ? QUEST[stageIndex] : null))
+  const learned = quest.run
+    .map((step, i) => (quest.cleared[i] ? step.stage : null))
     .filter(Boolean);
 
   recap.innerHTML = learned
@@ -1183,27 +1556,34 @@ function finishQuest(won) {
 
 /* 1 עד 4 בוחרים תשובה, Enter ממשיך */
 document.addEventListener("keydown", event => {
-  const board = document.getElementById("questBoard");
-  if (!quest || !board || board.classList.contains("hidden")) return;
-  if (!document.getElementById("quiz").classList.contains("active")) return;
+  const quiz = document.getElementById("quiz");
+  if (!quest || !quiz || !quiz.classList.contains("active")) return;
 
   const tag = (event.target.tagName || "").toLowerCase();
   if (tag === "input" || tag === "textarea") return;
 
+  const bossOpen = !document.getElementById("questBoss").classList.contains("hidden");
+  const boardOpen = !document.getElementById("questBoard").classList.contains("hidden");
+
   if (event.key >= "1" && event.key <= "4") {
-    const button = document.querySelector(`#questAnswers .answer[data-pick="${Number(event.key) - 1}"]`);
+    const scope = bossOpen ? "#bossAnswers" : "#questAnswers";
+    const button = document.querySelector(`${scope} .answer[data-pick="${Number(event.key) - 1}"]`);
     if (button && !button.disabled) {
       event.preventDefault();
-      pickAnswer(Number(event.key) - 1);
+      if (bossOpen) bossAnswer(Number(event.key) - 1);
+      else pickAnswer(Number(event.key) - 1);
     }
     return;
   }
 
   if (event.key === "Enter") {
-    const next = document.getElementById("questNext");
-    if (next && !next.classList.contains("hidden")) {
+    /* הכפתור הראשי של המסך שפתוח כרגע */
+    const button = document.querySelector(
+      ".quest-card:not(.hidden) .primary-button, " +
+      (boardOpen ? "#questNext:not(.hidden)" : "#nothing"));
+    if (button) {
       event.preventDefault();
-      questNext();
+      button.click();
     }
   }
 });
