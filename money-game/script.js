@@ -228,6 +228,10 @@ function showScreen(id) {
   if (id === "quiz") startQuest();
   else if (typeof stopQuestLoop === "function") stopQuestLoop();
 
+  /* הכרזה מונפשת רק כשרואים אותה */
+  if (id === "home") startBanner();
+  else stopBanner();
+
   window.scrollTo({top: 0, behavior: "smooth"});
 }
 
@@ -1599,6 +1603,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initTip();
   setupFilters();
   renderVideos();
+  paintSiteArt();
+  startBanner();
   initVoices();
   loadVoiceFiles();
   loadMovieVoices();

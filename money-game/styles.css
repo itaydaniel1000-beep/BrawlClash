@@ -921,7 +921,8 @@ main {
   line-height: 0;
 }
 
-#questCanvas {
+#questCanvas,
+#bossCanvas {
   display: block;
   width: 100%;
   height: auto;
@@ -2185,4 +2186,47 @@ button:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .mg-choice, .mg-product, .mg-debt, .mg-dot, .boss-health span, .heart { transition: none; }
+}
+
+/* ===== איורי האתר ===== */
+
+.hero {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.hero-banner {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.card-art {
+  display: block;
+  width: 130px;
+  height: 110px;
+  margin-inline: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.lesson-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-block-end: 18px;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+@media (max-width: 640px) {
+  .card-art { width: 108px; height: 92px; }
 }
