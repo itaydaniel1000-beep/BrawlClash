@@ -454,10 +454,52 @@ function rollBossQuestion(item) {
 
 /* 15 שאלות, 10 נכונות מנצחות. מכאן נגזר מספר הלבבות: אפשר לטעות חמש פעמים
    ועדיין להגיע לעשר (5+10=15), אבל הטעות השישית כבר שוללת את הניצחון -
-   ולכן היא רגע התבוסה. */
+   ולכן היא רגע התבוסה. הלבבות משמשים גם כבריאות: מכה מהדרקון עולה לב. */
 const BOSS_TARGET = 10;
 const BOSS_ROUNDS = 15;
 const BOSS_HEARTS = 6;
+
+/* ---------- הגיבור בזירה ---------- */
+
+const HERO_GROUND = 412;     /* גובה הרצפה */
+const HERO_MIN_X = 52;
+const HERO_MAX_X = 430;      /* מעבר לזה כבר נכנסים לדרקון */
+const HERO_SPEED = 275;      /* פיקסלים לשנייה */
+const JUMP_V = 585;          /* מהירות ההמראה */
+const GRAVITY = 1560;        /* מספיק לקפיצה של כ-110 פיקסלים ושל 0.75 שניות */
+const HERO_HALF_W = 22;
+const HERO_H = 150;
+const INVULN = 1.35;          /* חסינות קצרה אחרי מכה, שלא ייגמרו הלבבות ברצף */
+
+/* ---------- מתקפות ---------- */
+
+/* לכל מתקפה יש אזהרה לפני שהיא מזיקה, כדי שתמיד אפשר להספיק להגיב */
+const ATTACKS = {
+  /* גל אש שזוחל על הרצפה מכיוון הדרקון. קופצים מעליו. */
+  flame: {warn: 0.85, dodge: "לקפוץ", spawn(f) {
+    f.hazards.push({kind: "flame", x: 525, y: 0, w: 74, h: 54, vx: -395, live: 3.2});
+  }},
+
+  /* הזנב מטאטא את כל הרצפה, מהר ונמוך. קופצים. */
+  tail: {warn: 0.95, dodge: "לקפוץ", spawn(f) {
+    f.hazards.push({kind: "tail", x: 620, y: 0, w: 132, h: 34, vx: -515, live: 2.6});
+  }},
+
+  /* סלעים בוערים נופלים בנתיבים. זזים הצידה.
+     הנתיב הקרוב ביותר לגיבור נשאר תמיד פנוי, אחרת אין לאן לברוח. */
+  rocks: {warn: 1.05, dodge: "לזוז", spawn(f) {
+    const lanes = [90, 175, 260, 345, 420];
+    const safe = lanes.reduce((best, x) =>
+      Math.abs(x - f.hero.x) < Math.abs(best - f.hero.x) ? x : best, lanes[0]);
+    const hit = shuffled(lanes.filter(x => x !== safe)).slice(0, 3);
+    hit.forEach((x, i) => {
+      f.hazards.push({kind: "rock", x: x, y: 470, w: 40, h: 40, vy: -560,
+        delay: i * 0.26, live: 3});
+    });
+  }}
+};
+
+const ATTACK_KINDS = ["flame", "tail", "rocks"];
 
 class DragonFight {
   constructor(canvas) {
@@ -475,12 +517,33 @@ class DragonFight {
     this.questions = shuffled(BOSS_QUESTIONS).slice(0, BOSS_ROUNDS).map(q => rollBossQuestion(q));
 
     this.t = 0;
-    this.phase = "intro";   /* intro | wind | attack | tired | strike | hit | won | lost */
+    this.phase = "intro";   /* intro | combat | tired | strike | hit | won | lost */
     this.phaseT = 0;
     this.flash = 0;
     this.shake = 0;
     this.deadP = 0;
     this.heroHurt = 0;
+
+    /* הגיבור */
+    this.hero = {x: 150, y: 0, vy: 0, onGround: true, invuln: 0, run: 0};
+    this.input = {left: false, right: false};
+
+    /* המתקפה הנוכחית */
+    this.hazards = [];
+    this.queue = [];
+    this.warn = null;
+    this.hitsTaken = 0;
+    this.combatPending = true;
+
+    /* המנוע רק מדווח אירועי קול; הממשק הוא זה שמנגן */
+    this.sfx = [];
+  }
+
+  /* מרוקן את תור הצלילים */
+  drainSfx() {
+    const out = this.sfx;
+    this.sfx = [];
+    return out;
   }
 
   get question() {
@@ -491,11 +554,168 @@ class DragonFight {
     return this.phase === "won" || this.phase === "lost";
   }
 
-  /* מעבר לשלב הבא במחזור ההתקפה */
+  /* בשלב ההתחמקות הדרקון ער ותוקף; רק אחריו הוא מתנשם */
+  get dodging() {
+    return this.phase === "combat";
+  }
+
   setPhase(name) {
     this.phase = name;
     this.phaseT = 0;
+    if (name === "combat") this.startCombat();
+    if (name === "tired") {
+      this.hazards = [];
+      this.queue = [];
+      this.warn = null;
+    }
   }
+
+  /* ---------- קלט ---------- */
+
+  press(action) {
+    if (action === "jump") this.jump();
+    else this.input[action] = true;
+  }
+
+  release(action) {
+    if (action !== "jump") this.input[action] = false;
+  }
+
+  jump() {
+    if (!this.dodging) return;
+    if (!this.hero.onGround) return;
+    this.hero.vy = JUMP_V;
+    this.hero.onGround = false;
+    this.sfx.push("jump");
+  }
+
+  /* ---------- מחזור המתקפות ---------- */
+
+  /* ככל שמתקדמים, יותר מתקפות בסיבוב ופחות זמן אזהרה */
+  startCombat() {
+    const wave = this.round < 4 ? 1 : 2;
+    const rush = this.round < 4 ? 1 : this.round < 9 ? 0.9 : 0.8;
+
+    this.queue = shuffled(ATTACK_KINDS).slice(0, wave).map((kind, i) => ({
+      kind: kind,
+      at: i * 1.85,
+      warn: ATTACKS[kind].warn * rush,
+      fired: false,
+      warned: false
+    }));
+    this.hazards = [];
+    this.warn = null;
+  }
+
+  /* מריץ את התור: אזהרה, ואז המתקפה עצמה */
+  updateCombat(dt) {
+    let pending = false;
+
+    this.queue.forEach(item => {
+      if (item.fired) return;
+      pending = true;
+
+      if (!item.warned && this.phaseT >= item.at) {
+        item.warned = true;
+        this.warn = {kind: item.kind, dodge: ATTACKS[item.kind].dodge, t: 0, len: item.warn};
+        this.sfx.push("warn");
+      }
+      if (item.warned && this.phaseT >= item.at + item.warn) {
+        item.fired = true;
+        ATTACKS[item.kind].spawn(this);
+        this.shake = 4;
+        this.sfx.push(item.kind === "rocks" ? "rumble" : item.kind === "tail" ? "sweep" : "fire");
+        if (this.warn && this.warn.kind === item.kind) this.warn = null;
+      }
+    });
+
+    if (this.warn) this.warn.t += dt;
+
+    /* השלב נגמר כשכל המתקפות ירו וכל הסכנות התפוגגו */
+    this.combatPending = pending || this.hazards.length > 0;
+    return this.combatPending;
+  }
+
+  /* ---------- פיזיקה ---------- */
+
+  updateHero(dt) {
+    const h = this.hero;
+    h.invuln = Math.max(0, h.invuln - dt);
+
+    if (this.dodging) {
+      const dir = (this.input.right ? 1 : 0) - (this.input.left ? 1 : 0);
+      h.x = Math.max(HERO_MIN_X, Math.min(HERO_MAX_X, h.x + dir * HERO_SPEED * dt));
+      h.run = dir ? h.run + dt * 9 : 0;
+    } else {
+      h.run = 0;
+    }
+
+    /* כבידה פועלת תמיד, כדי שקפיצה תמיד תסתיים */
+    if (!h.onGround) {
+      h.vy -= GRAVITY * dt;
+      h.y += h.vy * dt;
+      if (h.y <= 0) {
+        h.y = 0;
+        h.vy = 0;
+        h.onGround = true;
+      }
+    }
+  }
+
+  updateHazards(dt) {
+    this.hazards.forEach(z => {
+      if (z.delay > 0) {
+        z.delay -= dt;
+        return;
+      }
+      z.live -= dt;
+      if (z.vx) z.x += z.vx * dt;
+      if (z.vy) {
+        z.y += z.vy * dt;
+        if (z.y <= 0) z.live = Math.min(z.live, 0.35);   /* התרסקות קצרה על הרצפה */
+      }
+    });
+    this.hazards = this.hazards.filter(z => z.live > 0 && z.x > -220 && z.x < 1180);
+  }
+
+  /* מלבן הפגיעה של הגיבור */
+  heroBox() {
+    const h = this.hero;
+    return {
+      x0: h.x - HERO_HALF_W, x1: h.x + HERO_HALF_W,
+      y0: h.y, y1: h.y + HERO_H
+    };
+  }
+
+  checkHits() {
+    if (this.hero.invuln > 0) return;
+    const b = this.heroBox();
+
+    for (const z of this.hazards) {
+      if (z.delay > 0) continue;
+      const zx0 = z.x - z.w / 2;
+      const zx1 = z.x + z.w / 2;
+      const zy0 = z.y;
+      const zy1 = z.y + z.h;
+      if (b.x1 > zx0 && b.x0 < zx1 && b.y0 < zy1 && b.y1 > zy0) {
+        this.takeHit();
+        return;
+      }
+    }
+  }
+
+  takeHit() {
+    this.hearts--;
+    this.hitsTaken++;
+    this.hero.invuln = INVULN;
+    this.heroHurt = 1;
+    this.shake = 8;
+    this.sfx.push("hurt");
+    /* דחיפה אחורה, אבל לא אל מחוץ לזירה */
+    this.hero.x = Math.max(HERO_MIN_X, this.hero.x - 46);
+  }
+
+  /* ---------- שאלות ---------- */
 
   /* השחקן ענה. מחזיר "win" / "lose" / null */
   answer(right) {
@@ -520,7 +740,98 @@ class DragonFight {
   }
 
   finish(won) {
+    this.hazards = [];
+    this.warn = null;
     this.setPhase(won ? "won" : "lost");
+  }
+
+  /* ---------- ציור ---------- */
+
+  drawHazards(ctx) {
+    this.hazards.forEach(z => {
+      if (z.delay > 0) return;
+      const y = HERO_GROUND - z.y;
+
+      if (z.kind === "flame") {
+        /* גל אש מתגלגל */
+        for (let i = 0; i < z.w; i += 3) {
+          const g = i / z.w;
+          const hh = Math.round(z.h * (0.55 + 0.45 * Math.sin(g * 3.1 + this.t * 16)));
+          px(ctx, Math.round(z.x - z.w / 2 + i), y - hh, 4, hh,
+            g < 0.3 ? "#ff7a3f" : g < 0.7 ? "#ffb347" : "#ffe066");
+        }
+        for (let i = 0; i < 9; i++) {
+          const g = spread(61, i);
+          px(ctx, Math.round(z.x - z.w / 2 + g * z.w),
+            Math.round(y - z.h - ((g * 7 + this.t * 2) % 1) * 34), 4, 4, "#ffd85e");
+        }
+      } else if (z.kind === "tail") {
+        /* הזנב חולף נמוך */
+        ellipse(ctx, z.x, y - z.h / 2, z.w / 2, z.h / 2, DPAL.scale);
+        ellipse(ctx, z.x, y - z.h / 2, z.w / 2 - 8, z.h / 2 - 5, DPAL.scaleLight);
+        for (let i = -2; i <= 2; i++) {
+          ctx.fillStyle = DPAL.horn;
+          ctx.beginPath();
+          ctx.moveTo(z.x + i * 26 - 7, y - z.h);
+          ctx.lineTo(z.x + i * 26, y - z.h - 13);
+          ctx.lineTo(z.x + i * 26 + 7, y - z.h);
+          ctx.closePath();
+          ctx.fill();
+        }
+        /* אבק מאחור */
+        for (let i = 0; i < 7; i++) {
+          const g = spread(43, i);
+          ctx.globalAlpha = 0.4;
+          circle(ctx, Math.round(z.x + z.w / 2 + g * 60), y - Math.round(g * 22), 4 + Math.round(g * 5), "#6a6070");
+        }
+        ctx.globalAlpha = 1;
+      } else if (z.kind === "rock") {
+        /* סלע בוער, עם צל שמתכווץ ככל שהוא מתקרב */
+        const shadow = Math.max(6, 26 - Math.round(z.y / 20));
+        ellipse(ctx, z.x, HERO_GROUND + 2, shadow, Math.round(shadow / 3), "rgba(0,0,0,.35)");
+        circle(ctx, z.x, y - z.h / 2, z.h / 2, "#5a4a52");
+        circle(ctx, z.x - 5, y - z.h / 2 - 4, z.h / 4, "#7a6672");
+        for (let i = 0; i < 6; i++) {
+          const g = spread(29, i);
+          px(ctx, Math.round(z.x - 14 + g * 28),
+            Math.round(y + 6 + ((g * 5 + this.t * 3) % 1) * 26), 4, 6,
+            i % 2 ? "#ff9d3f" : "#ffd85e");
+        }
+      }
+    });
+  }
+
+  /* אזהרה לפני מתקפה: אומרת גם מה לעשות */
+  drawWarning(ctx) {
+    const w = this.warn;
+    if (!w) return;
+    const p = Math.min(1, w.t / w.len);
+    const pulse = 0.45 + 0.55 * Math.abs(Math.sin(w.t * 12));
+
+    ctx.globalAlpha = pulse;
+    if (w.kind === "rocks") {
+      /* פס אזהרה בשמיים */
+      px(ctx, 0, 40, GAME_W, 5, "#ffd23f");
+    } else {
+      /* פס אזהרה על הרצפה */
+      px(ctx, 0, HERO_GROUND - 4, GAME_W, 5, "#ff6b3f");
+    }
+    ctx.globalAlpha = 1;
+
+    /* מד זמן שמתמלא */
+    const barW = 190;
+    const x0 = Math.round(GAME_W / 2 - barW / 2);
+    px(ctx, x0 - 3, 57, barW + 6, 20, PAL.ink);
+    px(ctx, x0, 60, barW, 14, "#2a2136");
+    px(ctx, x0, 60, Math.round(barW * p), 14, w.kind === "rocks" ? "#ffd23f" : "#ff6b3f");
+
+    ctx.font = "bold 22px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = PAL.ink;
+    ctx.fillText(w.dodge, GAME_W / 2 + 2, 96);
+    ctx.fillStyle = "#ffe08a";
+    ctx.fillText(w.dodge, GAME_W / 2, 94);
+    ctx.textAlign = "start";
   }
 
   render(dt) {
@@ -530,6 +841,13 @@ class DragonFight {
     this.shake = Math.max(0, this.shake - dt * 14);
     this.heroHurt = Math.max(0, this.heroHurt - dt * 1.6);
     if (this.phase === "won") this.deadP = Math.min(1, this.deadP + dt * 0.9);
+
+    this.updateHero(dt);
+    if (this.dodging) {
+      this.updateCombat(dt);
+      this.updateHazards(dt);
+      this.checkHits();
+    }
 
     const ctx = this.ctx;
     ctx.clearRect(0, 0, GAME_W, GAME_H);
@@ -544,29 +862,34 @@ class DragonFight {
     let attackP = 0;
     let windP = 0;
 
-    if (this.phase === "wind") {
-      state = "wind";
-      windP = Math.min(1, this.phaseT / 0.7);
-    } else if (this.phase === "attack") {
-      state = "attack";
-      attackP = Math.min(1, this.phaseT / 0.9);
+    if (this.phase === "combat") {
+      /* ער ותוקף: נרתע בזמן אזהרה, מסתער כשהמתקפה יוצאת */
+      if (this.warn) {
+        state = "wind";
+        windP = Math.min(1, this.warn.t / Math.max(0.01, this.warn.len));
+      } else if (this.hazards.length) {
+        state = "attack";
+        attackP = 0.7;
+      }
     } else if (this.phase === "tired" || this.phase === "strike" || this.phase === "hit") {
       state = "tired";
     } else if (this.phase === "won") {
       state = "dead";
     }
 
-    /* הגיבור */
-    const hurt = this.heroHurt > 0.15;
-    inked(ctx, c => {
-      drawHero(c, 128 + (hurt ? Math.round(Math.sin(this.t * 40) * 5) : 0), 412, 2.05, {
-        walk: this.phase === "intro" ? this.t * 3 : 0,
-        raise: this.phase === "strike",
-        dim: this.hearts <= 2
+    /* הגיבור. מהבהב כשהוא חסין אחרי מכה. */
+    const h = this.hero;
+    const blink = h.invuln > 0 && Math.floor(h.invuln * 14) % 2 === 0;
+    if (!blink) {
+      inked(ctx, c => {
+        drawHero(c, Math.round(h.x), Math.round(HERO_GROUND - h.y), 2.05, {
+          walk: this.phase === "intro" ? this.t * 3 : h.run,
+          raise: this.phase === "strike" || !h.onGround,
+          dim: this.hearts <= 2
+        });
       });
-    });
+    }
 
-    /* המיקום והקנה מידה נבחרו כך שקצה הזנב נשאר בתוך הקנבס */
     drawDragon(ctx, 575, 404, 1.18, {
       t: this.t,
       state: state,
@@ -575,6 +898,11 @@ class DragonFight {
       deadP: this.deadP,
       flash: this.flash
     });
+
+    if (this.dodging) {
+      this.drawHazards(ctx);
+      this.drawWarning(ctx);
+    }
 
     /* חרב אור כשהתשובה נכונה */
     if (this.phase === "strike" && this.phaseT < 0.5) {

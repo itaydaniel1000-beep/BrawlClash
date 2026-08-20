@@ -990,6 +990,20 @@ function playSfx(name) {
   } else if (name === "hurt") {
     noise(ctx, 0, 0.3, 0.2, 700);
     tone(ctx, 220, 0, 0.34, "sawtooth", 0.12, 96);
+  } else if (name === "warn") {
+    /* התראה לפני מתקפה: שני צפצופים קצרים */
+    tone(ctx, 1050, 0, 0.07, "square", 0.09);
+    tone(ctx, 1050, 0.13, 0.07, "square", 0.09);
+  } else if (name === "jump") {
+    tone(ctx, 320, 0, 0.11, "sine", 0.08, 620);
+  } else if (name === "sweep") {
+    /* הזנב מטאטא */
+    noise(ctx, 0, 0.42, 0.16, 900);
+    tone(ctx, 150, 0, 0.4, "sawtooth", 0.1, 70);
+  } else if (name === "rumble") {
+    /* סלעים נופלים */
+    noise(ctx, 0, 0.7, 0.14, 320);
+    tone(ctx, 90, 0.05, 0.6, "sine", 0.11, 55);
   } else if (name === "setback") {
     tone(ctx, 392, 0, 0.3, "sine", 0.11, 196);
     tone(ctx, 262, 0.22, 0.5, "sine", 0.1, 131);
@@ -1372,9 +1386,30 @@ let bossRaf = null;
 let bossLast = 0;
 let bossLocked = false;
 
+/* code ולא key: בפריסת מקלדת עברית האות על המקש שונה, אבל ה-code קבוע */
+const BOSS_KEYS = {
+  ArrowLeft: "left", KeyA: "left",
+  ArrowRight: "right", KeyD: "right",
+  ArrowUp: "jump", KeyW: "jump", Space: "jump"
+};
+
+/* לא מספיק ש-questBoss אינו hidden: הוא יושב בתוך מסך החידון, ולכן צריך
+   לוודא גם שהמסך הזה פעיל. אחרת החצים והרווח היו נתפסים בכל האתר
+   ומונעים גלילה. */
+function bossVisible() {
+  const panel = document.getElementById("questBoss");
+  const screen = document.getElementById("quiz");
+  return !!panel && !panel.classList.contains("hidden")
+    && !!screen && screen.classList.contains("active");
+}
+
 function stopBossLoop() {
   if (bossRaf) cancelAnimationFrame(bossRaf);
   bossRaf = null;
+}
+
+function setBossStatus(text) {
+  document.getElementById("bossStatus").textContent = text;
 }
 
 function startBoss() {
@@ -1389,7 +1424,7 @@ function startBoss() {
 
   document.getElementById("bossIntro").textContent = BOSS_STAGE.intro;
   document.getElementById("bossQuestionBox").classList.add("hidden");
-  document.getElementById("bossStatus").textContent = "הדרקון נוחת על הבמה…";
+  setBossStatus("הדרקון נוחת על הבמה…");
   renderBossHud();
 
   boss.render(0);
@@ -1399,45 +1434,52 @@ function startBoss() {
 }
 
 function renderBossHud() {
-  const hearts = document.getElementById("bossHearts");
-  hearts.innerHTML = [];
   let html = "";
   for (let i = 0; i < BOSS_HEARTS; i++) {
     html += `<span class="heart ${i < boss.hearts ? "on" : ""}"></span>`;
   }
-  hearts.innerHTML = html;
+  document.getElementById("bossHearts").innerHTML = html;
 
   document.getElementById("bossScore").textContent = `${boss.correct} / ${BOSS_TARGET}`;
   document.getElementById("bossRound").textContent =
     `שאלה ${Math.min(boss.round + 1, BOSS_ROUNDS)} מתוך ${BOSS_ROUNDS}`;
 
-  const bar = document.querySelector("#bossHealth span");
-  bar.style.width = Math.max(0, 100 - (boss.correct / BOSS_TARGET) * 100) + "%";
+  document.querySelector("#bossHealth span").style.width =
+    Math.max(0, 100 - (boss.correct / BOSS_TARGET) * 100) + "%";
 }
 
 function bossLoop(now) {
   if (!boss) return;
   const dt = Math.min(0.1, (now - bossLast) / 1000);
   bossLast = now;
-  boss.render(dt);
 
-  /* מחזור ההתקפה: צובר כוח, תוקף, מתעייף - ואז נפתחת שאלה */
+  const heartsBefore = boss.hearts;
+  boss.render(dt);
+  boss.drainSfx().forEach(playSfx);
+  if (boss.hearts !== heartsBefore) renderBossHud();
+
   if (boss.phase === "intro" && boss.phaseT > 1.9) {
-    boss.setPhase("wind");
-  } else if (boss.phase === "wind" && boss.phaseT > 0.65) {
-    boss.setPhase("attack");
-    playSfx("fire");
-    document.getElementById("bossStatus").textContent = "הדרקון יורק אש!";
-  } else if (boss.phase === "attack" && boss.phaseT > 1) {
-    boss.setPhase("tired");
-    openBossQuestion();
+    boss.setPhase("combat");
+    document.getElementById("bossControls").classList.remove("hidden");
+    setBossStatus("הדרקון תוקף! התחמקו.");
+
+  } else if (boss.phase === "combat") {
+    /* מכה בזמן ההתחמקות יכולה לגמור את הקרב */
+    if (boss.hearts <= 0) return endBoss(false);
+    /* כשכל המתקפות עברו הוא נאלץ לנשום, וזה החלון לשאלה */
+    if (!boss.combatPending && boss.phaseT > 0.6) {
+      boss.setPhase("tired");
+      openBossQuestion();
+    }
+
   } else if ((boss.phase === "strike" || boss.phase === "hit") && boss.phaseT > 1.35) {
     if (boss.correct >= BOSS_TARGET) return endBoss(true);
     if (boss.hearts <= 0) return endBoss(false);
     if (boss.round >= BOSS_ROUNDS) return endBoss(boss.correct >= BOSS_TARGET);
-    boss.setPhase("wind");
+    boss.setPhase("combat");
     document.getElementById("bossQuestionBox").classList.add("hidden");
-    document.getElementById("bossStatus").textContent = "הדרקון אוסף אוויר…";
+    document.getElementById("bossControls").classList.remove("hidden");
+    setBossStatus("הדרקון קם שוב. התחמקו!");
   }
 
   bossRaf = requestAnimationFrame(bossLoop);
@@ -1447,7 +1489,8 @@ function openBossQuestion() {
   const q = boss.question;
   bossLocked = false;
 
-  document.getElementById("bossStatus").textContent = "הדרקון מתנשם. עכשיו!";
+  document.getElementById("bossControls").classList.add("hidden");
+  setBossStatus("הדרקון מתנשם. עכשיו!");
   document.getElementById("bossQuestion").textContent = q.question;
 
   const box = document.getElementById("bossAnswers");
@@ -1478,15 +1521,14 @@ function bossAnswer(index) {
 
   boss.answer(right);
   playSfx(right ? "strike" : "hurt");
-  document.getElementById("bossStatus").textContent = right
-    ? "פגיעה! הדרקון נרתע."
-    : "הדרקון פגע בכם.";
+  setBossStatus(right ? "פגיעה! הדרקון נרתע." : "הדרקון פגע בכם.");
   renderBossHud();
 }
 
 function endBoss(won) {
   stopBossLoop();
   boss.finish(won);
+  document.getElementById("bossControls").classList.add("hidden");
 
   /* נותנים לאנימציית הקריסה לרוץ לפני מסך הסיום */
   bossLast = performance.now();
@@ -1512,12 +1554,56 @@ function endBoss(won) {
   };
 
   document.getElementById("bossQuestionBox").classList.add("hidden");
-  document.getElementById("bossStatus").textContent = won
-    ? "הדרקון קורס!"
-    : "הדרקון גבר עליכם.";
+  setBossStatus(won ? "הדרקון קורס!" : "הדרקון גבר עליכם.");
 
   if (won) bossRaf = requestAnimationFrame(outro);
   else setTimeout(() => outro(performance.now()), 500);
+}
+
+/* ---------- שליטה בגיבור ---------- */
+
+document.addEventListener("keydown", event => {
+  if (!boss || !bossVisible() || event.repeat) return;
+  const action = BOSS_KEYS[event.code];
+  if (!action) return;
+  event.preventDefault();
+  boss.press(action);
+});
+
+document.addEventListener("keyup", event => {
+  if (!boss || !bossVisible()) return;
+  const action = BOSS_KEYS[event.code];
+  if (!action) return;
+  event.preventDefault();
+  boss.release(action);
+});
+
+/* אם הדף מאבד מיקוד באמצע לחיצה, המקש נשאר "לחוץ" - משחררים הכול */
+window.addEventListener("blur", () => {
+  if (!boss) return;
+  boss.release("left");
+  boss.release("right");
+});
+
+/* כפתורי מגע, לטלפון ולמי שמעדיף עכבר */
+function wireBossControls() {
+  document.querySelectorAll("#bossControls .pad").forEach(button => {
+    const action = button.dataset.act;
+    const down = event => {
+      event.preventDefault();
+      if (boss) boss.press(action);
+      button.classList.add("held");
+    };
+    const up = event => {
+      event.preventDefault();
+      if (boss) boss.release(action);
+      button.classList.remove("held");
+    };
+    button.addEventListener("pointerdown", down);
+    button.addEventListener("pointerup", up);
+    button.addEventListener("pointercancel", up);
+    button.addEventListener("pointerleave", up);
+  });
 }
 
 /* ---------- סיום המסע ---------- */
@@ -1604,6 +1690,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupFilters();
   renderVideos();
   paintSiteArt();
+  wireBossControls();
   startBanner();
   initVoices();
   loadVoiceFiles();
