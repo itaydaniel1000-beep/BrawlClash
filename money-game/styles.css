@@ -2286,3 +2286,146 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .boss-controls .pad { transition: none; }
 }
+
+/* ===== מסך הקוד ===== */
+
+.code-panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.code-summary {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--ink-soft);
+}
+
+.code-summary strong {
+  font-family: var(--f-display);
+  font-size: 1.1rem;
+  color: var(--brand-strong);
+}
+
+.code-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.code-tab {
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--surface-warm);
+  font-family: ui-monospace, "Consolas", "Courier New", monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  direction: ltr;
+  transition: background .12s ease, color .12s ease;
+}
+
+.code-tab:hover { background: var(--gold); }
+.code-tab.active { background: var(--ink); color: #fff; }
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-block-start: 4px;
+  border-block-start: 2px solid var(--line);
+}
+
+.code-what {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.code-head-side { display: flex; align-items: center; gap: 10px; }
+
+.code-meta {
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.code-copy {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--gold);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.code-copy:hover { background: var(--brand); color: #fff; }
+
+/* --- הקוד עצמו --- */
+
+.code-body {
+  margin: 0;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 14px 0;
+  border-radius: 14px;
+  border: 3px solid var(--ink);
+  background: #1a1f2e;
+  /* קוד נקרא משמאל לימין, גם באתר בעברית */
+  direction: ltr;
+  text-align: left;
+}
+
+.code-body code {
+  display: block;
+  font-family: ui-monospace, "Consolas", "Courier New", monospace;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #dbe2f0;
+  tab-size: 2;
+}
+
+.code-line {
+  display: block;
+  padding-inline: 14px 16px;
+  white-space: pre;
+}
+
+.code-line::before {
+  content: attr(data-n);
+  display: inline-block;
+  width: 3.4em;
+  margin-inline-end: 14px;
+  text-align: right;
+  color: #5a6785;
+  user-select: none;
+}
+
+.code-line:hover { background: rgba(255, 255, 255, .05); }
+
+/* צביעת תחביר */
+.c-com { color: #7d8aa8; font-style: italic; }
+.c-str { color: #7fd6a0; }
+.c-key { color: #f0a3d8; font-weight: 700; }
+.c-num { color: #ffc45e; }
+.c-tag { color: #6fc3f0; }
+
+@media (max-width: 640px) {
+  .code-panel { padding: 14px; }
+  .code-body { max-height: 55vh; }
+  .code-body code { font-size: 0.72rem; }
+  .code-line::before { width: 2.6em; margin-inline-end: 8px; }
+  .code-tab { font-size: 0.75rem; padding: 5px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .code-tab { transition: none; }
+}

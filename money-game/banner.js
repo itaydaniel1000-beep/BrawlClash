@@ -210,10 +210,34 @@ function cardArtLesson(ctx, W, H) {
   }
 }
 
+function cardArtCode(ctx, W, H) {
+  const cx = W / 2;
+  const cy = H / 2;
+  /* חלון עורך עם סרגל כותרת */
+  roundRect(ctx, cx - 44, cy - 32, 88, 64, 7, "#2a2f45");
+  px(ctx, cx - 40, cy - 28, 80, 11, "#4a5570");
+  circle(ctx, cx - 33, cy - 23, 3, "#e8574a");
+  circle(ctx, cx - 24, cy - 23, 3, "#f5c542");
+  circle(ctx, cx - 15, cy - 23, 3, "#4f9e5c");
+  px(ctx, cx - 40, cy - 15, 80, 44, "#1a1f2e");
+
+  /* שורות קוד בהזחות משתנות, בצבעי הצביעה של המסך */
+  const rows = [
+    [0, 30, "#7a5cc9"], [6, 22, "#4f9e5c"], [6, 30, "#f5c542"],
+    [12, 20, "#3f8fd8"], [6, 26, "#4f9e5c"], [0, 16, "#7a5cc9"]
+  ];
+  rows.forEach((r, i) => {
+    px(ctx, cx - 34 + r[0], cy - 10 + i * 7, r[1], 3, r[2]);
+  });
+  /* סמן מהבהב בסוף */
+  px(ctx, cx - 34 + 16, cy + 25, 4, 4, "#2ad1a0");
+}
+
 const CARD_ART = {
   videos: cardArtVideos,
   quest: cardArtQuest,
-  lesson: cardArtLesson
+  lesson: cardArtLesson,
+  code: cardArtCode
 };
 
 function paintCardArt(canvas) {
