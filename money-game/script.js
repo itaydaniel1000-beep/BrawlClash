@@ -418,7 +418,8 @@ const speakerProfiles = {
   shepherd: {pitch: 0.78, rate: 0.97},
   shoemaker: {pitch: 0.68, rate: 0.94},
   crowd: {pitch: 1.3, rate: 1.12},
-  shopper: {pitch: 1.22, rate: 1.05}
+  shopper: {pitch: 1.22, rate: 1.05},
+  roni: {pitch: 1.28, rate: 1.02}
 };
 
 /* דירוג קולות: מעדיפים קול עברי טבעי, ואז כל קול עברי, ואז ברירת מחדל */

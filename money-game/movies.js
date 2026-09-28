@@ -246,6 +246,23 @@ function buildMovie(id, scenes) {
   return {id: id, shots: shots, cues: cues};
 }
 
+/* ---------- רוני ----------
+   דמות שמלווה את שמונת הסרטונים ומגיבה בסוף כל סצנה, כמו הקונה
+   בסרטון הראשון. תמיד באותה פינה, כדי שלא תסתיר את מה שקורה במרכז. */
+function drawRoni(ctx, t, cheer) {
+  inked(ctx, c => {
+    drawPerson(c, 872, 528, {
+      walk: 0,
+      size: 1.15,
+      flip: true,
+      shirt: PAL.purple,
+      pants: PAL.stoneDark,
+      happy: cheer || t > 3,
+      armUp: cheer && t > 4
+    });
+  });
+}
+
 /* ---------- רקעים חוזרים ---------- */
 
 function homeScene(ctx, t, wallTone) {
@@ -406,7 +423,8 @@ const budgetMovie = buildMovie("budget", [
     lines: [
       {text: "תקציב זה לא משהו מסובך. זו פשוט תוכנית."},
       {text: "כמה כסף נכנס, וכמה כסף יוצא."},
-      {text: "בלי התוכנית הזאת הכסף פשוט נעלם."}
+      {text: "בלי התוכנית הזאת הכסף פשוט נעלם."},
+      {who: "roni", text: "רגע, אז תקציב זה כמו רשימה של הכסף שלי?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -416,13 +434,15 @@ const budgetMovie = buildMovie("budget", [
         drawPiggy(c, 520, 300, 1.5);
         drawArrow(c, 700, 250, 900, 250, 10, PAL.red);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "שלב ראשון: רושמים כל שקל שנכנס."},
       {text: "דמי כיס, עבודה, מתנות מיום ההולדת."},
-      {text: "גם סכומים קטנים נחשבים."}
+      {text: "גם סכומים קטנים נחשבים."},
+      {who: "roni", text: "גם עשרה שקלים מסבתא נכנסים לרשימה?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -433,13 +453,15 @@ const budgetMovie = buildMovie("budget", [
           drawCoin(c, 180 + i * 120, 250 + Math.sin(t * 2 + i) * 14, 46, 1);
         }
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "שלב שני: רושמים כל שקל שיוצא."},
       {text: "גם ההוצאות הקטנות. דווקא הן מצטברות."},
-      {text: "קפה, ממתק, משחק. הכול נספר."}
+      {text: "קפה, ממתק, משחק. הכול נספר."},
+      {who: "roni", text: "אוי. אני בכלל לא זוכר על מה הוצאתי החודש."}
     ],
     draw(ctx, t) {
       shopScene(ctx);
@@ -450,13 +472,15 @@ const budgetMovie = buildMovie("budget", [
         drawTag(c, 760, 300, 100, 64, PAL.gold);
         drawTag(c, 640, 380, 90, 58, PAL.purple);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "שלב שלישי, והכי חשוב: מחליטים כמה הולך לחיסכון."},
       {text: "ומעבירים אותו מיד, לפני שמוציאים על משהו אחר."},
-      {text: "מה שנשאר בסוף החודש כמעט אף פעם לא מגיע לחיסכון."}
+      {text: "מה שנשאר בסוף החודש כמעט אף פעם לא מגיע לחיסכון."},
+      {who: "roni", text: "אז קודם לחסוך, ורק אחר כך לבזבז?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#8fb8d8", "#dceef7");
@@ -466,13 +490,15 @@ const budgetMovie = buildMovie("budget", [
         drawArrow(c, 300, 250, 470, 280, 10, PAL.green);
         drawPiggy(c, 620, 300, 1.6);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "מחלקים את מה שנשאר לשלוש צנצנות."},
       {text: "צרכים, רצונות, וחיסכון."},
-      {text: "ככה רואים בעין אחת לאן הכול הולך."}
+      {text: "ככה רואים בעין אחת לאן הכול הולך."},
+      {who: "roni", text: "שלוש צנצנות. את זה אני יכול לעשות."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#8fb8d8", "#dceef7");
@@ -482,13 +508,15 @@ const budgetMovie = buildMovie("budget", [
         drawJar(c, 480, 440, 140, 180, Math.max(0, Math.min(1, (t - 3) / 3)), PAL.purple);
         drawJar(c, 760, 440, 140, 180, Math.max(0, Math.min(1, (t - 6) / 3)), PAL.gold);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "פעם בשבוע בודקים אם עומדים בתוכנית."},
       {text: "לא כדי להעניש את עצמנו, אלא כדי לדעת איפה אנחנו."},
-      {text: "ואם חרגתם, פשוט מתקנים בשבוע הבא."}
+      {text: "ואם חרגתם, פשוט מתקנים בשבוע הבא."},
+      {who: "roni", text: "ואם חרגתי, זה לא אומר שנכשלתי?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#8fb8d8", "#dceef7");
@@ -498,13 +526,15 @@ const budgetMovie = buildMovie("budget", [
         drawChart(c, 480, 400, 400, 220, [3, 5, 4, 7], Math.min(1, t / 5), PAL.blue);
         drawPerson(c, 880, 530, {walk: 0, size: 1.2, shirt: PAL.green, pants: PAL.dirt, happy: true});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "תקציב לא אומר להפסיק ליהנות."},
       {text: "הוא רק נותן לכל שקל תפקיד, כדי שלא ייעלם לבד."},
-      {text: "וזה כל הסוד של תקציב שעובד."}
+      {text: "וזה כל הסוד של תקציב שעובד."},
+      {who: "roni", text: "עכשיו לכל שקל שלי יש תפקיד."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -515,6 +545,7 @@ const budgetMovie = buildMovie("budget", [
         drawPiggy(c, 200, 330, 1.2);
         drawJar(c, 800, 470, 120, 150, 0.8, PAL.gold);
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -526,7 +557,8 @@ const savingHabitMovie = buildMovie("saving-habit", [
     lines: [
       {text: "קיבלתם מאה שקל. מה עושים איתם?"},
       {text: "יש כלל פשוט שקל מאוד לזכור."},
-      {text: "קוראים לו חמישים שלושים עשרים."}
+      {text: "קוראים לו חמישים שלושים עשרים."},
+      {who: "roni", text: "חמישים שלושים עשרים. זה קל לזכור."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -535,13 +567,15 @@ const savingHabitMovie = buildMovie("saving-habit", [
         drawBill(c, 480, 250 + Math.sin(t * 1.4) * 14, 340, 175);
         if (t > 4) drawQuestionMark(c, 800, 220, 0.9);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "חמישים אחוז הולכים לצרכים."},
       {text: "זה הדברים שאי אפשר בלעדיהם."},
-      {text: "אוכל, תחבורה, וכל מה שחייבים."}
+      {text: "אוכל, תחבורה, וכל מה שחייבים."},
+      {who: "roni", text: "אז חמישים שקל מהמאה זה לדברים שחייבים."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -551,13 +585,15 @@ const savingHabitMovie = buildMovie("saving-habit", [
         drawApple(c, 700, 230, 2.8);
         drawHut(c, 780, 440, 1.3);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "שלושים אחוז לרצונות."},
       {text: "כאן נמצא הכיף, וזה חלק לגיטימי מהתוכנית."},
-      {text: "בלי החלק הזה שום תוכנית לא מחזיקה מעמד."}
+      {text: "בלי החלק הזה שום תוכנית לא מחזיקה מעמד."},
+      {who: "roni", text: "יופי, נשאר גם לכיף. חשבתי שאסור."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#c9a0e8", "#eddcf7");
@@ -566,13 +602,15 @@ const savingHabitMovie = buildMovie("saving-habit", [
         drawJar(c, 300, 440, 160, 175, Math.min(1, t / 4), PAL.purple);
         drawBike(c, 700, 300, 1.5);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "ועשרים אחוז לחיסכון."},
       {text: "את החלק הזה מעבירים ראשון, ביום שמקבלים את הכסף."},
-      {text: "לפני שמספיקים להתפתות למשהו אחר."}
+      {text: "לפני שמספיקים להתפתות למשהו אחר."},
+      {who: "roni", text: "עשרים שקל, ואני מעביר אותם מיד?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#e8c46a", "#f7e8c0");
@@ -582,13 +620,15 @@ const savingHabitMovie = buildMovie("saving-habit", [
         drawPiggy(c, 700, 340, 1.6);
         if (t > 6) drawArrow(c, 400, 350, 590, 340, 9, PAL.gold);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "למה דווקא לחסוך ראשון?"},
       {text: "כי מה שנשאר בסוף החודש תמיד נעלם."},
-      {text: "תמיד יש משהו קטן שקורה בדרך."}
+      {text: "תמיד יש משהו קטן שקורה בדרך."},
+      {who: "roni", text: "נכון. אצלי תמיד נשאר אפס בסוף החודש."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#8fb8d8", "#dceef7");
@@ -598,13 +638,15 @@ const savingHabitMovie = buildMovie("saving-habit", [
         drawArrow(c, 350, 300, 560, 300, 9, PAL.red);
         drawCoinStack(c, 700, 420, Math.max(1, 7 - Math.floor(t)), 56, 28);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "שלוש הצנצנות ביחד הן כל הכסף שלכם."},
       {text: "ועכשיו לכל שקל יש מקום ברור."},
-      {text: "וזה הופך חיסכון מכוונה למשהו שקורה באמת."}
+      {text: "וזה הופך חיסכון מכוונה למשהו שקורה באמת."},
+      {who: "roni", text: "עכשיו אני יודע בדיוק לאן הולך כל שקל."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -616,6 +658,7 @@ const savingHabitMovie = buildMovie("saving-habit", [
         drawJar(c, 740, 430, 120, 120, 1, PAL.gold);
         drawPerson(c, 890, 520, {walk: 0, size: 1.2, shirt: PAL.blue, pants: PAL.stoneDark, happy: true});
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -627,7 +670,8 @@ const emergencyMovie = buildMovie("emergency-fund", [
     lines: [
       {text: "החיים אוהבים להפתיע, ולא תמיד לטובה."},
       {text: "הטלפון נשבר. האופניים התקלקלו."},
-      {text: "ותמיד בדיוק כשהכי לא מתאים."}
+      {text: "ותמיד בדיוק כשהכי לא מתאים."},
+      {who: "roni", text: "לי נשבר הטלפון בדיוק לפני הטיול."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#6a7a95", "#aab8cc");
@@ -636,13 +680,15 @@ const emergencyMovie = buildMovie("emergency-fund", [
         drawBrokenPhone(c, 480, 260, 200, 330);
         drawPerson(c, 150, 530, {walk: 0, size: 1.3, shirt: PAL.blue, pants: PAL.stoneDark, sad: true});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "בלי כסף בצד, הפתעה כזאת הופכת לבעיה גדולה."},
       {text: "צריך לוותר על משהו אחר, או ללוות."},
-      {text: "ושתי האפשרויות האלה עולות ביוקר."}
+      {text: "ושתי האפשרויות האלה עולות ביוקר."},
+      {who: "roni", text: "ואז נאלצתי לוותר על הטיול."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#6a7a95", "#aab8cc");
@@ -652,13 +698,15 @@ const emergencyMovie = buildMovie("emergency-fund", [
         drawPiggy(c, 700, 330, 1.5);
         drawNo(c, 700, 200, t * 5);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "קרן חירום היא כסף ששמור רק להפתעות."},
       {text: "לא לחופשה, ולא לקנייה שבא לנו. רק לחירום."},
-      {text: "היא קיימת רק בשביל הרגעים האלה."}
+      {text: "היא קיימת רק בשביל הרגעים האלה."},
+      {who: "roni", text: "אז זה כסף שאסור לגעת בו סתם?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -668,13 +716,15 @@ const emergencyMovie = buildMovie("emergency-fund", [
         drawCoinStack(c, 200, 430, 6, 50, 26);
         drawPiggy(c, 780, 350, 1.3);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "כמה צריך בקרן? מבוגרים שואפים לשלושה עד שישה חודשי הוצאות."},
       {text: "זה נותן מספיק זמן להתאושש."},
-      {text: "ככה אפשר למצוא פתרון בלי לחץ."}
+      {text: "ככה אפשר למצוא פתרון בלי לחץ."},
+      {who: "roni", text: "שישה חודשים? זה נשמע לי המון."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -683,13 +733,15 @@ const emergencyMovie = buildMovie("emergency-fund", [
         drawChart(c, 240, 430, 480, 240, [1, 2, 3, 4, 5, 6], Math.min(1, t / 6), PAL.blue);
         drawShield(c, 820, 300, 1.6);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "ואם אתם רק מתחילים, לא צריך סכום ענק."},
       {text: "מספיק סכום שמכסה תיקון אחד או קנייה דחופה אחת."},
-      {text: "העיקר שיהיה משהו, ולא כלום."}
+      {text: "העיקר שיהיה משהו, ולא כלום."},
+      {who: "roni", text: "אה, אז גם מאתיים שקל זה כבר התחלה."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -699,13 +751,15 @@ const emergencyMovie = buildMovie("emergency-fund", [
         drawCoin(c, 640, 250 - Math.sin(t * 2) * 18, 48, 1);
         drawArrow(c, 600, 300, 450, 320, 8, PAL.gold);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "קרן חירום לא הופכת אתכם לעשירים."},
       {text: "היא רק דואגת שהפתעה קטנה לא תהפוך לאסון."},
-      {text: "וזה שקט נפשי ששווה הרבה מאוד."}
+      {text: "וזה שקט נפשי ששווה הרבה מאוד."},
+      {who: "roni", text: "אני מתחיל מהחודש הזה."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -716,6 +770,7 @@ const emergencyMovie = buildMovie("emergency-fund", [
         drawPerson(c, 180, 520, {walk: 0, size: 1.3, shirt: PAL.green, pants: PAL.dirt, happy: true});
         drawPerson(c, 790, 520, {walk: 0, size: 1.3, flip: true, shirt: PAL.red, pants: PAL.stoneDark, happy: true});
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -727,7 +782,8 @@ const compoundMovie = buildMovie("compound", [
     lines: [
       {text: "יש כוח אחד שגורם לכסף לייצר עוד כסף."},
       {text: "קוראים לו ריבית דריבית."},
-      {text: "והוא עובד לאט, אבל בלי הפסקה."}
+      {text: "והוא עובד לאט, אבל בלי הפסקה."},
+      {who: "roni", text: "כסף שמייצר עוד כסף? איך זה בכלל?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -739,13 +795,15 @@ const compoundMovie = buildMovie("compound", [
           drawCoin(c, 480 + Math.cos(a) * 230, 250 + Math.sin(a) * 110, 26, 1);
         }
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "נניח שיש לכם מאה שקל, והם גדלים בעשרה אחוז בשנה."},
       {text: "אחרי שנה יהיו מאה ועשרה."},
-      {text: "עשרה שקלים שהגיעו בלי לעשות כלום."}
+      {text: "עשרה שקלים שהגיעו בלי לעשות כלום."},
+      {who: "roni", text: "עשרה שקלים בלי לעשות כלום. לא רע."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -755,13 +813,15 @@ const compoundMovie = buildMovie("compound", [
         drawArrow(c, 380, 300, 560, 300, 9, PAL.green);
         drawCoinStack(c, 700, 440, 5 + (t > 3 ? 1 : 0), 58, 28);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "ואחרי שנתיים? לא מאה ועשרים, אלא מאה עשרים ואחת."},
       {text: "כי גם העשרה שקל שהרווחתם מתחילים להרוויח."},
-      {text: "זה הרגע שבו הכסף מתחיל לעבוד בשבילכם."}
+      {text: "זה הרגע שבו הכסף מתחיל לעבוד בשבילכם."},
+      {who: "roni", text: "רגע, גם הרווח מרוויח? זה מוזר."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#e8c46a", "#f7e8c0");
@@ -774,13 +834,15 @@ const compoundMovie = buildMovie("compound", [
           drawCoin(c, 600, 260, 34, 1);
         }
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "בהתחלה ההבדל נראה זעיר, שקל אחד."},
       {text: "אבל ככל שעובר הזמן, הוא גדל כמו כדור שלג."},
-      {text: "בהתחלה זה משעמם. אחר כך זה מדהים."}
+      {text: "בהתחלה זה משעמם. אחר כך זה מדהים."},
+      {who: "roni", text: "שקל אחד. זה נשמע לי כלום."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#8fb8d8", "#dceef7");
@@ -788,13 +850,15 @@ const compoundMovie = buildMovie("compound", [
         drawGround(c, 440, PAL.grass, PAL.grassLight);
         drawChart(c, 140, 440, 700, 300, [1, 2, 3, 5, 8, 13, 21], Math.min(1, t / 7), PAL.green);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "אחרי שלושים שנה, אותם מאה שקל הופכים ליותר מפי שבע עשרה."},
       {text: "בלי לעשות כלום חוץ מלחכות."},
-      {text: "רק בגלל שנתנו לזמן לעשות את שלו."}
+      {text: "רק בגלל שנתנו לזמן לעשות את שלו."},
+      {who: "roni", text: "פי שבע עשרה? רק מזה שחיכיתי?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#e8c46a", "#f7e8c0");
@@ -805,13 +869,15 @@ const compoundMovie = buildMovie("compound", [
           drawCoinStack(c, 120 + i * 68, 450, 1 + Math.floor(i * 0.9), 28, 18);
         }
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "וזה הסוד: לא הסכום קובע, אלא הזמן."},
       {text: "מי שמתחיל מוקדם, נותן לכסף שלו הרבה יותר זמן לגדול."},
-      {text: "ולכן הזמן הכי טוב להתחיל הוא תמיד עכשיו."}
+      {text: "ולכן הזמן הכי טוב להתחיל הוא תמיד עכשיו."},
+      {who: "roni", text: "אז כדאי לי להתחיל עכשיו ולא בגיל עשרים."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -823,6 +889,7 @@ const compoundMovie = buildMovie("compound", [
         drawCoin(c, 620, 250, 95, 1);
         drawPerson(c, 870, 520, {walk: 0, size: 1.2, shirt: PAL.blue, pants: PAL.stoneDark, happy: true});
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -834,7 +901,8 @@ const riskMovie = buildMovie("risk", [
     lines: [
       {text: "ראיתם פרסומת שמבטיחה רווח ענק, בלי שום סיכון?"},
       {text: "עצרו רגע."},
-      {text: "מה שנשמע מדהים מדי, בדרך כלל גם לא נכון."}
+      {text: "מה שנשמע מדהים מדי, בדרך כלל גם לא נכון."},
+      {who: "roni", text: "ראיתי בדיוק פרסומת כזאת אתמול."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#d85f5f", "#f0a8a8");
@@ -844,13 +912,15 @@ const riskMovie = buildMovie("risk", [
         drawPercent(c, 480, 230, 1.5, PAL.red);
         if (t > 4) drawQuestionMark(c, 830, 240, 0.9, PAL.ink);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "בעולם הכסף יש חוק שכמעט אף פעם לא נשבר."},
       {text: "ככל שהרווח האפשרי גדול יותר, כך גם הסיכון."},
-      {text: "אין דרך לעקוף את החוק הזה."}
+      {text: "אין דרך לעקוף את החוק הזה."},
+      {who: "roni", text: "אז אין דבר כזה הרבה רווח בלי סיכון?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -860,13 +930,15 @@ const riskMovie = buildMovie("risk", [
         drawChart(c, 560, 440, 340, 260, [1, 3, 6], 1, PAL.red);
         drawArrow(c, 500, 250, 540, 250, 7);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "השקעה שמבטיחה רווח גבוה בלי סיכון פשוט לא קיימת."},
       {text: "ומי שמבטיח אותה, בדרך כלל מנסה לרמות אתכם."},
-      {text: "אף אחד לא מחלק כסף בחינם."}
+      {text: "אף אחד לא מחלק כסף בחינם."},
+      {who: "roni", text: "טוב שלא לחצתי על הכפתור."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#d85f5f", "#f0a8a8");
@@ -877,13 +949,15 @@ const riskMovie = buildMovie("risk", [
         drawNo(c, 350, 250, t * 5);
         drawPerson(c, 780, 530, {walk: 0, size: 1.5, shirt: PAL.blue, pants: PAL.stoneDark, sad: true});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "אז איך בכל זאת מקטינים סיכון?"},
       {text: "לא שמים את כל הביצים בסל אחד. זה נקרא פיזור."},
-      {text: "מחלקים את הכסף בין כמה מקומות שונים."}
+      {text: "מחלקים את הכסף בין כמה מקומות שונים."},
+      {who: "roni", text: "כמו לא לשים את כל הגולות בכיס אחד."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -896,13 +970,15 @@ const riskMovie = buildMovie("risk", [
         drawEggBasket(c, 880, 400, 1.2, 2);
         if (t > 6) drawYes(c, 720, 210, 1.3);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "אם סל אחד נופל, נשארו לכם עוד."},
       {text: "ככה השקעה שנכשלה לא לוקחת איתה את הכול."},
-      {text: "וזה ההבדל בין טעות לבין אסון."}
+      {text: "וזה ההבדל בין טעות לבין אסון."},
+      {who: "roni", text: "אז אם סל אחד נופל, לא הפסדתי הכול."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -913,13 +989,15 @@ const riskMovie = buildMovie("risk", [
         drawEggBasket(c, 830, 400, 1.3, 2);
         if (t > 4) drawYes(c, 690, 230, 1.4);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "הכלל הכי שימושי הוא הפשוט ביותר."},
       {text: "אם משהו נשמע טוב מכדי להיות אמיתי, הוא כנראה באמת כזה."},
-      {text: "הכלל הזה יחסוך לכם הרבה כאב ראש."}
+      {text: "הכלל הזה יחסוך לכם הרבה כאב ראש."},
+      {who: "roni", text: "מעכשיו אני שואל את עצמי את השאלה הזאת."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -930,6 +1008,7 @@ const riskMovie = buildMovie("risk", [
         drawShield(c, 200, 280, 1.5);
         drawEggBasket(c, 790, 400, 1.4, 3);
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -941,7 +1020,8 @@ const creditMovie = buildMovie("credit", [
     lines: [
       {text: "כרטיס אשראי נראה כמו כסף, אבל הוא לא."},
       {text: "הוא כסף מושאל, שצריך להחזיר."},
-      {text: "וזה ההבדל שהכי קל לשכוח."}
+      {text: "וזה ההבדל שהכי קל לשכוח."},
+      {who: "roni", text: "אבל הוא נראה בדיוק כמו כסף."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#5f7fd8", "#a8c0f0");
@@ -950,13 +1030,15 @@ const creditMovie = buildMovie("credit", [
         drawCard(c, 480, 250 + Math.sin(t * 1.5) * 14, 380, 240);
         if (t > 4) drawQuestionMark(c, 830, 230, 0.8, PAL.ink);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "כשקונים בכרטיס, הבנק משלם במקומכם."},
       {text: "ובסוף החודש הוא רוצה את הכסף בחזרה."},
-      {text: "עד אז הכסף עדיין שלו, לא שלכם."}
+      {text: "עד אז הכסף עדיין שלו, לא שלכם."},
+      {who: "roni", text: "אז זה כאילו הבנק מלווה לי לרגע."}
     ],
     draw(ctx, t) {
       shopScene(ctx);
@@ -966,13 +1048,15 @@ const creditMovie = buildMovie("credit", [
         drawArrow(c, 350, 280, 560, 280, 9, PAL.blue);
         drawCart(c, 730, 470, 1.7);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "אם מחזירים את כל הסכום בזמן, הכול בסדר."},
       {text: "אבל אם לא, מתחילה להצטבר ריבית."},
-      {text: "והריבית מחושבת גם על הריבית הקודמת."}
+      {text: "והריבית מחושבת גם על הריבית הקודמת."},
+      {who: "roni", text: "ומה קורה אם אין לי בסוף החודש?"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#d85f5f", "#f0a8a8");
@@ -980,13 +1064,15 @@ const creditMovie = buildMovie("credit", [
         drawGround(c, 440, PAL.wood, "#c48f4e");
         drawChart(c, 140, 440, 700, 300, [1, 2, 4, 8, 14, 22], Math.min(1, t / 6), PAL.red);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "וזו ריבית דריבית שעובדת נגדכם."},
       {text: "החוב גדל מעצמו, בדיוק כמו שחיסכון גדל מעצמו."},
-      {text: "וככל שמחכים יותר, קשה יותר לצאת."}
+      {text: "וככל שמחכים יותר, קשה יותר לצאת."},
+      {who: "roni", text: "החוב גדל לבד? זה קצת מפחיד."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#d85f5f", "#f0a8a8");
@@ -996,13 +1082,15 @@ const creditMovie = buildMovie("credit", [
         drawCoinStack(c, 480, 450, n, 62, 30);
         drawPerson(c, 170, 530, {walk: 0, size: 1.7, shirt: PAL.blue, pants: PAL.stoneDark, sad: true});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "לכן יש כלל אחד פשוט לאשראי."},
       {text: "לא קונים בכרטיס משהו שאין לכם כסף לשלם עליו."},
-      {text: "אם אין לכם את הכסף היום, גם מחר לא יהיה."}
+      {text: "אם אין לכם את הכסף היום, גם מחר לא יהיה."},
+      {who: "roni", text: "אז אם אין לי את הכסף היום, לא לקנות."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -1013,13 +1101,15 @@ const creditMovie = buildMovie("credit", [
         drawPiggy(c, 740, 320, 1.4);
         if (t > 6) drawYes(c, 480, 130, 1.4);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "אשראי הוא כלי, לא כסף נוסף."},
       {text: "מי שמשלם את כל החוב כל חודש, נשאר בשליטה."},
-      {text: "הבעיה מתחילה רק כשמתייחסים אליו ככסף נוסף."}
+      {text: "הבעיה מתחילה רק כשמתייחסים אליו ככסף נוסף."},
+      {who: "roni", text: "הבנתי. זה כלי, לא עוד כסף."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -1030,6 +1120,7 @@ const creditMovie = buildMovie("credit", [
         drawPerson(c, 170, 520, {walk: 0, size: 1.3, shirt: PAL.green, pants: PAL.dirt, happy: true});
         drawPerson(c, 800, 520, {walk: 0, size: 1.3, flip: true, shirt: PAL.blue, pants: PAL.stoneDark, happy: true});
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -1041,7 +1132,8 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
     lines: [
       {text: "אחד פלוס אחד חינם. נשמע כמו הזדמנות, נכון?"},
       {text: "לפעמים כן. ולפעמים ממש לא."},
-      {text: "והרבה פעמים זו בכלל לא הזדמנות."}
+      {text: "והרבה פעמים זו בכלל לא הזדמנות."},
+      {who: "roni", text: "אני תמיד לוקח כשכתוב אחד פלוס אחד."}
     ],
     draw(ctx, t) {
       shopScene(ctx);
@@ -1051,13 +1143,15 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
         drawPercent(c, 480, 230, 1.45, PAL.red);
         if (t > 4) drawQuestionMark(c, 830, 250, 0.85, PAL.ink);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "השאלה היחידה שחשובה היא זו:"},
       {text: "האם הייתם קונים את המוצר גם בלי המבצע?"},
-      {text: "אם התשובה כן, המבצע באמת חוסך לכם."}
+      {text: "אם התשובה כן, המבצע באמת חוסך לכם."},
+      {who: "roni", text: "האם הייתי קונה גם בלי המבצע... שאלה טובה."}
     ],
     draw(ctx, t) {
       shopScene(ctx);
@@ -1067,13 +1161,15 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
         drawTag(c, 640, 250, 150, 95, PAL.gold);
         drawQuestionMark(c, 830, 280, 0.8, PAL.ink);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "אם התשובה היא לא, אז לא חסכתם כלום."},
       {text: "הוצאתם כסף על משהו שלא תכננתם."},
-      {text: "וגם הבאתם הביתה עוד משהו שלא צריך."}
+      {text: "וגם הבאתם הביתה עוד משהו שלא צריך."},
+      {who: "roni", text: "אוי. יש לי שתי חבילות שלא נגעתי בהן."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#d85f5f", "#f0a8a8");
@@ -1084,13 +1180,15 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
         for (let i = 0; i < n; i++) drawTag(c, 300 + i * 110, 250, 90, 58, PAL.purple);
         drawNo(c, 800, 250, t * 5);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "חנויות יודעות את זה היטב."},
       {text: "שלט גדול עם אחוזים גורם לנו לקנות בלי לחשוב."},
-      {text: "וזה עובד. גם על מבוגרים."}
+      {text: "וזה עובד. גם על מבוגרים."},
+      {who: "roni", text: "השלט הגדול באמת גורם לי לרוץ."}
     ],
     draw(ctx, t) {
       shopScene(ctx);
@@ -1102,13 +1200,15 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
         drawPercent(c, 700, 250, 0.95, PAL.goldDark);
         drawPerson(c, 490, 530, {walk: 0, size: 1.7, shirt: PAL.green, pants: PAL.dirt});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "הטריק הכי שימושי הוא להשוות מחיר ליחידה."},
       {text: "לפעמים האריזה הגדולה דווקא יקרה יותר."},
-      {text: "מחלקים את המחיר בכמות, ומשווים."}
+      {text: "מחלקים את המחיר בכמות, ומשווים."},
+      {who: "roni", text: "מחלקים מחיר בכמות. את זה אני יכול."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -1119,13 +1219,15 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
         drawArrow(c, 400, 270, 580, 275, 8);
         if (t > 7) drawYes(c, 700, 150, 1.2);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "מבצע חוסך כסף רק כשהייתם קונים את המוצר בכל מקרה."},
       {text: "בכל מצב אחר, הוא פשוט הוצאה בתחפושת."},
-      {text: "והידיעה הזאת שווה יותר מכל מבצע."}
+      {text: "והידיעה הזאת שווה יותר מכל מבצע."},
+      {who: "roni", text: "מעכשיו אני בודק לפני שאני לוקח."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -1136,6 +1238,7 @@ const smartShoppingMovie = buildMovie("smart-shopping", [
         drawCart(c, 180, 470, 1.4);
         drawPiggy(c, 800, 340, 1.3);
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
@@ -1147,7 +1250,8 @@ const goalsMovie = buildMovie("goals", [
     lines: [
       {text: "יש משהו שאתם ממש רוצים, אבל הוא יקר."},
       {text: "נניח אופניים באלף ומאתיים שקל."},
-      {text: "וזה מרגיש רחוק מאוד."}
+      {text: "וזה מרגיש רחוק מאוד."},
+      {who: "roni", text: "אלף ומאתיים שקל. אין לי סיכוי."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fa8d8", "#d4e8f7");
@@ -1156,13 +1260,15 @@ const goalsMovie = buildMovie("goals", [
         drawBike(c, 520, 280, 2.4);
         drawTag(c, 160, 250, 150, 95, PAL.gold);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "הסכום נשמע ענק, וקל להתייאש כבר בהתחלה."},
       {text: "אבל יש דרך פשוטה להקטין אותו."},
-      {text: "הבעיה היא לא הסכום, אלא איך מסתכלים עליו."}
+      {text: "הבעיה היא לא הסכום, אלא איך מסתכלים עליו."},
+      {who: "roni", text: "זה באמת מרגיש בלתי אפשרי."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#6a7a95", "#aab8cc");
@@ -1171,13 +1277,15 @@ const goalsMovie = buildMovie("goals", [
         drawCoinStack(c, 480, 440, 9, 70, 32);
         drawPerson(c, 150, 530, {walk: 0, size: 1.3, shirt: PAL.blue, pants: PAL.stoneDark, sad: true});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "מחליטים תוך כמה זמן רוצים להגיע. נניח שנה."},
       {text: "מחלקים אלף ומאתיים בשנים עשר חודשים."},
-      {text: "והתוצאה מפתיעה."}
+      {text: "והתוצאה מפתיעה."},
+      {who: "roni", text: "רגע, אני מחשב..."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -1190,13 +1298,15 @@ const goalsMovie = buildMovie("goals", [
           drawCoin(c, 560 + (i % 6) * 68, 220 + Math.floor(i / 6) * 90, 28, 1);
         }
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "מאה שקל בחודש. פתאום זה נשמע אפשרי לגמרי."},
       {text: "זה הסוד: מטרה גדולה מחולקת לצעדים קטנים."},
-      {text: "וכל צעד לבד הוא קטן לגמרי."}
+      {text: "וכל צעד לבד הוא קטן לגמרי."},
+      {who: "roni", text: "מאה שקל בחודש? את זה אני יכול!"}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#7fc48f", "#dcf2e4");
@@ -1207,13 +1317,15 @@ const goalsMovie = buildMovie("goals", [
         drawPiggy(c, 660, 330, 1.9);
         drawPerson(c, 870, 525, {walk: 0, size: 1.6, shirt: PAL.green, pants: PAL.dirt, happy: true});
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "כדאי לסמן את ההתקדמות איפשהו שרואים כל יום."},
       {text: "כשרואים את הפס מתמלא, הרבה יותר קל להמשיך."},
-      {text: "מסמנים על לוח, במחברת, או בטלפון."}
+      {text: "מסמנים על לוח, במחברת, או בטלפון."},
+      {who: "roni", text: "אני אצייר פס ואמלא אותו כל חודש."}
     ],
     draw(ctx, t) {
       drawSky(ctx, "#8fb8d8", "#dceef7");
@@ -1223,13 +1335,15 @@ const goalsMovie = buildMovie("goals", [
         drawPiggy(c, 250, 400, 1.1);
         drawBike(c, 760, 400, 1.2);
       });
+      drawRoni(ctx, t);
     }
   },
   {
     lines: [
       {text: "וכשמגיעים למטרה, הכסף לא נעלם. הוא הפך למשהו שרציתם."},
       {text: "זה ההבדל בין להוציא כסף לבין לנהל אותו."},
-      {text: "וזה בדיוק מה שלמדנו בכל השיעורים."}
+      {text: "וזה בדיוק מה שלמדנו בכל השיעורים."},
+      {who: "roni", text: "אז לא בזבזתי את הכסף. הפכתי אותו למשהו."}
     ],
     draw(ctx, t) {
       drawSky(ctx, PAL.skyDuskTop, PAL.skyDuskBot);
@@ -1241,6 +1355,7 @@ const goalsMovie = buildMovie("goals", [
         drawPerson(c, 810, 520, {walk: 0, size: 1.3, flip: true, shirt: PAL.red, pants: PAL.stoneDark, happy: true, armUp: true});
         if (t > 6) drawYes(c, 480, 120, 1.5);
       });
+      drawRoni(ctx, t, true);
     }
   }
 ]);
