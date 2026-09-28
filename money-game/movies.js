@@ -196,16 +196,33 @@ function drawArrow(ctx, x1, y1, x2, y2, thick, color) {
 
 /* ---------- בונה סרטון ומחשב תזמוני קריינות אוטומטית ---------- */
 
+/* כמה זמן שורה תופסת.
+   אם הוקלטה לה הקלטה אמיתית - האורך שלה, שנמדד בכלי rebuild-voice-manifest.
+   אחרת הערכה לפי מספר התווים. בלי זה הקריין האמיתי, שאיטי מההערכה,
+   נקטע באמצע משפט כשהשורה הבאה מתחילה. */
+function lineSeconds(line) {
+  const measured = typeof VOICE_DURATIONS !== "undefined" && VOICE_DURATIONS[line._id];
+  return (measured || line.text.length * 0.075) + 0.45;
+}
+
 function buildMovie(id, scenes) {
   const shots = [];
   const cues = [];
   let clock = 0;
   let n = 0;
 
+  /* המזהים נקבעים מראש, כדי שגם חישוב אורך הסצנה יוכל להסתמך
+     על אורך ההקלטה ולא רק על הערכה */
+  scenes.forEach(scene => {
+    (scene.lines || []).forEach(line => {
+      line._id = `${id}-${String(++n).padStart(2, "0")}`;
+    });
+  });
+
   scenes.forEach(scene => {
     /* אורך השוט נגזר מהקריינות עצמה, כדי שלא יישאר שקט מיותר בסוף */
     const talk = (scene.lines || []).reduce(function (sum, line) {
-      return sum + line.text.length * 0.075 + 0.45;
+      return sum + lineSeconds(line);
     }, 0);
     const duration = scene.duration || Math.max(scene.min || 6, Math.round(talk + 1.4));
 
@@ -215,12 +232,12 @@ function buildMovie(id, scenes) {
     let lineTime = clock + 0.5;
     (scene.lines || []).forEach(line => {
       cues.push({
-        id: `${id}-${String(++n).padStart(2, "0")}`,
+        id: line._id,
         who: line.who || "narrator",
         t: Math.round(lineTime * 10) / 10,
         text: line.text
       });
-      lineTime += line.text.length * 0.075 + 0.45;
+      lineTime += lineSeconds(line);
     });
 
     clock += duration;

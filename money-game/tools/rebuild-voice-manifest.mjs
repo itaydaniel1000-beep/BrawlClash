@@ -9,6 +9,7 @@
  */
 
 import fs from "node:fs";
+import {execFileSync} from "node:child_process";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
@@ -42,14 +43,18 @@ function loadCues() {
       else if (extra[i] === "]") { depth--; if (!depth) break; }
     }
     const body = extra.slice(from, i + 1);
-    /* מחלצים רק את הטקסטים, לפי סדר הופעתם */
-    const texts = body.match(/\{text: "([^"]+)"\}/g) || [];
-    texts.forEach((t, n) => {
+    /* מחלצים את הטקסטים לפי סדר הופעתם.
+       שורה יכולה להיכתב גם כ-{who: "...", text: "..."}, ולכן אי אפשר
+       לדרוש שהאובייקט יתחיל ב-text - כך פספסנו קודם את כל שורות הדמויות
+       והמזהים יצאו מוסטים. */
+    const lines = body.match(/\{[^{}]*\btext: "(?:[^"\\]|\\.)*"[^{}]*\}/g) || [];
+    lines.forEach((raw, n) => {
+      const who = (raw.match(/\bwho: "([^"]+)"/) || [])[1] || "narrator";
       cues.push({
         movie: id,
         id: `${id}-${String(n + 1).padStart(2, "0")}`,
-        who: "narrator",
-        text: t.match(/"([^"]+)"/)[1]
+        who: who,
+        text: raw.match(/\btext: "((?:[^"\\]|\\.)*)"/)[1]
       });
     });
   }
@@ -92,6 +97,35 @@ cues.forEach(cue => {
 fs.writeFileSync(
   path.join(voiceDir, "manifest.json"),
   JSON.stringify({lines: found, files: files}, null, 2)
+);
+
+/* מודדים את אורך כל הקלטה וכותבים אותו כקובץ JS.
+   buildMovie קורא אותו כדי לתזמן את הסרטון לפי ההקלטה האמיתית ולא לפי
+   הערכה מאורך הטקסט. בלי זה שורות ארוכות נקטעות באמצע. */
+function seconds(file) {
+  try {
+    const out = execFileSync("ffprobe", [
+      "-v", "error", "-show_entries", "format=duration",
+      "-of", "default=noprint_wrappers=1:nokey=1", file
+    ], {encoding: "utf8"}).trim();
+    const value = Number(out);
+    return Number.isFinite(value) && value > 0 ? Math.round(value * 100) / 100 : null;
+  } catch (error) {
+    return null;   /* אין ffprobe - נופלים בחזרה להערכה לפי הטקסט */
+  }
+}
+
+const durations = {};
+let measured = 0;
+found.forEach(id => {
+  const value = seconds(path.join(voiceDir, files[id]));
+  if (value) { durations[id] = value; measured++; }
+});
+
+const header = "/* נוצר אוטומטית על ידי tools/rebuild-voice-manifest.mjs - אין לערוך ביד. */";
+fs.writeFileSync(
+  path.join(root, "voice-durations.js"),
+  [header, "const VOICE_DURATIONS = " + JSON.stringify(durations, null, 2) + ";", ""].join("\n")
 );
 
 console.log(`\n✅ נמצאו הקלטות ל-${found.length} מתוך ${cues.length} שורות.`);
