@@ -48,38 +48,85 @@ function horn(ctx, x, y, len, thick, dir, color, dark) {
   }
 }
 
-/* כנף עור עם אצבעות. open קובע כמה היא פרושה. */
+/* ---------- הדרקון ---------- */
+
+/* שכבת קשקשים: שורות חופפות של חצאי עיגול, כמו רעפים */
+function scaleField(ctx, cx, cy, rx, ry, s, light, tone, dark) {
+  const S = n => Math.round(n * s);
+  const step = S(17);
+  for (let y = -ry + step; y < ry - step * 0.4; y += step) {
+    /* רוחב השורה לפי האליפסה, כדי שהקשקשים ילכו לפי צורת הגוף */
+    const half = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y / ry) * (y / ry))));
+    const shift = (Math.round(y / step) % 2) * Math.round(step * 0.5);
+    for (let x = -half + shift; x < half - step * 0.3; x += step) {
+      /* קודם חצי עיגול כהה, ומעליו אותו חצי עיגול מוסט קצת כלפי מעלה.
+         מה שנשאר גלוי מלמטה הוא הצל, וזה מה שהופך גוון שטוח לקשקש. */
+      const edge = Math.abs(x) / Math.max(1, half);
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.arc(cx + x, cy + y, step * 0.55, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = edge > 0.66 ? tone : light;
+      ctx.beginPath();
+      ctx.arc(cx + x, cy + y - Math.max(1, S(3)), step * 0.52, Math.PI, 0);
+      ctx.fill();
+    }
+  }
+}
+
+/* כנף: עצמות מאותה נקודה, קרום ביניהן, ושוליים מסולסלים */
 function dragonWing(ctx, x, y, s, open, flap, back) {
   const S = n => Math.round(n * s);
-  const spread = 0.35 + open * 0.65;
-  const lift = Math.round(flap * 18 * s);
+  const spread = 0.34 + open * 0.66;
+  const lift = Math.round(flap * 22 * s);
 
-  /* שלוש אצבעות שיוצאות מאותה נקודה */
   const fingers = [
-    {len: S(150) * spread, ang: -1.15},
-    {len: S(170) * spread, ang: -0.78},
-    {len: S(150) * spread, ang: -0.38}
+    {len: S(146) * spread, ang: -1.22},
+    {len: S(176) * spread, ang: -0.86},
+    {len: S(166) * spread, ang: -0.46},
+    {len: S(128) * spread, ang: -0.08}
   ];
-
   const tips = fingers.map(f => [
     Math.round(x + Math.cos(f.ang) * f.len),
     Math.round(y + Math.sin(f.ang) * f.len) - lift
   ]);
+  const root = [Math.round(x + S(44)), Math.round(y + S(40))];
 
-  /* קרום בין האצבעות */
+  /* הקרום, עם שקע קטן בין אצבעות כדי שהשוליים לא יהיו ישרים */
   ctx.fillStyle = back ? DPAL.wing : DPAL.wingSkin;
   ctx.beginPath();
   ctx.moveTo(x, y);
-  tips.forEach(t => ctx.lineTo(t[0], t[1]));
-  /* השוליים התחתונים משתפלים חזרה אל הגוף */
-  ctx.lineTo(Math.round(x + S(46)), Math.round(y + S(38)));
+  tips.forEach((tip, i) => {
+    if (i === 0) { ctx.lineTo(tip[0], tip[1]); return; }
+    const prev = tips[i - 1];
+    const mx = (prev[0] + tip[0]) / 2;
+    const my = (prev[1] + tip[1]) / 2 + S(16);
+    ctx.quadraticCurveTo(mx, my, tip[0], tip[1]);
+  });
+  ctx.quadraticCurveTo(
+    (tips[tips.length - 1][0] + root[0]) / 2,
+    (tips[tips.length - 1][1] + root[1]) / 2 + S(14),
+    root[0], root[1]);
   ctx.closePath();
   ctx.fill();
 
-  /* גידים */
-  tips.forEach(t => taper(ctx, [[x, y], t], Math.max(1, S(4)), Math.max(1, S(2)), DPAL.scaleDark));
-  taper(ctx, [[x, y], [Math.round(x + S(46)), Math.round(y + S(38))]],
-    Math.max(1, S(5)), Math.max(1, S(2)), DPAL.scaleDark);
+  /* גידים בהירים לאורך הקרום */
+  ctx.globalAlpha = 0.28;
+  tips.forEach(tip => taper(ctx, [[x, y], tip], Math.max(1, S(6)), 1, DPAL.wingSkin));
+  ctx.globalAlpha = 1;
+
+  /* העצמות עצמן */
+  tips.forEach(tip => taper(ctx, [[x, y], tip], Math.max(1, S(5)), Math.max(1, S(2)), DPAL.scaleDark));
+  taper(ctx, [[x, y], root], Math.max(1, S(6)), Math.max(1, S(2)), DPAL.scaleDark);
+  /* טופר בקצה העצם הארוכה */
+  const claw = tips[1];
+  ctx.fillStyle = DPAL.claw;
+  ctx.beginPath();
+  ctx.moveTo(claw[0], claw[1]);
+  ctx.lineTo(claw[0] - S(14), claw[1] - S(9));
+  ctx.lineTo(claw[0] + S(3), claw[1] + S(7));
+  ctx.closePath();
+  ctx.fill();
 }
 
 /* להבה מהפה. p הוא מ-0 עד 1. */
@@ -90,7 +137,6 @@ function dragonFire(ctx, x, y, s, p, t) {
 
   for (let i = 0; i < reach; i += 2) {
     const g = i / Math.max(1, reach);
-    /* הלהבה מתרחבת ככל שהיא מתרחקת מהפה */
     const w = Math.round(S(9) + g * S(46) + Math.sin(t * 22 + i * 0.09) * S(5));
     const cx = x - i;
     const cy = Math.round(y + Math.sin(t * 13 + i * 0.05) * S(6) + g * S(10));
@@ -98,7 +144,6 @@ function dragonFire(ctx, x, y, s, p, t) {
     px(ctx, cx - 1, cy - w, 3, w * 2, color);
   }
 
-  /* גיצים */
   for (let i = 0; i < 16; i++) {
     const g = spread(71, i);
     const d = (g * 1.3 + t * 1.5) % 1;
@@ -123,9 +168,7 @@ function dragonSmoke(ctx, x, y, s, t) {
   ctx.globalAlpha = 1;
 }
 
-/* ---------- הדרקון ---------- */
-
-/* state: idle | wind | attack | tired | hurt | dead
+/* state: idle | wind | attack | tired | dead
    פונה שמאלה, לכיוון הגיבור. */
 function drawDragon(ctx, x, groundY, s, opts) {
   const o = opts || {};
@@ -134,60 +177,87 @@ function drawDragon(ctx, x, groundY, s, opts) {
   const state = o.state || "idle";
 
   const dead = state === "dead";
-  const tired = state === "tired";
+  const hurt = state === "hurt";
+  /* אחרי מכה הוא ממילא מתנשם, ולכן "נפגע" יורש את כל המראה של "עייף" */
+  const tired = state === "tired" || hurt;
   const attacking = state === "attack";
   const winding = state === "wind";
 
-  /* נשימה: הגוף עולה ויורד. כשהוא עייף הנשימה כבדה ואיטית. */
-  const rate = tired ? 3.4 : dead ? 0 : 1.7;
-  const depth = tired ? 7 : 3;
-  const breath = dead ? 0 : Math.sin(t * rate) * depth;
+  /* קפיצה אחורה חדה ברגע הפגיעה, שנרגעת תוך פחות משנייה */
+  const hurtP = hurt ? Math.min(1, o.hurtP || 0) : 0;
+  const jolt = hurt ? Math.sin(hurtP * Math.PI) * S(22) : 0;
 
-  /* כשהוא תוקף הוא נדחף קדימה, וכשהוא צובר כוח הוא נרתע אחורה */
-  const lunge = attacking ? Math.sin(Math.min(1, (o.attackP || 0)) * Math.PI) * S(70) : 0;
+  /* --- תנועת בסיס --- */
+  /* נשימה איטית וכבדה כשהוא עייף, מהירה ורדודה כשהוא ער */
+  const breathRate = tired ? 3.4 : dead ? 0 : 1.7;
+  const breath = dead ? 0 : Math.sin(t * breathRate) * (tired ? 9 : 6);
+
+  /* מחזור חבטות הכנפיים. הגוף עולה קצת בכל חבטה, וזה מה שגורם
+     לכנפיים להיראות כאילו הן באמת נושאות משקל. */
+  const flapRate = attacking ? 5.2 : tired ? 1.1 : 2.3;
+  const flapAmp = dead ? 0 : attacking ? 0.9 : tired ? 0.15 : 0.5;
+  const flap = dead ? -0.6 : Math.sin(t * flapRate) * flapAmp;
+  const hover = Math.round(flap * (attacking ? S(22) : S(15)));
+
+  /* נדנוד אופקי איטי, לא קשור לקצב הכנפיים. שני קצבים שלא מתחלקים זה
+     בזה גורמים לתנועה להיראות אקראית במקום מכנית. */
+  const drift = dead ? 0 : Math.sin(t * 0.83) * S(11);
+
+  const lunge = attacking ? Math.sin(Math.min(1, o.attackP || 0) * Math.PI) * S(70) : 0;
   const recoil = winding ? S(26) * (o.windP || 0) : 0;
-  const bx = Math.round(x - lunge + recoil);
+  const bx = Math.round(x - lunge + recoil + jolt + drift);
 
-  /* קריסה כשהוא מובס */
   const fall = dead ? Math.min(1, o.deadP || 1) : 0;
-  const sink = Math.round(fall * S(46));
-  const base = groundY + sink;
-
-  const bodyY = Math.round(base - S(96) + breath - (tired ? S(16) : 0));
+  const base = groundY + Math.round(fall * S(46));
+  const bodyY = Math.round(base - S(96) + breath - hover - (tired ? S(16) : 0));
 
   ctx.save();
   if (dead) {
-    /* נטוי הצידה, כמו גוף שנפל */
     ctx.translate(bx, base);
     ctx.rotate(fall * 0.22);
     ctx.translate(-bx, -base);
   }
 
-  /* צל */
-  ellipse(ctx, bx, base + S(4), S(150), S(20), "rgba(0,0,0,.28)");
+  /* הצל מתכווץ כשהוא מתרומם - רמז נוסף לגובה */
+  const shadowShrink = 1 - Math.max(0, hover) / Math.max(1, S(30)) * 0.22;
+  ellipse(ctx, bx, base + S(4), Math.round(S(150) * shadowShrink),
+    Math.round(S(20) * shadowShrink), "rgba(0,0,0,.28)");
 
-  /* --- כנפיים אחוריות --- */
-  const flap = dead ? -0.6 : attacking ? 1 : Math.sin(t * (tired ? 1.1 : 2.3)) * (tired ? 0.15 : 0.5);
+  /* --- כנף אחורית --- */
   const openness = dead ? 0.15 : tired ? 0.3 : attacking ? 1 : 0.6;
-  dragonWing(ctx, bx + S(24), bodyY - S(34), s * 0.92, openness, flap, true);
+  dragonWing(ctx, bx + S(30), bodyY - S(40), s * 0.96, openness, flap, true);
 
   /* --- זנב --- */
-  const sway = dead ? 0 : Math.sin(t * (tired ? 1.2 : 2.1)) * S(16);
-  taper(ctx, [
-    [bx + S(86), bodyY + S(14)],
-    [bx + S(178), bodyY + S(34) + sway],
-    [bx + S(252), bodyY - S(6) + sway * 1.5],
-    [bx + S(292), bodyY - S(56) + sway * 2]
-  ], S(30), S(4), DPAL.scale);
+  /* גל שנע לאורך הזנב במקום להתנדנד כגוש אחד. כל חוליה מפגרת
+     אחרי הקודמת, וזה מה שנותן את התחושה של שוט. */
+  const tailRate = tired ? 1.2 : 2.1;
+  const wave = k => dead ? 0 : Math.sin(t * tailRate - k * 0.9) * S(15) * (0.4 + k * 0.3);
+  const tailPts = [
+    [bx + S(86), bodyY + S(14) + wave(0)],
+    [bx + S(168), bodyY + S(30) + wave(1)],
+    [bx + S(240), bodyY - S(2) + wave(2)],
+    [bx + S(278), bodyY - S(54) + wave(3)]
+  ];
+  taper(ctx, tailPts, S(30), S(4), DPAL.scale);
+  /* קוצים קטנים לאורך הזנב */
+  for (let i = 1; i < tailPts.length; i++) {
+    const p = tailPts[i];
+    ctx.fillStyle = DPAL.hornDark;
+    ctx.beginPath();
+    ctx.moveTo(p[0] - S(7), p[1] + S(4));
+    ctx.lineTo(p[0], p[1] - S(13));
+    ctx.lineTo(p[0] + S(7), p[1] + S(4));
+    ctx.closePath();
+    ctx.fill();
+  }
 
-  /* דוקרן בקצה הזנב */
-  const tipX = bx + S(292);
-  const tipY = bodyY - S(56) + sway * 2;
+  /* דוקרן בקצה */
+  const tip = tailPts[3];
   ctx.fillStyle = DPAL.horn;
   ctx.beginPath();
-  ctx.moveTo(tipX - S(14), tipY + S(8));
-  ctx.lineTo(tipX + S(26), tipY - S(16));
-  ctx.lineTo(tipX - S(8), tipY - S(14));
+  ctx.moveTo(tip[0] - S(14), tip[1] + S(8));
+  ctx.lineTo(tip[0] + S(26), tip[1] - S(16));
+  ctx.lineTo(tip[0] - S(8), tip[1] - S(14));
   ctx.closePath();
   ctx.fill();
 
@@ -207,26 +277,33 @@ function drawDragon(ctx, x, groundY, s, opts) {
 
   /* --- גוף --- */
   ellipse(ctx, bx, bodyY, S(94), S(62), DPAL.scale);
-  ellipse(ctx, bx - S(10), bodyY + S(20), S(74), S(38), DPAL.belly);
-  /* פסי בטן */
-  for (let i = -3; i <= 3; i++) {
-    px(ctx, bx - S(10) + i * S(19) - S(6), bodyY + S(4), S(12), S(38), DPAL.bellyDark);
-  }
-  ellipse(ctx, bx - S(10), bodyY + S(20), S(74), S(38), "rgba(224,176,96,.55)");
+  scaleField(ctx, bx, bodyY - S(8), S(88), S(50), s,
+    DPAL.scaleLight, DPAL.scale, DPAL.scaleDark);
 
-  /* קשקשים על הגב */
+  /* בטן עם פסים, יושבת מעל הקשקשים */
+  ellipse(ctx, bx - S(10), bodyY + S(22), S(74), S(36), DPAL.belly);
+  for (let i = -3; i <= 3; i++) {
+    px(ctx, bx - S(10) + i * S(19) - S(6), bodyY + S(6), S(12), S(34), DPAL.bellyDark);
+  }
+  ellipse(ctx, bx - S(10), bodyY + S(22), S(74), S(36), "rgba(224,176,96,.5)");
+
+  /* רכס הגב */
   for (let i = 0; i < 9; i++) {
     const g = i / 8;
     const sx = Math.round(bx - S(70) + g * S(150));
     const sy = Math.round(bodyY - S(48) + Math.sin(g * Math.PI) * -S(14));
+    const h = S(15) * (0.6 + Math.sin(g * Math.PI) * 0.6);
     ctx.fillStyle = DPAL.horn;
     ctx.beginPath();
     ctx.moveTo(sx - S(9), sy + S(10));
-    ctx.lineTo(sx, sy - S(15));
+    ctx.lineTo(sx, sy - h);
     ctx.lineTo(sx + S(9), sy + S(10));
     ctx.closePath();
     ctx.fill();
   }
+
+  /* --- כנף קדמית, כדי שלא ייראה שטוח --- */
+  dragonWing(ctx, bx - S(4), bodyY - S(30), s * 0.74, openness * 0.9, flap * 0.85, false);
 
   /* --- רגליים קדמיות --- */
   const paw = attacking ? S(28) : 0;
@@ -242,47 +319,66 @@ function drawDragon(ctx, x, groundY, s, opts) {
     ctx.fill();
   }
 
-  /* --- צוואר --- */
-  /* כשהוא עייף הראש צונח כמעט עד הקרקע */
+  /* --- צוואר וראש --- */
+  /* הראש מפגר אחרי הגוף. כשהגוף עולה, הראש עולה רגע אחריו, וזה
+     ההבדל הגדול בין בובה שזזה לבין יצור שנושם. */
+  const lagFlap = dead ? 0 : Math.sin((t - 0.16) * flapRate) * flapAmp;
+  const lagHover = Math.round(lagFlap * (attacking ? S(18) : S(7)));
   const droop = tired ? S(96) : 0;
   const deadDroop = dead ? S(150) : 0;
-  const rear = winding ? -S(30) * (o.windP || 0) : 0;
-  const headX = Math.round(bx - S(196) - lunge * 0.35);
-  const headY = Math.round(bodyY - S(120) + droop + deadDroop + rear + breath * 1.6);
+  const rear = (winding ? -S(34) * (o.windP || 0) : 0)
+    - Math.sin(hurtP * Math.PI) * S(30);
+  const thrust = attacking ? -lunge * 0.22 : 0;
 
-  taper(ctx, [
+  const headX = Math.round(bx - S(196) - lunge * 0.35);
+  const headY = Math.round(bodyY - S(120) + droop + deadDroop + rear + thrust
+    + (lagHover - hover) + breath * 1.4);
+
+  const neckPts = [
     [bx - S(62), bodyY - S(26)],
     [bx - S(118), bodyY - S(84) + droop * 0.45 + deadDroop * 0.4],
     [bx - S(170), headY + S(40)],
     [headX + S(18), headY + S(14)]
-  ], S(34), S(21), DPAL.scale);
+  ];
+  taper(ctx, neckPts, S(34), S(21), DPAL.scale);
+  /* צל לאורך התחתית של הצוואר, שיקבל נפח במקום צינור שטוח */
+  taper(ctx, neckPts.map(q => [q[0] + S(4), q[1] + S(13)]),
+    S(13), S(8), DPAL.scaleDark);
 
-  /* קשקשי צוואר */
-  for (let i = 0; i < 5; i++) {
-    const g = i / 4;
-    const nx = Math.round(bx - S(66) - g * S(126));
-    const ny = Math.round(bodyY - S(38) - g * S(66) + droop * g * 0.8 + deadDroop * g * 0.7);
+  /* קוצים לאורך העורף. הם נשענים על אותה עקומה של הצוואר, ולכן הם
+     נשארים עליו גם כשהראש יורד בעייפות או נזרק אחורה במכה. */
+  for (let i = 0; i < 6; i++) {
+    const u = 0.12 + (i / 5) * 0.74;
+    const seg = Math.min(neckPts.length - 2, Math.floor(u * (neckPts.length - 1)));
+    const k = u * (neckPts.length - 1) - seg;
+    const a = neckPts[seg];
+    const b = neckPts[seg + 1];
+    const nx = a[0] + (b[0] - a[0]) * k;
+    const ny = a[1] + (b[1] - a[1]) * k;
+    /* הנורמל של הקטע, כדי שהקוץ ייצא מהצד העליון של הצוואר */
+    const len = Math.max(1, Math.hypot(b[0] - a[0], b[1] - a[1]));
+    const ux = (b[0] - a[0]) / len;
+    const uy = (b[1] - a[1]) / len;
+    const off = S(30) - i * S(2);
+    const rx = Math.round(nx + uy * off);
+    const ry = Math.round(ny - ux * off);
+    const h = S(18) - i * S(1.2);
     ctx.fillStyle = DPAL.hornDark;
     ctx.beginPath();
-    ctx.moveTo(nx - S(7), ny + S(8));
-    ctx.lineTo(nx + S(2), ny - S(12));
-    ctx.lineTo(nx + S(9), ny + S(6));
+    ctx.moveTo(rx - ux * S(8), ry - uy * S(8));
+    ctx.lineTo(Math.round(rx + uy * h), Math.round(ry - ux * h));
+    ctx.lineTo(rx + ux * S(8), ry + uy * S(8));
     ctx.closePath();
     ctx.fill();
   }
 
-  /* --- ראש --- */
   const jaw = attacking ? S(30) : winding ? S(14) : tired ? S(9) + Math.sin(t * 7) * S(4) : S(4);
 
-  /* גולגולת */
   roundRect(ctx, headX - S(26), headY - S(28), S(84), S(50), S(18), DPAL.scale);
-  /* חוטם מוארך */
   roundRect(ctx, headX - S(66), headY - S(18), S(56), S(30), S(10), DPAL.scaleLight);
-  /* לסת תחתונה, נפתחת */
   roundRect(ctx, headX - S(62), headY + S(4) + jaw, S(96), S(20), S(8), DPAL.scaleDark);
   px(ctx, headX - S(58), headY + S(6) + jaw, S(84), S(9), DPAL.belly);
 
-  /* שיניים */
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = DPAL.claw;
     ctx.beginPath();
@@ -301,13 +397,10 @@ function drawDragon(ctx, x, groundY, s, opts) {
     }
   }
 
-  /* נחיריים */
   px(ctx, headX - S(58), headY - S(10), S(10), S(7), DPAL.scaleDark);
 
-  /* קרניים */
   horn(ctx, headX + S(30), headY - S(24), S(46), S(9), 1, DPAL.horn, DPAL.hornDark);
   horn(ctx, headX + S(14), headY - S(26), S(36), S(7), 1, DPAL.horn, DPAL.hornDark);
-  /* קוצים בלחי */
   ctx.fillStyle = DPAL.hornDark;
   ctx.beginPath();
   ctx.moveTo(headX + S(6), headY + S(16));
@@ -316,30 +409,44 @@ function drawDragon(ctx, x, groundY, s, opts) {
   ctx.closePath();
   ctx.fill();
 
-  /* עין */
+  /* --- עין --- */
   if (dead) {
-    /* עין עצומה */
     px(ctx, headX - S(20), headY - S(8), S(24), S(5), DPAL.scaleDark);
   } else if (tired) {
     px(ctx, headX - S(20), headY - S(10), S(24), S(6), DPAL.scaleDark);
     px(ctx, headX - S(16), headY - S(4), S(12), S(6), DPAL.eye);
   } else {
+    /* מצמוץ קצר אחת לכמה שניות */
+    const blink = (t % 3.7) < 0.12;
     ellipse(ctx, headX - S(8), headY - S(8), S(14), S(11), DPAL.claw);
-    circle(ctx, headX - S(11), headY - S(8), S(8), attacking || winding ? DPAL.eyeRage : DPAL.eye);
-    px(ctx, headX - S(13), headY - S(15), S(5), S(15), PAL.ink);
-    /* גבה זועמת */
+    if (blink) {
+      px(ctx, headX - S(22), headY - S(10), S(28), S(6), DPAL.scaleDark);
+    } else {
+      circle(ctx, headX - S(11), headY - S(8), S(8), attacking || winding ? DPAL.eyeRage : DPAL.eye);
+      /* האישון מצטמצם כשהוא תוקף */
+      px(ctx, headX - S(13), headY - S(15), attacking ? S(3) : S(5), S(15), PAL.ink);
+      /* נצנוץ */
+      px(ctx, headX - S(15), headY - S(13), S(3), S(3), "#ffffff");
+    }
     px(ctx, headX - S(26), headY - S(22), S(34), S(6), DPAL.scaleDark);
   }
 
-  /* --- אש ועשן --- */
   const mouthX = headX - S(66);
   const mouthY = headY + S(6) + jaw * 0.5;
   if (attacking) dragonFire(ctx, mouthX, mouthY, s, o.attackP || 0, t);
   if (tired) dragonSmoke(ctx, mouthX, mouthY, s, t);
+  /* לפני שהוא יורק, זוהר קטן נאסף בפה */
+  if (winding) {
+    const g = o.windP || 0;
+    ctx.globalAlpha = 0.5 * g;
+    circle(ctx, mouthX + S(6), mouthY, Math.round(S(6) + S(12) * g), DPAL.fire);
+    ctx.globalAlpha = 0.85 * g;
+    circle(ctx, mouthX + S(6), mouthY, Math.round(S(3) + S(6) * g), DPAL.fireCore);
+    ctx.globalAlpha = 1;
+  }
 
   ctx.restore();
 
-  /* הבזק לבן כשהוא סופג פגיעה */
   if (o.flash > 0) {
     ctx.globalAlpha = Math.min(0.75, o.flash);
     ctx.fillStyle = "#ffffff";
@@ -501,6 +608,13 @@ const ATTACKS = {
 
 const ATTACK_KINDS = ["flame", "tail", "rocks"];
 
+/* אורך תנופת ההסתערות. קצר יותר מהמתקפה עצמה, כדי שהדרקון יחזור
+   לעמידה בזמן שהאש עוד זוחלת - ולא יישאר תקוע באמצע הזינוק. */
+const LUNGE_LEN = 0.6;
+
+/* אורך הרתיעה מפגיעה */
+const HURT_LEN = 0.55;
+
 class DragonFight {
   constructor(canvas) {
     this.canvas = canvas;
@@ -523,6 +637,7 @@ class DragonFight {
     this.shake = 0;
     this.deadP = 0;
     this.heroHurt = 0;
+    this.lungeT = null;   /* כמה זמן עברה ההסתערות הנוכחית */
 
     /* הגיבור */
     this.hero = {x: 150, y: 0, vy: 0, onGround: true, invuln: 0, run: 0};
@@ -623,7 +738,8 @@ class DragonFight {
       if (item.warned && this.phaseT >= item.at + item.warn) {
         item.fired = true;
         ATTACKS[item.kind].spawn(this);
-        this.shake = 4;
+        this.lungeT = 0;
+        this.shake = 7;
         this.sfx.push(item.kind === "rocks" ? "rumble" : item.kind === "tail" ? "sweep" : "fire");
         if (this.warn && this.warn.kind === item.kind) this.warn = null;
       }
@@ -658,6 +774,7 @@ class DragonFight {
         h.y = 0;
         h.vy = 0;
         h.onGround = true;
+        this.shake = Math.max(this.shake, 2.5);
       }
     }
   }
@@ -722,7 +839,7 @@ class DragonFight {
     if (right) {
       this.correct++;
       this.flash = 0.75;
-      this.shake = 5;
+      this.shake = 11;
       this.setPhase("strike");
     } else {
       this.wrong++;
@@ -840,6 +957,10 @@ class DragonFight {
     this.flash = Math.max(0, this.flash - dt * 2.2);
     this.shake = Math.max(0, this.shake - dt * 14);
     this.heroHurt = Math.max(0, this.heroHurt - dt * 1.6);
+    if (this.lungeT !== null) {
+      this.lungeT += dt;
+      if (this.lungeT > LUNGE_LEN) this.lungeT = null;
+    }
     if (this.phase === "won") this.deadP = Math.min(1, this.deadP + dt * 0.9);
 
     this.updateHero(dt);
@@ -862,15 +983,21 @@ class DragonFight {
     let attackP = 0;
     let windP = 0;
 
+    let hurtP = 0;
+
     if (this.phase === "combat") {
       /* ער ותוקף: נרתע בזמן אזהרה, מסתער כשהמתקפה יוצאת */
-      if (this.warn) {
+      if (this.lungeT !== null) {
+        state = "attack";
+        attackP = this.lungeT / LUNGE_LEN;
+      } else if (this.warn) {
         state = "wind";
         windP = Math.min(1, this.warn.t / Math.max(0.01, this.warn.len));
-      } else if (this.hazards.length) {
-        state = "attack";
-        attackP = 0.7;
       }
+    } else if (this.phase === "strike" && this.phaseT < HURT_LEN) {
+      /* חרב האור פגעה: נרתע, ורק אחר כך מתנשם */
+      state = "hurt";
+      hurtP = this.phaseT / HURT_LEN;
     } else if (this.phase === "tired" || this.phase === "strike" || this.phase === "hit") {
       state = "tired";
     } else if (this.phase === "won") {
@@ -890,11 +1017,12 @@ class DragonFight {
       });
     }
 
-    drawDragon(ctx, 575, 404, 1.18, {
+    drawDragon(ctx, 552, 404, 1.18, {
       t: this.t,
       state: state,
       attackP: attackP,
       windP: windP,
+      hurtP: hurtP,
       deadP: this.deadP,
       flash: this.flash
     });

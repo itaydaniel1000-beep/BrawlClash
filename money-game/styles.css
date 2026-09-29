@@ -2429,3 +2429,25 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .code-tab { transition: none; }
 }
+
+/* ===== כיתת היעד של הסרטון ===== */
+
+.video-tags {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-block-end: 8px;
+}
+
+.video-tags .tag { margin: 0; }
+
+.grade {
+  padding: 3px 11px;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  background: var(--surface-warm);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
