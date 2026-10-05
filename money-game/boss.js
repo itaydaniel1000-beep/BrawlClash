@@ -209,7 +209,7 @@ function drawDragon(ctx, x, groundY, s, opts) {
 
   const fall = dead ? Math.min(1, o.deadP || 1) : 0;
   const base = groundY + Math.round(fall * S(46));
-  const bodyY = Math.round(base - S(96) + breath - hover - (tired ? S(16) : 0));
+  const bodyY = Math.round(base - S(112) + breath - hover - (tired ? S(16) : 0));
 
   ctx.save();
   if (dead) {
@@ -225,7 +225,7 @@ function drawDragon(ctx, x, groundY, s, opts) {
 
   /* --- כנף אחורית --- */
   const openness = dead ? 0.15 : tired ? 0.3 : attacking ? 1 : 0.6;
-  dragonWing(ctx, bx + S(30), bodyY - S(40), s * 0.96, openness, flap, true);
+  dragonWing(ctx, bx + S(26), bodyY - S(44), s * 1.16, openness, flap, true);
 
   /* --- זנב --- */
   /* גל שנע לאורך הזנב במקום להתנדנד כגוש אחד. כל חוליה מפגרת
@@ -238,7 +238,7 @@ function drawDragon(ctx, x, groundY, s, opts) {
     [bx + S(240), bodyY - S(2) + wave(2)],
     [bx + S(278), bodyY - S(54) + wave(3)]
   ];
-  taper(ctx, tailPts, S(30), S(4), DPAL.scale);
+  taper(ctx, tailPts, S(32), S(4), DPAL.scaleDark);
   /* קוצים קטנים לאורך הזנב */
   for (let i = 1; i < tailPts.length; i++) {
     const p = tailPts[i];
@@ -262,8 +262,10 @@ function drawDragon(ctx, x, groundY, s, opts) {
   ctx.fill();
 
   /* --- רגליים אחוריות --- */
-  px(ctx, bx + S(34), base - S(66), S(44), S(66), DPAL.scaleDark);
-  roundRect(ctx, bx + S(30), base - S(78), S(52), S(56), S(20), DPAL.scale);
+  /* ירך רחבה שמצטמצמת לשוק צרה - הצורה שנותנת לרגל כוח */
+  px(ctx, bx + S(38), base - S(76), S(36), S(76), DPAL.scaleDark);
+  ellipse(ctx, bx + S(56), base - S(92), S(38), S(42), DPAL.scale);
+  roundRect(ctx, bx + S(30), base - S(96), S(52), S(70), S(22), DPAL.scale);
   px(ctx, bx + S(28), base - S(16), S(58), S(16), DPAL.scaleDark);
   for (let i = 0; i < 3; i++) {
     ctx.fillStyle = DPAL.claw;
@@ -276,22 +278,32 @@ function drawDragon(ctx, x, groundY, s, opts) {
   }
 
   /* --- גוף --- */
-  ellipse(ctx, bx, bodyY, S(94), S(62), DPAL.scale);
-  scaleField(ctx, bx, bodyY - S(8), S(88), S(50), s,
+  /* חזה, גו ואחוריים כשלוש מסות נפרדות. אליפסה אחת נתנה צללית של
+     ביצה; המסות שמציצות מאחורי הגו הן מה שעושה אותו שרירי. */
+  ellipse(ctx, bx + S(52), bodyY + S(8), S(54), S(52), DPAL.scaleDark);
+  ellipse(ctx, bx - S(52), bodyY - S(2), S(48), S(46), DPAL.scaleDark);
+  ellipse(ctx, bx, bodyY, S(104), S(58), DPAL.scale);
+  scaleField(ctx, bx, bodyY - S(8), S(97), S(52), s,
     DPAL.scaleLight, DPAL.scale, DPAL.scaleDark);
 
-  /* בטן עם פסים, יושבת מעל הקשקשים */
-  ellipse(ctx, bx - S(10), bodyY + S(22), S(74), S(36), DPAL.belly);
-  for (let i = -3; i <= 3; i++) {
-    px(ctx, bx - S(10) + i * S(19) - S(6), bodyY + S(6), S(12), S(34), DPAL.bellyDark);
+  /* אור על הכתף ועל הירך, שם השריר בולט הכי הרבה */
+  ctx.globalAlpha = 0.3;
+  ellipse(ctx, bx + S(42), bodyY - S(4), S(32), S(28), DPAL.scaleLight);
+  ellipse(ctx, bx - S(42), bodyY - S(12), S(26), S(22), DPAL.scaleLight);
+  ctx.globalAlpha = 1;
+
+  /* בטן: רצועה שטוחה לאורך התחתית, עם לוחות רוחב */
+  ellipse(ctx, bx - S(8), bodyY + S(34), S(84), S(25), DPAL.belly);
+  for (let i = -4; i <= 4; i++) {
+    px(ctx, bx - S(8) + i * S(18) - S(5), bodyY + S(14), S(10), S(44), DPAL.bellyDark);
   }
-  ellipse(ctx, bx - S(10), bodyY + S(22), S(74), S(36), "rgba(224,176,96,.5)");
+  ellipse(ctx, bx - S(8), bodyY + S(34), S(84), S(25), "rgba(224,176,96,.55)");
 
   /* רכס הגב */
   for (let i = 0; i < 9; i++) {
     const g = i / 8;
     const sx = Math.round(bx - S(70) + g * S(150));
-    const sy = Math.round(bodyY - S(48) + Math.sin(g * Math.PI) * -S(14));
+    const sy = Math.round(bodyY - S(56) + Math.sin(g * Math.PI) * -S(12));
     const h = S(15) * (0.6 + Math.sin(g * Math.PI) * 0.6);
     ctx.fillStyle = DPAL.horn;
     ctx.beginPath();
@@ -303,18 +315,30 @@ function drawDragon(ctx, x, groundY, s, opts) {
   }
 
   /* --- כנף קדמית, כדי שלא ייראה שטוח --- */
-  dragonWing(ctx, bx - S(4), bodyY - S(30), s * 0.74, openness * 0.9, flap * 0.85, false);
+  dragonWing(ctx, bx - S(6), bodyY - S(34), s * 0.9, openness * 0.9, flap * 0.85, false);
 
   /* --- רגליים קדמיות --- */
-  const paw = attacking ? S(28) : 0;
-  px(ctx, bx - S(66), base - S(54) - paw, S(30), S(54), DPAL.scaleDark);
-  roundRect(ctx, bx - S(70), base - S(66) - paw, S(38), S(44), S(15), DPAL.scaleLight);
+  /* כתף -> מרפק -> כף, כשלושה קטעים. מלבן מעוגל אחד נראה כמו נקניק
+     תלוי; שבירה במרפק היא מה שקורא כרגל. */
+  const paw = attacking ? S(30) : 0;
+  const elbowX = bx - S(78);
+  const footY = base - paw;
+  taper(ctx, [
+    [bx - S(50), bodyY + S(26)],
+    [elbowX, base - S(52) - paw * 0.6],
+    [bx - S(66), footY - S(10)]
+  ], S(21), S(13), DPAL.scaleDark);
+  ctx.globalAlpha = 0.45;
+  ellipse(ctx, bx - S(54), bodyY + S(22), S(27), S(24), DPAL.scaleLight);
+  ctx.globalAlpha = 1;
+  /* כף שנחה על הקרקע, רחבה יותר מהשוק */
+  roundRect(ctx, bx - S(80), footY - S(15), S(42), S(15), S(6), DPAL.scale);
   for (let i = 0; i < 3; i++) {
     ctx.fillStyle = DPAL.claw;
     ctx.beginPath();
-    ctx.moveTo(bx - S(72) + i * S(11), base - paw);
-    ctx.lineTo(bx - S(80) + i * S(11), base - S(12) - paw);
-    ctx.lineTo(bx - S(62) + i * S(11), base - S(10) - paw);
+    ctx.moveTo(bx - S(82) + i * S(13), footY);
+    ctx.lineTo(bx - S(90) + i * S(13), footY - S(13));
+    ctx.lineTo(bx - S(72) + i * S(13), footY - S(11));
     ctx.closePath();
     ctx.fill();
   }
@@ -340,7 +364,7 @@ function drawDragon(ctx, x, groundY, s, opts) {
     [bx - S(170), headY + S(40)],
     [headX + S(18), headY + S(14)]
   ];
-  taper(ctx, neckPts, S(34), S(21), DPAL.scale);
+  taper(ctx, neckPts, S(40), S(15), DPAL.scale);
   /* צל לאורך התחתית של הצוואר, שיקבל נפח במקום צינור שטוח */
   taper(ctx, neckPts.map(q => [q[0] + S(4), q[1] + S(13)]),
     S(13), S(8), DPAL.scaleDark);
@@ -399,8 +423,22 @@ function drawDragon(ctx, x, groundY, s, opts) {
 
   px(ctx, headX - S(58), headY - S(10), S(10), S(7), DPAL.scaleDark);
 
+  /* קוצי לחי, שיוצאים לאחור ממפרק הלסת. הם מרחיבים את הראש ושוברים
+     את קו המתאר העגול, וזה מה שהופך אותו מראש חלק לראש של חיה. */
+  for (let i = 0; i < 2; i++) {
+    const cy = headY - S(2) + i * S(15);
+    ctx.fillStyle = i ? DPAL.hornDark : DPAL.horn;
+    ctx.beginPath();
+    ctx.moveTo(headX + S(16), cy);
+    ctx.lineTo(headX + S(50) - i * S(8), cy + S(13) + i * S(5));
+    ctx.lineTo(headX + S(18), cy + S(11));
+    ctx.closePath();
+    ctx.fill();
+  }
+
   horn(ctx, headX + S(30), headY - S(24), S(46), S(9), 1, DPAL.horn, DPAL.hornDark);
   horn(ctx, headX + S(14), headY - S(26), S(36), S(7), 1, DPAL.horn, DPAL.hornDark);
+  horn(ctx, headX + S(2), headY - S(22), S(23), S(5), 1, DPAL.horn, DPAL.hornDark);
   ctx.fillStyle = DPAL.hornDark;
   ctx.beginPath();
   ctx.moveTo(headX + S(6), headY + S(16));
@@ -428,7 +466,16 @@ function drawDragon(ctx, x, groundY, s, opts) {
       /* נצנוץ */
       px(ctx, headX - S(15), headY - S(13), S(3), S(3), "#ffffff");
     }
-    px(ctx, headX - S(26), headY - S(22), S(34), S(6), DPAL.scaleDark);
+    /* רכס גבה בזווית, לא פס ישר. זווית יורדת מעל העין היא כל ההבדל
+       בין מבט ניטרלי למבט זועם. */
+    ctx.fillStyle = DPAL.scaleDark;
+    ctx.beginPath();
+    ctx.moveTo(headX - S(30), headY - S(14));
+    ctx.lineTo(headX + S(10), headY - S(26));
+    ctx.lineTo(headX + S(10), headY - S(16));
+    ctx.lineTo(headX - S(28), headY - S(6));
+    ctx.closePath();
+    ctx.fill();
   }
 
   const mouthX = headX - S(66);
