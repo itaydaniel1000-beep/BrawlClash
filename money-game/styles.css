@@ -2451,3 +2451,142 @@ button:focus-visible {
   font-weight: 800;
   white-space: nowrap;
 }
+
+/* ===================================================================
+   מעבר עיצוב — מהדקים את מה שכבר קיים, לא מחליפים אותו.
+   הבעיה לא הייתה השפה (קו שחור, צל חד, צבע שטוח) אלא שלושה
+   מקומות שבהם היא לא יושמה עד הסוף.
+   =================================================================== */
+
+/* ---------- 1. ארבעת הכרטיסים הופכים לסדרה ---------- */
+
+/* קודם לכל כרטיס היה פסטל אחר - תכלת, סגול, ירוק - ואחד נשאר לבן
+   בלי סיבה. ארבעה גוונים אקראיים נקראים כארבעה דברים שונים.
+   עכשיו הגוף לבן אצל כולם, והצבע חוזר פעמיים בכל כרטיס: בלוחית
+   האייקון ובקו מתחת לקישור. צבע כהדגשה, לא כרקע. */
+
+.choice-card {
+  background: var(--surface);
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+.videos-choice { --cat: var(--sky);        --cat-soft: var(--blue-soft); }
+.quiz-choice   { --cat: var(--purple);     --cat-soft: var(--purple-soft); }
+.code-choice   { --cat: var(--gold-deep);  --cat-soft: var(--accent-soft); }
+.lesson-choice { --cat: var(--brand);      --cat-soft: var(--brand-soft); }
+
+/* הלוחית נמתחת לרוחב הכרטיס, אבל הציור נשאר בגודלו האמיתי במרכזה
+   (object-fit: none) - אחרת הפיקסלים היו נמתחים ומתמרחים. */
+.choice-card .card-art {
+  width: 100%;
+  height: 128px;
+  margin: 0;
+  object-fit: none;
+  object-position: center;
+  background: var(--cat-soft);
+  border-block-end: 3px solid var(--ink);
+}
+
+.choice-card h3 { margin: 22px 22px 0; }
+.choice-card p  { margin: 8px 22px 0; }
+
+.choice-card .card-link {
+  margin: 18px 22px 22px;
+  padding: 0 0 3px;
+  align-self: flex-start;
+  border-block-end: 4px solid var(--cat);
+}
+
+/* ---------- 2. הגיבור מוביל ---------- */
+
+/* הכותרת, הטיפ והכרטיסים חלקו את אותו משקל בדיוק, ולכן שום דבר
+   לא הוביל את העין. הבאנר נוגע בשוליים במקום לרחף בתוך מסגרת
+   שנייה - קופסה בתוך קופסה תמיד מחלישה את שתיהן. */
+
+.hero {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+.hero > div { padding: 34px 36px 28px; }
+
+.hero-banner {
+  border: 0;
+  border-block-start: 3px solid var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.eyebrow { display: inline-block; margin-block-end: 14px; }
+
+/* ---------- 3. הטיפ היומי מקבל תווית ---------- */
+
+/* רצועה רחבה עם נורה קטנה ומשפט אחד נקראה כשטח ריק. גוש זהב
+   בקצה הופך אותה לפריט מתויג. */
+
+.daily-tip {
+  padding: 0;
+  gap: 0;
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.daily-tip .tip-icon {
+  width: 68px;
+  height: auto;
+  flex: none;
+  box-sizing: border-box;
+  padding: 16px;
+  background: var(--gold);
+  border-inline-end: 3px solid var(--ink);
+}
+
+.daily-tip > div { padding: 16px 20px; }
+.daily-tip p { color: var(--ink-soft); }
+
+/* ---------- 4. פיזיקה של מדבקה ---------- */
+
+/* הצל החד מבטיח שהכרטיס מורם מהדף. לחיצה צריכה להצמיד אותו אליו
+   עד הסוף, אחרת ההבטחה לא נגבית. */
+
+.choice-card:active,
+.video-card:active {
+  transform: translate(5px, 5px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.choice-card:focus-visible,
+.video-card:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 4px;
+}
+
+/* ---------- 5. שורת הסינון בטלפון ---------- */
+
+/* חמישה צ'יפים ברוחבים שונים נשברו לשתי שורות עקומות, עם "צרכנות
+   חכמה" לבד בתחתית. רצועה אחת שנגררת הצידה היא גם מסודרת יותר וגם
+   מה שמוכר מכל אפליקציה אחרת בטלפון. */
+
+@media (max-width: 640px) {
+  .filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    /* מקום לצל החד שלא ייחתך בגלילה */
+    padding-block-end: 6px;
+    margin-inline: -4px;
+    padding-inline: 4px;
+  }
+
+  .filters::-webkit-scrollbar { display: none; }
+
+  .filter {
+    flex: none;
+    scroll-snap-align: start;
+  }
+}
