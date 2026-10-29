@@ -2782,3 +2782,8 @@ button:focus-visible {
   font-size: 0.72rem;
   font-weight: 800;
 }
+
+/* שתי אפשרויות "הונאה או אמיתי" מרחפות באותו צבע. הגוונים הקודמים
+   (need ירקרק, want סגלגל) היו רמז קטן אבל אמיתי. הצבעים של right
+   ו-wrong נשארים - הם משוב אחרי שכבר ענו, ולא רמז לפני. */
+.mg-choice.neutral:hover:not(:disabled) { background: var(--bg); }

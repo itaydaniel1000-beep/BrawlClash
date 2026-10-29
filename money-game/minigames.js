@@ -394,6 +394,17 @@ const MG_BUDGET = {
 
 /* ---------- 4. הונאה או הצעה אמיתית ---------- */
 
+/* ערכות צבע למגילת ההצעה. אף אחת מהן לא שייכת ל"הונאה" או ל"אמיתי" -
+   הן מתחלפות לפי מספר הסיבוב בלבד. */
+const MG_SCAM_SKINS = [
+  {paper: "#f0e6cc", mark: "#7a5cc9", tag: "#f5c542"},
+  {paper: "#e8eedc", mark: "#3f8fd8", tag: "#f0a93f"},
+  {paper: "#f2e4d8", mark: "#16785c", tag: "#e8c23f"},
+  {paper: "#e6e4f0", mark: "#c97a1f", tag: "#f5c542"},
+  {paper: "#f0ecd8", mark: "#7a5cc9", tag: "#e8a33f"},
+  {paper: "#e4ecec", mark: "#3f8fd8", tag: "#f0c050"}
+];
+
 const MG_SCAM = {
   howto: "ההצעה הזאת אמיתית, או שמישהו מנסה לרמות?",
   build(host, cfg, api) {
@@ -411,8 +422,10 @@ const MG_SCAM = {
     const feedback = mgFeedback(host);
 
     const buttons = mgEl("div", "mg-choices two");
-    const bSafe = mgEl("button", "mg-choice need", "נשמע אמיתי");
-    const bScam = mgEl("button", "mg-choice want", "זו הונאה");
+    /* שתי האפשרויות נראות זהות. כפתור בצבע אחר הוא רמז, והשאלה כאן
+       היא אם קראת את ההצעה - לא אם זיהית צבע. */
+    const bSafe = mgEl("button", "mg-choice neutral", "נשמע אמיתי");
+    const bScam = mgEl("button", "mg-choice neutral", "זו הונאה");
     buttons.appendChild(bSafe);
     buttons.appendChild(bScam);
     host.appendChild(buttons);
@@ -424,10 +437,15 @@ const MG_SCAM = {
       feedback.clear();
       text.textContent = offer.text;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      /* הצבעים נגזרים ממספר הסיבוב ולא מ-offer.scam. קודם המגילה
+         נצבעה אדום בהונאה וירוק באמיתי - כלומר אפשר היה לנצח את
+         המשחק בלי לקרוא מילה אחת. כך כל שאלה עדיין נראית אחרת,
+         אבל הצבע לא מספר כלום. */
+      const skin = MG_SCAM_SKINS[index % MG_SCAM_SKINS.length];
       inked(ctx, c => {
-        drawScroll(c, canvas.width, canvas.height, offer.scam ? "#f0dcc0" : "#eef0dc");
-        drawPercent(c, 60, 96, 0.5, offer.scam ? "#c0392b" : "#4f9e5c");
-        drawPriceTag(c, canvas.width - 62, 96, 1, offer.scam ? "#e8574a" : "#f5c542");
+        drawScroll(c, canvas.width, canvas.height, skin.paper);
+        drawPercent(c, 60, 96, 0.5, skin.mark);
+        drawPriceTag(c, canvas.width - 62, 96, 1, skin.tag);
       }, 2);
 
       stage.className = "mg-scroll-stage";
