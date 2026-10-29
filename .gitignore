@@ -16,3 +16,8 @@ dist/
 *.out
 *.err
 
+
+# מצב הריצה של צופה הגיליון - מקומי לכל מחשב
+sheet-watcher/state.json
+sheet-watcher/pending.jsonl
+sheet-watcher/watch.log
