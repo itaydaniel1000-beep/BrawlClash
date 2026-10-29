@@ -2727,3 +2727,58 @@ button:focus-visible {
   transform: translate(3px, 3px);
   box-shadow: 0 0 0 var(--ink);
 }
+
+/* ---------- מצב המודל וניסוח חי ---------- */
+
+.helper-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-block-end: 3px solid var(--ink);
+  background: var(--accent-soft);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #6d5310;
+}
+
+.helper-status.ready { background: var(--brand-soft); color: var(--brand-strong); }
+.helper-status small { font-weight: 600; opacity: .75; }
+
+.helper-status-bar {
+  flex: none;
+  width: 90px;
+  height: 11px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.helper-status-bar i {
+  display: block;
+  height: 100%;
+  background: var(--gold-deep);
+  transition: width .3s ease;
+}
+
+/* הניסוח של המודל יושב מעל התשובה המיידית, לא במקומה - התשובה
+   המיידית היא המקור, והוא הניסוח שלה */
+.helper-llm {
+  margin-block-end: 12px;
+  padding-block-end: 11px;
+  border-block-end: 2px dashed var(--ink-faint);
+}
+
+.helper-llm p { margin: 0; }
+
+.helper-llm-tag {
+  display: inline-block;
+  margin-block-end: 6px;
+  padding: 2px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--purple-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}

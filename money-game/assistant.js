@@ -324,10 +324,18 @@ function asCompose(question) {
     if (lesson) lines.push(lesson.doc.body);
   }
 
+  /* ההקשר שהמודל מקבל. הוא אף פעם לא עונה מהידע של עצמו - רק
+     מנסח את מה שכתוב כאן - ולכן הוא לא יכול להמציא עובדות. */
+  const context = hits.slice(0, 2).map(h => {
+    const d = h.doc;
+    return [d.title, d.body, (d.steps || []).join(" ")].filter(Boolean).join(". ");
+  }).join("\n");
+
   return {
     kind: "answer",
-    title: best.kind === "lesson" ? best.title : best.title,
+    title: best.title,
     lines: lines,
+    context: context,
     video: vid && vid.score > 0.8 ? vid.doc : null
   };
 }
@@ -404,16 +412,40 @@ async function asAsk(question) {
   if (!q) return;
 
   asBubble("me", asEscape(q));
-  const thinking = asBubble("bot", "<em>רגע…</em>");
+  const bubble = asBubble("bot", "<em>רגע…</em>");
+  const chat = document.getElementById("helperChat");
 
+  let res;
   try {
-    const res = await askAssistant(q);
-    thinking.innerHTML = asRenderAnswer(res);
+    res = await askAssistant(q);
+    bubble.innerHTML = asRenderAnswer(res);
   } catch (err) {
-    thinking.innerHTML = "<p>משהו השתבש אצלי. נסו לנסח אחרת.</p>";
+    bubble.innerHTML = "<p>משהו השתבש אצלי. נסו לנסח אחרת.</p>";
     console.error("assistant:", err);
+    return;
   }
-  document.getElementById("helperChat").scrollTop = 1e9;
+  chat.scrollTop = 1e9;
+
+  /* ---- שדרוג במודל ----
+     רק על תשובות ידע. תשובת מחשבון היא חישוב מדויק, ואין שום דבר
+     שהמודל יכול להוסיף לה חוץ מטעויות. וכשהחיפוש לא מצא כלום אין לו
+     הקשר, ואז תשובה ממנו תהיה המצאה - אז גם שם לא נוגעים. */
+  if (res.kind !== "answer" || !res.context) return;
+  if (!window.LLM || window.LLM.state !== "ready") return;
+
+  const live = document.createElement("div");
+  live.className = "helper-llm";
+  live.innerHTML = '<span class="helper-llm-tag">מנסח…</span>';
+  bubble.insertBefore(live, bubble.firstChild);
+
+  const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
+  const text = await window.LLM.ask(q, res.context, partial => {
+    live.innerHTML = '<span class="helper-llm-tag">בניסוח שלי</span>' +
+                     "<p>" + asFormat(partial) + "</p>";
+    if (near) chat.scrollTop = 1e9;
+  });
+
+  if (!text) live.remove();
 }
 
 function initHelper() {
@@ -438,8 +470,48 @@ function initHelper() {
     chips.appendChild(b);
   });
 
+  asWatchLLM();
+
   asBubble("bot",
     "<p>שלום! אני עונה על שאלות כסף מתוך השיעורים של האתר, " +
     "וגם מחשב שאלות שיש בהן מספרים.</p>" +
     "<p>אפשר לנסות אחת מההצעות למטה, או פשוט לכתוב.</p>");
+}
+
+/* ---------- מצב המודל ---------- */
+
+/* השורה מופיעה רק כשיש מה לומר. מודל שנטען ברקע בהצלחה הוא לא חדשות,
+   ולכן אחרי שהוא מוכן היא נעלמת מעצמה. */
+function asStatus(llm) {
+  const el = document.getElementById("helperStatus");
+  if (!el) return;
+
+  if (llm.state === "loading") {
+    const pct = Math.round((llm.progress || 0) * 100);
+    el.hidden = false;
+    el.className = "helper-status loading";
+    el.innerHTML =
+      '<span class="helper-status-bar"><i style="width:' + pct + '%"></i></span>' +
+      "<span>טוען מודל שפה ברקע… " + pct + "%  " +
+      "<small>אפשר לשאול כבר עכשיו</small></span>";
+    return;
+  }
+
+  if (llm.state === "ready") {
+    el.hidden = false;
+    el.className = "helper-status ready";
+    el.textContent = "מודל השפה מוכן. התשובות ינוסחו גם על ידו.";
+    setTimeout(() => { el.hidden = true; }, 6000);
+    return;
+  }
+
+  /* בטלפון אין WebGPU. זו לא תקלה ואין סיבה להבהיל - פשוט לא מציגים
+     כלום, כי התשובה המיידית היא תשובה שלמה בפני עצמה. */
+  el.hidden = true;
+}
+
+function asWatchLLM() {
+  window.addEventListener("llm-change", ev => asStatus(ev.detail));
+  /* אם המודול הספיק להיטען לפנינו, לא נקבל אירוע על המצב הנוכחי */
+  if (window.LLM) asStatus(window.LLM);
 }
