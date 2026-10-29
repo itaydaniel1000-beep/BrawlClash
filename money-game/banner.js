@@ -233,11 +233,55 @@ function cardArtCode(ctx, W, H) {
   px(ctx, cx - 34 + 16, cy + 25, 4, 4, "#2ad1a0");
 }
 
+/* שתי בועות שיחה: שאלה שנכנסת, תשובה שיוצאת, ומטבע שמסמן על מה מדברים */
+function cardArtHelper(ctx, W, H) {
+  const cx = W / 2;
+  const cy = H / 2;
+
+  /* בועת השאלה, קטנה ומעל */
+  roundRect(ctx, cx - 40, cy - 34, 50, 26, 8, "#dbeaf8");
+  px(ctx, cx - 40, cy - 34, 50, 26, "rgba(0,0,0,0)");
+  ctx.fillStyle = "#dbeaf8";
+  ctx.beginPath();
+  ctx.moveTo(cx - 30, cy - 9);
+  ctx.lineTo(cx - 24, cy - 1);
+  ctx.lineTo(cx - 20, cy - 9);
+  ctx.closePath();
+  ctx.fill();
+  /* שלוש נקודות = שאלה */
+  for (let i = 0; i < 3; i++) circle(ctx, cx - 28 + i * 9, cy - 21, 2.5, "#3f8fd8");
+
+  /* בועת התשובה, גדולה ומתחת */
+  roundRect(ctx, cx - 12, cy - 2, 56, 30, 9, "#16785c");
+  ctx.fillStyle = "#16785c";
+  ctx.beginPath();
+  ctx.moveTo(cx + 34, cy + 27);
+  ctx.lineTo(cx + 28, cy + 36);
+  ctx.lineTo(cx + 22, cy + 27);
+  ctx.closePath();
+  ctx.fill();
+  /* שורות טקסט בתשובה */
+  px(ctx, cx - 5, cy + 6, 40, 3, "#9fe3cb");
+  px(ctx, cx - 5, cy + 13, 30, 3, "#9fe3cb");
+  px(ctx, cx - 5, cy + 20, 36, 3, "#9fe3cb");
+
+  /* מטבע, כדי שיהיה ברור על מה השיחה */
+  circle(ctx, cx - 34, cy + 22, 11, "#1a1f2e");
+  circle(ctx, cx - 34, cy + 22, 9, "#f5c542");
+  circle(ctx, cx - 34, cy + 22, 6, "#e0b040");
+  ctx.fillStyle = "#1a1f2e";
+  ctx.font = "bold 11px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("₪", cx - 34, cy + 26);
+  ctx.textAlign = "start";
+}
+
 const CARD_ART = {
   videos: cardArtVideos,
   quest: cardArtQuest,
   lesson: cardArtLesson,
-  code: cardArtCode
+  code: cardArtCode,
+  helper: cardArtHelper
 };
 
 function paintCardArt(canvas) {

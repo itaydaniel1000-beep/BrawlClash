@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=062f41b8">
+  <link rel="stylesheet" href="styles.css?v=dce47be8">
 </head>
 <body>
   <header class="topbar">
@@ -69,6 +69,13 @@
           <h3>הקוד של האתר</h3>
           <p>כל הקוד שהאתר בנוי ממנו, נטען ישירות מהקבצים החיים.</p>
           <span class="card-link">להצצה מתחת למכסה ←</span>
+        </button>
+
+        <button class="choice-card helper-choice" onclick="showScreen('helper')">
+          <canvas class="card-art" data-art="helper" width="130" height="110" aria-hidden="true"></canvas>
+          <h3>עוזר הכסף</h3>
+          <p>שאלו כל שאלה על כסף, וקבלו תשובה עם חישוב.</p>
+          <span class="card-link">לשאול שאלה ←</span>
         </button>
 
         <button class="choice-card lesson-choice" onclick="showScreen('lesson')">
@@ -298,6 +305,29 @@
       <article id="lessonCard" class="lesson-card"></article>
     </section>
 
+    <section id="helper" class="screen">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">שאלו אותי</span>
+          <h2>עוזר הכסף</h2>
+          <p>עונה מתוך השיעורים של האתר, ומחשב שאלות שיש בהן מספרים.</p>
+        </div>
+        <button class="back-button" onclick="showScreen('home')">חזרה</button>
+      </div>
+
+      <div class="helper-panel">
+        <div id="helperChat" class="helper-chat" aria-live="polite"></div>
+
+        <div id="helperChips" class="helper-chips"></div>
+
+        <form id="helperForm" class="helper-form" autocomplete="off">
+          <input id="helperInput" class="helper-input" type="text"
+                 placeholder="מה בא לך לדעת על כסף?" maxlength="200">
+          <button class="helper-send" type="submit">שלחו</button>
+        </form>
+      </div>
+    </section>
+
     <section id="code" class="screen">
       <div class="section-heading">
         <div>
@@ -329,17 +359,18 @@
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="voice-durations.js?v=062f41b8"></script>
-  <script src="movie.js?v=062f41b8"></script>
-  <script src="movies.js?v=062f41b8"></script>
-  <script src="game.js?v=062f41b8"></script>
-  <script src="items.js?v=062f41b8"></script>
-  <script src="minigames.js?v=062f41b8"></script>
-  <script src="boss.js?v=062f41b8"></script>
-  <script src="worlds.js?v=062f41b8"></script>
-  <script src="banner.js?v=062f41b8"></script>
-  <script src="code.js?v=062f41b8"></script>
-  <script src="script.js?v=062f41b8"></script>
+  <script src="voice-durations.js?v=dce47be8"></script>
+  <script src="movie.js?v=dce47be8"></script>
+  <script src="movies.js?v=dce47be8"></script>
+  <script src="game.js?v=dce47be8"></script>
+  <script src="items.js?v=dce47be8"></script>
+  <script src="minigames.js?v=dce47be8"></script>
+  <script src="boss.js?v=dce47be8"></script>
+  <script src="worlds.js?v=dce47be8"></script>
+  <script src="banner.js?v=dce47be8"></script>
+  <script src="assistant.js?v=dce47be8"></script>
+  <script src="code.js?v=dce47be8"></script>
+  <script src="script.js?v=dce47be8"></script>
 
 </body>
 </html>

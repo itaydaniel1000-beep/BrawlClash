@@ -2590,3 +2590,140 @@ button:focus-visible {
     scroll-snap-align: start;
   }
 }
+
+/* ---------- עוזר הכסף ---------- */
+
+.helper-choice { --cat: var(--berry); --cat-soft: var(--danger-soft); }
+
+.helper-panel {
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.helper-chat {
+  min-height: 260px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(26, 31, 46, .06) 1px, transparent 0) 0 0 / 20px 20px,
+    var(--bg);
+  border-block-end: 3px solid var(--ink);
+}
+
+.helper-bubble {
+  max-width: 78%;
+  padding: 13px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  line-height: 1.6;
+}
+
+/* השאלה נשענת לצד שממנו כותבים, התשובה לצד השני */
+.helper-bubble.me {
+  align-self: flex-start;
+  background: var(--brand);
+  color: #fff;
+  border-end-start-radius: 5px;
+}
+
+.helper-bubble.bot {
+  align-self: flex-end;
+  background: var(--surface);
+  box-shadow: 4px 4px 0 var(--ink);
+  border-end-end-radius: 5px;
+}
+
+.helper-bubble p { margin: 0 0 9px; }
+.helper-bubble p:last-child { margin-bottom: 0; }
+
+.helper-bubble h4 {
+  font-family: var(--f-display);
+  font-size: 1.05rem;
+  margin: 0 0 8px;
+}
+
+.helper-bubble strong { font-weight: 800; }
+
+.helper-aside {
+  border-block-start: 2px dashed var(--ink-faint);
+  padding-block-start: 8px;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.helper-chips {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-block-end: 3px solid var(--ink);
+  background: var(--surface-warm);
+}
+
+.helper-chips::-webkit-scrollbar { display: none; }
+
+.helper-chip {
+  flex: none;
+  padding: 8px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.helper-chip:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.helper-form {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.helper-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--surface);
+  font: inherit;
+}
+
+.helper-input:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+.helper-send {
+  flex: none;
+  padding: 12px 22px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: inherit;
+  font-family: var(--f-display);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.helper-send:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
