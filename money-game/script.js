@@ -1886,6 +1886,7 @@ function scheduleMidnightRefresh() {
 document.addEventListener("DOMContentLoaded", () => {
   initTip();
   initHelper();
+  initArcade();
   renderDailyLesson();
   scheduleMidnightRefresh();
   setupFilters();

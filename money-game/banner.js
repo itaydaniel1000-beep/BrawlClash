@@ -276,12 +276,39 @@ function cardArtHelper(ctx, W, H) {
   ctx.textAlign = "start";
 }
 
+/* ארבעה אריחי משחק, אחד מהם מורם - קטגוריה של כמה משחקים, לא משחק אחד */
+function cardArtArcade(ctx, W, H) {
+  const cx = W / 2, cy = H / 2;
+  const tiles = [
+    [-30, -22, "#dbeaf8", "#3f8fd8"],
+    [ 30, -22, "#e9e2f9", "#7a5cc9"],
+    [-30,  22, "#d8efe6", "#16785c"],
+    [ 30,  14, "#fdf0cd", "#c99a1f"]
+  ];
+  tiles.forEach(([dx, dy, bg, ink], i) => {
+    roundRect(ctx, cx + dx - 24, cy + dy - 20, 48, 40, 8, ink);
+    roundRect(ctx, cx + dx - 21, cy + dy - 23, 42, 38, 7, bg);
+    /* סימן קטן בכל אריח, שונה בכל אחד */
+    if (i === 0) { circle(ctx, cx + dx, cy + dy - 4, 7, ink); }
+    else if (i === 1) { px(ctx, cx + dx - 9, cy + dy - 8, 18, 5, ink);
+                        px(ctx, cx + dx - 9, cy + dy + 1, 12, 5, ink); }
+    else if (i === 2) { ctx.fillStyle = ink; ctx.beginPath();
+                        ctx.moveTo(cx + dx - 8, cy + dy + 5);
+                        ctx.lineTo(cx + dx, cy + dy - 9);
+                        ctx.lineTo(cx + dx + 8, cy + dy + 5);
+                        ctx.closePath(); ctx.fill(); }
+    else { px(ctx, cx + dx - 3, cy + dy - 10, 6, 20, ink);
+           px(ctx, cx + dx - 10, cy + dy - 3, 20, 6, ink); }
+  });
+}
+
 const CARD_ART = {
   videos: cardArtVideos,
   quest: cardArtQuest,
   lesson: cardArtLesson,
   code: cardArtCode,
-  helper: cardArtHelper
+  helper: cardArtHelper,
+  arcade: cardArtArcade
 };
 
 function paintCardArt(canvas) {

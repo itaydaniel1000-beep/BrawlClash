@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=b95691d8">
+  <link rel="stylesheet" href="styles.css?v=bc31d25f">
 </head>
 <body>
   <header class="topbar">
@@ -69,6 +69,13 @@
           <h3>הקוד של האתר</h3>
           <p>כל הקוד שהאתר בנוי ממנו, נטען ישירות מהקבצים החיים.</p>
           <span class="card-link">להצצה מתחת למכסה ←</span>
+        </button>
+
+        <button class="choice-card arcade-choice" onclick="showScreen('arcade')">
+          <canvas class="card-art" data-art="arcade" width="130" height="110" aria-hidden="true"></canvas>
+          <h3>משחקי כסף</h3>
+          <p>חמישה משחקים קצרים לתרגול. אפשר לשחק שוב ושוב.</p>
+          <span class="card-link">לבחור משחק ←</span>
         </button>
 
         <button class="choice-card helper-choice" onclick="showScreen('helper')">
@@ -305,6 +312,20 @@
       <article id="lessonCard" class="lesson-card"></article>
     </section>
 
+    <section id="arcade" class="screen">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">תרגול</span>
+          <h2>משחקי כסף</h2>
+          <p>אותם משחקים שבמסע, אבל כאן אין מה להפסיד - אפשר לנסות כמה שרוצים.</p>
+        </div>
+        <button class="back-button" onclick="showScreen('home')">חזרה</button>
+      </div>
+
+      <div id="arcadeGrid" class="arcade-grid"></div>
+      <div id="arcadeStage" class="arcade-stage" hidden></div>
+    </section>
+
     <section id="helper" class="screen">
       <div class="section-heading">
         <div>
@@ -360,19 +381,20 @@
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="voice-durations.js?v=b95691d8"></script>
-  <script src="movie.js?v=b95691d8"></script>
-  <script src="movies.js?v=b95691d8"></script>
-  <script src="game.js?v=b95691d8"></script>
-  <script src="items.js?v=b95691d8"></script>
-  <script src="minigames.js?v=b95691d8"></script>
-  <script src="boss.js?v=b95691d8"></script>
-  <script src="worlds.js?v=b95691d8"></script>
-  <script src="banner.js?v=b95691d8"></script>
-  <script type="module" src="llm.js?v=b95691d8"></script>
-  <script src="assistant.js?v=b95691d8"></script>
-  <script src="code.js?v=b95691d8"></script>
-  <script src="script.js?v=b95691d8"></script>
+  <script src="voice-durations.js?v=bc31d25f"></script>
+  <script src="movie.js?v=bc31d25f"></script>
+  <script src="movies.js?v=bc31d25f"></script>
+  <script src="game.js?v=bc31d25f"></script>
+  <script src="items.js?v=bc31d25f"></script>
+  <script src="minigames.js?v=bc31d25f"></script>
+  <script src="boss.js?v=bc31d25f"></script>
+  <script src="worlds.js?v=bc31d25f"></script>
+  <script src="arcade.js?v=bc31d25f"></script>
+  <script src="banner.js?v=bc31d25f"></script>
+  <script type="module" src="llm.js?v=bc31d25f"></script>
+  <script src="assistant.js?v=bc31d25f"></script>
+  <script src="code.js?v=bc31d25f"></script>
+  <script src="script.js?v=bc31d25f"></script>
 
 </body>
 </html>
