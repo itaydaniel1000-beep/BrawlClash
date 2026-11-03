@@ -321,11 +321,31 @@ const needsWantsMovie = buildMovie("needs-wants", [
     ],
     draw(ctx, t) {
       drawSky(ctx, "#c9a0e8", "#eddcf7");
+      /* ענן אחד שנודד על פני המסך, כדי שגם הרקע לא יקפא */
+      drawCloud(ctx, ((t * 14) % 1180) - 100, 90, 1.1);
       inked(ctx, c => {
         drawGround(c, 420, PAL.wood, "#c48f4e");
-        drawShoe(c, 220, 270, 3);
-        drawBike(c, 520, 280, 1.5);
-        drawTag(c, 790, 260, 130, 80, PAL.gold);
+
+        /* שלושת הפריטים נבחנים בזה אחר זה, לפי סדר הדיבור: כל אחד
+           מתרומם קצת כשמדברים עליו ומתיישב כשעוברים לבא.
+           הסצנה הזאת הייתה 17 שניות של תמונה קפואה לגמרי - draw קיבל
+           את t ולא נגע בו. */
+        const lift = (from, to) =>
+          t < from || t > to ? 0 : Math.sin((t - from) / (to - from) * Math.PI) * 18;
+
+        drawShoe(c, 220, 270 - lift(0.5, 5.5), 3);
+        drawBike(c, 520, 280 - lift(5.5, 10.5), 1.5);
+
+        /* התג תלוי, ולכן הוא מתנדנד כל הזמן - ובחוזקה יותר כשתורו */
+        const swing = Math.sin(t * 1.9) * (4 + lift(10.5, 16) * 0.5);
+        drawTag(c, 790 + swing, 260 - lift(10.5, 16) * 0.4, 130, 80, PAL.gold);
+
+        /* הקונה נכנס לקראת השורה שלו, בשנייה 11 */
+        if (t > 10.5) {
+          drawPerson(c, Math.min(660, 1010 - (t - 10.5) * 90), 530,
+            {walk: t < 14 ? t * 6 : 0, size: 1.3, shirt: PAL.purple,
+             pants: PAL.stoneDark, happy: t > 13.5, armUp: t > 14.5});
+        }
       });
     }
   },
