@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=740b40bd">
+  <link rel="stylesheet" href="styles.css?v=2e66b239">
 </head>
 <body>
   <header class="topbar">
@@ -62,13 +62,6 @@
           <h3>קללת המכשף</h3>
           <p>משחק שלבים: תפסו את המכשף והחזירו את הצבע לממלכה.</p>
           <span class="card-link">להתחלת המסע ←</span>
-        </button>
-
-        <button class="choice-card code-choice" onclick="showScreen('code')">
-          <canvas class="card-art" data-art="code" width="130" height="110" aria-hidden="true"></canvas>
-          <h3>הקוד של האתר</h3>
-          <p>כל הקוד שהאתר בנוי ממנו, נטען ישירות מהקבצים החיים.</p>
-          <span class="card-link">להצצה מתחת למכסה ←</span>
         </button>
 
         <button class="choice-card say-choice" onclick="showScreen('say')">
@@ -385,52 +378,26 @@
       </div>
     </section>
 
-    <section id="code" class="screen">
-      <div class="section-heading">
-        <div>
-          <span class="eyebrow">מתחת למכסה</span>
-          <h2>הקוד של האתר</h2>
-          <p>כל מה שכתוב כאן נטען מהקבצים עצמם בכל פתיחה, ולכן זה תמיד הקוד שרץ עכשיו.</p>
-        </div>
-        <button class="back-button" onclick="showScreen('home')">חזרה</button>
-      </div>
-
-      <div class="code-panel">
-        <p id="codeSummary" class="code-summary"></p>
-        <div id="codeTabs" class="code-tabs"></div>
-
-        <div class="code-head">
-          <p id="codeWhat" class="code-what"></p>
-          <div class="code-head-side">
-            <span id="codeMeta" class="code-meta"></span>
-            <button id="codeCopy" class="code-copy" onclick="copyCurrentCode()">להעתיק</button>
-          </div>
-        </div>
-
-        <pre class="code-body"><code id="codeBody"></code></pre>
-      </div>
-    </section>
   </main>
 
   <footer>
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="voice-durations.js?v=740b40bd"></script>
-  <script src="movie.js?v=740b40bd"></script>
-  <script src="movies.js?v=740b40bd"></script>
-  <script src="game.js?v=740b40bd"></script>
-  <script src="items.js?v=740b40bd"></script>
-  <script src="minigames.js?v=740b40bd"></script>
-  <script src="boss.js?v=740b40bd"></script>
-  <script src="worlds.js?v=740b40bd"></script>
-  <script src="comments.js?v=740b40bd"></script>
-  <script src="arcade.js?v=740b40bd"></script>
-  <script src="banner.js?v=740b40bd"></script>
-  <script type="module" src="llm.js?v=740b40bd"></script>
-  <script src="assistant.js?v=740b40bd"></script>
-  <script src="code.js?v=740b40bd"></script>
-  <script src="script.js?v=740b40bd"></script>
+  <script src="voice-durations.js?v=2e66b239"></script>
+  <script src="movie.js?v=2e66b239"></script>
+  <script src="movies.js?v=2e66b239"></script>
+  <script src="game.js?v=2e66b239"></script>
+  <script src="items.js?v=2e66b239"></script>
+  <script src="minigames.js?v=2e66b239"></script>
+  <script src="boss.js?v=2e66b239"></script>
+  <script src="worlds.js?v=2e66b239"></script>
+  <script src="comments.js?v=2e66b239"></script>
+  <script src="arcade.js?v=2e66b239"></script>
+  <script src="banner.js?v=2e66b239"></script>
+  <script type="module" src="llm.js?v=2e66b239"></script>
+  <script src="assistant.js?v=2e66b239"></script>
+  <script src="script.js?v=2e66b239"></script>
 
 </body>
 </html>

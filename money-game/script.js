@@ -243,7 +243,6 @@ function showScreen(id) {
   else stopBanner();
 
   /* מסך הקוד מושך את הקבצים מחדש בכל כניסה */
-  if (id === "code") startCode();
 
   window.scrollTo({top: 0, behavior: "smooth"});
 }
