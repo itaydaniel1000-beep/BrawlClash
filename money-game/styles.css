@@ -2911,3 +2911,84 @@ button:focus-visible {
 }
 
 .arcade-again:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+
+/* ---------- הערות אנונימיות ---------- */
+
+.say-choice { --cat: var(--berry); --cat-soft: var(--danger-soft); }
+
+.comment-panel {
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  background: var(--surface);
+  padding: 22px;
+}
+
+.comment-label {
+  display: block;
+  margin-block-end: 9px;
+  font-family: var(--f-display);
+  font-weight: 800;
+}
+
+.comment-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--surface);
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.comment-input:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.comment-input:disabled { background: var(--bg); color: var(--ink-faint); }
+
+.comment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-start: 14px;
+}
+
+.comment-count { font-size: 0.84rem; font-weight: 700; color: var(--ink-faint); }
+.comment-count.over { color: var(--danger); }
+
+.comment-send {
+  padding: 12px 26px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 3px 3px 0 var(--ink);
+  font: inherit;
+  font-family: var(--f-display);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.comment-send:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.comment-send:disabled { background: var(--bg); color: var(--ink-faint); box-shadow: none; cursor: default; }
+
+.comment-note {
+  margin: 14px 0 0;
+  padding: 11px 15px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  font-weight: 700;
+  background: var(--bg);
+}
+
+.comment-note.good { background: var(--brand-soft); color: var(--brand-strong); }
+.comment-note.warn { background: var(--accent-soft); color: #6d5310; }
+
+/* ההבטחה הזאת צריכה להיות קריאה, לא אותיות קטנות בתחתית */
+.comment-privacy {
+  margin: 16px 0 0;
+  padding-block-start: 14px;
+  border-block-start: 2px dashed var(--ink-faint);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}

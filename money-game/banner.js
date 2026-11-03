@@ -302,13 +302,45 @@ function cardArtArcade(ctx, W, H) {
   });
 }
 
+/* בועה עם עיפרון - מישהו כותב משהו, בלי פנים ובלי שם */
+function cardArtSay(ctx, W, H) {
+  const cx = W / 2, cy = H / 2;
+  roundRect(ctx, cx - 44, cy - 34, 88, 54, 11, "#1a1f2e");
+  roundRect(ctx, cx - 41, cy - 37, 82, 52, 10, "#fbe3df");
+  ctx.fillStyle = "#1a1f2e";
+  ctx.beginPath();
+  ctx.moveTo(cx - 22, cy + 13);
+  ctx.lineTo(cx - 16, cy + 26);
+  ctx.lineTo(cx - 6, cy + 13);
+  ctx.closePath();
+  ctx.fill();
+  /* שלוש שורות טקסט, האחרונה קצרה - משפט שנגמר */
+  px(ctx, cx - 30, cy - 22, 58, 4, "#d8503f");
+  px(ctx, cx - 30, cy - 12, 50, 4, "#d8503f");
+  px(ctx, cx - 30, cy - 2, 32, 4, "#d8503f");
+
+  /* עיפרון באלכסון, בפינה */
+  ctx.save();
+  ctx.translate(cx + 30, cy + 24);
+  ctx.rotate(-0.7);
+  px(ctx, -4, -22, 9, 30, "#f5c542");
+  px(ctx, -4, -22, 9, 5, "#c99a1f");
+  ctx.fillStyle = "#1a1f2e";
+  ctx.beginPath();
+  ctx.moveTo(-4, 8); ctx.lineTo(0.5, 17); ctx.lineTo(5, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 const CARD_ART = {
   videos: cardArtVideos,
   quest: cardArtQuest,
   lesson: cardArtLesson,
   code: cardArtCode,
   helper: cardArtHelper,
-  arcade: cardArtArcade
+  arcade: cardArtArcade,
+  say: cardArtSay
 };
 
 function paintCardArt(canvas) {

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=bc31d25f">
+  <link rel="stylesheet" href="styles.css?v=740b40bd">
 </head>
 <body>
   <header class="topbar">
@@ -69,6 +69,13 @@
           <h3>הקוד של האתר</h3>
           <p>כל הקוד שהאתר בנוי ממנו, נטען ישירות מהקבצים החיים.</p>
           <span class="card-link">להצצה מתחת למכסה ←</span>
+        </button>
+
+        <button class="choice-card say-choice" onclick="showScreen('say')">
+          <canvas class="card-art" data-art="say" width="130" height="110" aria-hidden="true"></canvas>
+          <h3>מה דעתכם?</h3>
+          <p>כתבו לנו מה אתם חושבים על האתר. בלי שם, בלי הרשמה.</p>
+          <span class="card-link">לכתוב הערה ←</span>
         </button>
 
         <button class="choice-card arcade-choice" onclick="showScreen('arcade')">
@@ -312,6 +319,34 @@
       <article id="lessonCard" class="lesson-card"></article>
     </section>
 
+    <section id="say" class="screen">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">אנונימי</span>
+          <h2>מה דעתכם על האתר?</h2>
+          <p>מה היה טוב, מה היה מבלבל, ומה הייתם רוצים שיהיה כאן. אנחנו קוראים הכול.</p>
+        </div>
+        <button class="back-button" onclick="showScreen('home')">חזרה</button>
+      </div>
+
+      <div class="comment-panel">
+        <form id="commentForm" class="comment-form">
+          <label class="comment-label" for="commentInput">ההערה שלכם</label>
+          <textarea id="commentInput" class="comment-input" rows="5"
+                    maxlength="520" placeholder="אפשר לכתוב כל דבר…"></textarea>
+          <div class="comment-row">
+            <span id="commentCount" class="comment-count"></span>
+            <button id="commentSend" class="comment-send" type="submit" disabled>שליחה</button>
+          </div>
+        </form>
+        <p id="commentNote" class="comment-note" hidden></p>
+        <p class="comment-privacy">
+          לא נשמר שם, לא נשמרת כתובת, ואין דרך לדעת מי כתב. ההערות לא מוצגות
+          באתר - הן נשלחות אלינו ואנחנו קוראים אותן.
+        </p>
+      </div>
+    </section>
+
     <section id="arcade" class="screen">
       <div class="section-heading">
         <div>
@@ -381,20 +416,21 @@
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
 
-  <script src="voice-durations.js?v=bc31d25f"></script>
-  <script src="movie.js?v=bc31d25f"></script>
-  <script src="movies.js?v=bc31d25f"></script>
-  <script src="game.js?v=bc31d25f"></script>
-  <script src="items.js?v=bc31d25f"></script>
-  <script src="minigames.js?v=bc31d25f"></script>
-  <script src="boss.js?v=bc31d25f"></script>
-  <script src="worlds.js?v=bc31d25f"></script>
-  <script src="arcade.js?v=bc31d25f"></script>
-  <script src="banner.js?v=bc31d25f"></script>
-  <script type="module" src="llm.js?v=bc31d25f"></script>
-  <script src="assistant.js?v=bc31d25f"></script>
-  <script src="code.js?v=bc31d25f"></script>
-  <script src="script.js?v=bc31d25f"></script>
+  <script src="voice-durations.js?v=740b40bd"></script>
+  <script src="movie.js?v=740b40bd"></script>
+  <script src="movies.js?v=740b40bd"></script>
+  <script src="game.js?v=740b40bd"></script>
+  <script src="items.js?v=740b40bd"></script>
+  <script src="minigames.js?v=740b40bd"></script>
+  <script src="boss.js?v=740b40bd"></script>
+  <script src="worlds.js?v=740b40bd"></script>
+  <script src="comments.js?v=740b40bd"></script>
+  <script src="arcade.js?v=740b40bd"></script>
+  <script src="banner.js?v=740b40bd"></script>
+  <script type="module" src="llm.js?v=740b40bd"></script>
+  <script src="assistant.js?v=740b40bd"></script>
+  <script src="code.js?v=740b40bd"></script>
+  <script src="script.js?v=740b40bd"></script>
 
 </body>
 </html>

@@ -115,3 +115,66 @@ function flushPending() {
 function installFlush() {
   ScriptApp.newTrigger('flushPending').timeBased().everyMinutes(1).create();
 }
+
+
+/* ===================================================================
+   קליטת הערות מהאתר
+   ===================================================================
+
+   האתר שולח לכאן הערה, הסקריפט מוסיף אותה ללשונית "הערות", והטריגר
+   שלמעלה שולח מייל. ככה הערה שנכתבת באתר מגיעה אליכם לבד.
+
+   פריסה (אחרי setup):
+     1. למעלה מימין: Deploy -> New deployment
+     2. סוג: Web app
+     3. Execute as: Me
+     4. Who has access: Anyone      <- חובה, אחרת האתר לא יוכל לשלוח
+     5. Deploy, ולהעתיק את הכתובת שמתקבלת
+     6. להדביק אותה ב-money-game/comments.js, בשדה ENDPOINT
+
+   "Anyone" נשמע מפחיד, אבל מה שחשוף פה הוא רק הפונקציה הזאת, והיא
+   יודעת לעשות דבר אחד: להוסיף שורת טקסט. היא לא קוראת כלום ולא
+   מחזירה כלום. */
+
+var NOTES_SHEET = 'הערות';
+var MAX_LEN = 500;          /* הערה ארוכה מזה נחתכת */
+var MIN_GAP_SECONDS = 20;   /* מאותו שולח, כדי שלא יציפו */
+
+function doPost(e) {
+  try {
+    var text = '';
+    if (e && e.postData && e.postData.contents) {
+      /* האתר שולח text/plain ולא JSON, כי בקשת JSON מפעילה preflight
+         ש-Apps Script לא עונה עליו. התוכן עצמו הוא JSON. */
+      try { text = String(JSON.parse(e.postData.contents).text || ''); }
+      catch (err) { text = String(e.postData.contents); }
+    }
+    text = text.trim();
+    if (!text) return ContentService.createTextOutput('empty');
+    if (text.length > MAX_LEN) text = text.slice(0, MAX_LEN) + '…';
+
+    /* חסימת הצפה: לא יותר מהערה אחת כל כמה שניות */
+    var props = PropertiesService.getScriptProperties();
+    var now = Date.now();
+    var last = Number(props.getProperty('lastNote') || 0);
+    if (now - last < MIN_GAP_SECONDS * 1000) {
+      return ContentService.createTextOutput('too fast');
+    }
+    props.setProperty('lastNote', String(now));
+
+    var ss = SpreadsheetApp.getActive();
+    var sheet = ss.getSheetByName(NOTES_SHEET) || ss.insertSheet(NOTES_SHEET);
+
+    /* התאריך נכתב כטקסט ולא כערך תאריך, כדי שהגיליון לא יעצב אותו
+       מחדש וישנה את מה שרואים */
+    var when = Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(),
+                                    'dd/MM/yyyy HH:mm');
+    sheet.appendRow([text, when]);
+
+    return ContentService.createTextOutput('ok');
+  } catch (err) {
+    /* לא מחזירים את השגיאה החוצה - אין סיבה שאתר ציבורי ידע מה נשבר */
+    console.error(err);
+    return ContentService.createTextOutput('error');
+  }
+}

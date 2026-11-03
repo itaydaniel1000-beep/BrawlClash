@@ -1887,6 +1887,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initTip();
   initHelper();
   initArcade();
+  initComments();
   renderDailyLesson();
   scheduleMidnightRefresh();
   setupFilters();
