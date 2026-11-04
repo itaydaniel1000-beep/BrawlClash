@@ -2619,7 +2619,7 @@ button:focus-visible {
   transition: width .3s ease;
 }
 
-/* הניסוח של המודל יושב מעל התשובה המיידית, לא במקומה - התשובה
+/* הניסוח של ה-AI יושב מעל התשובה המיידית, לא במקומה - התשובה
    המיידית היא המקור, והוא הניסוח שלה */
 .helper-llm {
   margin-block-end: 12px;
@@ -2638,6 +2638,16 @@ button:focus-visible {
   background: var(--purple-soft);
   font-size: 0.72rem;
   font-weight: 800;
+}
+
+/* האזהרה. היא צריכה להיקרא בלי להתחרות בתשובה עצמה, ולכן קטנה
+   וחיוורת - אבל לא עד כדי כך שאפשר לפספס אותה. */
+.helper-llm .helper-llm-note {
+  margin-block-start: 8px;
+  color: var(--ink-soft);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 /* שתי אפשרויות "הונאה או אמיתי" מרחפות באותו צבע. הגוונים הקודמים

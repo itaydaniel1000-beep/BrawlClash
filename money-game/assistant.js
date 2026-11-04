@@ -1,12 +1,17 @@
 /* ===== עוזר הכסף =====
    עונה על שאלות כסף מתוך התוכן של האתר עצמו, ומחשב שאלות שיש בהן מספרים.
 
-   למה לא מודל אמיתי: מודל דרך API דורש מפתח בתשלום, ומודל שרץ בדפדפן
-   הוא הורדה של כמה ג'יגה־בייט שלא תעבוד בטלפון. מה שכן אפשר לעשות
-   בחינם זה לחפש במה שכבר כתוב באתר ולחשב - ודווקא החישוב הוא מה שהופך
-   את זה לשימושי, כי שאלת כסף אמיתית היא כמעט תמיד שאלה עם מספרים.
+   הקובץ הזה הוא הבסיס, והוא עובד בכל דפדפן: חיפוש במה שכתוב באתר,
+   ועוד חישוב לשאלות שיש בהן מספרים - ודווקא החישוב הוא מה שהופך את
+   זה לשימושי, כי שאלת כסף אמיתית היא כמעט תמיד שאלה עם מספרים.
 
-   אם יום אחד יהיה מפתח: הנקודה היחידה להחליף היא askAssistant() בתחתית.
+   מעליו, בכרום, llm.js מוסיף את ה-AI של גוגל: הוא מקבל את התשובה
+   הזאת כהקשר וכותב אותה מחדש בשפה שלו. שתי סיבות שהסדר הוא כזה
+   ולא הפוך - התשובה מופיעה מיד ולא מחכים למודל, ומי שאין לו מודל
+   מקבל תשובה שלמה ולא הודעת שגיאה.
+
+   אם יום אחד יהיה מפתח ל-API: הנקודה היחידה להחליף היא askAssistant()
+   בתחתית.
 
    מאגר הידע נבנה בזמן ריצה מהמשתנים החיים - dailyLessons, BOSS_QUESTIONS,
    QUEST ו-videos - ולכן הוא מתעדכן לבד בכל פעם שמוסיפים תוכן לאתר. */
@@ -359,6 +364,15 @@ const AS_CHIPS = [
   "איך מזהים הונאה?"
 ];
 
+const AS_LLM_TAG = '<span class="helper-llm-tag">ה-AI של גוגל</span>';
+
+/* מי כתב את התשובה ומה המשמעות. השורה הזאת חייבת להופיע על כל תשובה
+   של המודל: הוא מנסח מהר ויפה, אבל הוא גם יכול לטעות, והקורא צריך
+   לדעת שמה שמעליו לא נכתב בידי אדם. */
+const AS_LLM_NOTE =
+  '<p class="helper-llm-note">נכתב על ידי ה-AI של גוגל ויכול להכיל ' +
+  "טעויות. התשובה מתוך האתר נמצאת למטה.</p>";
+
 function asBubble(who, html) {
   const chat = document.getElementById("helperChat");
   if (!chat) return null;
@@ -426,7 +440,7 @@ async function asAsk(question) {
   }
   chat.scrollTop = 1e9;
 
-  /* ---- שדרוג במודל ----
+  /* ---- שדרוג ב-AI של גוגל ----
      רק על תשובות ידע. תשובת מחשבון היא חישוב מדויק, ואין שום דבר
      שהמודל יכול להוסיף לה חוץ מטעויות. וכשהחיפוש לא מצא כלום אין לו
      הקשר, ואז תשובה ממנו תהיה המצאה - אז גם שם לא נוגעים. */
@@ -435,17 +449,21 @@ async function asAsk(question) {
 
   const live = document.createElement("div");
   live.className = "helper-llm";
-  live.innerHTML = '<span class="helper-llm-tag">מנסח…</span>';
+  live.innerHTML = AS_LLM_TAG;
   bubble.insertBefore(live, bubble.firstChild);
 
   const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
   const text = await window.LLM.ask(q, res.context, partial => {
-    live.innerHTML = '<span class="helper-llm-tag">בניסוח שלי</span>' +
-                     "<p>" + asFormat(partial) + "</p>";
+    live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(partial) + "</p>";
     if (near) chat.scrollTop = 1e9;
   });
 
-  if (!text) live.remove();
+  if (!text) { live.remove(); return; }
+
+  /* האזהרה נכנסת רק בסוף, כשיש תשובה שלמה. בזמן הזרימה היא היתה
+     מרקדת למטה עם כל מילה. */
+  live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(text) + "</p>" + AS_LLM_NOTE;
+  if (near) chat.scrollTop = 1e9;
 }
 
 function initHelper() {
@@ -492,7 +510,7 @@ function asStatus(llm) {
     el.className = "helper-status loading";
     el.innerHTML =
       '<span class="helper-status-bar"><i style="width:' + pct + '%"></i></span>' +
-      "<span>טוען מודל שפה ברקע… " + pct + "%  " +
+      "<span>מכין את ה-AI של גוגל ברקע… " + pct + "%  " +
       "<small>אפשר לשאול כבר עכשיו</small></span>";
     return;
   }
@@ -500,7 +518,7 @@ function asStatus(llm) {
   if (llm.state === "ready") {
     el.hidden = false;
     el.className = "helper-status ready";
-    el.textContent = "מודל השפה מוכן. התשובות ינוסחו גם על ידו.";
+    el.textContent = "ה-AI של גוגל מוכן. התשובות ייכתבו גם על ידו.";
     setTimeout(() => { el.hidden = true; }, 6000);
     return;
   }

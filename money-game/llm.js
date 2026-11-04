@@ -1,42 +1,50 @@
-/* ===== מודל שפה אמיתי, בתוך הדפדפן =====
-   WebLLM מריץ מודל על כרטיס המסך דרך WebGPU. בלי שרת, בלי מפתח,
-   בלי חשבון - ולכן אפשר לשים אותו באתר ציבורי בלי לחשוף שום דבר.
+/* ===== ה-AI של גוגל, בתוך הדפדפן =====
+   כרום החדש מגיע עם מודל של גוגל (Gemini Nano) מותקן בתוכו, וחושף
+   אותו ל-JavaScript דרך LanguageModel. זה בדיוק מה שצריך לאתר הזה:
+   מודל אמיתי של גוגל, בחינם, בלי מפתח, בלי חשבון ובלי שרת - ולכן
+   אפשר לשים אותו באתר ציבורי בלי לחשוף שום דבר.
+
+   מה שהיה כאן לפני: WebLLM הוריד מודל פתוח קטן לכרטיס המסך. הוא עבד,
+   אבל העברית שלו נשברה - אין לו טוקנים עבריים, ולכן הוא איית מילים
+   חתיכה-חתיכה. המודל של גוגל גדול ממנו בהרבה, וגם לא צריך להוריד
+   ג'יגה-בייטים: הוא כבר על המחשב.
 
    ארבעה דברים שעושים אותו מהיר, לפי סדר ההשפעה:
 
    1. הוא לא צריך לדעת כלום. assistant.js מוצא את השיעור הרלוונטי
-      ומגיש לו אותו כהקשר; תפקידו רק לנסח. מודל קטן גרוע בלזכור
-      עובדות וסביר בלנסח טקסט שנתנו לו, אז זה גם מדויק יותר וגם קצר
-      יותר לייצר.
-   2. התשובה המיידית מגיעה לפניו. המשתמש רואה תשובה מלאה תוך
-      אפס זמן, והמודל מחליף אותה כשהוא מוכן. אין המתנה מורגשת.
+      ומגיש לו אותו כהקשר; תפקידו רק לנסח. ככה הוא גם לא ממציא, וגם
+      יש לו פחות לייצר.
+   2. התשובה המיידית מגיעה לפניו. המשתמש רואה תשובה מלאה תוך אפס
+      זמן, והמודל מחליף אותה כשהוא מוכן. אין המתנה מורגשת.
    3. הוא נטען ברקע מהרגע שהדף נפתח, ולא כשנכנסים למסך העוזר.
    4. הרצת חימום אחת בסיום הטעינה, כי הגנרציה הראשונה תמיד איטית.
 
-   בטלפון אין WebGPU ולכן אין מודל. זה בסדר: התשובה המיידית היא
-   תשובה שלמה בפני עצמה, לא מציין מקום. */
+   היא גם מבחן: ראו LLM_PROBE למטה.
 
-/* כבוי.
-   המודל עובד, אבל העברית שלו שבורה. הוא אומן כמעט כולו על אנגלית,
-   ואין לו טוקנים עבריים: "ריבית" מתפרקת אצלו ל-ר|יב|ית ו"חיסכון"
-   ל-ח|יס|כ|ון. לכן הוא מאיית עברית חתיכה-חתיכה במקום לכתוב מילים,
-   וכל חתיכה היא הזדמנות לטעות - כך נוצר "תraitון" באמצע מילה.
-   מדידה: "ריבית דריבית" = 7 טוקנים, "compound interest" = 2.
+   בטלפון ובדפדפנים אחרים אין LanguageModel ולכן אין מודל. זה בסדר:
+   התשובה המיידית היא תשובה שלמה בפני עצמה, לא מציין מקום. */
 
-   נבדק גם מסלול תרגום (עברית->אנגלית->מודל->עברית) דרך המתרגם
-   המובנה של כרום. הוא מהיר (0.51 שניות) ומתרגם שאלות רגילות מצוין,
-   אבל הופך "ריבית דריבית" ל-"compulsive interest" ובחזרה ל"ריבית
-   כפייתית" - כלומר נשבר בדיוק על המונחים שהאתר הזה עוסק בהם.
+/* ---------- מבחן העברית ----------
+   גוגל מתעדת תמיכה רשמית באנגלית, ספרדית ויפנית. עברית לא ברשימה,
+   אבל המודל כן מנסה - ולכן אי אפשר לדעת מראש אם מה שייצא יהיה עברית
+   או ג'יבריש. במקום להמר, שואלים אותו שאלה אחת בעברית בסיום הטעינה
+   ומודדים את התשובה. רק אם היא עברית אמיתית הוא מקבל רשות לדבר.
 
-   ומעבר לכך: התשובה שהחיפוש מחזיר כבר כתובה בעברית תקינה. להוציא
-   אותה לאנגלית ולהחזיר רק מסכן טקסט שהיה נכון.
+   למה זה שווה את הטרחה: אם המודל ייתן ג'יבריש, הוא ייתן אותו מעל
+   תשובה נכונה שהחיפוש כבר כתב בעברית תקינה - כלומר יקלקל משהו שעבד.
+   השער הזה אומר שבמחשב שבו המודל לא מסתדר עם עברית, האתר פשוט
+   מתנהג כמו לפני, ובלי שאף אחד יצטרך להחליט על זה ידנית. */
+const LLM_PROBE = "ענה במשפט אחד קצר בעברית: מה זה חיסכון?";
+const LLM_HEBREW_MIN = 0.8;   /* שיעור האותיות העבריות מכלל האותיות */
 
-   להדלקה כשיהיה מודל עברי טוב בדפדפן: LLM_ENABLED = true, ולהחליף
-   את LLM_MODEL. שאר הקוד מוכן. */
-const LLM_ENABLED = false;
-
-const LLM_MODEL = "Qwen2.5-1.5B-Instruct-q4f16_1-MLC";
-const LLM_CDN = "https://esm.run/@mlc-ai/web-llm";
+function llmHebrewShare(text) {
+  const letters = String(text || "").match(/[A-Za-zא-ת]/g);
+  /* פחות משמונה אותיות זה לא מדגם. "כן." היה מקבל 100% עברית בלי
+     להוכיח שום דבר, ובתשובה אמיתית הוא ממילא קצר מכדי להיות שימושי. */
+  if (!letters || letters.length < 8) return 0;
+  const he = letters.filter(c => c >= "א" && c <= "ת").length;
+  return he / letters.length;
+}
 
 /* מה שכל שאר הקוד רואה */
 window.LLM = {
@@ -62,109 +70,163 @@ function llmSet(state, progress, label) {
 
 const LLM_SYSTEM =
   "אתה עוזר שמסביר נושאי כסף לילדים בכיתות ג׳ עד ז׳, בעברית פשוטה.\n" +
+  "ענה בעברית בלבד.\n" +
   "ענה אך ורק על סמך המידע שמופיע תחת \"מידע\". אל תמציא עובדות, " +
   "מספרים או דוגמאות שלא מופיעים שם.\n" +
   "אם המידע לא עונה על השאלה, אמור שאינך יודע.\n" +
   "ענה בשתיים עד ארבע שורות, בלי כותרות ובלי רשימות.";
 
-let llmEngine = null;
-let llmTries = 0;
+let llmSession = null;
+let llmArmed = false;
 
-/* WebGPU מוותר על המכשיר כשהטאב מוסתר, ואז הטעינה נופלת עם
-   "A valid external Instance reference no longer exists". לכן לא
-   מתחילים לפני שהדף גלוי, ומנסים שוב פעם אחת אם זה קרה באמצע. */
-function llmWhenVisible() {
-  return document.visibilityState === "visible"
-    ? Promise.resolve()
-    : new Promise(res => {
-        const on = () => {
-          if (document.visibilityState !== "visible") return;
-          document.removeEventListener("visibilitychange", on);
-          res();
-        };
-        document.addEventListener("visibilitychange", on);
-      });
+/* ---------- טעינה ---------- */
+
+/* הפעלה אחרי מחווה של המשתמש.
+   כשהמודל עוד לא ירד, כרום דורש שהבקשה תבוא מתוך לחיצה או הקלדה -
+   אחרת create() נכשל ב-NotAllowedError. טעינה ברקע בפתיחת הדף היא
+   בדיוק המצב הזה, אז במקרה כזה מחכים למחווה הראשונה. */
+function llmArmGesture() {
+  if (llmArmed) return;
+  llmArmed = true;
+  const go = () => {
+    window.removeEventListener("pointerdown", go);
+    window.removeEventListener("keydown", go);
+    llmBoot(true);
+  };
+  window.addEventListener("pointerdown", go, {once: true});
+  window.addEventListener("keydown", go, {once: true});
 }
 
-async function llmBoot() {
-  if (!LLM_ENABLED) {
-    llmSet("unsupported", 0, "שכבת המודל כבויה");
-    return;
-  }
-  await llmWhenVisible();
-  if (!("gpu" in navigator)) {
-    llmSet("unsupported", 0, "הדפדפן הזה לא תומך בהרצת מודל");
+async function llmBoot(afterGesture) {
+  if (!("LanguageModel" in self)) {
+    llmSet("unsupported", 0, "הדפדפן הזה לא מגיע עם מודל של גוגל");
     return;
   }
 
-  llmSet("loading", 0, "מתחיל");
+  let avail;
   try {
-    const webllm = await import(/* webpackIgnore: true */ LLM_CDN);
+    avail = await LanguageModel.availability();
+  } catch (err) {
+    console.error("llm availability:", err);
+    llmSet("unsupported", 0, "אין גישה למודל");
+    return;
+  }
 
-    llmEngine = await webllm.CreateMLCEngine(LLM_MODEL, {
-      initProgressCallback: r => {
-        /* הדיווח מגיע כשבר בין 0 ל-1, אבל לא תמיד - לפעמים רק טקסט */
-        const p = typeof r.progress === "number" ? r.progress : window.LLM.progress;
-        llmSet("loading", p, r.text || "");
+  if (avail === "unavailable") {
+    llmSet("unsupported", 0, "המודל לא זמין במחשב הזה");
+    return;
+  }
+  if (avail === "downloadable" && !afterGesture) {
+    /* צריך מחווה כדי להתחיל להוריד. לא מציגים כלום בינתיים. */
+    llmSet("unsupported", 0, "ממתין למחווה כדי להתחיל הורדה");
+    llmArmGesture();
+    return;
+  }
+
+  /* כשהמודל כבר על המחשב אין מה להודיע - הוא ייכנס תוך שבריר שנייה.
+     פס התקדמות שמהבהב לרגע הוא רעש. */
+  if (avail !== "available") llmSet("loading", 0, "מתחיל");
+
+  /* ההורדה מנוהלת על ידי כרום, לא על ידינו, והיא יכולה לעמוד במקום
+     ימים בלי לדווח ולו בייט אחד. פס שתקוע על 0% הוא הבטחה שאנחנו לא
+     יכולים לקיים, אז אחרי 20 שניות בלי שום התקדמות מפסיקים להציג
+     אותו. ההמתנה עצמה ממשיכה: אם ההורדה תתעורר, המודל עוד ידבר. */
+  let sawProgress = false;
+  const quiet = setTimeout(() => {
+    if (!sawProgress && window.LLM.state === "loading") {
+      llmSet("unsupported", 0, "ההורדה של גוגל עוד לא התקדמה");
+    }
+  }, 20000);
+
+  try {
+    llmSession = await LanguageModel.create({
+      initialPrompts: [{role: "system", content: LLM_SYSTEM}],
+      monitor(m) {
+        m.addEventListener("downloadprogress", ev => {
+          /* loaded מגיע כשבר בין 0 ל-1 */
+          sawProgress = true;
+          llmSet("loading", ev.loaded, "מוריד");
+        });
       }
     });
+    clearTimeout(quiet);
 
-    /* חימום: הגנרציה הראשונה כוללת הקצאות שמתבצעות פעם אחת בלבד.
-       עושים אותה כאן, בזמן שאף אחד לא מחכה, ולא בשאלה האמיתית. */
-    await llmEngine.chat.completions.create({
-      messages: [{role: "user", content: "שלום"}],
-      max_tokens: 1
-    });
+    /* חימום ומבחן בבת אחת. הגנרציה הראשונה כוללת הקצאות שמתבצעות פעם
+       אחת בלבד, אז עושים אותה כאן בזמן שאף אחד לא מחכה - ובדרך גם
+       בודקים אם מה שיוצא זו בכלל עברית. */
+    const probe = await llmSession.prompt(LLM_PROBE);
+    const share = llmHebrewShare(probe);
+    if (share < LLM_HEBREW_MIN) {
+      console.info("llm: העברית של המודל לא עברה את המבחן (" +
+                   Math.round(share * 100) + "%):", probe);
+      llmSession.destroy();
+      llmSession = null;
+      llmSet("unsupported", 0, "המודל לא כותב עברית טובה במחשב הזה");
+      return;
+    }
 
     llmSet("ready", 1, "מוכן");
   } catch (err) {
+    clearTimeout(quiet);
     console.error("llm:", err);
-    llmEngine = null;
+    if (llmSession) { try { llmSession.destroy(); } catch (e) {} }
+    llmSession = null;
 
-    /* אובדן מכשיר הוא כמעט תמיד זמני - הטאב ירד לרקע. ניסיון שני
-       כשהדף חוזר להיות גלוי מצליח בדרך כלל, והמשקל כבר במטמון. */
-    const lost = /Instance|device|lost|GPU/i.test(String(err && err.message));
-    if (lost && llmTries < 1) {
-      llmTries++;
-      llmSet("loading", 0, "מנסה שוב");
-      setTimeout(llmBoot, 1500);
+    /* NotAllowedError פירושו שהגענו בלי מחווה. אפשר לתקן - מחכים
+       ללחיצה הראשונה ומנסים שוב. */
+    if (err && err.name === "NotAllowedError" && !afterGesture) {
+      llmSet("unsupported", 0, "ממתין למחווה");
+      llmArmGesture();
       return;
     }
     llmSet("failed", 0, "הטעינה נכשלה");
   }
 }
 
+/* ---------- שאלה ---------- */
+
 /**
  * מנסח תשובה מתוך הקשר נתון.
  *   question - שאלת המשתמש
  *   context  - הטקסט מהאתר שהחיפוש מצא
  *   onToken  - נקרא עם הטקסט המצטבר, לזרימה על המסך
- * מחזיר את התשובה המלאה, או null אם המודל לא זמין.
+ * מחזיר את התשובה המלאה, או null אם המודל לא זמין או שהתשובה נפסלה.
  */
 async function llmAnswer(question, context, onToken) {
-  if (window.LLM.state !== "ready" || !llmEngine) return null;
+  if (window.LLM.state !== "ready" || !llmSession) return null;
 
-  const messages = [
-    {role: "system", content: LLM_SYSTEM},
-    {role: "user", content: "מידע:\n" + context + "\n\nשאלה: " + question}
-  ];
+  const prompt = "מידע:\n" + context + "\n\nשאלה: " + question;
 
   try {
-    const stream = await llmEngine.chat.completions.create({
-      messages: messages,
-      stream: true,
-      temperature: 0.3,   /* נמוך: רוצים ניסוח של המידע, לא יצירתיות */
-      max_tokens: 220
-    });
-
+    /* שיחה נפרדת לכל שאלה: ההקשר של שאלה אחת לא אמור לדלוף לשאלה
+       הבאה, וגם ככה המודל מקבל את כל מה שהוא צריך בהודעה עצמה.
+       clone() זול - הוא לא טוען את המודל מחדש. */
+    const turn = await llmSession.clone();
     let text = "";
-    for await (const chunk of stream) {
-      const piece = chunk.choices[0]?.delta?.content || "";
-      if (!piece) continue;
-      text += piece;
-      if (onToken) onToken(text);
+    try {
+      for await (const chunk of turn.promptStreaming(prompt)) {
+        /* כרום שינה את משמעות ה-chunk בדרך: בגרסאות מסוימות הוא
+           הטקסט המצטבר, ובאחרות רק התוספת. ההבחנה היא אם הוא פותח
+           במה שכבר יש לנו. */
+        text = chunk.startsWith(text) && chunk.length >= text.length
+          ? chunk
+          : text + chunk;
+        if (onToken) onToken(text);
+      }
+    } finally {
+      turn.destroy();
     }
-    return text.trim() || null;
+
+    text = text.trim();
+    if (!text) return null;
+
+    /* גם אחרי שהמבחן עבר, תשובה בודדת יכולה לצאת באנגלית - בעיקר
+       כששאלו משהו שההקשר לא מכסה. מוטב לא להציג אותה בכלל. */
+    if (llmHebrewShare(text) < LLM_HEBREW_MIN) {
+      console.info("llm: תשובה לא בעברית, נפסלה:", text);
+      return null;
+    }
+    return text;
   } catch (err) {
     console.error("llm answer:", err);
     return null;
@@ -177,9 +239,9 @@ window.LLM.ask = llmAnswer;
    יהיה מוכן. requestIdleCallback שומר שזה לא יתחרה בציור הדף. */
 function llmStart() {
   if (window.requestIdleCallback) {
-    requestIdleCallback(() => llmBoot(), {timeout: 4000});
+    requestIdleCallback(() => llmBoot(false), {timeout: 4000});
   } else {
-    setTimeout(llmBoot, 1500);
+    setTimeout(() => llmBoot(false), 1500);
   }
 }
 
