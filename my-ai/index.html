@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>העוזר שלי</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- הגדרה ראשונה -->
+<section id="setup" class="screen" hidden>
+  <div class="setup-card">
+    <canvas class="pix big" id="setupAvatar"></canvas>
+    <div class="step" data-step="0">
+      <h1>היי! איך קוראים לך?</h1>
+      <input id="sUser" maxlength="30" autocomplete="off">
+      <button class="primary" data-next>המשך</button>
+    </div>
+    <div class="step" data-step="1" hidden>
+      <h1>איזה אופי יהיה לו?</h1>
+      <div class="personas" id="sPersonas"></div>
+      <div class="hues" id="sHues"></div>
+      <button class="primary" data-next>המשך</button>
+    </div>
+    <div class="step" data-step="2" hidden>
+      <h1>איך תקרא לו?</h1>
+      <input id="sAi" maxlength="24" autocomplete="off">
+      <button class="primary" data-next>יאללה!</button>
+    </div>
+  </div>
+</section>
+
+<!-- האפליקציה -->
+<section id="app" class="screen" hidden>
+  <aside id="side">
+    <button id="newChat" class="primary wide">+ שיחה חדשה</button>
+    <ul id="chats"></ul>
+    <div class="side-foot">
+      <button id="openMemory" class="ghost">🧠 זיכרון <span id="memCount"></span></button>
+      <button id="openSettings" class="ghost">⚙️ הגדרות</button>
+    </div>
+  </aside>
+
+  <main>
+    <header>
+      <button id="menuBtn" class="icon" aria-label="תפריט">☰</button>
+      <canvas class="pix" id="headAvatar"></canvas>
+      <div class="who">
+        <b id="aiName"></b>
+        <span id="status"></span>
+      </div>
+      <div id="loadBar" hidden><i></i></div>
+    </header>
+
+    <div id="log"></div>
+
+    <form id="composer">
+      <textarea id="input" rows="1" placeholder="כתוב משהו..."></textarea>
+      <button id="send" class="primary round" aria-label="שלח">➤</button>
+      <button id="stopBtn" type="button" class="round danger" aria-label="עצור" hidden>■</button>
+    </form>
+  </main>
+</section>
+
+<!-- זיכרון -->
+<dialog id="memoryDlg">
+  <h2>🧠 מה <span class="ai-name"></span> זוכר עליך</h2>
+  <ul id="memList"></ul>
+  <form id="memAdd">
+    <input id="memInput" placeholder="להוסיף משהו..." maxlength="200">
+    <button class="primary">הוסף</button>
+  </form>
+  <button class="ghost close" data-close>סגור</button>
+</dialog>
+
+<!-- הגדרות -->
+<dialog id="settingsDlg">
+  <h2>⚙️ הגדרות</h2>
+  <label>השם שלך <input id="setUser" maxlength="30"></label>
+  <label>השם שלו <input id="setAi" maxlength="24"></label>
+  <div class="personas" id="setPersonas"></div>
+  <div class="hues" id="setHues"></div>
+  <label>עוד משהו על האופי שלו <textarea id="setExtra" rows="2" maxlength="300"></textarea></label>
+  <div class="brains" id="setBrains"></div>
+  <div class="row">
+    <button class="primary" id="saveSettings">שמור</button>
+    <button class="ghost" data-close>ביטול</button>
+    <button class="ghost danger-text" id="wipe">מחק הכל</button>
+  </div>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
