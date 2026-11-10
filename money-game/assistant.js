@@ -619,10 +619,19 @@ const AS_REFUSAL =
    תקינה לגמרי - ומבחוץ שתיהן מילה אחת בתוך עברית. אי אפשר להפריד
    ביניהן בספירה, אז החשד הזה שולח לנסות את המודל השני, אבל אם אין
    שני - מציגים בכל זאת. שאר הכשלים חמורים מכדי להציג. */
+/* חשדות קלים: שווה לנסות את המודל השני, אבל אם אין שני - מציגים
+   בכל זאת. "לא הצלחתי לענות על זה" היא התשובה הגרועה מכולן, והיא
+   מה שהמשתמש קיבל שלוש פעמים ברצף.
+
+   סירוב וקוצר עברו לכאן מהחמורים. הם נקבעו כשהעוזר ענה על שיעורי
+   האתר, ושם "אני לא בטוח" פירושו שהחיפוש נכשל. בשיחה רגילה "אני
+   לא בטוח שהבנתי, תוכל להסביר?" ו"כן, הבנתי" הם תורות לגיטימיים. */
 const AS_MILD = "מילה זרה";
 /* קוצר הוא חשד בתשובה לשאלה פתוחה, אבל לא במבחן שבו ביקשנו
    מפורשות מילה אחת. bigai.js מתעלם ממנו שם. */
 const AS_TOO_SHORT = "קצר מדי";
+const AS_REFUSED = "סירוב";
+const AS_SOFT = [AS_MILD, AS_TOO_SHORT, AS_REFUSED];
 
 function asBrokenReason(text) {
   const t = String(text || "").trim();
@@ -633,8 +642,8 @@ function asBrokenReason(text) {
   /* אות שאינה עברית ואינה אנגלית רגילה - למשל "כốים" עם אות וייטנאמית */
   if (/[^\P{L}A-Za-z\u05D0-\u05EA]/u.test(t)) return "אלפבית זר";
   if (asLoops(t)) return "לולאה";
-  if (AS_REFUSAL.test(t)) return "סירוב";
   if (asForeignMix(t)) return AS_MILD;
+  if (AS_REFUSAL.test(t)) return AS_REFUSED;
   if (t.length < 10) return AS_TOO_SHORT;
   return null;
 }
@@ -785,9 +794,9 @@ async function asAsk(question) {
     if (alt) {
       const second = await run(alt);
       if (second && !asLooksBroken(second)) { used = alt; text = second; }
-      else if (why !== AS_MILD) text = null;
+      else if (!AS_SOFT.includes(why)) text = null;
       else live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>";
-    } else if (why !== AS_MILD) {
+    } else if (!AS_SOFT.includes(why)) {
       text = null;
     }
   }

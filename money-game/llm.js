@@ -37,11 +37,14 @@
 const LLM_PROBE = "ענה במשפט אחד קצר בעברית: מה זה חיסכון?";
 const LLM_HEBREW_MIN = 0.8;   /* שיעור האותיות העבריות מכלל האותיות */
 
+/* מחזירה null כשאין מספיק אותיות כדי למדוד, ולא 0.
+   ההבדל חשוב: "אין לי מה לומר על זה" שונה מ"נמדד ונכשל". במבחן
+   חוסר מדגם הוא כישלון - צריך הוכחה. בתשובה אמיתית הוא לא עילה
+   לפסול: "כן, הבנתי" הוא תור לגיטימי בשיחה, והיה נזרק בשקט כי
+   שבע אותיות לא הספיקו למדידה. */
 function llmHebrewShare(text) {
   const letters = String(text || "").match(/[A-Za-zא-ת]/g);
-  /* פחות משמונה אותיות זה לא מדגם. "כן." היה מקבל 100% עברית בלי
-     להוכיח שום דבר, ובתשובה אמיתית הוא ממילא קצר מכדי להיות שימושי. */
-  if (!letters || letters.length < 8) return 0;
+  if (!letters || letters.length < 8) return null;
   const he = letters.filter(c => c >= "א" && c <= "ת").length;
   return he / letters.length;
 }
@@ -213,10 +216,12 @@ async function llmBoot(afterGesture) {
        בודקים אם מה שיוצא זו בכלל עברית. */
     const probe = await llmSession.prompt(LLM_PROBE);
     const share = llmHebrewShare(probe);
-    llmVerdictWrite(share >= LLM_HEBREW_MIN);
-    if (share < LLM_HEBREW_MIN) {
+    const passed = share !== null && share >= LLM_HEBREW_MIN;
+    llmVerdictWrite(passed);
+    if (!passed) {
       console.info("llm: העברית של המודל לא עברה את המבחן (" +
-                   Math.round(share * 100) + "%):", probe);
+                   (share === null ? "קצר מדי למדידה" :
+                    Math.round(share * 100) + "%") + "):", probe);
       llmSession.destroy();
       llmSession = null;
       llmSet("unsupported", 0, "המודל לא כותב עברית טובה במחשב הזה");
@@ -255,7 +260,7 @@ async function llmRecheck() {
     turn = await llmSession.clone();
     const probe = await turn.prompt(LLM_PROBE);
     const share = llmHebrewShare(probe);
-    if (share >= LLM_HEBREW_MIN) return;
+    if (share !== null && share >= LLM_HEBREW_MIN) return;
 
     console.info("llm: המודל הפסיק לכתוב עברית טובה (" +
                  Math.round(share * 100) + "%), מכבים:", probe);
@@ -320,7 +325,8 @@ async function llmAnswer(question, context, onToken, history) {
 
     /* גם אחרי שהמבחן עבר, תשובה בודדת יכולה לצאת באנגלית - בעיקר
        כששאלו משהו שההקשר לא מכסה. מוטב לא להציג אותה בכלל. */
-    if (llmHebrewShare(text) < LLM_HEBREW_MIN) {
+    const share = llmHebrewShare(text);
+    if (share !== null && share < LLM_HEBREW_MIN) {
       console.info("llm: תשובה לא בעברית, נפסלה:", text);
       return null;
     }
