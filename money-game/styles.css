@@ -2619,12 +2619,19 @@ button:focus-visible {
   transition: width .3s ease;
 }
 
-/* הניסוח של ה-AI יושב מעל התשובה המיידית, לא במקומה - התשובה
-   המיידית היא המקור, והוא הניסוח שלה */
+/* התשובה של המודל. החומר מהאתר הוא מה שהוא קרא לפני שכתב אותה,
+   ולא בלוק נפרד מתחתיה - ולכן אין כאן קו מפריד. */
 .helper-llm {
   margin-block-end: 12px;
   padding-block-end: 11px;
   border-block-end: 2px dashed var(--ink-faint);
+}
+
+/* כשהיא התשובה היחידה בבועה, אין ממה להפריד */
+.helper-llm.solo {
+  margin-block-end: 0;
+  padding-block-end: 0;
+  border-block-end: 0;
 }
 
 .helper-llm p { margin: 0; }

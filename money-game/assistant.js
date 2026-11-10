@@ -505,9 +505,16 @@ function asMyAiLink(question) {
 
 const AS_BIG_TAG = '<span class="helper-llm-tag big">העוזר שלי</span>';
 
+/* כשההודעה היא לא שאלה על כלום - "הי", "תודה" - אין עובדה לאמת,
+   ואזהרה על חוסר שיעור באתר היא רעש. נשארת רק ההסתייגות הבסיסית. */
+function asNotePlain(tag) {
+  return '<p class="helper-llm-note">נכתב על ידי ' +
+         tag.replace(/<[^>]+>/g, "") + " ויכול להכיל טעויות.</p>";
+}
+
 const AS_BIG_NOTE =
-  '<p class="helper-llm-note">נכתב על ידי העוזר שלי, שרץ אצלך במחשב, ' +
-  "ויכול להכיל טעויות. התשובה מתוך האתר נמצאת למטה.</p>";
+  '<p class="helper-llm-note">נכתב על ידי העוזר שלי, שרץ אצלך במחשב, על ' +
+  "סמך השיעורים של האתר, ויכול להכיל טעויות.</p>";
 
 const AS_BIG_NOTE_FREE =
   '<p class="helper-llm-note">אין על זה שיעור באתר, אז העוזר שלי ענה ' +
@@ -572,8 +579,8 @@ function asOtherAI(used) {
    של המודל: הוא מנסח מהר ויפה, אבל הוא גם יכול לטעות, והקורא צריך
    לדעת שמה שמעליו לא נכתב בידי אדם. */
 const AS_LLM_NOTE =
-  '<p class="helper-llm-note">נכתב על ידי ה-AI של גוגל ויכול להכיל ' +
-  "טעויות. התשובה מתוך האתר נמצאת למטה.</p>";
+  '<p class="helper-llm-note">נכתב על ידי ה-AI של גוגל, על סמך השיעורים ' +
+  "של האתר, ויכול להכיל טעויות.</p>";
 
 /* בלי חומר מהאתר מאחוריו, המודל עונה מהידע של עצמו. זו תשובה פחות
    בטוחה מהראשונה, והשורה הזאת אומרת את זה במפורש ולא ברמז. */
@@ -640,46 +647,41 @@ async function asAsk(question) {
   const chat = document.getElementById("helperChat");
 
   let res;
-  const site = document.createElement("div");
   try {
     res = await askAssistant(q);
-    site.innerHTML = asRenderAnswer(res);
-    bubble.innerHTML = "";
-    bubble.appendChild(site);
   } catch (err) {
     bubble.innerHTML = "<p>משהו השתבש אצלי. נסו לנסח אחרת.</p>";
     console.error("assistant:", err);
     return;
   }
-  chat.scrollTop = 1e9;
 
-  /* ---- מי עונה ----
-     תשובת מחשבון היא חישוב מדויק, ותיאור עצמי הוא עובדה על האתר.
-     לשניהם אין מה להוסיף חוץ מטעויות - שם לא נוגעים.
+  /* מה שהאתר מצא, כשאין מודל שיכתוב במקומו */
+  const showSite = () => {
+    bubble.innerHTML = asRenderAnswer(res) +
+                       (res.kind === "miss" ? asMyAiLink(q) : "");
+    chat.scrollTop = 1e9;
+  };
 
-     בשאר המקרים המודל כותב: כשיש חומר באתר הוא מנסח אותו, וכשאין
-     הוא עונה מהידע של עצמו. "לא מצאתי על זה משהו באתר" היא לא
-     תשובה, רק דרך מנומסת לא לענות - עדיף תשובה מסומנת ככזו, עם
-     האזהרה שמתחתיה. */
-  const grounded = res.kind === "answer" && !!res.context;
-  if (res.kind === "math" || res.kind === "self") return;
+  /* חישוב מדויק ותיאור עצמי הם עובדות שלנו, ואין להן ניסוח טוב יותר */
+  if (res.kind === "math" || res.kind === "self") { showSite(); return; }
 
   const ai = asPickAI();
+  if (!ai) { showSite(); return; }
 
-  /* אין כאן שום מודל שרץ - לפחות שיהיה לאן ללכת */
-  if (!ai) {
-    if (!grounded) {
-      bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
-      chat.scrollTop = 1e9;
-    }
-    return;
-  }
-
+  /* ---- תשובה אחת ----
+     המודל עונה, והחומר מהאתר הוא רק מה שנתנו לו לקרוא לפני כן - לא
+     בלוק נפרד שמופיע מתחתיו. קודם זה היה שניים: ניסוח שלו למעלה
+     והשיעור במלואו למטה, וכשההתאמה היתה חלקית נראָה כאילו הוא עונה
+     על שתי שאלות שונות. עכשיו יש תשובה אחת, כמו מכל עוזר אחר, רק
+     שהיא נשענת על מה שכתוב באתר. */
   const live = document.createElement("div");
-  live.className = "helper-llm";
-  live.innerHTML = ai.tag;
-  bubble.insertBefore(live, bubble.firstChild);
+  live.className = "helper-llm solo";
+  live.innerHTML = ai.tag + "<p><em>חושב…</em></p>";
+  bubble.innerHTML = "";
+  bubble.appendChild(live);
+  chat.scrollTop = 1e9;
 
+  const grounded = res.kind === "answer" && !!res.context;
   const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
   const ctx = grounded ? res.context : null;
   const run = who => who.ask(q, ctx, partial => {
@@ -690,8 +692,7 @@ async function asAsk(question) {
   let used = ai;
   let text = await run(used);
 
-  /* עברית שבורה היא לא תשובה. אם השני זמין, נותנים לו לנסות - עדיף
-     תשובה קריאה ממודל אחר מאשר ג'יבריש מהמועדף. */
+  /* עברית שבורה היא לא תשובה. אם השני זמין, נותנים לו לנסות. */
   if (text && asLooksBroken(text)) {
     const alt = asOtherAI(used);
     console.info("llm: עברית שבורה מ" + used.tag.replace(/<[^>]+>/g, "") +
@@ -703,23 +704,28 @@ async function asAsk(question) {
     } else {
       text = null;
     }
-    /* שניהם שברו: מוחקים. תג בלי תשובה מתחתיו נראה כמו תקלה, וטקסט
-       שבור גרוע מכלום - התשובה מהאתר עומדת בפני עצמה. */
   }
 
-  /* בלי הקשר מהאתר, "אינני יודע" הוא לא תשובה. אין למי להעביר את
-     השאלה הלאה, אז לפחות לא מציגים סירוב מנוסח יפה כאילו הוא תשובה. */
-  if (!text || (!grounded && asIsNonAnswer(text))) {
-    live.remove();
-    if (!grounded) bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
-    if (near) chat.scrollTop = 1e9;
+  /* המודל לא נתן כלום. מה שהאתר מצא עדיף על בועה ריקה. */
+  if (!text || asIsNonAnswer(text)) {
+    showSite();
     return;
   }
 
-  /* האזהרה נכנסת רק בסוף, כשיש תשובה שלמה. בזמן הזרימה היא היתה
-     מרקדת למטה עם כל מילה. */
-  live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>" +
-                   (grounded ? used.note : used.noteFree);
+  /* מצביע לסרטון הוא הפניה, לא תשובה נוספת - ולכן הוא נשאר */
+  const video = (grounded && res.video)
+    ? '<p class="helper-aside">יש על זה סרטון: <strong>' +
+      asEscape(res.video.title) + "</strong> · " +
+      asEscape(res.video.grade || "") + "</p>"
+    : "";
+
+  /* הודעה שלא נשארה בה אף מילת תוכן אחרי הלקסיקון היא לא שאלה על
+     נושא, אלא פתיחת שיחה. אין שם מה לבדוק מול מבוגר. */
+  const note = grounded ? used.note
+             : asTokens(q).length ? used.noteFree
+             : asNotePlain(used.tag);
+
+  live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>" + note + video;
   if (near) chat.scrollTop = 1e9;
 }
 
