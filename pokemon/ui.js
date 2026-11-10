@@ -62,10 +62,62 @@ function seatPos(i, n) {
 
 function renderTable() {
   const t = $("#table");
-  if (!S || ui.screen !== "game") {
-    t.innerHTML = `<div class="felt"><div class="center"><div class="logo">פוקימון<br><small>שולחן ההרפתקה</small></div></div></div>`;
+  const inGame = !!S && ui.screen === "game";
+  document.body.classList.toggle("in-game", inGame);
+  if (!inGame) {
+    if (window.Arena && Arena.ok) Arena.unmount();
+    t.innerHTML = "";
+    t.className = "table";
     return;
   }
+  if (window.Arena && Arena.ok) return renderArena(t);
+  renderFelt(t);
+}
+
+/* זירת תלת-ממד: הקנבס נשאר, ורק השכבות של HTML מתעדכנות */
+function renderArena(t) {
+  if (!t.querySelector(".arena-canvas")) {
+    t.className = "table arena";
+    t.innerHTML = `<div class="hud"></div><div class="tags"></div><div class="fx-layer"></div>`;
+    Arena.mount(t);
+  }
+  const cur = ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null;
+  const rolling = S.phase === "starterRoll" || S.phase === "roundRoll";
+  t.querySelector(".tags").innerHTML = S.players.map(p => {
+    let die = "";
+    if (p.roll) die = `<span class="die">${DIE[p.roll]}</span>`;
+    else if (rolling) die = `<span class="die waiting">🎲</span>`;
+    const mine = p.pid === Net.myPid;
+    const dots = p.team.map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
+    return `<button class="tag${p.pid === cur ? " active" : ""}${mine ? " mine" : ""}" data-pid="${p.pid}" onclick="showTeam('${p.pid}')">
+      <span class="tag-name">${esc(p.name)} ${die}</span>
+      <span class="seat-team">${dots}</span>
+    </button>`;
+  }).join("");
+
+  let hud = "";
+  if (S.wild) {
+    const d = POKEMON[S.wild.id];
+    const pct = Math.round(100 * S.wild.hp / S.wild.maxHp);
+    const cls = pct > 50 ? "good" : pct > 20 ? "mid" : "low";
+    hud += `<div class="wild-hud${S.wild.boss ? " boss" : ""}">
+      <div class="wh-top"><b>${d.he}</b><span class="card-types">${typeBadges(d.types)}</span></div>
+      <div class="hp"><div class="hp-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="wh-bottom"><span>❤️ ${S.wild.hp}/${S.wild.maxHp}</span>${S.wild.boss ? "" : `<span>🎯 ${Math.round(catchChance(S.wild) * 100)}%</span>`}</div>
+    </div>`;
+  } else if (S.phase === "waiting") {
+    hud += `<div class="wild-hud wait"><b>${S.players.length}/${S.N}</b></div>`;
+  }
+  if (S.deck) {
+    hud += `<div class="chips"><span class="chip" title="חבילה">🎴 ${S.deck.length}</span>
+      <span class="chip" title="מרפאה">🏥 ${CONFIG.clinicEvery - (S.resolved % CONFIG.clinicEvery)}</span></div>`;
+  }
+  t.querySelector(".hud").innerHTML = hud;
+}
+
+/* גיבוי: אם אין תלת-ממד בטלפון, מציירים את השולחן הישן */
+function renderFelt(t) {
+  t.className = "table";
   const n = S.players.length;
   const myIndex = Math.max(0, S.players.findIndex(p => p.pid === Net.myPid));
   const cur = ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null;
@@ -97,6 +149,99 @@ function renderTable() {
   t.innerHTML = `<div class="felt"><div class="center">${center}</div>${deck}${clinic}</div>${seats}`;
 }
 
+/* ---------- מסכי הלובי ---------- */
+
+const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+
+function trainerCard() {
+  const P = Profile.get();
+  const list = Profile.dexList();
+  const caught = list.filter(id => P.caught[id]).length;
+  const st = P.stats;
+  const fav = Object.entries(P.caught).sort((a, b) => b[1] - a[1])[0];
+  const avatar = fav ? `<img src="${ART_URL(POKEMON[fav[0]].dex)}" alt="">` : `<span class="ball-icon"></span>`;
+  return `<div class="trainer">
+    <div class="avatar">${avatar}</div>
+    <div class="t-info">
+      <div class="t-name">${esc(ui.name)}</div>
+      <div class="t-sub">📖 ${caught}/${list.length} · 🏆 ${st.wins} · 🎮 ${st.games}</div>
+    </div>
+  </div>`;
+}
+
+function dexScreen() {
+  const P = Profile.get();
+  const list = Profile.dexList();
+  const caught = list.filter(id => P.caught[id]).length;
+  const seen = list.filter(id => P.seen[id] || P.caught[id]).length;
+  const cells = list.map(id => {
+    const d = POKEMON[id];
+    const isBoss = id === CONFIG.boss.id;
+    const got = P.caught[id] || (isBoss && P.stats.wins > 0);
+    const saw = got || P.seen[id];
+    const no = `#${String(d.dex).padStart(3, "0")}`;
+    return `<button class="dex-cell${got ? " got" : saw ? " seen" : ""}" ${saw ? `onclick="dexInfo('${id}')"` : ""}>
+      <img src="${ART_URL(d.dex)}" alt="" loading="lazy">
+      <span class="dex-no">${no}</span>
+      <span class="dex-name">${saw ? d.he : "???"}</span>
+    </button>`;
+  }).join("");
+  return `<div class="screen-head"><button class="btn small" onclick="go('home')">↩</button><h2>פוקידקס</h2><span class="head-count">${caught}/${list.length}</span></div>
+    <div class="dex-bar"><span style="width:${pct(seen, list.length)}%" class="seen-fill"></span><span style="width:${pct(caught, list.length)}%" class="got-fill"></span></div>
+    <div class="dex-legend"><span><i class="lg got"></i>נתפסו ${caught}</span><span><i class="lg seen"></i>נראו ${seen}</span></div>
+    <div class="dex-grid">${cells}</div>`;
+}
+
+function dexInfo(id) {
+  const P = Profile.get();
+  const d = POKEMON[id];
+  const got = P.caught[id] || (id === CONFIG.boss.id && P.stats.wins > 0);
+  const mon = makeMon(id);
+  const extra = got
+    ? `<div class="chance">${id === CONFIG.boss.id ? `🏆 הובס ${P.stats.wins}` : `🔴 ${P.caught[id]}`}</div>`
+    : `<div class="chance">👁️</div>`;
+  modal(`<div class="dex-card${got ? "" : " silhouette"}">${cardHTML(mon, extra)}</div>
+    <button class="btn primary" onclick="closeModal()">סגור</button>`, "dex");
+}
+
+function statsScreen() {
+  const st = Profile.get().stats;
+  const fav = Object.entries(st.starters).sort((a, b) => b[1] - a[1])[0];
+  const rows = [
+    ["🎮", "משחקים", st.games],
+    ["🏆", "ניצחונות על מיוטו", st.wins],
+    ["💫", "הפסדים", st.losses],
+    ["⚔️", "תקיפות", st.attacks],
+    ["💥", "נזק כולל", st.damage],
+    ["🔥", "המכה הכי חזקה", st.bestHit],
+    ["🔴", "תפיסות", `${st.catches}/${st.tries}`],
+    ["🎯", "אחוז הצלחה בתפיסה", `${pct(st.catches, st.tries)}%`]
+  ];
+  return `<div class="screen-head"><button class="btn small" onclick="go('home')">↩</button><h2>סטטיסטיקות</h2><span></span></div>
+    ${fav ? `<div class="fav"><img src="${ART_URL(POKEMON[fav[0]].dex)}" alt=""><div><small>ההתחלתי האהוב</small><b>${POKEMON[fav[0]].he}</b></div></div>` : ""}
+    <div class="stat-grid">${rows.map(([i, l, v]) => `<div class="stat"><span class="s-icon">${i}</span><b>${v}</b><small>${l}</small></div>`).join("")}</div>`;
+}
+
+function settingsScreen() {
+  const se = Profile.get().settings;
+  const toggle = (k, icon, label) => `<label class="set-row"><span>${icon} ${label}</span>
+      <input type="checkbox" ${se[k] ? "checked" : ""} onchange="Profile.setSetting('${k}', this.checked); if (this.checked && '${k}' === 'sound') Sfx.play('turn'); if (this.checked && '${k}' === 'vibrate') buzz(120);">
+      <i class="switch"></i></label>`;
+  return `<div class="screen-head"><button class="btn small" onclick="go('home')">↩</button><h2>הגדרות</h2><span></span></div>
+    <div class="settings">
+      ${toggle("sound", "🔊", "צלילים")}
+      ${toggle("vibrate", "📳", "רטט בתור שלי")}
+      <button class="set-row" onclick="editName()"><span>✏️ שינוי שם</span><span class="muted">${esc(ui.name)}</span></button>
+      <button class="set-row danger" onclick="confirmWipe()"><span>🗑️ איפוס התקדמות</span></button>
+    </div>`;
+}
+
+function confirmWipe() {
+  modal(`<h2>לאפס הכל?</h2><p>הפוקידקס והסטטיסטיקות יימחקו.</p>
+    <div class="row"><button class="btn" onclick="closeModal()">לא</button>
+    <button class="btn primary" onclick="Profile.wipe(); closeModal(); render()">כן</button></div>`, "wipe");
+}
+
 /* ---------- לוח הפעולות ---------- */
 
 function countBtns(fn) {
@@ -109,9 +254,13 @@ function renderPanel() {
   switch (ui.screen) {
     case "home":
       el.innerHTML = ui.name
-        ? `<h2>שלום ${esc(ui.name)}!</h2>${note}
-           <button class="btn primary big" onclick="go('mode')">משחק</button>
-           <button class="btn small linkish" onclick="editName()">שינוי שם</button>`
+        ? `${trainerCard()}${note}
+           <button class="btn primary big play" onclick="go('mode')">משחק</button>
+           <div class="menu-row">
+             <button class="menu-btn" onclick="go('dex')"><span>📖</span>פוקידקס</button>
+             <button class="menu-btn" onclick="go('stats')"><span>📊</span>סטטיסטיקות</button>
+             <button class="menu-btn" onclick="go('settings')"><span>⚙️</span>הגדרות</button>
+           </div>`
         : `<h2>איך קוראים לך?</h2>${note}
            <input class="name" id="nameInput" maxlength="12" placeholder="השם שלך" autocomplete="off">
            <button class="btn primary big" onclick="saveName()">המשך</button>`;
@@ -147,6 +296,15 @@ function renderPanel() {
           <button class="btn" onclick="go('roomMenu')">↩ חזור</button>
           <button class="btn primary" onclick="startJoin()">כניסה</button>
         </div>`;
+      break;
+    case "dex":
+      el.innerHTML = dexScreen();
+      break;
+    case "stats":
+      el.innerHTML = statsScreen();
+      break;
+    case "settings":
+      el.innerHTML = settingsScreen();
       break;
     case "connecting":
       el.innerHTML = `<h2>${esc(ui.connectingText || "מתחברים...")}</h2><div class="spinner"></div>
@@ -210,8 +368,12 @@ function gamePanel() {
       }
       break;
     case "anim":
-    case "wheel":
       html = `<h2>${esc(S.action || "")}</h2>`;
+      break;
+    case "wheel":
+      html = `<h2>${esc(S.action || "")}</h2>
+        <div class="wheel-wrap"><div class="pointer">▼</div><canvas id="wheel" width="400" height="400"></canvas></div>
+        <div id="wheelResult" class="wheel-result">&nbsp;</div>`;
       break;
     case "message":
       html = `<h2>${esc(S.message.title)}</h2><p class="pre">${esc(S.message.text)}</p>${timerBar()}`;
@@ -268,23 +430,33 @@ function openCatch() {
     </div>`, "catch");
 }
 
-/* גלגל המזל - כולם רואים אותו מסתובב בדיוק לאותה נקודה */
+/* גלגל המזל - כולם רואים אותו מסתובב בדיוק לאותה נקודה.
+   הלוח מצויר מחדש בכל מצב, אז שומרים לאן הגלגל הגיע וממשיכים משם. */
 function playWheel() {
   const w = S.wheel;
   if (!w) return;
-  const who = w.pid === Net.myPid ? "אתה מנסה" : `${esc(playerName(w.pid))} מנסה`;
-  modal(`<h2>גלגל המזל</h2><p>${who} לתפוס את ${POKEMON[S.wild.id].he}</p>
-    <div class="wheel-wrap"><div class="pointer">▼</div><canvas id="wheel" width="520" height="520"></canvas></div>
-    <div id="wheelResult" class="wheel-result">&nbsp;</div>`, "wheel");
-  drawWheel($("#wheel"), w.chance);
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const c = $("#wheel");
-    if (c) c.style.transform = `rotate(${w.turn}deg)`;
-  }));
-  setTimeout(() => {
+  ui.wheel = {turn: w.turn, success: w.success, chance: w.chance, start: Date.now()};
+  paintWheel(true);
+}
+
+function paintWheel(spin) {
+  const c = $("#wheel");
+  const w = ui.wheel;
+  if (!c || !w || S.phase !== "wheel") return;
+  drawWheel(c, w.chance);
+  const elapsed = Date.now() - w.start;
+  if (spin && elapsed < 200) {
+    requestAnimationFrame(() => requestAnimationFrame(() => { c.style.transform = `rotate(${w.turn}deg)`; }));
+  } else {
+    c.style.transition = "none";
+    c.style.transform = `rotate(${w.turn}deg)`;
+  }
+  const show = () => {
     const r = $("#wheelResult");
-    if (r) r.innerHTML = w.success ? `<b class="ok">נתפס! 🎉</b>` : `<b class="bad">ברח! 💨</b>`;
-  }, 3500);
+    if (r && S.phase === "wheel") r.innerHTML = w.success ? `<b class="ok">נתפס! 🎉</b>` : `<b class="bad">ברח! 💨</b>`;
+  };
+  if (elapsed >= 3500) show();
+  else setTimeout(show, 3500 - elapsed);
 }
 
 function drawWheel(c, chance) {
@@ -311,6 +483,7 @@ function drawWheel(c, chance) {
 }
 
 function flashDamage(dmg, mult) {
+  if (window.Arena && Arena.ok) return;
   const el = $(".wild-card");
   if (!el) return;
   el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit");
@@ -354,9 +527,13 @@ setInterval(tickTimer, 200);
 /* ---------- הגעת מצב מהמארח ---------- */
 
 function onState(msg) {
-  const prevPhase = S && S.phase;
-  const prevTurn = S && currentPid();
+  // אצל המארח המצב הוא אותו אובייקט שמשתנה, אז זוכרים ערכים ולא את האובייקט
+  const prevPhase = ui.lastPhase;
+  const prevTurn = ui.lastTurn;
   S = msg.S;
+  ui.lastPhase = S.phase;
+  ui.lastTurn = currentPid();
+  Profile.onState(S, Net.myPid, msg.fx);
   ui.deadline = Date.now() + (msg.remaining || 0);
   ui.total = msg.remaining ? msg.total : 0;
   if (ui.screen !== "game") { ui.screen = "game"; ui.note = ""; }
@@ -364,15 +541,20 @@ function onState(msg) {
   // התור עבר - סוגרים חלונות שנשארו פתוחים
   if (S.phase !== "turn" || currentPid() !== prevTurn || !isMyTurn()) ui.attackOpen = false;
   if (ui.modalKind === "catch" && (S.phase !== "turn" || !isMyTurn())) closeModal();
-  if (ui.modalKind === "wheel" && S.phase !== "wheel") closeModal();
+  if (S.phase !== "wheel") ui.wheel = null;
+  const myTurnNow = (S.phase === "turn" || S.phase === "starterPick") && isMyTurn();
+  if (myTurnNow && (prevPhase !== S.phase || prevTurn !== currentPid())) { Sfx.play("turn"); buzz(150); }
+  if (S.phase === "end" && prevPhase !== "end") Sfx.play(S.win ? "win" : "lose");
   if (S.phase !== prevPhase && S.phase === "starterPick") ui.carousel = 0;
   if (S.phase === "starterPick" && currentPid() !== prevTurn) ui.carousel = 0;
 
   renderTable();
+  if (window.Arena && Arena.ok) Arena.sync(S, Net.myPid, ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null, msg.fx);
   renderPanel();
   tickTimer();
   if (msg.fx && msg.fx.kind === "damage") flashDamage(msg.fx.dmg, msg.fx.mult);
   if (msg.fx && msg.fx.kind === "wheel") playWheel();
+  else paintWheel(false);
 }
 
 /* ---------- ניווט בלובי ---------- */
@@ -386,9 +568,10 @@ function saveName() {
   Net.setName(v);
   try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
   ui.note = "";
+  ui.screen = "home";
   render();
 }
-function editName() { ui.name = ""; render(); }
+function editName() { ui.name = ""; ui.screen = "home"; render(); }
 
 async function connecting(text, job) {
   ui.screen = "connecting";
@@ -435,6 +618,8 @@ function confirmLeave() {
 function leaveGame() {
   Net.leave();
   S = null;
+  ui.lastPhase = ui.lastTurn = null;
+  Profile.resetGame();
   ui.screen = "home";
   ui.status = "";
   ui.attackOpen = false;
@@ -453,12 +638,21 @@ Net.setUI({
   onStatus: text => { ui.status = text; renderPanel(); tickTimer(); },
   onLeft: text => {
     S = null;
+    ui.lastPhase = ui.lastTurn = null;
+    Profile.resetGame();
     ui.screen = "home";
     ui.status = "";
     ui.note = text;
     closeModal();
     render();
   }
+});
+
+window.addEventListener("arena-ready", () => { if (S && ui.screen === "game") onState({S, fx: null, remaining: Math.max(0, ui.deadline - Date.now()), total: ui.total}); });
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  if (e.target.id === "nameInput") saveName();
+  if (e.target.id === "codeInput") startJoin();
 });
 
 try { ui.name = localStorage.getItem(NAME_KEY) || ""; } catch (e) {}

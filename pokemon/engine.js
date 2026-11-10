@@ -247,7 +247,7 @@ const Engine = (() => {
     S.phase = "anim";
     S.action = text;
     schedule(MS.anim, afterAnim);
-    commit({kind: "damage", dmg, mult});
+    commit({kind: "damage", dmg, mult, pid: p.pid, index: monIndex, id: mon.id});
   }
 
   function afterAnim() {
@@ -295,14 +295,14 @@ const Engine = (() => {
     resolveWild(`${POKEMON[w.id].he} התעלף!`, "הוא חוזר למקום אקראי בחבילה.");
   }
 
-  function resolveWild(title, text) {
+  function resolveWild(title, text, fx) {
     S.resolved++;
     if (S.resolved % CONFIG.clinicEvery === 0) {
       healAll();
       log("ביקור במרפאה - כולם מתרפאים");
       text += ` אחרי ${CONFIG.clinicEvery} פוקימונים פראיים הולכים למרפאה: כל הפוקימונים חוזרים לחיים מלאים. 🏥`;
     }
-    showMessage(title, text, "drawWild");
+    showMessage(title, text, "drawWild", MS.msg, fx);
   }
 
   function healAll() {
@@ -317,23 +317,26 @@ const Engine = (() => {
     const name = POKEMON[S.wild.id].he;
     const hits = S.wild.boss ? S.players.length : 1;
     const lines = [];
+    const fxHits = [];
     for (let k = 0; k < hits && anyAlive(); k++) {
       const targets = [];
       S.players.forEach(p => p.team.forEach(m => m.hp > 0 && targets.push({p, m})));
       const {p, m} = targets[rnd(targets.length)];
       const {mult, dmg} = damageOf(S.wild.id, m.id);
       m.hp = Math.max(0, m.hp - dmg);
+      fxHits.push({pid: p.pid, id: m.id, index: p.team.indexOf(m), dmg, mult, ko: m.hp === 0});
       const ko = m.hp === 0 ? " - התעלף! 💫" : "";
       lines.push(`תוקף את ${POKEMON[m.id].he} של ${p.name}: ‎-${dmg} (${multText(mult)})${ko}`);
       log(`${name} ${lines[lines.length - 1]}`);
     }
     const title = `תור של ${name}`;
-    if (!anyAlive()) return showMessage(title, lines.join("\n"), "lose");
-    if (S.wild.boss) return showMessage(title, lines.join("\n") + "\n\nמטילים שוב קוביות לסבב הבא.", "roundRoll");
+    const fx = {kind: "wildAttack", hits: fxHits};
+    if (!anyAlive()) return showMessage(title, lines.join("\n"), "lose", MS.msg, fx);
+    if (S.wild.boss) return showMessage(title, lines.join("\n") + "\n\nמטילים שוב קוביות לסבב הבא.", "roundRoll", MS.msg, fx);
     S.deck.splice(rnd(S.deck.length + 1), 0, S.wild.id);
     S.wild = null;
     log(`${name} חזר לחבילה`);
-    resolveWild(title, lines.join("\n") + `\n\nאף אחד לא תפס אותו, אז ${name} חוזר למקום אקראי בחבילה עם חיים מלאים.`);
+    resolveWild(title, lines.join("\n") + `\n\nאף אחד לא תפס אותו, אז ${name} חוזר למקום אקראי בחבילה עם חיים מלאים.`, fx);
   }
 
   function endGame(win) {
@@ -345,11 +348,11 @@ const Engine = (() => {
     commit();
   }
 
-  function showMessage(title, text, next, ms = MS.msg) {
+  function showMessage(title, text, next, ms = MS.msg, fx) {
     S.message = {title, text, next};
     S.phase = "message";
     schedule(ms, continueMessage);
-    commit();
+    commit(fx);
   }
 
   const NEXT = {

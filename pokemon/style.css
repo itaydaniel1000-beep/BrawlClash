@@ -157,3 +157,121 @@ main { max-width: 720px; margin: 0 auto; padding-block: 0 24px; padding-left: ma
 .timer-fill.low { background: #ff5252; }
 #timerText { position: absolute; inset: 0; font-size: 12px; font-weight: bold; line-height: 18px; }
 @media (prefers-reduced-motion: reduce) { .spinner, .die.waiting { animation: none; } }
+
+/* ===== רקע הלובי: שקיעה רגועה, גבעות, וכדור שקוף שמסתובב לאט ===== */
+.sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: linear-gradient(180deg, #141a2e 0%, #1d2747 45%, #2b3a5c 72%, #3b4a5e 100%); transition: opacity .6s; }
+body.in-game .sky { opacity: 0; }
+.sky i { position: absolute; display: block; }
+.sky .glow { left: 50%; bottom: 18%; width: 140vmax; height: 60vmax; transform: translateX(-50%);
+  background: radial-gradient(ellipse at center bottom, rgba(255,190,120,.18), rgba(255,190,120,0) 60%); }
+.sky .ball-mark { width: 120vmin; height: 120vmin; left: 50%; top: 46%; margin: -60vmin 0 0 -60vmin; opacity: .05;
+  background: radial-gradient(circle, transparent 0 9%, #fff 9% 13.5%, transparent 13.5% 47%, #fff 47% 50%, transparent 50%),
+              linear-gradient(transparent 47.5%, #fff 47.5% 52.5%, transparent 52.5%);
+  -webkit-mask: radial-gradient(circle, #000 0 50%, transparent 50.3%); mask: radial-gradient(circle, #000 0 50%, transparent 50.3%);
+  animation: slowspin 160s linear infinite; }
+.sky .hills { left: -10%; right: -10%; bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+.sky .hills.far { height: 22vh; bottom: 4vh; background: #22344a; transform: scaleX(1.2) translateX(-12%); }
+.sky .hills.near { height: 16vh; background: #1a2a3a; transform: translateX(18%); }
+@keyframes slowspin { to { transform: rotate(360deg); } }
+html, body { background: transparent; }
+html { background: var(--bg); }
+
+/* בלובי אין שולחן - רק הלוח באמצע */
+body:not(.in-game) .table { display: none; }
+body:not(.in-game) main { min-height: calc(100vh - 60px); display: flex; flex-direction: column; justify-content: center; }
+body:not(.in-game) .panel { background: rgba(22,28,44,.82); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,.06); }
+
+/* ===== כרטיס מאמן ותפריט ===== */
+.trainer { display: flex; align-items: center; gap: 12px; text-align: right; background: rgba(0,0,0,.25); border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; }
+.avatar { width: 58px; height: 58px; flex: none; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #3a4762, #1b2233); border: 2px solid var(--gold); display: grid; place-items: center; overflow: hidden; }
+.avatar img { width: 115%; height: 115%; object-fit: contain; }
+.ball-icon { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #222; background: linear-gradient(#e3262e 0 46%, #222 46% 54%, #f5f5f5 54%); position: relative; }
+.ball-icon::after { content: ""; position: absolute; inset: 0; margin: auto; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 3px solid #222; }
+.t-name { font-size: 20px; font-weight: bold; }
+.t-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.btn.play { width: 100%; max-width: 320px; font-size: 20px; padding: 14px; }
+.menu-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.menu-btn { font: inherit; font-size: 13px; font-weight: bold; color: var(--text); background: #232a3b; border: 2px solid #343d53; border-radius: 12px; padding: 10px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.menu-btn span { font-size: 22px; }
+.menu-btn:active { transform: scale(.97); }
+
+.screen-head { display: grid; grid-template-columns: 48px 1fr 48px; align-items: center; margin-bottom: 8px; }
+.screen-head h2 { margin: 0; }
+.head-count { font-weight: bold; color: var(--gold); }
+
+/* ===== פוקידקס ===== */
+.dex-bar { position: relative; height: 8px; background: #12161f; border-radius: 4px; overflow: hidden; }
+.dex-bar span { position: absolute; top: 0; bottom: 0; right: 0; border-radius: 4px; }
+.seen-fill { background: #4a5570; } .got-fill { background: var(--gold); }
+.dex-legend { display: flex; gap: 14px; justify-content: center; font-size: 12px; color: var(--muted); margin: 6px 0 10px; }
+.lg { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-inline-end: 4px; }
+.lg.got { background: var(--gold); } .lg.seen { background: #4a5570; }
+.dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; max-height: 58vh; overflow: auto; padding: 2px; }
+.dex-cell { font: inherit; color: var(--text); background: #151a26; border: 2px solid #2a3245; border-radius: 12px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: default; }
+.dex-cell img { width: 64px; height: 64px; object-fit: contain; filter: brightness(0) opacity(.35); }
+.dex-cell.seen img { filter: brightness(0) opacity(.75); }
+.dex-cell.got { background: linear-gradient(160deg, #263049, #1a2134); border-color: #4a5a80; cursor: pointer; }
+.dex-cell.seen { cursor: pointer; }
+.dex-cell.got img { filter: drop-shadow(0 2px 2px rgba(0,0,0,.5)); }
+.dex-no { font-size: 10px; color: var(--muted); }
+.dex-name { font-size: 12px; font-weight: bold; }
+.dex-card { display: flex; justify-content: center; margin-bottom: 12px; }
+.dex-card.silhouette .card-art img { filter: brightness(0); }
+
+/* ===== סטטיסטיקות ===== */
+.fav { display: flex; align-items: center; gap: 10px; justify-content: center; background: rgba(0,0,0,.25); border-radius: 14px; padding: 6px 12px; margin-bottom: 10px; }
+.fav img { width: 54px; height: 54px; object-fit: contain; }
+.fav div { display: flex; flex-direction: column; text-align: right; }
+.fav small { color: var(--muted); font-size: 12px; }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { background: #151a26; border-radius: 12px; padding: 10px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.stat .s-icon { font-size: 20px; }
+.stat b { font-size: 22px; color: var(--gold); }
+.stat small { font-size: 12px; color: var(--muted); }
+
+/* ===== הגדרות ===== */
+.settings { display: flex; flex-direction: column; gap: 8px; }
+.set-row { font: inherit; color: var(--text); font-size: 16px; display: flex; align-items: center; justify-content: space-between; background: #151a26; border: none; border-radius: 12px; padding: 13px 14px; cursor: pointer; position: relative; text-align: right; }
+.set-row input { position: absolute; opacity: 0; pointer-events: none; }
+.switch { width: 46px; height: 26px; border-radius: 13px; background: #3a4256; position: relative; transition: background .2s; flex: none; }
+.switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: right .2s; }
+.set-row input:checked + .switch { background: #3ddc84; }
+.set-row input:checked + .switch::after { right: 23px; }
+.set-row input:focus-visible + .switch { outline: 2px solid var(--gold); outline-offset: 2px; }
+.set-row.danger { color: #ff8a80; }
+
+/* ===== זירת תלת-ממד ===== */
+.table.arena { aspect-ratio: auto; height: min(58vh, 520px); min-height: 280px; max-height: none; margin: 4px auto 10px; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,.45); }
+.arena-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+.arena .hud, .arena .tags, .arena .fx-layer { position: absolute; inset: 0; pointer-events: none; }
+.arena .tags .tag { pointer-events: auto; }
+.tag { position: absolute; transform: translate(-50%, -100%); font: inherit; color: #fff; background: rgba(16,20,30,.82); border: 2px solid rgba(255,255,255,.25); border-radius: 10px; padding: 2px 7px 3px; cursor: pointer; display: flex; flex-direction: column; align-items: center; white-space: nowrap; max-width: 110px; }
+.tag.mine { border-color: #6aa9ff; }
+.tag.active { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
+.tag-name { font-size: 12px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tag .die { font-size: 16px; }
+.tag .seat-team { margin-top: 1px; min-height: 0; }
+.tag .dot { width: 8px; height: 8px; }
+.wild-hud { position: absolute; top: 10px; right: 10px; min-width: 170px; max-width: 62%; background: rgba(250,250,245,.94); color: #222; border-radius: 12px 4px 12px 4px; padding: 6px 10px 7px; box-shadow: 0 3px 10px rgba(0,0,0,.3); border-bottom: 4px solid #c9b98a; }
+.wild-hud.boss { background: rgba(40,18,40,.92); color: #fff; border-bottom-color: #ff4d6d; }
+.wild-hud.wait { min-width: 0; font-size: 18px; }
+.wh-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.wh-top b { font-size: 16px; }
+.wh-top .card-types { margin: 0; }
+.wh-top .type { color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.5); }
+.wh-bottom { display: flex; justify-content: space-between; font-size: 12px; margin-top: 3px; font-weight: bold; }
+.chips { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 6px; }
+.chip { background: rgba(16,20,30,.75); color: #fff; font-size: 13px; font-weight: bold; padding: 4px 9px; border-radius: 10px; }
+.fx-layer .float { position: absolute; transform: translate(-50%, -50%); margin: 0; }
+.float.hurt { color: #ff6b6b; font-size: 24px; }
+.panel .wheel-wrap { width: 190px; height: 190px; margin: 10px auto 4px; }
+.panel .wheel-result { min-height: 32px; }
+@media (max-width: 420px) {
+  .table.arena { height: 52vh; }
+  .wild-hud { min-width: 140px; padding: 5px 8px; }
+  .wh-top b { font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .sky .ball-mark { animation: none; } }
+.fx-layer .flash { position: absolute; inset: 0; background: #fff; animation: flash .7s ease-out forwards; }
+@keyframes flash { from { opacity: .9; } to { opacity: 0; } }

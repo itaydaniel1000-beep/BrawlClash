@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>שולחן ההרפתקה</title>
   <link rel="stylesheet" href="style.css">
+  <script type="importmap">{"imports": {"three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
+  <div class="sky" aria-hidden="true"><i class="glow"></i><i class="ball-mark"></i><i class="hills far"></i><i class="hills near"></i></div>
   <header class="top">
     <h1>⚡ שולחן ההרפתקה</h1>
     <button id="leaveBtn" class="btn small" onclick="confirmLeave()" hidden>יציאה</button>
@@ -20,6 +22,8 @@
   <script src="data.js"></script>
   <script src="engine.js"></script>
   <script src="net.js"></script>
+  <script src="profile.js"></script>
   <script src="ui.js"></script>
+  <script type="module" src="arena.js"></script>
 </body>
 </html>
