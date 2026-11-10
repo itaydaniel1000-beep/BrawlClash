@@ -583,14 +583,20 @@ const AS_REFUSAL =
    ביניהן בספירה, אז החשד הזה שולח לנסות את המודל השני, אבל אם אין
    שני - מציגים בכל זאת. שאר הכשלים חמורים מכדי להציג. */
 const AS_MILD = "מילה זרה";
+/* קוצר הוא חשד בתשובה לשאלה פתוחה, אבל לא במבחן שבו ביקשנו
+   מפורשות מילה אחת. bigai.js מתעלם ממנו שם. */
+const AS_TOO_SHORT = "קצר מדי";
 
 function asBrokenReason(text) {
   const t = String(text || "").trim();
-  if (t.length < 10) return "קצר מדי";
+  if (!t) return AS_TOO_SHORT;
+  /* שבירה נבדקת לפני אורך. אחרת "הBEDLל" מקבל "קצר מדי", והמבחן
+     שמתעלם מקוצר היה מקבל אותו כתשובה תקינה. */
   if (/[א-ת][A-Za-zЀ-ӿ]|[A-Za-zЀ-ӿ][א-ת]/.test(t)) return "אלפבית בתוך מילה";
   if (asLoops(t)) return "לולאה";
   if (AS_REFUSAL.test(t)) return "סירוב";
   if (asForeignMix(t)) return AS_MILD;
+  if (t.length < 10) return AS_TOO_SHORT;
   return null;
 }
 
@@ -600,6 +606,8 @@ function asLooksBroken(text) {
 
 /* bigai.js משתמש בה למבחן האיכות שלו, והוא נטען לפני הקובץ הזה */
 window.asLooksBroken = asLooksBroken;
+window.asBrokenReason = asBrokenReason;
+window.AS_TOO_SHORT = AS_TOO_SHORT;
 
 /* המודל השני, לנפילה אחורה כשהראשון שבר את העברית */
 function asOtherAI(used) {

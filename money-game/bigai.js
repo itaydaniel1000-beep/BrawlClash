@@ -150,7 +150,11 @@ async function bigaiQualityTest() {
   const m = mod;
   if (!m) return;
 
-  const broken = window.asLooksBroken || (t => String(t || "").trim().length < 10);
+  /* ביקשנו מילה אחת, אז קוצר הוא לא פסול כאן - רק שבירה אמיתית:
+     אלפבית מעורבב, לולאה או סירוב. */
+  const reason = window.asBrokenReason || (() => null);
+  const tooShort = window.AS_TOO_SHORT || "קצר מדי";
+  const broken = t => { const why = reason(t); return !!why && why !== tooShort; };
   let passed = 0;
   for (const item of BIGAI_EXAM) {
     try {
