@@ -128,8 +128,15 @@ async function bigaiAnswer(question, context, onToken) {
 
   const prompt = context
     ? "ענה אך ורק על סמך המידע הבא. אל תוסיף עובדות, מספרים או " +
-      "דוגמאות שלא מופיעים בו.\n\nמידע:\n" + context + "\n\nשאלה: " + question
-    : "ענה מהידע שלך, בפשטות ולעניין.\n\nשאלה: " + question;
+      "דוגמאות שלא מופיעים בו.
+
+מידע:
+" + context + "
+
+שאלה: " + question
+    : "ענה מהידע שלך, בפשטות ולעניין.
+
+שאלה: " + question;
 
   try {
     const text = await m.chat(
