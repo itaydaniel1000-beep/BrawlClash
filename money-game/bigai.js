@@ -119,31 +119,50 @@ async function bigaiBoot() {
 }
 
 /* ---------- מבחן איכות ----------
-   העברית של המודל הזה לא עקבית. לפעמים היא טובה, ולפעמים יוצא
-   "כמובן! קסם קסם, מטבע מטבע" או "אני לא יודע את השאלה completa".
-   אותו רעיון כמו מבחן העברית של המודל של גוגל: שאלה אחת בטעינה,
-   ואם התשובה שבורה הוא מסומן כחלש.
+   מבחן צורה לא מספיק. המודל הזה מייצר עברית תקינה לגמרי שהיא שקר:
+   "חיסכון זה התחלה למכור חפצים שמכירים" עובר כל בדיקת כתיב, לולאה
+   ואלפבית - והוא שטות. לכן המבחן שואל שאלה שיש לה תשובה אחת ידועה.
 
-   חלש זה לא כבוי. הוא עדיין עונה כשאין אחר - פשוט לא ראשון.
-   assistant.js קורא את הדגל הזה ומחליט לפיו. */
+   נמדד: על "כסף שמשאירים בצד לשימוש בעתיד נקרא ___" הוא ענה
+   "קופון", ועל "תוכנית שמחליטה כמה כסף להוציא נקראת ___" הוא ענה
+   "תנאי". המודל של גוגל ענה חיסכון ותקציב. מי שלא מכיר את אוצר
+   המילים הזה לא יסביר אותו לילד.
+
+   חלש זה לא כבוי: הוא עדיין עונה כשאין אחר, פשוט לא ראשון. ואם
+   יום אחד ירוץ כאן מוח גדול יותר שעובר - הוא יחזור להיות ראשון
+   לבד, בלי שאף אחד יחליט את זה ביד. */
+const BIGAI_EXAM = [
+  {q: "השלם במילה אחת: כסף שמשאירים בצד לשימוש בעתיד נקרא ___",
+   ok: ["חיסכון", "חסכון", "לחסוך"]},
+  {q: "השלם במילה אחת: תוכנית שמחליטה מראש כמה כסף להוציא על כל דבר נקראת ___",
+   ok: ["תקציב"]}
+];
+
 async function bigaiQualityTest() {
   window.BIGAI.poor = false;
   const m = mod;
   if (!m) return;
-  try {
-    const a = await m.chat(
-      [{role: "system", content: BIGAI_SYSTEM},
-       {role: "user", content: "ענה במשפט אחד קצר בעברית: מה זה חיסכון?"}],
-      {temperature: 0.5, maxTokens: 120});
-    const t = (a || "").trim();
-    const bad = typeof window.asLooksBroken === "function"
-      ? window.asLooksBroken(t)
-      : t.length < 10;
-    window.BIGAI.poor = bad;
-    console.info("bigai: מבחן איכות — " + (bad ? "חלש" : "תקין") + ":", t);
-  } catch (err) {
-    console.error("bigai quality:", err);
+
+  const broken = window.asLooksBroken || (t => String(t || "").trim().length < 10);
+  let passed = 0;
+  for (const item of BIGAI_EXAM) {
+    try {
+      const a = await m.chat(
+        [{role: "system", content: BIGAI_SYSTEM}, {role: "user", content: item.q}],
+        {temperature: 0.3, maxTokens: 80});
+      const t = (a || "").trim();
+      const good = !broken(t) && item.ok.some(w => t.includes(w));
+      if (good) passed++;
+      console.info("bigai: מבחן — " + (good ? "עבר" : "נכשל") + ":", t.slice(0, 80));
+    } catch (err) {
+      console.error("bigai exam:", err);
+      return;   /* תקלה היא לא כישלון במבחן */
+    }
   }
+
+  window.BIGAI.poor = passed < BIGAI_EXAM.length;
+  console.info("bigai: " + passed + "/" + BIGAI_EXAM.length +
+               (window.BIGAI.poor ? " — עונה שני" : " — עונה ראשון"));
 }
 
 /* ---------- שאלה ---------- */
