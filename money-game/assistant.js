@@ -461,8 +461,14 @@ function asSiteMemory() {
   if (AS_MEMORY !== undefined) return AS_MEMORY;
   const parts = [];
   try {
+    /* מי הוא ואיפה הוא. בלי זה הוא ידע את התוכן אבל לא את מקומו:
+       נשאל איך קוראים לאתר שהוא נמצא בו וענה "אין לי אתר משלי". */
+    parts.push("אתה עוזר הכסף של האתר \"כסף חכם\" - אתר שמלמד ילדים " +
+               "בכיתות ג׳ עד ז׳ על כסף. אתה נמצא בתוך האתר הזה, בדף " +
+               "\"עוזר הכסף\", ומדבר עם הילדים שמשתמשים בו.");
+    parts.push("");
     if (typeof dailyLessons !== "undefined" && dailyLessons.length) {
-      parts.push("אלה השיעורים שיש באתר הזה, ואתה מכיר אותם:");
+      parts.push("אלה השיעורים שיש באתר, ואתה מכיר אותם:");
       dailyLessons.forEach(l => {
         parts.push("• " + l.title + " — " + asFirstSentence(l.body));
       });
