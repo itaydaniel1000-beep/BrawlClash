@@ -484,23 +484,78 @@ function asNotePlain(tag) {
    שלא יכולים להריץ אותו - בלעדיו שם פשוט לא תהיה תשובה. שני החוזים
    זהים (state ו-ask), אז הבחירה היא שורה אחת והשאר לא יודע מי זה. */
 function asPickAI() {
-  if (window.BIGAI && window.BIGAI.state === "ready") {
+  const big = window.BIGAI && window.BIGAI.state === "ready";
+  const nano = window.LLM && window.LLM.state === "ready";
+
+  /* "חלש" נקבע במבחן בטעינה. מודל שנכשל בו עדיין עונה כשאין אחר -
+     הוא פשוט לא הראשון בתור. */
+  if (big && !(window.BIGAI.poor && nano)) {
     return {ask: window.BIGAI.ask, tag: AS_BIG_TAG};
   }
-  if (window.LLM && window.LLM.state === "ready") {
-    return {ask: window.LLM.ask, tag: AS_LLM_TAG};
-  }
+  if (nano) return {ask: window.LLM.ask, tag: AS_LLM_TAG};
+  if (big) return {ask: window.BIGAI.ask, tag: AS_BIG_TAG};
   return null;
 }
 
-/* אותיות לטיניות או קיריליות דבוקות בתוך מילה עברית. ככה נראית שבירה
-   של מודל שלא אומן מספיק על עברית: הוא מאיית מילה חתיכה-חתיכה ובאמצע
-   מחליק לאלפבית אחר. נמדד בפועל - "הBEDLל בין צורך לרצון הוא ש.seek
-   הוא מה שחייבים" - וזו לא תשובה שמציגים לילד. */
-function asLooksBroken(text) {
-  return /[א-ת][A-Za-zЀ-ӿ]|[A-Za-zЀ-ӿ][א-ת]/
-    .test(text || "");
+/* ===== מתי תשובה היא לא תשובה =====
+   שלושה סוגי כישלון שנראו בפועל מהמודל, ואף אחד מהם לא נתפס על ידי
+   השניים האחרים. */
+
+/* 1. אלפבית זר. או דבוק בתוך מילה עברית ("הBEDLל", "ש.seek"), או
+      מילה שלמה שנשתלה באמצע משפט עברי ("אני לא יודע את השאלה
+      completa"). השנייה בורחת מבדיקת הדבקות, כי יש סביבה רווחים. */
+function asForeignMix(text) {
+  const t = String(text || "");
+  if (/[א-ת][A-Za-zЀ-ӿ]|[A-Za-zЀ-ӿ][א-ת]/.test(t)) return true;
+  const hebrew = (t.match(/[א-ת]/g) || []).length;
+  const foreign = t.match(/[A-Za-zЀ-ӿ]{3,}/g) || [];
+  return hebrew >= 15 && foreign.length > 0;
 }
+
+/* 2. לולאה. "כמובן! קסם קסם, מטבע מטבע, קסם קסם, מטבע מטבע!" -
+      המודל נתקע וחוזר על עצמו. העברית תקינה לגמרי, אז רק ספירה
+      מגלה את זה: או אותה מילה שלוש פעמים ברצף, או אוצר מילים דל
+      בצורה קיצונית ביחס לאורך. */
+function asLoops(text) {
+  const w = String(text || "")
+    .replace(/[^א-תA-Za-z0-9 ]/g, " ").split(/\s+/).filter(Boolean);
+  if (w.length < 6) return false;
+  let run = 1;
+  for (let i = 1; i < w.length; i++) {
+    run = w[i] === w[i - 1] ? run + 1 : 1;
+    if (run >= 3) return true;
+  }
+  return new Set(w).size * 3 <= w.length;
+}
+
+/* 3. סירוב. "אני לא יכול להסביר נושאי כסף לילד" הוא משפט תקין
+      לחלוטין ועדיין לא תשובה. נמחק מכאן קודם בטעות, וחזר. */
+const AS_REFUSAL =
+  /(אינני|איני|אני לא)\s*(יודע|בטוח|מכיר|יכול|מסוגל)|לא יודע|לא יכול לעזור|לא מוגדרת|לא ברורה|אין לי (מספיק )?מידע|אנא שאל|תן לי מה|שאל שאלה|תשאל שאלה/;
+
+/* מילה זרה בודדת היא החשד החלש שבחבורה: "אני לא יודע את השאלה
+   completa" שבורה, אבל "באנגלית קוראים לזה budget, ובעברית תקציב"
+   תקינה לגמרי - ומבחוץ שתיהן מילה אחת בתוך עברית. אי אפשר להפריד
+   ביניהן בספירה, אז החשד הזה שולח לנסות את המודל השני, אבל אם אין
+   שני - מציגים בכל זאת. שאר הכשלים חמורים מכדי להציג. */
+const AS_MILD = "מילה זרה";
+
+function asBrokenReason(text) {
+  const t = String(text || "").trim();
+  if (t.length < 10) return "קצר מדי";
+  if (/[א-ת][A-Za-zЀ-ӿ]|[A-Za-zЀ-ӿ][א-ת]/.test(t)) return "אלפבית בתוך מילה";
+  if (asLoops(t)) return "לולאה";
+  if (AS_REFUSAL.test(t)) return "סירוב";
+  if (asForeignMix(t)) return AS_MILD;
+  return null;
+}
+
+function asLooksBroken(text) {
+  return asBrokenReason(text) !== null;
+}
+
+/* bigai.js משתמש בה למבחן האיכות שלו, והוא נטען לפני הקובץ הזה */
+window.asLooksBroken = asLooksBroken;
 
 /* המודל השני, לנפילה אחורה כשהראשון שבר את העברית */
 function asOtherAI(used) {
@@ -630,15 +685,17 @@ async function asAsk(question) {
   let text = await run(used);
 
   /* עברית שבורה היא לא תשובה. אם השני זמין, נותנים לו לנסות. */
-  if (text && asLooksBroken(text)) {
+  const why = text ? asBrokenReason(text) : null;
+  if (why) {
     const alt = asOtherAI(used);
-    console.info("llm: עברית שבורה מ" + used.tag.replace(/<[^>]+>/g, "") +
+    console.info("llm: " + why + " מ" + used.tag.replace(/<[^>]+>/g, "") +
                  (alt ? ", מנסה את השני" : ", אין חלופה") + ":", text);
     if (alt) {
       const second = await run(alt);
       if (second && !asLooksBroken(second)) { used = alt; text = second; }
-      else text = null;
-    } else {
+      else if (why !== AS_MILD) text = null;
+      else live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>";
+    } else if (why !== AS_MILD) {
       text = null;
     }
   }

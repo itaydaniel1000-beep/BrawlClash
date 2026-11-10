@@ -110,9 +110,40 @@ async function bigaiBoot() {
     off();
   }
 
-  if (m.brain.state === "ready") bigSet("ready", 1, "מוכן");
+  if (m.brain.state === "ready") {
+    await bigaiQualityTest();
+    bigSet("ready", 1, "מוכן");
+  }
   else if (m.brain.state === "unsupported") bigSet("unsupported", 0, m.brain.text || "");
   else bigSet("failed", 0, "הטעינה נכשלה");
+}
+
+/* ---------- מבחן איכות ----------
+   העברית של המודל הזה לא עקבית. לפעמים היא טובה, ולפעמים יוצא
+   "כמובן! קסם קסם, מטבע מטבע" או "אני לא יודע את השאלה completa".
+   אותו רעיון כמו מבחן העברית של המודל של גוגל: שאלה אחת בטעינה,
+   ואם התשובה שבורה הוא מסומן כחלש.
+
+   חלש זה לא כבוי. הוא עדיין עונה כשאין אחר - פשוט לא ראשון.
+   assistant.js קורא את הדגל הזה ומחליט לפיו. */
+async function bigaiQualityTest() {
+  window.BIGAI.poor = false;
+  const m = mod;
+  if (!m) return;
+  try {
+    const a = await m.chat(
+      [{role: "system", content: BIGAI_SYSTEM},
+       {role: "user", content: "ענה במשפט אחד קצר בעברית: מה זה חיסכון?"}],
+      {temperature: 0.5, maxTokens: 120});
+    const t = (a || "").trim();
+    const bad = typeof window.asLooksBroken === "function"
+      ? window.asLooksBroken(t)
+      : t.length < 10;
+    window.BIGAI.poor = bad;
+    console.info("bigai: מבחן איכות — " + (bad ? "חלש" : "תקין") + ":", t);
+  } catch (err) {
+    console.error("bigai quality:", err);
+  }
 }
 
 /* ---------- שאלה ---------- */
