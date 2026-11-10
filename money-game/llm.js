@@ -104,13 +104,14 @@ const LLM_SYSTEM =
   "אתה עוזר שמסביר נושאי כסף לילדים בכיתות ג׳ עד ז׳, בעברית פשוטה.\n" +
   "ענה בעברית בלבד.\n" +
   "ענה בשתיים עד ארבע שורות, בלי כותרות ובלי רשימות.\n" +
-  "אם אינך יודע, אמור זאת במשפט אחד במקום לנחש.";
+  "אם אינך בטוח בעובדה, אל תמציא אותה.";
 
 /* הוראת המערכת, עם מה שהאתר יודע מוטמע בתוכה. נבנית בזמן היצירה
    ולא בטעינת הקובץ, כי התוכן של האתר נטען אחרי המנוע. */
 function llmSystem() {
+  const guide = typeof window.asGuide === "function" ? window.asGuide() : "";
   const mem = typeof window.asSiteMemory === "function" ? window.asSiteMemory() : null;
-  return mem ? LLM_SYSTEM + "\n\n" + mem : LLM_SYSTEM;
+  return [LLM_SYSTEM, guide, mem].filter(Boolean).join("\n\n");
 }
 
 let llmSession = null;
@@ -283,13 +284,16 @@ async function llmRecheck() {
  * הממשק מסמן את ההבדל, אבל זה עדיף על "לא מצאתי" שמשאיר ילד בלי
  * שום תשובה.
  */
-async function llmAnswer(question, context, onToken) {
+async function llmAnswer(question, context, onToken, history) {
   if (window.LLM.state !== "ready" || !llmSession) return null;
 
   const prompt = context
     ? "ענה אך ורק על סמך המידע הבא. אל תוסיף עובדות, מספרים או " +
       "דוגמאות שלא מופיעים בו.\n\nמידע:\n" + context + "\n\nשאלה: " + question
     : "ענה מהידע שלך, בפשטות ולעניין.\n\nשאלה: " + question;
+  // כל שאלה רצה בשיחה נקייה, אז מה שנאמר קודם נכנס לתוך ההודעה עצמה
+  const past = (history || []).map(m => (m.role === "user" ? "ילד: " : "עוזר: ") + m.content).join("\n");
+  const full = past ? "השיחה עד עכשיו:\n" + past + "\n\n" + prompt : prompt;
 
   try {
     /* שיחה נפרדת לכל שאלה: ההקשר של שאלה אחת לא אמור לדלוף לשאלה
@@ -298,7 +302,7 @@ async function llmAnswer(question, context, onToken) {
     const turn = await llmSession.clone();
     let text = "";
     try {
-      for await (const chunk of turn.promptStreaming(prompt)) {
+      for await (const chunk of turn.promptStreaming(full)) {
         /* כרום שינה את משמעות ה-chunk בדרך: בגרסאות מסוימות הוא
            הטקסט המצטבר, ובאחרות רק התוספת. ההבחנה היא אם הוא פותח
            במה שכבר יש לנו. */

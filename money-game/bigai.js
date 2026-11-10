@@ -24,13 +24,14 @@ const BIGAI_DEFAULT = "normal";
 const BIGAI_SYSTEM =
   "אתה עוזר שמסביר נושאי כסף לילדים בכיתות ג׳ עד ז׳, בעברית פשוטה.\n" +
   "ענה בעברית בלבד, בשתיים עד ארבע שורות, בלי כותרות ובלי רשימות.\n" +
-  "אם אינך יודע, אמור זאת במשפט אחד במקום לנחש.";
+  "אם אינך בטוח בעובדה, אל תמציא אותה.";
 
 /* הוראת המערכת, עם מה שהאתר יודע מוטמע בתוכה. נבנית בזמן היצירה
    ולא בטעינת הקובץ, כי התוכן של האתר נטען אחרי המנוע. */
 function bigaiSystem() {
+  const guide = typeof window.asGuide === "function" ? window.asGuide() : "";
   const mem = typeof window.asSiteMemory === "function" ? window.asSiteMemory() : null;
-  return mem ? BIGAI_SYSTEM + "\n\n" + mem : BIGAI_SYSTEM;
+  return [BIGAI_SYSTEM, guide, mem].filter(Boolean).join("\n\n");
 }
 
 window.BIGAI = {
@@ -182,7 +183,7 @@ async function bigaiQualityTest() {
  * עונה על שאלה. אותה חתימה כמו window.LLM.ask בדיוק.
  *   context - הטקסט מהאתר כשנמצא, או ריק כשלא
  */
-async function bigaiAnswer(question, context, onToken) {
+async function bigaiAnswer(question, context, onToken, history) {
   if (window.BIGAI.state !== "ready") return null;
   const m = mod;
   if (!m) return null;
@@ -194,8 +195,9 @@ async function bigaiAnswer(question, context, onToken) {
 
   try {
     const text = await m.chat(
-      [{role: "system", content: bigaiSystem()}, {role: "user", content: prompt}],
-      {temperature: 0.5, maxTokens: 300, onText: onToken}
+      /* השיחה עד עכשיו נשלחת איתה, אחרת "כן, על מה אתה ממליץ?" היא שאלה בלי נושא */
+      [{role: "system", content: bigaiSystem()}, ...(history || []), {role: "user", content: prompt}],
+      {temperature: 0.3, maxTokens: 300, onText: onToken}
     );
     return (text || "").trim() || null;
   } catch (err) {
