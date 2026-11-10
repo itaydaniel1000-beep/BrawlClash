@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>שולחן ההרפתקה</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>⚡ שולחן ההרפתקה</h1>
+    <button id="leaveBtn" class="btn small" onclick="confirmLeave()" hidden>יציאה</button>
+  </header>
+  <main>
+    <section id="table" class="table"></section>
+    <section id="panel" class="panel"></section>
+  </main>
+  <div id="modal" class="modal" hidden></div>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="data.js"></script>
+  <script src="engine.js"></script>
+  <script src="net.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
