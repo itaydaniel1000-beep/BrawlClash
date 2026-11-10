@@ -404,12 +404,29 @@ const AS_CHIPS = [
 
 const AS_LLM_TAG = '<span class="helper-llm-tag">ה-AI של גוגל</span>';
 
+/* העוזר השני, שנבנה בנפרד: מודל גדול יותר שרץ גם הוא בדפדפן.
+   לשם הולכות שאלות שגם האתר וגם ה-AI המקומי לא ידעו לענות עליהן.
+   אותו מקור (github.io), אבל פרויקט אחר - ולכן כתובת מלאה. */
+const AS_MY_AI = "https://itaydaniel1000-beep.github.io/BrawlClash/my-ai/";
+
+function asMyAiLink(question) {
+  return '<p class="helper-aside helper-handoff">' +
+         '<a href="' + AS_MY_AI + "?q=" + encodeURIComponent(question) +
+         '" target="_blank" rel="noopener">לשאול את העוזר שלי ←</a></p>';
+}
+
 /* מי כתב את התשובה ומה המשמעות. השורה הזאת חייבת להופיע על כל תשובה
    של המודל: הוא מנסח מהר ויפה, אבל הוא גם יכול לטעות, והקורא צריך
    לדעת שמה שמעליו לא נכתב בידי אדם. */
 const AS_LLM_NOTE =
   '<p class="helper-llm-note">נכתב על ידי ה-AI של גוגל ויכול להכיל ' +
   "טעויות. התשובה מתוך האתר נמצאת למטה.</p>";
+
+/* בלי חומר מהאתר מאחוריו, המודל עונה מהידע של עצמו. זו תשובה פחות
+   בטוחה מהראשונה, והשורה הזאת אומרת את זה במפורש ולא ברמז. */
+const AS_LLM_NOTE_FREE =
+  '<p class="helper-llm-note">אין על זה שיעור באתר, אז ה-AI של גוגל ענה ' +
+  "מעצמו — כאן יש סיכוי גדול יותר לטעות. שווה לבדוק עם מבוגר.</p>";
 
 function asBubble(who, html) {
   const chat = document.getElementById("helperChat");
@@ -438,9 +455,11 @@ function asFormat(text) {
 
 function asRenderAnswer(res) {
   if (res.kind === "miss") {
-    return "<p>לא מצאתי על זה משהו באתר.</p>" +
-           "<p>אני יודע לענות על תקציב, חיסכון, ריבית דריבית, צורך מול רצון, " +
-           "קניות חכמות, הונאות, אשראי וקרן חירום — ולחשב שאלות עם מספרים.</p>";
+    /* קצר בכוונה: ברוב המקרים תשובה של המודל כבר יושבת מעל השורה
+       הזאת, והיא רק מסבירה למה אין כאן שיעור ללחוץ עליו. */
+    return '<p class="helper-aside">על זה אין שיעור באתר. יש כאן תקציב, ' +
+           "חיסכון, ריבית דריבית, צורך מול רצון, קניות חכמות, הונאות, " +
+           "אשראי וקרן חירום — ואפשר גם לשאול שאלות עם מספרים.</p>";
   }
 
   let html = "";
@@ -478,12 +497,28 @@ async function asAsk(question) {
   }
   chat.scrollTop = 1e9;
 
-  /* ---- שדרוג ב-AI של גוגל ----
-     רק על תשובות ידע. תשובת מחשבון היא חישוב מדויק, ואין שום דבר
-     שהמודל יכול להוסיף לה חוץ מטעויות. וכשהחיפוש לא מצא כלום אין לו
-     הקשר, ואז תשובה ממנו תהיה המצאה - אז גם שם לא נוגעים. */
-  if (res.kind !== "answer" || !res.context) return;
-  if (!window.LLM || window.LLM.state !== "ready") return;
+  /* ---- ה-AI של גוגל ----
+     תשובת מחשבון היא חישוב מדויק, ואין שום דבר שהמודל יכול להוסיף
+     לה חוץ מטעויות - שם לא נוגעים.
+
+     בשאר המקרים הוא כן כותב: כשיש חומר באתר הוא מנסח אותו, וכשאין
+     הוא עונה מהידע של עצמו. פעם הוחלט כאן להשתיק אותו בלי הקשר כדי
+     שלא ימציא, אבל "לא מצאתי על זה משהו באתר" היא גם לא תשובה - היא
+     רק דרך מנומסת לא לענות. עדיף תשובה מסומנת כתשובה של AI, עם
+     האזהרה שמתחתיה, ועם דרך לעבור לעוזר הגדול יותר. */
+  const grounded = res.kind === "answer" && !!res.context;
+  if (res.kind === "math") return;
+
+  const ready = window.LLM && window.LLM.state === "ready";
+
+  /* בלי מודל - לפחות שיהיה לאן ללכת */
+  if (!ready) {
+    if (!grounded) {
+      bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
+      chat.scrollTop = 1e9;
+    }
+    return;
+  }
 
   const live = document.createElement("div");
   live.className = "helper-llm";
@@ -491,16 +526,23 @@ async function asAsk(question) {
   bubble.insertBefore(live, bubble.firstChild);
 
   const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
-  const text = await window.LLM.ask(q, res.context, partial => {
+  const text = await window.LLM.ask(q, grounded ? res.context : null, partial => {
     live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(partial) + "</p>";
     if (near) chat.scrollTop = 1e9;
   });
 
-  if (!text) { live.remove(); return; }
+  if (!text) {
+    live.remove();
+    if (!grounded) bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
+    if (near) chat.scrollTop = 1e9;
+    return;
+  }
 
   /* האזהרה נכנסת רק בסוף, כשיש תשובה שלמה. בזמן הזרימה היא היתה
      מרקדת למטה עם כל מילה. */
-  live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(text) + "</p>" + AS_LLM_NOTE;
+  live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(text) + "</p>" +
+                   (grounded ? AS_LLM_NOTE : AS_LLM_NOTE_FREE);
+  if (!grounded) bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
   if (near) chat.scrollTop = 1e9;
 }
 

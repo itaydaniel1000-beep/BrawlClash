@@ -24,6 +24,27 @@ function load() {
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { console.error(e); }
 }
+/* שאלה שהגיעה מאתר אחר.
+   "כסף חכם" שולח לכאן שאלות שהוא לא ידע לענות עליהן, עם השאלה ב-?q=.
+   נקראת פעם אחת ונמחקת מהכתובת מיד, כדי שרענון לא ישלח אותה שוב. */
+const handoff = (() => {
+  let q = null;
+  try {
+    q = new URL(location.href).searchParams.get("q");
+  } catch (e) {
+    return null;
+  }
+  if (!q || !q.trim()) return null;
+
+  /* ניקוי הכתובת הוא נוחות בלבד - שרענון לא ישלח את השאלה שוב.
+     הוא נכשל בסביבות שבהן history מוחלף ("replaceState is not a
+     function"), ולכן הוא יושב ב-try משלו: צעד קוסמטי לא אמור לבלוע
+     את השאלה עצמה. זה בדיוק מה שקרה כשהשניים חלקו אותו try. */
+  try { history.replaceState(null, "", location.pathname); } catch (e) {}
+
+  return q.trim().slice(0, 500);
+})();
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 const $ = s => document.querySelector(s);
 const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -104,6 +125,13 @@ function start() {
   bindUI();
   brain.on(renderStatus);
   bootBrain();
+
+  /* שאלה מאתר אחר נשאלת בשיחה חדשה, כדי שלא תיפול באמצע שיחה
+     קיימת. אפשר לשלוח מיד - send ממילא מחכה שהמודל ייטען. */
+  if (handoff) {
+    if (cur().msgs.length) newChat();
+    send(handoff);
+  }
 }
 
 async function bootBrain() {

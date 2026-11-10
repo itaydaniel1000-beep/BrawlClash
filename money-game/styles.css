@@ -2640,6 +2640,16 @@ button:focus-visible {
   font-weight: 800;
 }
 
+/* המעבר לעוזר הגדול יותר, כשאין על הנושא שיעור באתר */
+.helper-handoff a {
+  color: var(--brand-strong);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.helper-handoff a:hover { text-decoration-thickness: 2px; }
+
 /* האזהרה. היא צריכה להיקרא בלי להתחרות בתשובה עצמה, ולכן קטנה
    וחיוורת - אבל לא עד כדי כך שאפשר לפספס אותה. */
 .helper-llm .helper-llm-note {
