@@ -457,8 +457,28 @@ function asMyAiLink(question) {
 const AS_BIG_TAG = '<span class="helper-llm-tag big">העוזר שלי</span>';
 
 const AS_BIG_NOTE =
-  '<p class="helper-llm-note">ענה העוזר שלי, שרץ אצלך במחשב. גם הוא ' +
-  "יכול לטעות — שווה לבדוק עם מבוגר.</p>";
+  '<p class="helper-llm-note">נכתב על ידי העוזר שלי, שרץ אצלך במחשב, ' +
+  "ויכול להכיל טעויות. התשובה מתוך האתר נמצאת למטה.</p>";
+
+const AS_BIG_NOTE_FREE =
+  '<p class="helper-llm-note">אין על זה שיעור באתר, אז העוזר שלי ענה ' +
+  "מעצמו — כאן יש סיכוי גדול יותר לטעות. שווה לבדוק עם מבוגר.</p>";
+
+/* מי עונה.
+   "העוזר שלי" הוא הראשי. המודל של גוגל נשאר מאחוריו בשביל מכשירים
+   שלא יכולים להריץ אותו - בלעדיו שם פשוט לא תהיה תשובה. שני החוזים
+   זהים (state ו-ask), אז הבחירה היא שורה אחת והשאר לא יודע מי זה. */
+function asPickAI() {
+  if (window.BIGAI && window.BIGAI.state === "ready") {
+    return {ask: window.BIGAI.ask, tag: AS_BIG_TAG,
+            note: AS_BIG_NOTE, noteFree: AS_BIG_NOTE_FREE};
+  }
+  if (window.LLM && window.LLM.state === "ready") {
+    return {ask: window.LLM.ask, tag: AS_LLM_TAG,
+            note: AS_LLM_NOTE, noteFree: AS_LLM_NOTE_FREE};
+  }
+  return null;
+}
 
 /* תשובה שאינה תשובה. המודל של גוגל עונה לפעמים "אינני יודע" או
    "אנא שאל שאלה ספציפית", וזה בדיוק הרגע להעביר את השאלה הלאה
@@ -470,54 +490,6 @@ function asIsNonAnswer(text) {
   return !text || text.length < 25 || AS_NO_ANSWER.test(text);
 }
 
-/* השלב השלישי. רץ רק כשהשניים שלפניו לא נתנו כלום.
-   כשהמודל כבר שמור בדפדפן שואלים אותו מיד; כשהוא לא, מציגים כפתור
-   עם המשקל, כי הורדה של ג'יגה-בייט היא לא משהו שעושים למישהו בשקט. */
-async function asAskBigAi(question, bubble, chat) {
-  if (!window.BIGAI || !(await window.BIGAI.available())) {
-    bubble.insertAdjacentHTML("beforeend", asMyAiLink(question));
-    chat.scrollTop = 1e9;
-    return;
-  }
-
-  const run = async (host) => {
-    host.className = "helper-llm big";
-    host.innerHTML = AS_BIG_TAG + "<p><em>חושב…</em></p>";
-    const text = await window.BIGAI.ask(
-      question,
-      partial => { host.innerHTML = AS_BIG_TAG + "<p>" + asFormat(partial) + "</p>"; },
-      p => {
-        host.innerHTML = AS_BIG_TAG + "<p><em>מוריד את העוזר… " +
-                         Math.round((p || 0) * 100) + "%</em></p>";
-      }
-    );
-    if (text) {
-      host.innerHTML = AS_BIG_TAG + "<p>" + asFormat(text) + "</p>" + AS_BIG_NOTE;
-    } else {
-      host.remove();
-      bubble.insertAdjacentHTML("beforeend", asMyAiLink(question));
-    }
-    chat.scrollTop = 1e9;
-  };
-
-  const host = document.createElement("div");
-  bubble.insertBefore(host, bubble.firstChild);
-
-  if (await window.BIGAI.cached()) {
-    await run(host);
-    return;
-  }
-
-  const gb = window.BIGAI.size();
-  host.className = "helper-offer";
-  host.innerHTML =
-    "<p>גם ה-AI של גוגל לא ידע. אפשר לשאול את <strong>העוזר שלי</strong>, " +
-    "שחכם יותר אבל צריך להוריד אותו פעם אחת" +
-    (gb ? " (" + gb + " ג׳יגה)" : "") + ".</p>" +
-    '<button type="button" class="helper-chip">לשאול את העוזר שלי</button>';
-  host.querySelector("button").addEventListener("click", () => run(host), {once: true});
-  chat.scrollTop = 1e9;
-}
 
 /* מי כתב את התשובה ומה המשמעות. השורה הזאת חייבת להופיע על כל תשובה
    של המודל: הוא מנסח מהר ויפה, אבל הוא גם יכול לטעות, והקורא צריך
@@ -601,53 +573,52 @@ async function asAsk(question) {
   }
   chat.scrollTop = 1e9;
 
-  /* ---- ה-AI של גוגל ----
-     תשובת מחשבון היא חישוב מדויק, ואין שום דבר שהמודל יכול להוסיף
-     לה חוץ מטעויות - שם לא נוגעים.
+  /* ---- מי עונה ----
+     תשובת מחשבון היא חישוב מדויק, ותיאור עצמי הוא עובדה על האתר.
+     לשניהם אין מה להוסיף חוץ מטעויות - שם לא נוגעים.
 
-     בשאר המקרים הוא כן כותב: כשיש חומר באתר הוא מנסח אותו, וכשאין
-     הוא עונה מהידע של עצמו. פעם הוחלט כאן להשתיק אותו בלי הקשר כדי
-     שלא ימציא, אבל "לא מצאתי על זה משהו באתר" היא גם לא תשובה - היא
-     רק דרך מנומסת לא לענות. עדיף תשובה מסומנת כתשובה של AI, עם
-     האזהרה שמתחתיה, ועם דרך לעבור לעוזר הגדול יותר. */
+     בשאר המקרים המודל כותב: כשיש חומר באתר הוא מנסח אותו, וכשאין
+     הוא עונה מהידע של עצמו. "לא מצאתי על זה משהו באתר" היא לא
+     תשובה, רק דרך מנומסת לא לענות - עדיף תשובה מסומנת ככזו, עם
+     האזהרה שמתחתיה. */
   const grounded = res.kind === "answer" && !!res.context;
-  /* חישוב מדויק ותיאור עצמי הם שניהם עובדות שלנו. למודל אין מה
-     להוסיף להן חוץ מטעויות. */
   if (res.kind === "math" || res.kind === "self") return;
 
-  const ready = window.LLM && window.LLM.state === "ready";
+  const ai = asPickAI();
 
-  /* אין מודל של גוגל כאן - עוברים ישר לשלב השלישי */
-  if (!ready) {
-    if (!grounded) await asAskBigAi(q, bubble, chat);
+  /* אין כאן שום מודל שרץ - לפחות שיהיה לאן ללכת */
+  if (!ai) {
+    if (!grounded) {
+      bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
+      chat.scrollTop = 1e9;
+    }
     return;
   }
 
   const live = document.createElement("div");
   live.className = "helper-llm";
-  live.innerHTML = AS_LLM_TAG;
+  live.innerHTML = ai.tag;
   bubble.insertBefore(live, bubble.firstChild);
 
   const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
-  const text = await window.LLM.ask(q, grounded ? res.context : null, partial => {
-    live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(partial) + "</p>";
+  const text = await ai.ask(q, grounded ? res.context : null, partial => {
+    live.innerHTML = ai.tag + "<p>" + asFormat(partial) + "</p>";
     if (near) chat.scrollTop = 1e9;
   });
 
-  /* בלי הקשר מהאתר, "אינני יודע" מהמודל הוא לא סוף הדרך - זה הרגע
-     להעביר את השאלה לעוזר הגדול. עם הקשר מהאתר התשובה שמתחת כבר
-     נכונה, ואין למי להעביר. */
+  /* בלי הקשר מהאתר, "אינני יודע" הוא לא תשובה. אין למי להעביר את
+     השאלה הלאה, אז לפחות לא מציגים סירוב מנוסח יפה כאילו הוא תשובה. */
   if (!text || (!grounded && asIsNonAnswer(text))) {
     live.remove();
-    if (!grounded) await asAskBigAi(q, bubble, chat);
+    if (!grounded) bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
     if (near) chat.scrollTop = 1e9;
     return;
   }
 
   /* האזהרה נכנסת רק בסוף, כשיש תשובה שלמה. בזמן הזרימה היא היתה
      מרקדת למטה עם כל מילה. */
-  live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(text) + "</p>" +
-                   (grounded ? AS_LLM_NOTE : AS_LLM_NOTE_FREE);
+  live.innerHTML = ai.tag + "<p>" + asFormat(text) + "</p>" +
+                   (grounded ? ai.note : ai.noteFree);
   if (near) chat.scrollTop = 1e9;
 }
 
@@ -681,40 +652,52 @@ function initHelper() {
     "<p>אפשר לנסות אחת מההצעות למטה, או פשוט לכתוב.</p>");
 }
 
-/* ---------- מצב המודל ---------- */
+/* ---------- מצב המודלים ---------- */
 
-/* השורה מופיעה רק כשיש מה לומר. מודל שנטען ברקע בהצלחה הוא לא חדשות,
-   ולכן אחרי שהוא מוכן היא נעלמת מעצמה. */
-function asStatus(llm) {
+/* שני מודלים נטענים ברקע: "העוזר שלי" שהוא הראשי, והמודל של גוגל
+   שנשאר מאחוריו למכשירים שלא יכולים להריץ אותו. השורה מראה את מי
+   שעוד עובד, ומעדיפה את הראשי - שתי שורות התקדמות במקביל זה רעש. */
+function asStatus() {
   const el = document.getElementById("helperStatus");
   if (!el) return;
 
-  if (llm.state === "loading") {
-    const pct = Math.round((llm.progress || 0) * 100);
+  const big = window.BIGAI || {state: "idle"};
+  const nano = window.LLM || {state: "idle"};
+  const who = big.state === "loading" ? {s: big, name: "העוזר שלי"}
+            : nano.state === "loading" ? {s: nano, name: "ה-AI של גוגל"}
+            : null;
+
+  if (who) {
+    const pct = Math.round((who.s.progress || 0) * 100);
     el.hidden = false;
     el.className = "helper-status loading";
     el.innerHTML =
       '<span class="helper-status-bar"><i style="width:' + pct + '%"></i></span>' +
-      "<span>מכין את ה-AI של גוגל ברקע… " + pct + "%  " +
+      "<span>מכין את " + who.name + " ברקע… " + pct + "%  " +
       "<small>אפשר לשאול כבר עכשיו</small></span>";
     return;
   }
 
-  if (llm.state === "ready") {
+  const ready = big.state === "ready" ? "העוזר שלי"
+              : nano.state === "ready" ? "ה-AI של גוגל"
+              : null;
+
+  if (ready) {
     el.hidden = false;
     el.className = "helper-status ready";
-    el.textContent = "ה-AI של גוגל מוכן. התשובות ייכתבו גם על ידו.";
+    el.textContent = ready + " מוכן. התשובות ייכתבו גם על ידו.";
     setTimeout(() => { el.hidden = true; }, 6000);
     return;
   }
 
-  /* בטלפון אין WebGPU. זו לא תקלה ואין סיבה להבהיל - פשוט לא מציגים
-     כלום, כי התשובה המיידית היא תשובה שלמה בפני עצמה. */
+  /* בטלפון אין WebGPU ואין מודל מובנה. זו לא תקלה ואין סיבה להבהיל -
+     פשוט לא מציגים כלום, כי התשובה מהאתר שלמה בפני עצמה. */
   el.hidden = true;
 }
 
 function asWatchLLM() {
-  window.addEventListener("llm-change", ev => asStatus(ev.detail));
-  /* אם המודול הספיק להיטען לפנינו, לא נקבל אירוע על המצב הנוכחי */
-  if (window.LLM) asStatus(window.LLM);
+  window.addEventListener("llm-change", asStatus);
+  window.addEventListener("bigai-change", asStatus);
+  /* אם המודולים הספיקו להיטען לפנינו, לא נקבל אירוע על המצב הנוכחי */
+  asStatus();
 }

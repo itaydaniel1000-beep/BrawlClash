@@ -1,22 +1,24 @@
-/* ===== העוזר הגדול =====
-   השלב השלישי. כשהאתר לא מצא שיעור, וגם המודל של גוגל לא ידע לענות,
-   השאלה עוברת ל"העוזר שלי" - הפרויקט שנבנה בנפרד - והתשובה מוצגת
-   כאן, בלי לצאת מהאתר.
+/* ===== העוזר שלי, בתוך האתר =====
+   זה המודל הראשי שעונה כאן. "העוזר שלי" הוא פרויקט נפרד, והמנוע שלו
+   לא מועתק לכאן אלא מיובא משם: שני האתרים יושבים על אותו origin
+   (itaydaniel1000-beep.github.io), אז ייבוא מודול עובד, וכל תיקון
+   שנעשה שם מגיע גם לכאן בלי לעשות כלום - למשל ההמרה של אותיות
+   רוסיות שהמודל מחליק לאמצע מילה עברית.
 
-   המנוע לא מועתק לכאן אלא מיובא משם. שני האתרים יושבים על אותו
-   origin (itaydaniel1000-beep.github.io), אז ייבוא מודול עובד, וכל
-   תיקון שנעשה שם - למשל ההמרה של אותיות רוסיות שדולפות לאמצע מילה
-   עברית - מגיע גם לכאן בלי לעשות כלום. בפיתוח מקומי זה נכשל, כי שני
-   השרתים על פורטים שונים; אז פשוט אין שלב שלישי, והאתר ממשיך לעבוד.
+   בפיתוח מקומי שני השרתים על פורטים שונים, אז הייבוא נכשל. זה בסדר:
+   המצב נהיה "unsupported", המודל של גוגל תופס את מקומו, והאתר עובד.
 
-   מה שלא קורה כאן: טעינה מראש. המודל הזה שוקל בין 1 ל-4.3 ג'יגה-בייט,
-   ואסור להוריד אותו למישהו שלא ביקש. הוא נטען רק כששואלים אותו ממש,
-   ורק אם הוא כבר שמור בדפדפן - אחרת מוצג כפתור שאומר כמה זה שוקל. */
+   הוא נטען לבד מרגע שהדף נפתח. ההורדה היא בין 1 ל-4.3 ג'יגה-בייט
+   פעם אחת לדפדפן, ואחריה היא שמורה והטעינה לוקחת שניות.
+
+   החוזה כאן זהה לזה של window.LLM בכוונה, כדי ש-assistant.js יוכל
+   לקחת את מי שמוכן בלי לדעת מי זה. */
 
 const BIGAI_SRC = "/BrawlClash/my-ai/brain.js";
 
-/* ברירת מחדל אם אין העדפה שמורה. "חכם" ולא "מהיר": הקטן (1.7B) מייצר
-   עברית שבורה - נבדק, והוא ענה על "מה זה מניה" בג'יבריש על מיני דובים. */
+/* ברירת מחדל אם אין העדפה שמורה. "חכם" (4B) ולא "מהיר" (1.7B):
+   הקטן מייצר עברית שבורה - הוא ענה על "מה זה מניה" בג'יבריש חוזר
+   על מיני דובים. */
 const BIGAI_DEFAULT = "normal";
 
 const BIGAI_SYSTEM =
@@ -24,7 +26,21 @@ const BIGAI_SYSTEM =
   "ענה בעברית בלבד, בשתיים עד ארבע שורות, בלי כותרות ובלי רשימות.\n" +
   "אם אינך יודע, אמור זאת במשפט אחד במקום לנחש.";
 
-let mod = null;          /* המודול המיובא */
+window.BIGAI = {
+  state: "idle",     /* idle | loading | ready | unsupported | failed */
+  progress: 0,
+  label: "",
+  ask: null
+};
+
+function bigSet(state, progress, label) {
+  window.BIGAI.state = state;
+  if (progress != null) window.BIGAI.progress = progress;
+  if (label != null) window.BIGAI.label = label;
+  window.dispatchEvent(new CustomEvent("bigai-change", {detail: window.BIGAI}));
+}
+
+let mod = null;
 let modTried = false;
 
 async function bigaiModule() {
@@ -33,79 +49,110 @@ async function bigaiModule() {
   try {
     mod = await import(new URL(BIGAI_SRC, location.origin).href);
   } catch (err) {
-    console.info("bigai: אין גישה למנוע של העוזר", String(err).slice(0, 120));
+    console.info("bigai: אין גישה למנוע של העוזר —", String(err).slice(0, 110));
     mod = null;
   }
   return mod;
 }
 
 /* איזה מוח המשתמש בחר ב"העוזר שלי". localStorage משותף לכל הנתיבים
-   באותו origin, אז ההעדפה שנקבעה שם תקפה גם כאן - ואם כבר הורידו
-   מוח מסוים, נשתמש בו ולא נוריד אחר. */
+   באותו origin, אז ההעדפה שנקבעה שם תקפה כאן - ואם כבר הורידו מוח
+   מסוים, נשתמש בו ולא נוריד אחר על חינם. */
 function bigaiBrainKey() {
   try {
     const s = JSON.parse(localStorage.getItem("myai.v1") || "null");
-    const k = s && s.settings && s.settings.brain;
-    return k || BIGAI_DEFAULT;
+    return (s && s.settings && s.settings.brain) || BIGAI_DEFAULT;
   } catch (e) {
     return BIGAI_DEFAULT;
   }
 }
 
-window.BIGAI = {
-  /* האם בכלל אפשר: יש מנוע, ויש כרטיס מסך שתומך */
-  async available() {
-    const m = await bigaiModule();
-    if (!m) return false;
-    try { return await m.gpuOk(); } catch (e) { return false; }
-  },
+/* ---------- טעינה ---------- */
 
-  /* האם המודל כבר יושב בדפדפן. זה ההבדל בין לשאול מיד לבין לשאול
-     רשות - הורדה של ג'יגה-בייט היא לא משהו שעושים בשקט. */
-  async cached() {
-    const m = await bigaiModule();
-    if (!m) return false;
-    try { return await m.isCached(bigaiBrainKey()); } catch (e) { return false; }
-  },
-
-  size() {
-    const m = mod;
-    if (!m) return null;
-    const b = m.BRAINS[bigaiBrainKey()] || m.BRAINS[BIGAI_DEFAULT];
-    return b ? b.gb : null;
-  },
-
-  /**
-   * שואל ומחזיר תשובה, או null.
-   *   onToken    - הטקסט המצטבר, לזרימה על המסך
-   *   onProgress - שבר בין 0 ל-1 בזמן הטעינה
-   */
-  async ask(question, onToken, onProgress) {
-    const m = await bigaiModule();
-    if (!m) return null;
-
-    try {
-      if (m.brain.state !== "ready") {
-        let off = null;
-        if (onProgress) {
-          off = m.brain.on(b => {
-            if (b.state === "loading") onProgress(b.progress || 0);
-          });
-        }
-        await m.loadBrain(bigaiBrainKey());
-        if (off) off();
-        if (m.brain.state !== "ready") return null;
-      }
-
-      const text = await m.chat(
-        [{role: "system", content: BIGAI_SYSTEM},
-         {role: "user", content: question}],
-        {temperature: 0.5, maxTokens: 300, onText: onToken}
-      );
-      return (text || "").trim() || null;
-    } catch (err) {
-      console.error("bigai:", err);
-      return null;
-    }
+async function bigaiBoot() {
+  const m = await bigaiModule();
+  if (!m) {
+    bigSet("unsupported", 0, "המנוע של העוזר לא זמין כאן");
+    return;
   }
-};
+
+  try {
+    if (!(await m.gpuOk())) {
+      bigSet("unsupported", 0, "אין כאן כרטיס מסך שתומך");
+      return;
+    }
+  } catch (e) {
+    bigSet("unsupported", 0, "אין כאן כרטיס מסך שתומך");
+    return;
+  }
+
+  const key = bigaiBrainKey();
+  const gb = (m.BRAINS[key] || m.BRAINS[BIGAI_DEFAULT] || {}).gb;
+
+  /* כשהמודל כבר שמור אין מה להודיע - הוא ייכנס תוך שניות. פס
+     התקדמות מופיע רק כשבאמת מורידים ג'יגה-בייטים. */
+  let cached = false;
+  try { cached = await m.isCached(key); } catch (e) {}
+  bigSet("loading", cached ? 0.9 : 0, cached ? "מתעורר" : "מוריד" + (gb ? " " + gb + " ג׳יגה" : ""));
+
+  const off = m.brain.on(b => {
+    if (b.state === "loading") {
+      bigSet("loading", b.progress || 0,
+             cached ? "מתעורר" : "מוריד" + (gb ? " " + gb + " ג׳יגה" : ""));
+    }
+  });
+
+  try {
+    await m.loadBrain(key);
+  } catch (err) {
+    console.error("bigai:", err);
+  } finally {
+    off();
+  }
+
+  if (m.brain.state === "ready") bigSet("ready", 1, "מוכן");
+  else if (m.brain.state === "unsupported") bigSet("unsupported", 0, m.brain.text || "");
+  else bigSet("failed", 0, "הטעינה נכשלה");
+}
+
+/* ---------- שאלה ---------- */
+
+/**
+ * עונה על שאלה. אותה חתימה כמו window.LLM.ask בדיוק.
+ *   context - הטקסט מהאתר כשנמצא, או ריק כשלא
+ */
+async function bigaiAnswer(question, context, onToken) {
+  if (window.BIGAI.state !== "ready") return null;
+  const m = mod;
+  if (!m) return null;
+
+  const prompt = context
+    ? "ענה אך ורק על סמך המידע הבא. אל תוסיף עובדות, מספרים או " +
+      "דוגמאות שלא מופיעים בו.\n\nמידע:\n" + context + "\n\nשאלה: " + question
+    : "ענה מהידע שלך, בפשטות ולעניין.\n\nשאלה: " + question;
+
+  try {
+    const text = await m.chat(
+      [{role: "system", content: BIGAI_SYSTEM}, {role: "user", content: prompt}],
+      {temperature: 0.5, maxTokens: 300, onText: onToken}
+    );
+    return (text || "").trim() || null;
+  } catch (err) {
+    console.error("bigai answer:", err);
+    return null;
+  }
+}
+
+window.BIGAI.ask = bigaiAnswer;
+
+/* נטען ברקע ברגע שהדפדפן פנוי. requestIdleCallback שומר שההורדה לא
+   תתחרה בציור הדף עצמו. */
+function bigaiStart() {
+  if (window.requestIdleCallback) {
+    requestIdleCallback(() => bigaiBoot(), {timeout: 3000});
+  } else {
+    setTimeout(bigaiBoot, 1200);
+  }
+}
+
+bigaiStart();
