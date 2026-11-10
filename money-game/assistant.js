@@ -381,40 +381,7 @@ function asTopicCover(question, doc) {
   return total ? found / total : 1;
 }
 
-/* ---------- שאלות על העוזר עצמו ---------- */
-
-/* "תגיד איך אתה פועל" היא שאלה לגיטימית שאין עליה שיעור באתר, והחיפוש
-   היה מגיש לה את מה שבמקרה צבר ניקוד. עדיף שיענה על עצמו. */
-function asIsAboutSelf(question) {
-  const q = String(question || "").replace(/[?!.,]/g, " ").replace(/\s+/g, " ").trim();
-  return /(^|\s)מי אתה(\s|$)/.test(q) ||
-         /(^|\s)(איך|מה) אתה (עובד|פועל|יודע|עושה|יכול|מוצא)/.test(q) ||
-         /(^|\s)איך קוראים לך(\s|$)/.test(q) ||
-         /(^|\s)מי (בנה|יצר|עשה|כתב) אותך(\s|$)/.test(q) ||
-         /(^|\s)מה אתה(\s|$)/.test(q);
-}
-
-/* נענית ישירות ולא דרך המודל: זו עובדה על האתר, והמודל רק היה מעוות
-   אותה - הוא לא יודע עליו כלום. */
-function asSelfAnswer() {
-  return {
-    kind: "self",
-    title: "ככה אני עובד",
-    lines: [
-      "קודם אני מחפש את השאלה שלך בתוך השיעורים, הסרטונים והמשחקים של " +
-      "האתר, ומראה לך מה שכתוב שם.",
-      "שאלות עם מספרים אני מחשב בעצמי — ריבית דריבית, חלוקת תקציב, " +
-      "או כמה צריך לחסוך כל חודש.",
-      "כשאין על הנושא שיעור באתר, **ה-AI של גוגל** שמותקן בתוך הדפדפן " +
-      "עונה מעצמו. אני מסמן את זה, כי שם אפשר לטעות.",
-      "אני לא זוכר שיחות קודמות, ואני לא שולח שום דבר לשום מקום — " +
-      "הכול קורה אצלך במחשב."
-    ]
-  };
-}
-
 function asCompose(question) {
-  if (asIsAboutSelf(question)) return asSelfAnswer();
 
   const math = asTryMath(question);
   if (math) {
@@ -512,42 +479,18 @@ function asNotePlain(tag) {
          tag.replace(/<[^>]+>/g, "") + " ויכול להכיל טעויות.</p>";
 }
 
-const AS_BIG_NOTE =
-  '<p class="helper-llm-note">נכתב על ידי העוזר שלי, שרץ אצלך במחשב, על ' +
-  "סמך השיעורים של האתר, ויכול להכיל טעויות.</p>";
-
-const AS_BIG_NOTE_FREE =
-  '<p class="helper-llm-note">אין על זה שיעור באתר, אז העוזר שלי ענה ' +
-  "מעצמו — כאן יש סיכוי גדול יותר לטעות. שווה לבדוק עם מבוגר.</p>";
-
 /* מי עונה.
    "העוזר שלי" הוא הראשי. המודל של גוגל נשאר מאחוריו בשביל מכשירים
    שלא יכולים להריץ אותו - בלעדיו שם פשוט לא תהיה תשובה. שני החוזים
    זהים (state ו-ask), אז הבחירה היא שורה אחת והשאר לא יודע מי זה. */
 function asPickAI() {
   if (window.BIGAI && window.BIGAI.state === "ready") {
-    return {ask: window.BIGAI.ask, tag: AS_BIG_TAG,
-            note: AS_BIG_NOTE, noteFree: AS_BIG_NOTE_FREE};
+    return {ask: window.BIGAI.ask, tag: AS_BIG_TAG};
   }
   if (window.LLM && window.LLM.state === "ready") {
-    return {ask: window.LLM.ask, tag: AS_LLM_TAG,
-            note: AS_LLM_NOTE, noteFree: AS_LLM_NOTE_FREE};
+    return {ask: window.LLM.ask, tag: AS_LLM_TAG};
   }
   return null;
-}
-
-/* תשובה שאינה תשובה. המודל של גוגל עונה לפעמים "אינני יודע" או
-   "אנא שאל שאלה ספציפית", וזה בדיוק הרגע להעביר את השאלה הלאה
-   במקום להציג לילד סירוב מנוסח יפה. */
-const AS_NO_ANSWER =
-  /(אינני|איני|אני לא)\s*(יודע|בטוח|מכיר)|לא יודע|לא מוגדרת|לא ברורה|אין לי (מספיק )?מידע|אנא שאל|שאל שאלה|תשאל שאלה/;
-
-/* הרצפה נמוכה בכוונה. היא קיימת כדי לפסול פלט ריק או קטוע, לא כדי
-   למדוד איכות - ותשובה לברכה היא קצרה מטבעה. ב-25 תווים "היי! איך
-   אפשר לעזור?" נפסלה, והמשתמש קיבל "אין על זה שיעור" במקום מענה.
-   הסירוב עצמו נתפס בניסוח ולא באורך. */
-function asIsNonAnswer(text) {
-  return !text || text.trim().length < 10 || AS_NO_ANSWER.test(text);
 }
 
 /* אותיות לטיניות או קיריליות דבוקות בתוך מילה עברית. ככה נראית שבירה
@@ -564,12 +507,10 @@ function asOtherAI(used) {
   const big = window.BIGAI && window.BIGAI.state === "ready";
   const nano = window.LLM && window.LLM.state === "ready";
   if (used.tag === AS_BIG_TAG && nano) {
-    return {ask: window.LLM.ask, tag: AS_LLM_TAG,
-            note: AS_LLM_NOTE, noteFree: AS_LLM_NOTE_FREE};
+    return {ask: window.LLM.ask, tag: AS_LLM_TAG};
   }
   if (used.tag === AS_LLM_TAG && big) {
-    return {ask: window.BIGAI.ask, tag: AS_BIG_TAG,
-            note: AS_BIG_NOTE, noteFree: AS_BIG_NOTE_FREE};
+    return {ask: window.BIGAI.ask, tag: AS_BIG_TAG};
   }
   return null;
 }
@@ -578,16 +519,6 @@ function asOtherAI(used) {
 /* מי כתב את התשובה ומה המשמעות. השורה הזאת חייבת להופיע על כל תשובה
    של המודל: הוא מנסח מהר ויפה, אבל הוא גם יכול לטעות, והקורא צריך
    לדעת שמה שמעליו לא נכתב בידי אדם. */
-const AS_LLM_NOTE =
-  '<p class="helper-llm-note">נכתב על ידי ה-AI של גוגל, על סמך השיעורים ' +
-  "של האתר, ויכול להכיל טעויות.</p>";
-
-/* בלי חומר מהאתר מאחוריו, המודל עונה מהידע של עצמו. זו תשובה פחות
-   בטוחה מהראשונה, והשורה הזאת אומרת את זה במפורש ולא ברמז. */
-const AS_LLM_NOTE_FREE =
-  '<p class="helper-llm-note">אין על זה שיעור באתר, אז ה-AI של גוגל ענה ' +
-  "מעצמו — כאן יש סיכוי גדול יותר לטעות. שווה לבדוק עם מבוגר.</p>";
-
 function asBubble(who, html) {
   const chat = document.getElementById("helperChat");
   if (!chat) return null;
@@ -646,34 +577,42 @@ async function asAsk(question) {
   const bubble = asBubble("bot", "<em>רגע…</em>");
   const chat = document.getElementById("helperChat");
 
-  let res;
-  try {
-    res = await askAssistant(q);
-  } catch (err) {
-    bubble.innerHTML = "<p>משהו השתבש אצלי. נסו לנסח אחרת.</p>";
-    console.error("assistant:", err);
-    return;
-  }
+  const ai = asPickAI();
 
-  /* מה שהאתר מצא, כשאין מודל שיכתוב במקומו */
-  const showSite = () => {
+  /* ---- בלי מודל ----
+     בטלפון אין WebGPU ואין מודל מובנה, ואז מה שהאתר מצא הוא כל מה
+     שיש. רק כאן החיפוש עדיין עונה. */
+  if (!ai) {
+    let res;
+    try {
+      res = await askAssistant(q);
+    } catch (err) {
+      bubble.innerHTML = "<p>משהו השתבש אצלי. נסו לנסח אחרת.</p>";
+      console.error("assistant:", err);
+      return;
+    }
     bubble.innerHTML = asRenderAnswer(res) +
                        (res.kind === "miss" ? asMyAiLink(q) : "");
     chat.scrollTop = 1e9;
-  };
+    return;
+  }
 
-  /* חישוב מדויק ותיאור עצמי הם עובדות שלנו, ואין להן ניסוח טוב יותר */
-  if (res.kind === "math" || res.kind === "self") { showSite(); return; }
+  /* ---- חישוב ----
+     מודל קטן טועה באריתמטיקה, והמחשבון לא. זו הפעולה היחידה שנשארה
+     לפני המודל, והיא לא "מידע מהאתר" אלא תשובה מדויקת. */
+  const math = asTryMath(q);
+  if (math) {
+    bubble.innerHTML = asRenderAnswer({kind: "math", title: math.title,
+                                       lines: math.lines});
+    chat.scrollTop = 1e9;
+    return;
+  }
 
-  const ai = asPickAI();
-  if (!ai) { showSite(); return; }
-
-  /* ---- תשובה אחת ----
-     המודל עונה, והחומר מהאתר הוא רק מה שנתנו לו לקרוא לפני כן - לא
-     בלוק נפרד שמופיע מתחתיו. קודם זה היה שניים: ניסוח שלו למעלה
-     והשיעור במלואו למטה, וכשההתאמה היתה חלקית נראָה כאילו הוא עונה
-     על שתי שאלות שונות. עכשיו יש תשובה אחת, כמו מכל עוזר אחר, רק
-     שהיא נשענת על מה שכתוב באתר. */
+  /* ---- שיחה ----
+     מכאן זה העוזר עצמו, בלי שום דבר שהאתר דוחף לו. ניסינו להגיש לו
+     את השיעורים כהקשר, וזה יצר יותר בעיות ממה שפתר: הוא ענה על
+     נושא אחר, ציטט שיעור לא קשור, וההערות דיברו על שיעורים שלא
+     קשורים לשאלה. שאלה נכנסת, תשובה יוצאת. */
   const live = document.createElement("div");
   live.className = "helper-llm solo";
   live.innerHTML = ai.tag + "<p><em>חושב…</em></p>";
@@ -681,10 +620,8 @@ async function asAsk(question) {
   bubble.appendChild(live);
   chat.scrollTop = 1e9;
 
-  const grounded = res.kind === "answer" && !!res.context;
   const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
-  const ctx = grounded ? res.context : null;
-  const run = who => who.ask(q, ctx, partial => {
+  const run = who => who.ask(q, null, partial => {
     live.innerHTML = who.tag + "<p>" + asFormat(partial) + "</p>";
     if (near) chat.scrollTop = 1e9;
   });
@@ -706,26 +643,14 @@ async function asAsk(question) {
     }
   }
 
-  /* המודל לא נתן כלום. מה שהאתר מצא עדיף על בועה ריקה. */
-  if (!text || asIsNonAnswer(text)) {
-    showSite();
+  if (!text) {
+    live.innerHTML = ai.tag + "<p>לא הצלחתי לענות על זה. אפשר לנסח אחרת?</p>";
+    chat.scrollTop = 1e9;
     return;
   }
 
-  /* מצביע לסרטון הוא הפניה, לא תשובה נוספת - ולכן הוא נשאר */
-  const video = (grounded && res.video)
-    ? '<p class="helper-aside">יש על זה סרטון: <strong>' +
-      asEscape(res.video.title) + "</strong> · " +
-      asEscape(res.video.grade || "") + "</p>"
-    : "";
-
-  /* הודעה שלא נשארה בה אף מילת תוכן אחרי הלקסיקון היא לא שאלה על
-     נושא, אלא פתיחת שיחה. אין שם מה לבדוק מול מבוגר. */
-  const note = grounded ? used.note
-             : asTokens(q).length ? used.noteFree
-             : asNotePlain(used.tag);
-
-  live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>" + note + video;
+  live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>" +
+                   asNotePlain(used.tag);
   if (near) chat.scrollTop = 1e9;
 }
 
