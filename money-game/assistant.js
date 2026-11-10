@@ -490,6 +490,30 @@ function asIsNonAnswer(text) {
   return !text || text.length < 25 || AS_NO_ANSWER.test(text);
 }
 
+/* אותיות לטיניות או קיריליות דבוקות בתוך מילה עברית. ככה נראית שבירה
+   של מודל שלא אומן מספיק על עברית: הוא מאיית מילה חתיכה-חתיכה ובאמצע
+   מחליק לאלפבית אחר. נמדד בפועל - "הBEDLל בין צורך לרצון הוא ש.seek
+   הוא מה שחייבים" - וזו לא תשובה שמציגים לילד. */
+function asLooksBroken(text) {
+  return /[א-ת][A-Za-zЀ-ӿ]|[A-Za-zЀ-ӿ][א-ת]/
+    .test(text || "");
+}
+
+/* המודל השני, לנפילה אחורה כשהראשון שבר את העברית */
+function asOtherAI(used) {
+  const big = window.BIGAI && window.BIGAI.state === "ready";
+  const nano = window.LLM && window.LLM.state === "ready";
+  if (used.tag === AS_BIG_TAG && nano) {
+    return {ask: window.LLM.ask, tag: AS_LLM_TAG,
+            note: AS_LLM_NOTE, noteFree: AS_LLM_NOTE_FREE};
+  }
+  if (used.tag === AS_LLM_TAG && big) {
+    return {ask: window.BIGAI.ask, tag: AS_BIG_TAG,
+            note: AS_BIG_NOTE, noteFree: AS_BIG_NOTE_FREE};
+  }
+  return null;
+}
+
 
 /* מי כתב את התשובה ומה המשמעות. השורה הזאת חייבת להופיע על כל תשובה
    של המודל: הוא מנסח מהר ויפה, אבל הוא גם יכול לטעות, והקורא צריך
@@ -601,10 +625,26 @@ async function asAsk(question) {
   bubble.insertBefore(live, bubble.firstChild);
 
   const near = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 60;
-  const text = await ai.ask(q, grounded ? res.context : null, partial => {
-    live.innerHTML = ai.tag + "<p>" + asFormat(partial) + "</p>";
+  const run = who => who.ask(q, grounded ? res.context : null, partial => {
+    live.innerHTML = who.tag + "<p>" + asFormat(partial) + "</p>";
     if (near) chat.scrollTop = 1e9;
   });
+
+  let used = ai;
+  let text = await run(used);
+
+  /* עברית שבורה היא לא תשובה. אם השני זמין, נותנים לו לנסות - עדיף
+     תשובה קריאה ממודל אחר מאשר ג'יבריש מהמועדף. */
+  if (text && asLooksBroken(text)) {
+    const alt = asOtherAI(used);
+    console.info("llm: עברית שבורה מ" + used.tag.replace(/<[^>]+>/g, "") +
+                 (alt ? ", מנסה את השני" : ", אין חלופה") + ":", text);
+    if (alt) {
+      const second = await run(alt);
+      if (second && !asLooksBroken(second)) { used = alt; text = second; }
+      else { live.innerHTML = used.tag; }
+    }
+  }
 
   /* בלי הקשר מהאתר, "אינני יודע" הוא לא תשובה. אין למי להעביר את
      השאלה הלאה, אז לפחות לא מציגים סירוב מנוסח יפה כאילו הוא תשובה. */
@@ -617,8 +657,8 @@ async function asAsk(question) {
 
   /* האזהרה נכנסת רק בסוף, כשיש תשובה שלמה. בזמן הזרימה היא היתה
      מרקדת למטה עם כל מילה. */
-  live.innerHTML = ai.tag + "<p>" + asFormat(text) + "</p>" +
-                   (grounded ? ai.note : ai.noteFree);
+  live.innerHTML = used.tag + "<p>" + asFormat(text) + "</p>" +
+                   (grounded ? used.note : used.noteFree);
   if (near) chat.scrollTop = 1e9;
 }
 
