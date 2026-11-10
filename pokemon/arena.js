@@ -484,7 +484,7 @@ function throwDie(p, value, k) {
 
 function syncDice(S, fx) {
   const rolling = S.phase === "starterRoll" || S.phase === "roundRoll";
-  const after = S.phase === "dice" || (S.phase === "message" && S.message && (S.message.next === "starterPick" || S.message.next === "turns"));
+  const after = S.phase === "dice" || (S.phase === "message" && S.message && (S.message.next === "starterPick" || S.message.next === "turns" || S.message.next === "reroll"));
   S.players.forEach((pl, k) => {
     const p = players.get(pl.pid);
     if (!p) return;
@@ -494,7 +494,7 @@ function syncDice(S, fx) {
       if (d.mode !== "hiding") d.mode = "idle";
       d.ready = !!pl.ready;
     } else if (after && pl.roll) {
-      if (fx && fx.kind === "dice") throwDie(p, pl.roll, k);
+      if (fx && fx.kind === "dice" && (!fx.pids || fx.pids.includes(pl.pid))) throwDie(p, pl.roll, k);
       else if (d.mode !== "rolling") { showDie(d); setDieValue(d, pl.roll); }
     } else {
       hideDie(d);

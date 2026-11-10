@@ -86,7 +86,7 @@ function renderArena(t) {
   t.querySelector(".tags").innerHTML = S.players.map(p => {
     let die = "";
     if (rolling) die = `<span class="die${p.ready ? "" : " waiting"}">${p.ready ? "✅" : "⏳"}</span>`;
-    else if (p.roll && S.phase !== "dice") die = `<span class="die">${DIE[p.roll]}</span>`;
+    else if (p.roll && !(S.phase === "dice" && (!S.tied || S.tied.includes(p.pid)))) die = `<span class="die">${DIE[p.roll]}</span>`;
     const mine = p.pid === Net.myPid;
     const dots = p.team.map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
     return `<button class="tag${p.pid === cur ? " active" : ""}${mine ? " mine" : ""}" data-pid="${p.pid}" onclick="showTeam('${p.pid}')">
@@ -317,6 +317,7 @@ function renderPanel() {
   const status = ui.status ? `<div class="status">${esc(ui.status)}</div>` : "";
   el.insertAdjacentHTML("afterbegin", status);
   $("#leaveBtn").hidden = ui.screen !== "game";
+  if (ui.screen === "game" && S && (S.phase === "wheel" || ui.catchOpen)) drawReel(true);
 }
 
 function timerBar() {
@@ -378,7 +379,8 @@ function gamePanel() {
       break;
     case "wheel":
       html = `<h2>${esc(S.action || "")}</h2>${slotHTML(false)}
-        <div id="wheelResult" class="wheel-result">&nbsp;</div>`;
+        <div id="wheelResult" class="wheel-result">${S.wheel && S.wheel.spinning && isMyTurn()
+          ? `<button class="btn primary big stop-btn" onclick="stopReel()">✋ עצור!</button>` : "&nbsp;"}</div>`;
       break;
     case "message":
       html = `<h2>${esc(S.message.title)}</h2><p class="pre">${esc(S.message.text)}</p>${timerBar()}`;
@@ -424,26 +426,25 @@ function openAttack() { ui.attackOpen = true; ui.catchOpen = false; ui.carousel 
 function backToTurn() { ui.attackOpen = false; ui.catchOpen = false; renderPanel(); tickTimer(); }
 
 /* ---------- מכונת המספרים ----------
-   אחד המספרים הוא הנכון ואף אחד לא יודע איזה. מושכים בידית, הגלגלת מסתובבת
-   מהר ועוצרת. מספר שגוי נמחק לתמיד, אז כל ניסיון מקרב את התפיסה. */
-const SPIN_MS = 3100;
+   המספרים רצים לפי הסדר (1, 2, 3...) בלי סוף. השחקן לוחץ "עצור",
+   והגלגלת מאטה לאט לאט עד שהיא נעצרת. מספר שגוי נמחק לתמיד. */
+const REEL_SPEED = 12;        // מספרים בשנייה
+const REEL_STOP_STEPS = 10;   // כמה מספרים עוד עוברים אחרי "עצור"
+const reel = {mode: "idle", p: 0, nums: [], from: 0, to: 0, t0: 0, T: 0, last: 0, raf: 0, el: null, base: null, tick: 0};
 
 function numsLeft() {
   return S && S.wild && S.wild.nums ? S.wild.nums.length : "?";
 }
 
-function openCatch() { ui.catchOpen = true; ui.attackOpen = false; renderPanel(); }
+function openCatch() { ui.catchOpen = true; ui.attackOpen = false; reel.mode = "idle"; reel.p = 0; renderPanel(); }
 
 function slotHTML(canPull) {
-  const left = numsLeft();
   return `<div class="slot">
       <div class="slot-box">
-        <div class="slot-window" id="slotWindow"><div class="slot-reel" id="slotReel">
-          <div class="slot-cell dim">·</div><div class="slot-cell">?</div><div class="slot-cell dim">·</div>
-        </div></div>
-        <button class="slot-lever${canPull ? " can" : ""}" id="slotLever" ${canPull ? `onclick="pullLever()"` : "disabled"} aria-label="ידית"><i class="stick"></i><i class="knob"></i></button>
+        <div class="slot-window" id="slotWindow"><div class="slot-reel" id="slotReel"></div></div>
+        <button class="slot-lever${canPull ? " can" : ""}${S.phase === "wheel" ? " pulled" : ""}" id="slotLever" ${canPull ? `onclick="pullLever()"` : "disabled"} aria-label="ידית"><i class="stick"></i><i class="knob"></i></button>
       </div>
-      ${S.wheel ? "" : `<div class="slot-left">🔢 ${left}</div>`}
+      ${S.phase === "wheel" ? "" : `<div class="slot-left">🔢 ${numsLeft()}</div>`}
     </div>`;
 }
 
@@ -455,54 +456,108 @@ function pullLever() {
   setTimeout(() => { ui.catchOpen = false; Net.act({t: "catch"}); }, 280);
 }
 
-/* כולם רואים את הגלגלת עוצרת על אותו מספר */
-function playWheel() {
-  const w = S.wheel;
-  if (!w) return;
-  const pick = () => w.nums[Math.floor(Math.random() * w.nums.length)];
-  const strip = [pick()];
-  for (let i = 0; i < 38; i++) strip.push(pick());
-  strip.push(w.land, pick());
-  ui.wheel = {strip, land: w.land, success: w.success, auto: w.auto, left: w.left, start: Date.now()};
-  paintWheel(true);
-  // תקתוק שהולך ומאט
-  for (let k = 0; k < 16; k++) {
-    const at = SPIN_MS * (1 - Math.pow(1 - k / 16, 2.2));
-    setTimeout(() => { if (ui.wheel && S && S.phase === "wheel") Sfx.play("click"); }, at);
+/* ציור הגלגלת: 4 תאים, והמספר שבמקום p יושב באמצע החלון */
+function drawReel(force) {
+  const el = $("#slotReel");
+  if (!el) return;
+  const nums = reel.nums.length ? reel.nums : (S.wheel ? S.wheel.nums : (S.wild && S.wild.nums) || []);
+  if (!nums.length) return;
+  const n = nums.length;
+  const base = Math.floor(reel.p);
+  if (force || el !== reel.el || base !== reel.base) {
+    reel.el = el;
+    reel.base = base;
+    const at = i => nums[((i % n) + n) % n];
+    el.innerHTML = [base - 1, base, base + 1, base + 2].map(i => `<div class="slot-cell">${at(i)}</div>`).join("");
   }
+  const cell = el.firstElementChild ? el.firstElementChild.offsetHeight || 52 : 52;
+  el.style.transform = `translateY(${-(reel.p - base) * cell}px)`;
+  if (reel.mode === "done") showReelResult();
 }
 
-function paintWheel(spin) {
-  const reel = $("#slotReel");
-  const w = ui.wheel;
-  if (!reel || !w || S.phase !== "wheel") return;
-  reel.innerHTML = w.strip.map(n => `<div class="slot-cell">${n}</div>`).join("");
-  const cell = reel.firstElementChild.offsetHeight || 56;
-  const endY = -(w.strip.length - 3) * cell;
-  const elapsed = Date.now() - w.start;
-  const lever = $("#slotLever");
-  if (spin && elapsed < 200) {
-    if (lever) lever.classList.add("pulled");
-    reel.style.transition = "none";
-    reel.style.transform = "translateY(0)";
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      reel.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.1,.75,.2,1)`;
-      reel.style.transform = `translateY(${endY}px)`;
-    }));
+function reelLoop(now) {
+  reel.raf = 0;
+  if (reel.mode !== "spin" && reel.mode !== "decel") return;
+  const dt = Math.min(.05, (now - reel.last) / 1000);
+  reel.last = now;
+  const before = Math.floor(reel.p);
+  if (reel.mode === "spin") {
+    reel.p += REEL_SPEED * dt;
   } else {
-    reel.style.transition = "none";
-    reel.style.transform = `translateY(${endY}px)`;
+    const t = Math.min(1, (now - reel.t0) / reel.T);
+    reel.p = reel.from + (reel.to - reel.from) * (1 - Math.pow(1 - t, 3));
+    if (t >= 1) { reel.p = reel.to; reel.mode = "done"; }
   }
-  const show = () => {
-    const r = $("#wheelResult"), win = $("#slotWindow");
-    if (!r || S.phase !== "wheel") return;
-    if (win) win.classList.add(w.success ? "win" : "lose");
-    r.innerHTML = w.success
-      ? `<b class="ok">${w.auto ? "נשאר רק מספר אחד - נתפס! 🎉" : `${w.land} - נתפס! 🎉`}</b>`
-      : `<b class="bad">${w.land} - לא הפעם ❌</b><small>🔢 ${w.left}</small>`;
-  };
-  if (elapsed >= SPIN_MS + 150) show();
-  else setTimeout(show, SPIN_MS + 150 - elapsed);
+  // תקתוק בכל פעם שמספר עובר את הקו
+  if (Math.floor(reel.p) !== before && now - reel.tick > 55) { reel.tick = now; Sfx.play("click"); }
+  drawReel(false);
+  if (reel.mode === "spin" || reel.mode === "decel") reel.raf = requestAnimationFrame(reelLoop);
+}
+
+function startReel(nums) {
+  reel.nums = nums.slice();
+  reel.mode = "spin";
+  reel.p = 0;
+  reel.last = performance.now();
+  if (!reel.raf) reel.raf = requestAnimationFrame(reelLoop);
+}
+
+/* מאטים עד שהמקום "to" יגיע לאמצע. המהירות בהתחלה שווה למהירות הסיבוב */
+function decelTo(to) {
+  const n = reel.nums.length || 1;
+  while (to - reel.p < 4) to += n;
+  reel.from = reel.p;
+  reel.to = to;
+  reel.t0 = performance.now();
+  reel.T = Math.min(4200, Math.max(1600, 3000 * (to - reel.p) / REEL_SPEED));
+  if (reel.mode !== "decel") reel.last = performance.now();
+  reel.mode = "decel";
+  if (!reel.raf) reel.raf = requestAnimationFrame(reelLoop);
+}
+
+/* השחקן לוחץ "עצור": הגלגלת עוד עוברת כמה מספרים ונעצרת */
+function stopReel() {
+  if (reel.mode !== "spin") return;
+  const at = Math.floor(reel.p) + REEL_STOP_STEPS;
+  decelTo(at);
+  const r = $("#wheelResult");
+  if (r) r.innerHTML = "&nbsp;";
+  Net.act({t: "stop", at});
+}
+
+function showReelResult() {
+  const w = S && S.wheel;
+  const r = $("#wheelResult"), win = $("#slotWindow");
+  if (!r || !w || w.spinning || S.phase !== "wheel") return;
+  if (win) { win.classList.toggle("win", w.success); win.classList.toggle("lose", !w.success); }
+  r.innerHTML = w.success
+    ? `<b class="ok">${w.auto ? "נשאר רק מספר אחד - נתפס! 🎉" : `${w.land} - נתפס! 🎉`}</b>`
+    : `<b class="bad">${w.land} - לא הפעם ❌</b><small>🔢 ${w.left}</small>`;
+}
+
+/* מה המכונה עושה כשמגיע מצב חדש מהמארח */
+function reelOnState(fx) {
+  if (S.phase !== "wheel" || !S.wheel) {
+    reel.mode = "idle";
+    reel.nums = [];
+    if (reel.raf) { cancelAnimationFrame(reel.raf); reel.raf = 0; }
+    return;
+  }
+  const w = S.wheel;
+  if (w.spinning) {
+    if (reel.mode !== "spin") startReel(w.nums);
+  } else if (reel.mode === "spin") {
+    decelTo(w.at);
+  } else if (reel.mode === "decel") {
+    const n = reel.nums.length || 1;
+    if (((reel.to - w.at) % n + n) % n !== 0) decelTo(w.at);
+  } else if (reel.mode !== "done") {
+    // נכנסנו באמצע: מציגים ישר את התוצאה
+    reel.nums = w.nums.slice();
+    reel.p = w.at;
+    reel.mode = "done";
+  }
+  drawReel(true);
 }
 
 function flashDamage(dmg, mult) {
@@ -564,7 +619,6 @@ function onState(msg) {
   // התור עבר - סוגרים חלונות שנשארו פתוחים
   if (S.phase !== "turn" || currentPid() !== prevTurn || !isMyTurn()) ui.attackOpen = false;
   if (S.phase !== "turn" || !isMyTurn()) ui.catchOpen = false;
-  if (S.phase !== "wheel") ui.wheel = null;
   const myTurnNow = (S.phase === "turn" || S.phase === "starterPick") && isMyTurn();
   if (myTurnNow && (prevPhase !== S.phase || prevTurn !== currentPid())) { Sfx.play("turn"); buzz(150); }
   if (S.phase === "end" && prevPhase !== "end") Sfx.play(S.win ? "win" : "lose");
@@ -576,8 +630,7 @@ function onState(msg) {
   renderPanel();
   tickTimer();
   if (msg.fx && msg.fx.kind === "damage") flashDamage(msg.fx.dmg, msg.fx.mult);
-  if (msg.fx && msg.fx.kind === "wheel") playWheel();
-  else paintWheel(false);
+  reelOnState(msg.fx);
 }
 
 /* ---------- ניווט בלובי ---------- */

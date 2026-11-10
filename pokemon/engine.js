@@ -88,7 +88,7 @@ const Engine = (() => {
     msg: 4000 / SPEED,
     order: 3000 / SPEED,
     dice: 2800 / SPEED,
-    wheel: 4800 / SPEED,
+    wheel: 4400 / SPEED,
     anim: 1400 / SPEED,
     end: 12000 / SPEED
   };
@@ -172,19 +172,35 @@ const Engine = (() => {
   function startRoll(phase) {
     S.phase = phase;
     S.rollKind = phase;
-    S.players.forEach(p => { p.roll = null; p.ready = false; });
+    S.players.forEach(p => { p.roll = null; p.rolls = []; p.ready = false; });
     stopTimer();
     commit();
   }
 
   function roll(p) {
     p.roll = rnd(6) + 1;
-    p.tie = Math.random();
+    (p.rolls = p.rolls || []).push(p.roll);
+  }
+
+  // משווים את כל ההטלות לפי הסדר: קודם הראשונה, ובתיקו - ההטלה החוזרת
+  function cmpRolls(a, b) {
+    const x = a.rolls || [], y = b.rolls || [];
+    for (let i = 0; i < Math.max(x.length, y.length); i++) {
+      const d = (y[i] || 0) - (x[i] || 0);
+      if (d) return d;
+    }
+    return 0;
+  }
+
+  /* שחקנים שיצא להם בדיוק אותו דבר */
+  function tiedPlayers() {
+    return S.players.filter(p => S.players.some(q => q !== p && cmpRolls(p, q) === 0));
   }
 
   /* כשכולם מוכנים - הקוביות של כולם מוטלות יחד, וכולם רואים אותן מתגלגלות */
   function checkReady() {
     if (S.players.some(p => !p.ready)) return commit();
+    S.tied = null;
     S.players.forEach(roll);
     S.phase = "dice";
     schedule(MS.dice, afterDice);
@@ -192,8 +208,15 @@ const Engine = (() => {
   }
 
   function afterDice() {
+    const tied = tiedPlayers();
+    if (tied.length) {
+      S.tied = tied.map(p => p.pid);
+      log(`תיקו בין ${tied.map(p => p.name).join(", ")} - מטילים שוב`);
+      return showMessage("תיקו! 🎲", `ל${tied.map(p => p.name).join(" ול")} יצא אותו מספר. הם מטילים שוב.`, "reroll", MS.order);
+    }
+    S.tied = null;
     S.order = S.players.slice()
-      .sort((a, b) => b.roll - a.roll || b.tie - a.tie)
+      .sort(cmpRolls)
       .map(p => p.pid);
     S.pos = 0;
     const names = S.order.map(pid => P(pid).name).join(" ← ");
@@ -278,19 +301,31 @@ const Engine = (() => {
     else nextTurn();
   }
 
-  /* מושכים בידית: המכונה עוצרת על מספר אקראי מבין אלה שנשארו.
-     מספר שגוי נמחק לתמיד. כשנשאר רק מספר אחד - הפוקימון נתפס אוטומטית. */
+  /* מושכים בידית: המספרים רצים לפי הסדר עד שהשחקן לוחץ "עצור".
+     המכונה מאטה ועוצרת. מספר שגוי נמחק לתמיד.
+     כשנשאר רק מספר אחד - המכונה עוצרת עליו לבד והפוקימון נתפס. */
   function startCatch() {
     const w = S.wild;
     if (!w.nums) { const fresh = makeWild(w.id); w.nums = fresh.nums; w.secret = fresh.secret; trimNums(w); }
-    const nums = w.nums.slice();
-    const auto = nums.length === 1;
-    const land = auto ? w.secret : nums[rnd(nums.length)];
-    const success = land === w.secret;
-    if (!success) w.nums = w.nums.filter(n => n !== land);
-    S.wheel = {nums, land, success, auto, left: w.nums.length, pid: current().pid};
+    w.nums.sort((a, b) => a - b);
+    S.wheel = {nums: w.nums.slice(), spinning: true, pid: current().pid};
     S.phase = "wheel";
     S.action = `${current().name} מנסה לתפוס את ${POKEMON[S.wild.id].he}`;
+    stopTimer();
+    commit({kind: "spin"});
+    if (w.nums.length === 1) stopSpin(10);
+  }
+
+  /* at = המקום בגלגלת שעליו היא תיעצר (סופרים מההתחלה, בסיבובים) */
+  function stopSpin(at) {
+    const wh = S.wheel, w = S.wild;
+    if (!wh || !wh.spinning || !w) return;
+    at = Math.max(0, Math.floor(Number(at) || 0));
+    const nums = wh.nums;
+    const land = nums[at % nums.length];
+    const success = land === w.secret;
+    if (!success) w.nums = w.nums.filter(n => n !== land);
+    S.wheel = {nums, spinning: false, at, land, success, auto: nums.length === 1, left: w.nums.length, pid: wh.pid};
     schedule(MS.wheel, afterWheel);
     commit({kind: "wheel"});
   }
@@ -377,7 +412,17 @@ const Engine = (() => {
     commit(fx);
   }
 
+  /* רק מי שהיה בתיקו מטיל שוב */
+  function reroll() {
+    const ids = (S.tied || []).filter(pid => P(pid));
+    S.players.filter(p => ids.includes(p.pid)).forEach(roll);
+    S.phase = "dice";
+    schedule(MS.dice, afterDice);
+    commit({kind: "dice", pids: ids});
+  }
+
   const NEXT = {
+    reroll,
     roundRoll: () => startRoll("roundRoll"),
     starterPick: startStarterPick,
     turns: startTurns,
@@ -414,6 +459,9 @@ const Engine = (() => {
         break;
       case "catch":
         if (S.phase === "turn" && mine && !S.wild.boss) startCatch();
+        break;
+      case "stop":
+        if (S.phase === "wheel" && mine) stopSpin(a.at);
         break;
     }
   }
@@ -459,6 +507,7 @@ const Engine = (() => {
         if (wasCurrent) S.pos--;  // afterAnim יעבור לבא בתור
         break;
       case "wheel":
+        if (wasCurrent && S.wheel && S.wheel.spinning) { S.wheel = null; return skipDead(); }
         if (wasCurrent) S.pos--;
         break;
     }
@@ -484,7 +533,7 @@ const Engine = (() => {
       case "starterPick": startStarterPick(); return;
       case "turn": skipDead(); return;
       case "anim": schedule(MS.anim, afterAnim); break;
-      case "wheel": schedule(MS.wheel, afterWheel); break;
+      case "wheel": if (S.wheel && S.wheel.spinning) stopTimer(); else schedule(MS.wheel, afterWheel); break;
       case "message": schedule(MS.msg, continueMessage); break;
       case "end": schedule(MS.end, newGame); break;
     }
