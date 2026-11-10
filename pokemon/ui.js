@@ -85,8 +85,8 @@ function renderArena(t) {
   const rolling = S.phase === "starterRoll" || S.phase === "roundRoll";
   t.querySelector(".tags").innerHTML = S.players.map(p => {
     let die = "";
-    if (p.roll) die = `<span class="die">${DIE[p.roll]}</span>`;
-    else if (rolling) die = `<span class="die waiting">🎲</span>`;
+    if (rolling) die = `<span class="die${p.ready ? "" : " waiting"}">${p.ready ? "✅" : "⏳"}</span>`;
+    else if (p.roll && S.phase !== "dice") die = `<span class="die">${DIE[p.roll]}</span>`;
     const mine = p.pid === Net.myPid;
     const dots = p.team.map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
     return `<button class="tag${p.pid === cur ? " active" : ""}${mine ? " mine" : ""}" data-pid="${p.pid}" onclick="showTeam('${p.pid}')">
@@ -103,7 +103,7 @@ function renderArena(t) {
     hud += `<div class="wild-hud${S.wild.boss ? " boss" : ""}">
       <div class="wh-top"><b>${d.he}</b><span class="card-types">${typeBadges(d.types)}</span></div>
       <div class="hp"><div class="hp-fill ${cls}" style="width:${pct}%"></div></div>
-      <div class="wh-bottom"><span>❤️ ${S.wild.hp}/${S.wild.maxHp}</span>${S.wild.boss ? "" : `<span>🎯 ${Math.round(catchChance(S.wild) * 100)}%</span>`}</div>
+      <div class="wh-bottom"><span>❤️ ${S.wild.hp}/${S.wild.maxHp}</span>${S.wild.boss ? "" : `<span>🔢 ${numsLeft()}</span>`}</div>
     </div>`;
   } else if (S.phase === "waiting") {
     hud += `<div class="wild-hud wait"><b>${S.players.length}/${S.N}</b></div>`;
@@ -126,8 +126,8 @@ function renderFelt(t) {
     const {x, y} = seatPos((i - myIndex + n) % n, n);
     const dots = p.team.map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
     let die = "";
-    if (p.roll) die = `<span class="die">${DIE[p.roll]}</span>`;
-    else if (rolling) die = `<span class="die waiting">🎲</span>`;
+    if (rolling) die = `<span class="die${p.ready ? "" : " waiting"}">${p.ready ? "✅" : "⏳"}</span>`;
+    else if (p.roll) die = `<span class="die">${DIE[p.roll]}</span>`;
     const mine = p.pid === Net.myPid;
     return `<button class="seat${p.pid === cur ? " active" : ""}${mine ? " mine" : ""}" style="left:${x}%;top:${y}%" onclick="showTeam('${p.pid}')">
       <div class="seat-name">${esc(p.name)}${mine ? " (אתה)" : ""} ${die}</div>
@@ -137,7 +137,7 @@ function renderFelt(t) {
 
   let center;
   if (S.wild) {
-    const chance = S.wild.boss ? "" : `<div class="chance">🎯 תפיסה ${Math.round(catchChance(S.wild) * 100)}%</div>`;
+    const chance = S.wild.boss ? "" : `<div class="chance">🔢 ${numsLeft()}</div>`;
     center = `<div class="wild-card${S.wild.boss ? " boss" : ""}">${cardHTML(S.wild, chance)}</div>`;
   } else if (S.phase === "waiting") {
     center = `<div class="logo">${S.players.length}/${S.N}<br><small>מחכים לשחקנים</small></div>`;
@@ -341,13 +341,16 @@ function gamePanel() {
     case "starterRoll":
     case "roundRoll": {
       const title = S.phase === "starterRoll" ? "מי בוחר ראשון?" : `מי ראשון מול ${wildName}?`;
-      const waitingFor = S.players.filter(p => p.roll === null).map(p => esc(p.name));
-      html = `<h2>${title}</h2>${timerBar()}` + (my && my.roll === null
-        ? `<p>כל שחקן מטיל את הקובייה שלו. הגבוה ראשון.</p>
-           <button class="btn primary big" onclick="Net.act({t:'roll'})">🎲 הטל את הקובייה שלי</button>`
-        : `<p>הטלת ${DIE[my ? my.roll : 0] || ""}. מחכים ל: ${waitingFor.join(", ")}</p>`);
+      const waitingFor = S.players.filter(p => !p.ready).map(p => esc(p.name));
+      html = `<h2>${title}</h2>` + (my && !my.ready
+        ? `<button class="btn primary big" onclick="Net.act({t:'ready'})">✋ אני מוכן</button>`
+        : `<p>⏳ ${waitingFor.join(", ")}</p>`);
       break;
     }
+    case "dice":
+      html = `<h2>🎲 הקוביות מתגלגלות!</h2>` + (window.Arena && Arena.ok ? "" :
+        `<ul class="who">${S.players.map(p => `<li>${esc(p.name)} ${DIE[p.roll] || ""}</li>`).join("")}</ul>`);
+      break;
     case "starterPick":
       html = isMyTurn()
         ? `<h2>בחר פוקימון התחלתי</h2>${timerBar()}` + carouselHTML(S.starterPool.map(makeMon), "pickStarterAt", false)
@@ -358,6 +361,9 @@ function gamePanel() {
         html = `<h2>התור של ${curName}</h2>${timerBar()}<p>מחכים שיחליט: לתקוף או לתפוס.</p>`;
       } else if (ui.attackOpen) {
         html = `<h2>עם מי לתקוף?</h2>${timerBar()}` + carouselHTML(my.team, "attackAt", true);
+      } else if (ui.catchOpen) {
+        html = `<h2>משוך בידית!</h2>${slotHTML(true)}
+          <div class="row"><button class="btn" onclick="backToTurn()">↩ חזור</button></div>`;
       } else {
         html = `<h2>התור שלך!</h2>${timerBar()}
           <p>מה תעשה מול ${wildName}?</p>
@@ -371,8 +377,7 @@ function gamePanel() {
       html = `<h2>${esc(S.action || "")}</h2>`;
       break;
     case "wheel":
-      html = `<h2>${esc(S.action || "")}</h2>
-        <div class="wheel-wrap"><div class="pointer">▼</div><canvas id="wheel" width="400" height="400"></canvas></div>
+      html = `<h2>${esc(S.action || "")}</h2>${slotHTML(false)}
         <div id="wheelResult" class="wheel-result">&nbsp;</div>`;
       break;
     case "message":
@@ -415,71 +420,89 @@ function carouselHTML(mons, onPick, withBack) {
 function moveCarousel(d) { ui.carousel += d; renderPanel(); tickTimer(); }
 function pickStarterAt(i) { Net.act({t: "pick", id: S.starterPool[i]}); }
 function attackAt(i) { ui.attackOpen = false; Net.act({t: "attack", index: i}); }
-function openAttack() { ui.attackOpen = true; ui.carousel = 0; renderPanel(); tickTimer(); }
-function backToTurn() { ui.attackOpen = false; renderPanel(); tickTimer(); }
+function openAttack() { ui.attackOpen = true; ui.catchOpen = false; ui.carousel = 0; renderPanel(); tickTimer(); }
+function backToTurn() { ui.attackOpen = false; ui.catchOpen = false; renderPanel(); tickTimer(); }
 
-/* תפיסה: "בטוח?" עם הסיכויים מעל */
-function openCatch() {
-  const pct = Math.round(catchChance(S.wild) * 100);
-  modal(`<div class="odds">סיכויי תפיסה: <b>${pct}%</b></div>
-    <h2>בטוח?</h2>
-    <p>לתפוס את ${POKEMON[S.wild.id].he}?</p>
-    <div class="row">
-      <button class="btn" onclick="closeModal()">לא</button>
-      <button class="btn primary" onclick="closeModal(); Net.act({t:'catch'})">כן</button>
-    </div>`, "catch");
+/* ---------- מכונת המספרים ----------
+   אחד המספרים הוא הנכון ואף אחד לא יודע איזה. מושכים בידית, הגלגלת מסתובבת
+   מהר ועוצרת. מספר שגוי נמחק לתמיד, אז כל ניסיון מקרב את התפיסה. */
+const SPIN_MS = 3100;
+
+function numsLeft() {
+  return S && S.wild && S.wild.nums ? S.wild.nums.length : "?";
 }
 
-/* גלגל המזל - כולם רואים אותו מסתובב בדיוק לאותה נקודה.
-   הלוח מצויר מחדש בכל מצב, אז שומרים לאן הגלגל הגיע וממשיכים משם. */
+function openCatch() { ui.catchOpen = true; ui.attackOpen = false; renderPanel(); }
+
+function slotHTML(canPull) {
+  const left = numsLeft();
+  return `<div class="slot">
+      <div class="slot-box">
+        <div class="slot-window" id="slotWindow"><div class="slot-reel" id="slotReel">
+          <div class="slot-cell dim">·</div><div class="slot-cell">?</div><div class="slot-cell dim">·</div>
+        </div></div>
+        <button class="slot-lever${canPull ? " can" : ""}" id="slotLever" ${canPull ? `onclick="pullLever()"` : "disabled"} aria-label="ידית"><i class="stick"></i><i class="knob"></i></button>
+      </div>
+      ${S.wheel ? "" : `<div class="slot-left">🔢 ${left}</div>`}
+    </div>`;
+}
+
+function pullLever() {
+  const lever = $("#slotLever");
+  if (!lever || lever.classList.contains("pulled")) return;
+  lever.classList.add("pulled");
+  Sfx.play("click");
+  setTimeout(() => { ui.catchOpen = false; Net.act({t: "catch"}); }, 280);
+}
+
+/* כולם רואים את הגלגלת עוצרת על אותו מספר */
 function playWheel() {
   const w = S.wheel;
   if (!w) return;
-  ui.wheel = {turn: w.turn, success: w.success, chance: w.chance, start: Date.now()};
+  const pick = () => w.nums[Math.floor(Math.random() * w.nums.length)];
+  const strip = [pick()];
+  for (let i = 0; i < 38; i++) strip.push(pick());
+  strip.push(w.land, pick());
+  ui.wheel = {strip, land: w.land, success: w.success, auto: w.auto, left: w.left, start: Date.now()};
   paintWheel(true);
+  // תקתוק שהולך ומאט
+  for (let k = 0; k < 16; k++) {
+    const at = SPIN_MS * (1 - Math.pow(1 - k / 16, 2.2));
+    setTimeout(() => { if (ui.wheel && S && S.phase === "wheel") Sfx.play("click"); }, at);
+  }
 }
 
 function paintWheel(spin) {
-  const c = $("#wheel");
+  const reel = $("#slotReel");
   const w = ui.wheel;
-  if (!c || !w || S.phase !== "wheel") return;
-  drawWheel(c, w.chance);
+  if (!reel || !w || S.phase !== "wheel") return;
+  reel.innerHTML = w.strip.map(n => `<div class="slot-cell">${n}</div>`).join("");
+  const cell = reel.firstElementChild.offsetHeight || 56;
+  const endY = -(w.strip.length - 3) * cell;
   const elapsed = Date.now() - w.start;
+  const lever = $("#slotLever");
   if (spin && elapsed < 200) {
-    requestAnimationFrame(() => requestAnimationFrame(() => { c.style.transform = `rotate(${w.turn}deg)`; }));
+    if (lever) lever.classList.add("pulled");
+    reel.style.transition = "none";
+    reel.style.transform = "translateY(0)";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      reel.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.1,.75,.2,1)`;
+      reel.style.transform = `translateY(${endY}px)`;
+    }));
   } else {
-    c.style.transition = "none";
-    c.style.transform = `rotate(${w.turn}deg)`;
+    reel.style.transition = "none";
+    reel.style.transform = `translateY(${endY}px)`;
   }
   const show = () => {
-    const r = $("#wheelResult");
-    if (r && S.phase === "wheel") r.innerHTML = w.success ? `<b class="ok">נתפס! 🎉</b>` : `<b class="bad">ברח! 💨</b>`;
+    const r = $("#wheelResult"), win = $("#slotWindow");
+    if (!r || S.phase !== "wheel") return;
+    if (win) win.classList.add(w.success ? "win" : "lose");
+    r.innerHTML = w.success
+      ? `<b class="ok">${w.auto ? "נשאר רק מספר אחד - נתפס! 🎉" : `${w.land} - נתפס! 🎉`}</b>`
+      : `<b class="bad">${w.land} - לא הפעם ❌</b><small>🔢 ${w.left}</small>`;
   };
-  if (elapsed >= 3500) show();
-  else setTimeout(show, 3500 - elapsed);
-}
-
-function drawWheel(c, chance) {
-  const ctx = c.getContext("2d"), r = c.width / 2;
-  const segs = [[chance, "#2fbf71", "נתפס"], [1 - chance, "#e0464e", "ברח"]];
-  let a = -Math.PI / 2;
-  for (const [frac, color, label] of segs) {
-    if (frac <= 0) continue;
-    const b = a + frac * Math.PI * 2;
-    ctx.beginPath(); ctx.moveTo(r, r); ctx.arc(r, r, r - 6, a, b); ctx.closePath();
-    ctx.fillStyle = color; ctx.fill();
-    ctx.lineWidth = 6; ctx.strokeStyle = "#fff"; ctx.stroke();
-    if (frac > 0.08) {
-      const mid = (a + b) / 2;
-      ctx.save(); ctx.translate(r + Math.cos(mid) * r * .6, r + Math.sin(mid) * r * .6);
-      ctx.rotate(mid + Math.PI / 2);
-      ctx.fillStyle = "#fff"; ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(label, 0, 0); ctx.restore();
-    }
-    a = b;
-  }
-  ctx.beginPath(); ctx.arc(r, r, 40, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.fill();
-  ctx.lineWidth = 10; ctx.strokeStyle = "#222"; ctx.stroke();
+  if (elapsed >= SPIN_MS + 150) show();
+  else setTimeout(show, SPIN_MS + 150 - elapsed);
 }
 
 function flashDamage(dmg, mult) {
@@ -540,7 +563,7 @@ function onState(msg) {
 
   // התור עבר - סוגרים חלונות שנשארו פתוחים
   if (S.phase !== "turn" || currentPid() !== prevTurn || !isMyTurn()) ui.attackOpen = false;
-  if (ui.modalKind === "catch" && (S.phase !== "turn" || !isMyTurn())) closeModal();
+  if (S.phase !== "turn" || !isMyTurn()) ui.catchOpen = false;
   if (S.phase !== "wheel") ui.wheel = null;
   const myTurnNow = (S.phase === "turn" || S.phase === "starterPick") && isMyTurn();
   if (myTurnNow && (prevPhase !== S.phase || prevTurn !== currentPid())) { Sfx.play("turn"); buzz(150); }
@@ -623,6 +646,7 @@ function leaveGame() {
   ui.screen = "home";
   ui.status = "";
   ui.attackOpen = false;
+  ui.catchOpen = false;
   closeModal();
   render();
 }

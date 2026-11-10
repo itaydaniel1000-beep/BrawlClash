@@ -37,6 +37,31 @@ function damageOf(attackerId, defenderId) {
   return {mult, dmg: Math.round(POKEMON[attackerId].power * mult)};
 }
 
+/* מכונת המספרים: כל 20 חיים = עוד 5 מספרים. אחד מהם הוא הנכון, ואף אחד לא יודע מה הוא */
+function slotSize(hp) {
+  return Math.max(CONFIG.slotStep, Math.ceil(hp / CONFIG.slotHp) * CONFIG.slotStep);
+}
+
+function makeWild(id) {
+  const w = makeMon(id);
+  const n = slotSize(w.hp);
+  w.nums = Array.from({length: n}, (_, i) => i + 1);
+  w.secret = w.nums[rnd(n)];
+  return w;
+}
+
+/* החיים ירדו - מספרים שגויים נעלמים מהמכונה */
+function trimNums(w) {
+  if (!w || !w.nums) return;
+  const target = slotSize(w.hp);
+  while (w.nums.length > target) {
+    const wrong = w.nums.filter(n => n !== w.secret);
+    if (!wrong.length) break;
+    const x = wrong[rnd(wrong.length)];
+    w.nums = w.nums.filter(n => n !== x);
+  }
+}
+
 function catchChance(wild) {
   const base = POKEMON[wild.id].catch || 0;
   const lost = 1 - wild.hp / wild.maxHp;
@@ -60,10 +85,10 @@ const Engine = (() => {
   // ?speed=10 מריץ את כל הזמנים פי 10 מהר יותר - לבדיקות בלבד
   const SPEED = Number(new URLSearchParams(location.search).get("speed")) || 1;
   const MS = {
-    turn: CONFIG.turnSeconds * 1000 / SPEED,
     msg: 4000 / SPEED,
     order: 3000 / SPEED,
-    wheel: 4200 / SPEED,
+    dice: 2800 / SPEED,
+    wheel: 4800 / SPEED,
     anim: 1400 / SPEED,
     end: 12000 / SPEED
   };
@@ -104,7 +129,7 @@ const Engine = (() => {
       hostPid: host.pid,
       hostGen: 0,
       phase: "waiting",
-      players: [{pid: host.pid, name: host.name, team: [], roll: null}],
+      players: [{pid: host.pid, name: host.name, team: [], roll: null, ready: false}],
       seq: 0,
       log: []
     };
@@ -116,7 +141,7 @@ const Engine = (() => {
 
   function addPlayer(pid, name) {
     if (!canJoin()) return false;
-    S.players.push({pid, name, team: [], roll: null});
+    S.players.push({pid, name, team: [], roll: null, ready: false});
     if (S.players.length >= S.N) newGame();
     else commit();
     return true;
@@ -138,15 +163,17 @@ const Engine = (() => {
       win: null,
       log: []
     });
-    S.players.forEach(p => { p.team = []; p.roll = null; });
+    S.players.forEach(p => { p.team = []; p.roll = null; p.ready = false; });
     log("ההרפתקה מתחילה!");
     startRoll("starterRoll");
   }
 
+  /* אין טיימר: מחכים שכל השחקנים ילחצו "מוכן" */
   function startRoll(phase) {
     S.phase = phase;
-    S.players.forEach(p => (p.roll = null));
-    schedule(MS.turn, autoRoll);
+    S.rollKind = phase;
+    S.players.forEach(p => { p.roll = null; p.ready = false; });
+    stopTimer();
     commit();
   }
 
@@ -155,31 +182,29 @@ const Engine = (() => {
     p.tie = Math.random();
   }
 
-  /* מי שלא הטיל תוך 20 שניות - הקובייה מוטלת בשבילו */
-  function autoRoll() {
-    S.players.filter(p => p.roll === null).forEach(roll);
-    afterRolls();
+  /* כשכולם מוכנים - הקוביות של כולם מוטלות יחד, וכולם רואים אותן מתגלגלות */
+  function checkReady() {
+    if (S.players.some(p => !p.ready)) return commit();
+    S.players.forEach(roll);
+    S.phase = "dice";
+    schedule(MS.dice, afterDice);
+    commit({kind: "dice"});
   }
 
-  function afterRolls() {
-    if (S.players.some(p => p.roll === null)) return commit();
+  function afterDice() {
     S.order = S.players.slice()
       .sort((a, b) => b.roll - a.roll || b.tie - a.tie)
       .map(p => p.pid);
     S.pos = 0;
     const names = S.order.map(pid => P(pid).name).join(" ← ");
     log(`סדר התורות: ${names}`);
-    const next = S.phase === "starterRoll" ? "starterPick" : "turns";
+    const next = S.rollKind === "starterRoll" ? "starterPick" : "turns";
     showMessage("סדר התורות", names, next, MS.order);
   }
 
   function startStarterPick() {
     S.phase = "starterPick";
-    schedule(MS.turn, () => {
-      const id = S.starterPool[rnd(S.starterPool.length)];
-      log(`${current().name} לא בחר בזמן - קיבל פוקימון אקראי`);
-      pickStarter(id);
-    });
+    stopTimer();
     commit();
   }
 
@@ -196,7 +221,7 @@ const Engine = (() => {
   function drawWild() {
     if (S.deck.length === 0) return startBoss();
     const id = S.deck.shift();
-    S.wild = makeMon(id);
+    S.wild = makeWild(id);
     log(`פוקימון פראי הופיע: ${POKEMON[id].he}!`);
     showMessage("פוקימון פראי הופיע!", `${POKEMON[id].he} קופץ מהחבילה אל השולחן.`, "roundRoll");
   }
@@ -224,10 +249,7 @@ const Engine = (() => {
     if (S.pos >= S.order.length) return wildTurn();
     S.phase = "turn";
     S.action = null;
-    schedule(MS.turn, () => {
-      log(`${current().name} - נגמר הזמן`);
-      nextTurn();
-    });
+    stopTimer();
     commit();
   }
 
@@ -242,6 +264,7 @@ const Engine = (() => {
     if (!mon || mon.hp <= 0) return;
     const {mult, dmg} = damageOf(mon.id, S.wild.id);
     S.wild.hp = Math.max(0, S.wild.hp - dmg);
+    trimNums(S.wild);
     const text = `${p.name}: ${POKEMON[mon.id].he} תוקף - ${dmg} (${multText(mult)})`;
     log(text);
     S.phase = "anim";
@@ -255,15 +278,17 @@ const Engine = (() => {
     else nextTurn();
   }
 
+  /* מושכים בידית: המכונה עוצרת על מספר אקראי מבין אלה שנשארו.
+     מספר שגוי נמחק לתמיד. כשנשאר רק מספר אחד - הפוקימון נתפס אוטומטית. */
   function startCatch() {
-    const chance = catchChance(S.wild);
-    const success = Math.random() < chance;
-    const greenDeg = chance * 360;
-    const margin = Math.min(8, greenDeg / 4, (360 - greenDeg) / 4);
-    const land = success
-      ? margin + Math.random() * (greenDeg - 2 * margin)
-      : greenDeg + margin + Math.random() * (360 - greenDeg - 2 * margin);
-    S.wheel = {chance, success, turn: 360 * 6 + (360 - land), pid: current().pid};
+    const w = S.wild;
+    if (!w.nums) { const fresh = makeWild(w.id); w.nums = fresh.nums; w.secret = fresh.secret; trimNums(w); }
+    const nums = w.nums.slice();
+    const auto = nums.length === 1;
+    const land = auto ? w.secret : nums[rnd(nums.length)];
+    const success = land === w.secret;
+    if (!success) w.nums = w.nums.filter(n => n !== land);
+    S.wheel = {nums, land, success, auto, left: w.nums.length, pid: current().pid};
     S.phase = "wheel";
     S.action = `${current().name} מנסה לתפוס את ${POKEMON[S.wild.id].he}`;
     schedule(MS.wheel, afterWheel);
@@ -274,7 +299,7 @@ const Engine = (() => {
     const w = S.wheel;
     S.wheel = null;
     if (w.success && P(w.pid)) return caught(P(w.pid));
-    if (P(w.pid)) log(`${P(w.pid).name} ניסה לתפוס ונכשל`);
+    if (P(w.pid)) log(`${P(w.pid).name} עצר על ${w.land} - לא המספר הנכון`);
     nextTurn();
   }
 
@@ -332,11 +357,8 @@ const Engine = (() => {
     const title = `תור של ${name}`;
     const fx = {kind: "wildAttack", hits: fxHits};
     if (!anyAlive()) return showMessage(title, lines.join("\n"), "lose", MS.msg, fx);
-    if (S.wild.boss) return showMessage(title, lines.join("\n") + "\n\nמטילים שוב קוביות לסבב הבא.", "roundRoll", MS.msg, fx);
-    S.deck.splice(rnd(S.deck.length + 1), 0, S.wild.id);
-    S.wild = null;
-    log(`${name} חזר לחבילה`);
-    resolveWild(title, lines.join("\n") + `\n\nאף אחד לא תפס אותו, אז ${name} חוזר למקום אקראי בחבילה עם חיים מלאים.`, fx);
+    // הפוקימון אף פעם לא בורח: נשאר בזירה עד שתופסים אותו או שהוא מתעלף
+    return showMessage(title, lines.join("\n") + `\n\n${name} נשאר בזירה. סבב חדש מתחיל.`, "roundRoll", MS.msg, fx);
   }
 
   function endGame(win) {
@@ -377,10 +399,11 @@ const Engine = (() => {
     if (!p) return;
     const mine = S.order && S.order[S.pos] === pid;
     switch (a.t) {
+      case "ready":
       case "roll":
-        if ((S.phase === "starterRoll" || S.phase === "roundRoll") && p.roll === null) {
-          roll(p);
-          afterRolls();
+        if ((S.phase === "starterRoll" || S.phase === "roundRoll") && !p.ready) {
+          p.ready = true;
+          checkReady();
         }
         break;
       case "pick":
@@ -424,7 +447,7 @@ const Engine = (() => {
     switch (S.phase) {
       case "starterRoll":
       case "roundRoll":
-        return afterRolls();
+        return checkReady();
       case "starterPick":
         if (S.pos >= S.order.length) return drawWild();
         if (wasCurrent) return startStarterPick();
@@ -456,7 +479,8 @@ const Engine = (() => {
     paused = false;
     switch (S.phase) {
       case "starterRoll":
-      case "roundRoll": schedule(MS.turn, autoRoll); break;
+      case "roundRoll": stopTimer(); break;
+      case "dice": schedule(MS.dice, afterDice); break;
       case "starterPick": startStarterPick(); return;
       case "turn": skipDead(); return;
       case "anim": schedule(MS.anim, afterAnim); break;

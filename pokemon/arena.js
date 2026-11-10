@@ -384,6 +384,127 @@ function setSpriteMon(p, mon) {
   tween(.35, t => { const k = ease(t) * 1.55; s.scale.set(k, k, 1); });
 }
 
+/* ---------- קובייה ענקית ליד כל שחקן ----------
+   סדר הפאות ב-BoxGeometry: +x, -x, +y, -y, +z, -z. פאות נגדיות מסתכמות ל-7. */
+const DIE_SIZE = .78;
+const DIE_REST = DIE_SIZE / 2;
+const DIE_FACES = [3, 4, 1, 6, 2, 5];
+// הסיבוב שמביא כל מספר לפנות אל המצלמה (+z)
+const DIE_ROT = {
+  1: [Math.PI / 2, 0, 0], 2: [0, 0, 0], 3: [0, -Math.PI / 2, 0],
+  4: [0, Math.PI / 2, 0], 5: [0, Math.PI, 0], 6: [-Math.PI / 2, 0, 0]
+};
+const PIPS = {
+  1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]],
+  4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+  6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]]
+};
+let dieMats = null;
+
+function dieFaceTex(n) {
+  return canvasTex(128, 128, (ctx, w) => {
+    ctx.fillStyle = "#d9dde4";
+    ctx.fillRect(0, 0, w, w);
+    ctx.fillStyle = "#fbfbfd";
+    ctx.beginPath();
+    ctx.roundRect(5, 5, w - 10, w - 10, 22);
+    ctx.fill();
+    for (const [cx, cy] of PIPS[n]) {
+      const x = 30 + cx * 34, y = 30 + cy * 34;
+      ctx.fillStyle = n === 1 ? "#e3262e" : "#1d2230";
+      ctx.beginPath();
+      ctx.arc(x, y, n === 1 ? 17 : 11, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+
+function makeDie() {
+  if (!dieMats) dieMats = DIE_FACES.map(n => new THREE.MeshLambertMaterial({map: dieFaceTex(n)}));
+  const wrap = new THREE.Group();
+  const cube = new THREE.Mesh(new THREE.BoxGeometry(DIE_SIZE, DIE_SIZE, DIE_SIZE), dieMats);
+  cube.castShadow = true;
+  cube.position.y = DIE_REST;
+  wrap.add(cube);
+  wrap.position.set(.58, 0, .75);
+  wrap.visible = false;
+  return {wrap, cube, mode: "hidden", value: 0};
+}
+
+function setDieValue(d, v) {
+  const r = DIE_ROT[v] || DIE_ROT[1];
+  d.cube.rotation.set(r[0], r[1], r[2]);
+  d.cube.position.y = DIE_REST;
+  d.value = v;
+  d.mode = "shown";
+}
+
+function showDie(d) {
+  if (d.wrap.visible && d.mode !== "hiding") return;
+  if (d.mode === "hiding") d.mode = "idle";
+  d.wrap.visible = true;
+  d.cube.scale.setScalar(.01);
+  tween(.35, t => d.cube.scale.setScalar(Math.max(.01, ease(t))));
+}
+
+function hideDie(d) {
+  if (!d.wrap.visible || d.mode === "hiding") return;
+  d.mode = "hiding";
+  tween(.3, t => d.cube.scale.setScalar(Math.max(.01, 1 - t)), 0, () => {
+    if (d.mode === "hiding") { d.wrap.visible = false; d.mode = "hidden"; }
+  });
+}
+
+/* הקובייה קופצת למעלה, מתהפכת באוויר, נוחתת ומקפצת - ועוצרת על המספר */
+function throwDie(p, value, k) {
+  const d = p.die;
+  showDie(d);
+  d.mode = "rolling";
+  const r = DIE_ROT[value];
+  const turn = () => (2 + Math.floor(Math.random() * 3)) * Math.PI * 2 * (Math.random() < .5 ? -1 : 1);
+  const spin = [turn(), turn(), turn()];
+  const delay = k * .12;
+  const T = 1.75;
+  tween(T, t => {
+    const e = 1 - Math.pow(1 - t, 2.6);
+    d.cube.rotation.set(r[0] + spin[0] * (1 - e), r[1] + spin[1] * (1 - e), r[2] + spin[2] * (1 - e));
+    let h;
+    if (t < .42) { const u = t / .42; h = 2.8 * Math.sin(Math.PI * (.35 + u * .65)); }
+    else { const u = (t - .42) / .58; h = Math.abs(Math.sin(u * Math.PI * 2.5)) * .55 * Math.pow(1 - u, 1.6); }
+    d.cube.position.y = DIE_REST + Math.max(0, h);
+  }, delay, () => {
+    setDieValue(d, value);
+    const pos = new THREE.Vector3(p.group.position.x + d.wrap.position.x, DIE_SIZE + .55, p.group.position.z + d.wrap.position.z);
+    burst(pos, 0xffe066, 12, 1.6);
+    floatText(pos, String(value), "up die-num");
+  });
+  // נקישות כשהקובייה פוגעת ברצפה
+  [.42, .66, .85].forEach(at => tween(.01, () => window.Sfx && Sfx.play("wobble"), delay + at * T));
+}
+
+function syncDice(S, fx) {
+  const rolling = S.phase === "starterRoll" || S.phase === "roundRoll";
+  const after = S.phase === "dice" || (S.phase === "message" && S.message && (S.message.next === "starterPick" || S.message.next === "turns"));
+  S.players.forEach((pl, k) => {
+    const p = players.get(pl.pid);
+    if (!p) return;
+    const d = p.die;
+    if (rolling) {
+      showDie(d);
+      if (d.mode !== "hiding") d.mode = "idle";
+      d.ready = !!pl.ready;
+    } else if (after && pl.roll) {
+      if (fx && fx.kind === "dice") throwDie(p, pl.roll, k);
+      else if (d.mode !== "rolling") { showDie(d); setDieValue(d, pl.roll); }
+    } else {
+      hideDie(d);
+    }
+  });
+  if (fx && fx.kind === "dice") {
+    focus(new THREE.Vector3(0, 2.6, SPOT_Z + 6.5), new THREE.Vector3(0, .9, SPOT_Z), 2.4, 0, .45);
+  }
+}
+
 /* ---------- סנכרון עם המצב ---------- */
 
 function spotX(i, n) {
@@ -415,10 +536,11 @@ function syncPlayers(S) {
       trainer.rotation.y = -.25;
       const shadow = makeShadow(1.3);
       shadow.position.set(.35, 0, MON_Z);
-      group.add(disc, ring, trainer, shadow);
+      const die = makeDie();
+      group.add(disc, ring, trainer, shadow, die.wrap);
       group.position.set(spotX(i, n), 0, SPOT_Z + 3);
       root.add(group);
-      p = {group, disc, ring, trainer, shadow, sprite: null, mon: null, color, x: spotX(i, n), prefer: null};
+      p = {group, disc, ring, trainer, shadow, die, sprite: null, mon: null, color, x: spotX(i, n), prefer: null};
       players.set(pl.pid, p);
     }
     p.x = spotX(i, n);
@@ -785,6 +907,18 @@ function frame() {
     if (p.trainer.userData.mixer) p.trainer.userData.mixer.update(dt);
     else p.trainer.position.y = Math.sin(t * 2 + p.x) * .02;
     p.disc.material.color.set(pid === state.myPid ? 0xdfeaff : 0xffffff);
+    const d = p.die;
+    if (d.wrap.visible) {
+      // הקובייה פונה תמיד אל המצלמה, ומוטה קצת כדי שגם הפאה העליונה תיראה
+      d.wrap.rotation.set(-.32, Math.atan2(camera.position.x - gp.x - d.wrap.position.x, camera.position.z - gp.z - d.wrap.position.z), 0);
+      if (d.mode === "idle") {
+        // מרחפת ומסתובבת לאט עד שכולם מוכנים; מי שמוכן - מסתובבת מהר
+        const sp = d.ready ? 3.2 : 1;
+        d.cube.rotation.x += dt * .9 * sp;
+        d.cube.rotation.y += dt * 1.3 * sp;
+        d.cube.position.y = lerp(d.cube.position.y, DIE_REST + .55 + Math.sin(t * 2 + p.x) * .12, .1);
+      }
+    }
     if (p.sprite) {
       const u = p.sprite.userData;
       p.sprite.position.y = Math.max(p.sprite.position.y * .85, u.grey ? 0 : Math.abs(Math.sin(t * 2.4 + p.x)) * .06);
@@ -906,6 +1040,7 @@ const Arena = {
     if (fx && fx.kind === "damage") fxAttack(fx);
     if (fx && fx.kind === "wildAttack") fxWildAttack(fx);
     if (fx && fx.kind === "wheel") fxWheel(S);
+    syncDice(S, fx);
     syncWild(S);
   }
 };
