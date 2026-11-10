@@ -451,7 +451,72 @@ const AS_MY_AI = "https://itaydaniel1000-beep.github.io/BrawlClash/my-ai/";
 function asMyAiLink(question) {
   return '<p class="helper-aside helper-handoff">' +
          '<a href="' + AS_MY_AI + "?q=" + encodeURIComponent(question) +
-         '" target="_blank" rel="noopener">לשאול את העוזר שלי ←</a></p>';
+         '" target="_blank" rel="noopener">לפתוח את העוזר שלי ←</a></p>';
+}
+
+const AS_BIG_TAG = '<span class="helper-llm-tag big">העוזר שלי</span>';
+
+const AS_BIG_NOTE =
+  '<p class="helper-llm-note">ענה העוזר שלי, שרץ אצלך במחשב. גם הוא ' +
+  "יכול לטעות — שווה לבדוק עם מבוגר.</p>";
+
+/* תשובה שאינה תשובה. המודל של גוגל עונה לפעמים "אינני יודע" או
+   "אנא שאל שאלה ספציפית", וזה בדיוק הרגע להעביר את השאלה הלאה
+   במקום להציג לילד סירוב מנוסח יפה. */
+const AS_NO_ANSWER =
+  /(אינני|איני|אני לא)\s*(יודע|בטוח|מכיר)|לא יודע|לא מוגדרת|לא ברורה|אין לי (מספיק )?מידע|אנא שאל|שאל שאלה|תשאל שאלה/;
+
+function asIsNonAnswer(text) {
+  return !text || text.length < 25 || AS_NO_ANSWER.test(text);
+}
+
+/* השלב השלישי. רץ רק כשהשניים שלפניו לא נתנו כלום.
+   כשהמודל כבר שמור בדפדפן שואלים אותו מיד; כשהוא לא, מציגים כפתור
+   עם המשקל, כי הורדה של ג'יגה-בייט היא לא משהו שעושים למישהו בשקט. */
+async function asAskBigAi(question, bubble, chat) {
+  if (!window.BIGAI || !(await window.BIGAI.available())) {
+    bubble.insertAdjacentHTML("beforeend", asMyAiLink(question));
+    chat.scrollTop = 1e9;
+    return;
+  }
+
+  const run = async (host) => {
+    host.className = "helper-llm big";
+    host.innerHTML = AS_BIG_TAG + "<p><em>חושב…</em></p>";
+    const text = await window.BIGAI.ask(
+      question,
+      partial => { host.innerHTML = AS_BIG_TAG + "<p>" + asFormat(partial) + "</p>"; },
+      p => {
+        host.innerHTML = AS_BIG_TAG + "<p><em>מוריד את העוזר… " +
+                         Math.round((p || 0) * 100) + "%</em></p>";
+      }
+    );
+    if (text) {
+      host.innerHTML = AS_BIG_TAG + "<p>" + asFormat(text) + "</p>" + AS_BIG_NOTE;
+    } else {
+      host.remove();
+      bubble.insertAdjacentHTML("beforeend", asMyAiLink(question));
+    }
+    chat.scrollTop = 1e9;
+  };
+
+  const host = document.createElement("div");
+  bubble.insertBefore(host, bubble.firstChild);
+
+  if (await window.BIGAI.cached()) {
+    await run(host);
+    return;
+  }
+
+  const gb = window.BIGAI.size();
+  host.className = "helper-offer";
+  host.innerHTML =
+    "<p>גם ה-AI של גוגל לא ידע. אפשר לשאול את <strong>העוזר שלי</strong>, " +
+    "שחכם יותר אבל צריך להוריד אותו פעם אחת" +
+    (gb ? " (" + gb + " ג׳יגה)" : "") + ".</p>" +
+    '<button type="button" class="helper-chip">לשאול את העוזר שלי</button>';
+  host.querySelector("button").addEventListener("click", () => run(host), {once: true});
+  chat.scrollTop = 1e9;
 }
 
 /* מי כתב את התשובה ומה המשמעות. השורה הזאת חייבת להופיע על כל תשובה
@@ -552,12 +617,9 @@ async function asAsk(question) {
 
   const ready = window.LLM && window.LLM.state === "ready";
 
-  /* בלי מודל - לפחות שיהיה לאן ללכת */
+  /* אין מודל של גוגל כאן - עוברים ישר לשלב השלישי */
   if (!ready) {
-    if (!grounded) {
-      bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
-      chat.scrollTop = 1e9;
-    }
+    if (!grounded) await asAskBigAi(q, bubble, chat);
     return;
   }
 
@@ -572,9 +634,12 @@ async function asAsk(question) {
     if (near) chat.scrollTop = 1e9;
   });
 
-  if (!text) {
+  /* בלי הקשר מהאתר, "אינני יודע" מהמודל הוא לא סוף הדרך - זה הרגע
+     להעביר את השאלה לעוזר הגדול. עם הקשר מהאתר התשובה שמתחת כבר
+     נכונה, ואין למי להעביר. */
+  if (!text || (!grounded && asIsNonAnswer(text))) {
     live.remove();
-    if (!grounded) bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
+    if (!grounded) await asAskBigAi(q, bubble, chat);
     if (near) chat.scrollTop = 1e9;
     return;
   }
@@ -583,7 +648,6 @@ async function asAsk(question) {
      מרקדת למטה עם כל מילה. */
   live.innerHTML = AS_LLM_TAG + "<p>" + asFormat(text) + "</p>" +
                    (grounded ? AS_LLM_NOTE : AS_LLM_NOTE_FREE);
-  if (!grounded) bubble.insertAdjacentHTML("beforeend", asMyAiLink(q));
   if (near) chat.scrollTop = 1e9;
 }
 

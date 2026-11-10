@@ -2640,6 +2640,19 @@ button:focus-visible {
   font-weight: 800;
 }
 
+/* העוזר השני נבדל מה-AI של גוגל בצבע התג בלבד - אותו מבנה, מקור אחר */
+.helper-llm-tag.big { background: var(--brand-soft); }
+
+/* ההצעה להוריד את העוזר הגדול. היא שואלת רשות, ולכן היא לא נראית
+   כמו תשובה אלא כמו כפתור. */
+.helper-offer {
+  margin-block-end: 12px;
+  padding-block-end: 11px;
+  border-block-end: 2px dashed var(--ink-faint);
+}
+
+.helper-offer p { margin: 0 0 8px; font-size: 0.9rem; }
+
 /* המעבר לעוזר הגדול יותר, כשאין על הנושא שיעור באתר */
 .helper-handoff a {
   color: var(--brand-strong);
