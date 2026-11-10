@@ -46,6 +46,35 @@ function llmHebrewShare(text) {
   return he / letters.length;
 }
 
+/* ---------- זיכרון המבחן ----------
+   המבחן עולה גנרציה מלאה - נמדד 4.25 שניות, מול 0.41 שניות שלוקח
+   להעיר את המודל עצמו. כלומר רובו המוחלט של זמן ההמתנה הוא הוכחה
+   חוזרת של מה שכבר הוכח במחשב הזה. לכן התוצאה נשמרת.
+
+   היא לא נשמרת לנצח: גוגל מעדכנת את המודל, והעברית שלו יכולה
+   להשתפר או להישבר. אחרי שבועיים בודקים מחדש. וכשהתשובה השמורה
+   חיובית, המודל מוכרז מוכן מיד ונבדק שוב ברקע - מי שמקליד שאלה
+   בשנייה הראשונה לא מחכה לאימות. */
+const LLM_VERDICT_KEY = "kesef-hacham-llm-he";
+const LLM_VERDICT_DAYS = 14;
+
+function llmVerdictRead() {
+  try {
+    const v = JSON.parse(localStorage.getItem(LLM_VERDICT_KEY) || "null");
+    if (!v || typeof v.ok !== "boolean" || typeof v.at !== "number") return null;
+    return (Date.now() - v.at) / 86400000 < LLM_VERDICT_DAYS ? v : null;
+  } catch (e) {
+    /* גלישה פרטית, או אחסון חסום. פשוט נבחן כרגיל. */
+    return null;
+  }
+}
+
+function llmVerdictWrite(ok) {
+  try {
+    localStorage.setItem(LLM_VERDICT_KEY, JSON.stringify({ok: ok, at: Date.now()}));
+  } catch (e) {}
+}
+
 /* מה שכל שאר הקוד רואה */
 window.LLM = {
   state: "idle",     /* idle | loading | ready | unsupported | failed */
@@ -123,6 +152,14 @@ async function llmBoot(afterGesture) {
     return;
   }
 
+  /* המודל כבר נבחן כאן ונכשל. אין טעם להעיר כמה ג'יגה-בייט לזיכרון
+     רק כדי להגיע שוב לאותה מסקנה. */
+  const verdict = llmVerdictRead();
+  if (verdict && !verdict.ok) {
+    llmSet("unsupported", 0, "המודל לא כותב עברית טובה במחשב הזה");
+    return;
+  }
+
   /* כשהמודל כבר על המחשב אין מה להודיע - הוא ייכנס תוך שבריר שנייה.
      פס התקדמות שמהבהב לרגע הוא רעש. */
   if (avail !== "available") llmSet("loading", 0, "מתחיל");
@@ -139,6 +176,7 @@ async function llmBoot(afterGesture) {
   }, 20000);
 
   try {
+    const t0 = performance.now();
     llmSession = await LanguageModel.create({
       initialPrompts: [{role: "system", content: LLM_SYSTEM}],
       monitor(m) {
@@ -151,11 +189,22 @@ async function llmBoot(afterGesture) {
     });
     clearTimeout(quiet);
 
+    /* כבר הוכח כאן שהוא יודע עברית. מכריזים מוכן מיד, והאימות רץ
+       ברקע - ככה אף אחד לא מחכה 4 שניות להוכחה חוזרת. */
+    if (verdict && verdict.ok) {
+      console.info("llm: מוכן תוך " + Math.round(performance.now() - t0) +
+                   "ms (המבחן כבר נעשה כאן, נבדק שוב ברקע)");
+      llmSet("ready", 1, "מוכן");
+      llmRecheck();
+      return;
+    }
+
     /* חימום ומבחן בבת אחת. הגנרציה הראשונה כוללת הקצאות שמתבצעות פעם
        אחת בלבד, אז עושים אותה כאן בזמן שאף אחד לא מחכה - ובדרך גם
        בודקים אם מה שיוצא זו בכלל עברית. */
     const probe = await llmSession.prompt(LLM_PROBE);
     const share = llmHebrewShare(probe);
+    llmVerdictWrite(share >= LLM_HEBREW_MIN);
     if (share < LLM_HEBREW_MIN) {
       console.info("llm: העברית של המודל לא עברה את המבחן (" +
                    Math.round(share * 100) + "%):", probe);
@@ -165,6 +214,10 @@ async function llmBoot(afterGesture) {
       return;
     }
 
+    /* נרשם גם כשהוא עובר, לא רק כשהוא נכשל. בלי זה אין שום דרך לראות
+       מה המודל באמת כתב במחשב מסוים, והמבחן הופך לקופסה שחורה. */
+    console.info("llm: עבר את מבחן העברית (" + Math.round(share * 100) +
+                 "%) תוך " + Math.round(performance.now() - t0) + "ms:", probe.trim());
     llmSet("ready", 1, "מוכן");
   } catch (err) {
     clearTimeout(quiet);
@@ -180,6 +233,31 @@ async function llmBoot(afterGesture) {
       return;
     }
     llmSet("failed", 0, "הטעינה נכשלה");
+  }
+}
+
+/* אימות מאוחר, על סמך תשובה שמורה. רץ על עותק של השיחה כדי שהמבחן
+   לא יישאר בהיסטוריה וידלוף לשאלה אמיתית. אם המודל התקלקל בעדכון -
+   מכבים אותו ומוחקים את התשובה השמורה, והאתר חוזר להתנהג כמו קודם. */
+async function llmRecheck() {
+  if (!llmSession) return;
+  let turn = null;
+  try {
+    turn = await llmSession.clone();
+    const probe = await turn.prompt(LLM_PROBE);
+    const share = llmHebrewShare(probe);
+    if (share >= LLM_HEBREW_MIN) return;
+
+    console.info("llm: המודל הפסיק לכתוב עברית טובה (" +
+                 Math.round(share * 100) + "%), מכבים:", probe);
+    llmVerdictWrite(false);
+    if (llmSession) { llmSession.destroy(); llmSession = null; }
+    llmSet("unsupported", 0, "המודל לא כותב עברית טובה במחשב הזה");
+  } catch (err) {
+    /* כישלון באימות הוא לא עילה לכבות משהו שעובד */
+    console.error("llm recheck:", err);
+  } finally {
+    if (turn) { try { turn.destroy(); } catch (e) {} }
   }
 }
 
@@ -236,14 +314,18 @@ async function llmAnswer(question, context, onToken) {
 window.LLM.ask = llmAnswer;
 
 /* נטען ברקע ברגע שהדפדפן פנוי, כדי שעד שייכנסו למסך העוזר הוא כבר
-   יהיה מוכן. requestIdleCallback שומר שזה לא יתחרה בציור הדף. */
+   יהיה מוכן.
+
+   לא מחכים ל-load. הוא מגיע רק אחרי כל התמונות והקול של הדף, וזה
+   מאוחר בהרבה ממה שצריך - הקובץ הזה הוא מודול ולכן ה-DOM ממילא
+   מוכן כשהוא רץ. requestIdleCallback הוא מה ששומר שזה לא יתחרה
+   בציור הדף, לא אירוע ה-load. */
 function llmStart() {
   if (window.requestIdleCallback) {
-    requestIdleCallback(() => llmBoot(false), {timeout: 4000});
+    requestIdleCallback(() => llmBoot(false), {timeout: 2500});
   } else {
-    setTimeout(() => llmBoot(false), 1500);
+    setTimeout(() => llmBoot(false), 800);
   }
 }
 
-if (document.readyState === "complete") llmStart();
-else window.addEventListener("load", llmStart);
+llmStart();
