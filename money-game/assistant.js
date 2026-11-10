@@ -332,6 +332,36 @@ function asTopicCover(question, doc) {
   return total ? found / total : 1;
 }
 
+/* ---------- שלום, תודה, ושאר דברים שהם לא שאלה ---------- */
+
+/* "מה קורה" הוא לא שאלה על כסף, אבל "קורה" היא מילה נדירה במאגר
+   הקטן הזה ולכן ה-IDF שלה גבוה - והיא לבדה גררה את השיעור על כרטיס
+   אשראי. אותו דבר ב"שוב פעם" (פעם, 3.7) וב"מה נשמע" (נשמע, 4.4).
+   IDF על מאגר קטן מודד נדירות, לא חשיבות, ומילה יומיומית אחת יכולה
+   להיראות כמו נושא. לכן ברכות נתפסות לפני החיפוש ולא נכנסות אליו. */
+const AS_HELLO =
+  /^(הי+|היי+|יה|שלום|אהלן|הלו|יו|מה קורה|מה נשמע|מה שלומך|מה המצב|בוקר טוב|ערב טוב|שוב פעם|hi|hello|hey)[\s!?.,־-]*$/i;
+
+const AS_THANKS = /^(תודה( רבה)?|אחלה|מגניב|סבבה|יופי|מעולה|אחלה אחי)[\s!?.,]*$/i;
+
+function asSmallTalk(question) {
+  const q = String(question || "").replace(/\s+/g, " ").trim();
+  if (AS_HELLO.test(q)) {
+    return {
+      kind: "hello",
+      lines: ["היי! אני עונה על שאלות כסף מתוך השיעורים של האתר, " +
+              "וגם מחשב שאלות שיש בהן מספרים.",
+              "אפשר לשאול משהו כמו **מה זה ריבית דריבית**, או " +
+              "**איך מחלקים 300 שקל לפי 50 30 20** — או ללחוץ על אחת " +
+              "ההצעות למטה."]
+    };
+  }
+  if (AS_THANKS.test(q)) {
+    return {kind: "hello", lines: ["בכיף! יש עוד משהו שבא לך לדעת על כסף?"]};
+  }
+  return null;
+}
+
 /* ---------- שאלות על העוזר עצמו ---------- */
 
 /* "תגיד איך אתה פועל" היא שאלה לגיטימית שאין עליה שיעור באתר, והחיפוש
@@ -365,6 +395,8 @@ function asSelfAnswer() {
 }
 
 function asCompose(question) {
+  const chat = asSmallTalk(question);
+  if (chat) return chat;
   if (asIsAboutSelf(question)) return asSelfAnswer();
 
   const math = asTryMath(question);
@@ -606,7 +638,7 @@ async function asAsk(question) {
      תשובה, רק דרך מנומסת לא לענות - עדיף תשובה מסומנת ככזו, עם
      האזהרה שמתחתיה. */
   const grounded = res.kind === "answer" && !!res.context;
-  if (res.kind === "math" || res.kind === "self") return;
+  if (res.kind === "math" || res.kind === "self" || res.kind === "hello") return;
 
   const ai = asPickAI();
 
@@ -642,8 +674,12 @@ async function asAsk(question) {
     if (alt) {
       const second = await run(alt);
       if (second && !asLooksBroken(second)) { used = alt; text = second; }
-      else { live.innerHTML = used.tag; }
+      else text = null;
+    } else {
+      text = null;
     }
+    /* שניהם שברו: מוחקים. תג בלי תשובה מתחתיו נראה כמו תקלה, וטקסט
+       שבור גרוע מכלום - התשובה מהאתר עומדת בפני עצמה. */
   }
 
   /* בלי הקשר מהאתר, "אינני יודע" הוא לא תשובה. אין למי להעביר את
