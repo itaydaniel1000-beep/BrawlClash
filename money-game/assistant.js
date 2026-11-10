@@ -658,6 +658,11 @@ window.asBrokenReason = asBrokenReason;
 window.AS_TOO_SHORT = AS_TOO_SHORT;
 
 /* המודל השני, לנפילה אחורה כשהראשון שבר את העברית */
+function asAnyLoading() {
+  return (window.BIGAI && window.BIGAI.state === "loading") ||
+         (window.LLM && window.LLM.state === "loading");
+}
+
 function asOtherAI(used) {
   const big = window.BIGAI && window.BIGAI.state === "ready";
   const nano = window.LLM && window.LLM.state === "ready";
@@ -732,7 +737,21 @@ async function asAsk(question) {
   const bubble = asBubble("bot", "<em>רגע…</em>");
   const chat = document.getElementById("helperChat");
 
-  const ai = asPickAI();
+  let ai = asPickAI();
+
+  /* אף מודל לא מוכן עדיין, אבל אחד בדרך. מי שכתב "הבנת" בדקה
+     הראשונה אחרי שנכנס לא אמור לקבל את רשימת הנושאים של האתר
+     במקום תשובה - עדיף לחכות לו כמה שניות. */
+  if (!ai && asAnyLoading()) {
+    bubble.innerHTML = "<p><em>רגע, אני עוד מתעורר…</em></p>";
+    chat.scrollTop = 1e9;
+    const until = Date.now() + 25000;
+    while (Date.now() < until) {
+      await new Promise(r => setTimeout(r, 400));
+      ai = asPickAI();
+      if (ai || !asAnyLoading()) break;
+    }
+  }
 
   /* ---- בלי מודל ----
      בטלפון אין WebGPU ואין מודל מובנה, ואז מה שהאתר מצא הוא כל מה
