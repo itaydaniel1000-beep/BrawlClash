@@ -438,6 +438,50 @@ function asCompose(question) {
   };
 }
 
+/* ---------- מה שהעוזר יודע על האתר ----------
+   לא הקשר שנדחף לכל שאלה - זה נוסה ונכשל, כי החיפוש תפס מילים
+   ופספס כוונה והמודל ענה על נושא אחר. כאן זה ידע קבוע: נכנס פעם
+   אחת להוראת המערכת שלו ונשאר שם לאורך כל השיחה, כמו שאדם זוכר
+   על מה האתר שהוא עובד בו.
+
+   משפט ראשון מכל שיעור ולא השיעור כולו: 1130 תווים מול 2900, וזה
+   מספיק כדי להחזיק את המונחים עצמם - תקציב, צורך מול רצון, קרן
+   חירום, ריבית דריבית. בדיוק המילים שהמודל הקטן לא ידע לנקוב בהן.
+
+   נבנה מהמשתנים החיים, אז שיעור חדש באתר נכנס לזיכרון שלו לבד. */
+let AS_MEMORY;
+
+function asFirstSentence(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/^[^.!?]*[.!?]/);
+  return (m ? m[0] : t).trim();
+}
+
+function asSiteMemory() {
+  if (AS_MEMORY !== undefined) return AS_MEMORY;
+  const parts = [];
+  try {
+    if (typeof dailyLessons !== "undefined" && dailyLessons.length) {
+      parts.push("אלה השיעורים שיש באתר הזה, ואתה מכיר אותם:");
+      dailyLessons.forEach(l => {
+        parts.push("• " + l.title + " — " + asFirstSentence(l.body));
+      });
+    }
+    if (typeof videos !== "undefined" && videos.length) {
+      parts.push("");
+      parts.push("סרטונים באתר: " +
+        videos.map(v => v.title + " (" + (v.grade || "") + ")").join(", "));
+    }
+  } catch (e) {
+    console.error("site memory:", e);
+  }
+  AS_MEMORY = parts.length ? parts.join("\n") : null;
+  return AS_MEMORY;
+}
+
+/* שני המנועים קוראים לה כשהם בונים את הוראת המערכת שלהם */
+window.asSiteMemory = asSiteMemory;
+
 /* ---------- נקודת ההחלפה ---------- */
 
 /* כל מה שהממשק קורא לו. היום זה חיפוש מקומי; אם יום אחד יהיה מפתח

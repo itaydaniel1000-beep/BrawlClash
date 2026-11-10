@@ -106,6 +106,13 @@ const LLM_SYSTEM =
   "ענה בשתיים עד ארבע שורות, בלי כותרות ובלי רשימות.\n" +
   "אם אינך יודע, אמור זאת במשפט אחד במקום לנחש.";
 
+/* הוראת המערכת, עם מה שהאתר יודע מוטמע בתוכה. נבנית בזמן היצירה
+   ולא בטעינת הקובץ, כי התוכן של האתר נטען אחרי המנוע. */
+function llmSystem() {
+  const mem = typeof window.asSiteMemory === "function" ? window.asSiteMemory() : null;
+  return mem ? LLM_SYSTEM + "\n\n" + mem : LLM_SYSTEM;
+}
+
 let llmSession = null;
 let llmArmed = false;
 
@@ -179,7 +186,7 @@ async function llmBoot(afterGesture) {
   try {
     const t0 = performance.now();
     llmSession = await LanguageModel.create({
-      initialPrompts: [{role: "system", content: LLM_SYSTEM}],
+      initialPrompts: [{role: "system", content: llmSystem()}],
       monitor(m) {
         m.addEventListener("downloadprogress", ev => {
           /* loaded מגיע כשבר בין 0 ל-1 */

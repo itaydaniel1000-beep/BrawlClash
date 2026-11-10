@@ -26,6 +26,13 @@ const BIGAI_SYSTEM =
   "ענה בעברית בלבד, בשתיים עד ארבע שורות, בלי כותרות ובלי רשימות.\n" +
   "אם אינך יודע, אמור זאת במשפט אחד במקום לנחש.";
 
+/* הוראת המערכת, עם מה שהאתר יודע מוטמע בתוכה. נבנית בזמן היצירה
+   ולא בטעינת הקובץ, כי התוכן של האתר נטען אחרי המנוע. */
+function bigaiSystem() {
+  const mem = typeof window.asSiteMemory === "function" ? window.asSiteMemory() : null;
+  return mem ? BIGAI_SYSTEM + "\n\n" + mem : BIGAI_SYSTEM;
+}
+
 window.BIGAI = {
   state: "idle",     /* idle | loading | ready | unsupported | failed */
   progress: 0,
@@ -148,7 +155,7 @@ async function bigaiQualityTest() {
   for (const item of BIGAI_EXAM) {
     try {
       const a = await m.chat(
-        [{role: "system", content: BIGAI_SYSTEM}, {role: "user", content: item.q}],
+        [{role: "system", content: bigaiSystem()}, {role: "user", content: item.q}],
         {temperature: 0.3, maxTokens: 80});
       const t = (a || "").trim();
       const good = !broken(t) && item.ok.some(w => t.includes(w));
@@ -183,7 +190,7 @@ async function bigaiAnswer(question, context, onToken) {
 
   try {
     const text = await m.chat(
-      [{role: "system", content: BIGAI_SYSTEM}, {role: "user", content: prompt}],
+      [{role: "system", content: bigaiSystem()}, {role: "user", content: prompt}],
       {temperature: 0.5, maxTokens: 300, onText: onToken}
     );
     return (text || "").trim() || null;
