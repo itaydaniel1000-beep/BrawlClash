@@ -785,6 +785,22 @@ async function asAsk(question) {
   let used = ai;
   let text = await run(used);
 
+  /* תשובה ריקה היא כמעט תמיד כרטיס מסך תפוס, לא חוסר ידע. my-ai
+     נטען ברקע ולוקח את ה-GPU, והמודל של גוגל מחזיר מחרוזת ריקה
+     במקום לזרוק שגיאה - וככה שלוש הודעות ברצף קיבלו "לא הצלחתי
+     לענות". נותנים לו רגע לנשום ומנסים שוב, ואז את השני. */
+  if (!text) {
+    await new Promise(r => setTimeout(r, 1200));
+    text = await run(used);
+  }
+  if (!text) {
+    const first = asOtherAI(used);
+    if (first) {
+      const second = await run(first);
+      if (second) { used = first; text = second; }
+    }
+  }
+
   /* עברית שבורה היא לא תשובה. אם השני זמין, נותנים לו לנסות. */
   const why = text ? asBrokenReason(text) : null;
   if (why) {
@@ -802,7 +818,13 @@ async function asAsk(question) {
   }
 
   if (!text) {
-    live.innerHTML = ai.tag + "<p>לא הצלחתי לענות על זה. אפשר לנסח אחרת?</p>";
+    /* אם מישהו עוד נטען, זו הסיבה - ועדיף להגיד את זה מאשר לטעון
+       שלא הבנו את השאלה. */
+    const warming = (window.BIGAI && window.BIGAI.state === "loading") ||
+                    (window.LLM && window.LLM.state === "loading");
+    live.innerHTML = ai.tag + "<p>" + (warming
+      ? "אני עוד מתעורר ברקע. נסה שוב עוד כמה שניות."
+      : "לא הצלחתי לענות על זה. אפשר לנסח אחרת?") + "</p>";
     chat.scrollTop = 1e9;
     return;
   }
