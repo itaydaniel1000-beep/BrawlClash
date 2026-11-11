@@ -175,6 +175,7 @@ const Engine = (() => {
       log: []
     };
     stopTimer();
+    if (S.players.length >= S.N) return newGame();   // משחק לבד מתחיל מיד
     commit();
   }
 
@@ -218,6 +219,12 @@ const Engine = (() => {
     S.players.forEach(p => { p.roll = null; p.rolls = []; p.ready = false; });
     stopTimer();
     commit();
+    // לבד אין את מי לנצח בקוביות: ממשיכים ישר
+    if (S.mode === "solo") {
+      S.order = S.players.map(p => p.pid);
+      S.pos = 0;
+      return phase === "starterRoll" ? startStarterPick() : startTurns();
+    }
   }
 
   function roll(p) {

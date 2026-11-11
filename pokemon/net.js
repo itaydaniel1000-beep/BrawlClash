@@ -302,6 +302,14 @@ const Net = (() => {
     throw new Error("no slot");
   }
 
+  /* משחק לבד: הטלפון הוא המארח, בלי שרת ובלי אינטרנט */
+  function solo() {
+    leave(true);
+    role = "host";
+    Engine.init(broadcast);
+    Engine.lobby({roomKey: "solo", code: null, mode: "solo", N: 1}, {pid: myPid, name: myName});
+  }
+
   function act(a) {
     if (role === "host") Engine.act(myPid, a);
     else if (hostConn) hostConn.send({t: "act", a, pid: myPid});
@@ -327,7 +335,7 @@ const Net = (() => {
     myPid,
     setName: n => (myName = n),
     setUI: h => Object.assign(ui, h),
-    createRoom, joinRoom, randomMatch, act, leave,
+    createRoom, joinRoom, randomMatch, solo, act, leave,
     isHost: () => role === "host"
   };
 })();

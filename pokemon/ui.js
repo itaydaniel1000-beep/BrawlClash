@@ -277,6 +277,7 @@ function renderPanel() {
           <button class="btn primary big" onclick="go('randomCount')">🎲 אקראי</button>
           <button class="btn primary big" onclick="go('roomMenu')">🚪 חדר</button>
         </div>
+        <button class="btn primary big solo-btn" onclick="startSolo()">🧍 לבד</button>
         <button class="btn" onclick="go('home')">↩ חזור</button>`;
       break;
     case "randomCount":
@@ -734,6 +735,11 @@ function startRandom(n) {
   connecting(`מחפשים משחק ל-${n} שחקנים...`, () => Net.randomMatch(n));
 }
 
+function startSolo() {
+  ui.note = "";
+  Net.solo();
+}
+
 function startCreate(n) {
   connecting("פותחים חדר...", () => Net.createRoom(n));
 }
@@ -752,7 +758,7 @@ function startJoin() {
 }
 
 function confirmLeave() {
-  modal(`<h2>לצאת מהמשחק?</h2><p>הפוקימונים שלך יחזרו לחבילה, והמשחק ימשיך בלעדיך.</p>
+  modal(`<h2>לצאת מהמשחק?</h2><p>${S && S.mode === "solo" ? "ההרפתקה תיגמר." : "הפוקימונים שלך יחזרו לחבילה, והמשחק ימשיך בלעדיך."}</p>
     <div class="row"><button class="btn" onclick="closeModal()">לא</button>
     <button class="btn primary" onclick="closeModal(); leaveGame()">כן</button></div>`, "leave");
 }
