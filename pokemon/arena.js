@@ -34,7 +34,7 @@ const texCache = {};
 const loader = new THREE.TextureLoader();
 function artTex(dex) {
   if (!texCache[dex]) {
-    const t = loader.load(`art/${dex}.png`);
+    const t = loader.load(ART_URL(dex));
     t.colorSpace = THREE.SRGBColorSpace;
     t.anisotropy = 4;
     texCache[dex] = t;
@@ -1059,8 +1059,8 @@ try {
   buildWorld();
   loadAllModels();
   window.addEventListener("resize", resize);
-  // טוענים מראש את כל התמונות
-  Object.values(POKEMON).forEach(d => artTex(d.dex));
+  // טוענים מראש את התמונות של ההתחלתיים והבוס. את השאר - כשהם מופיעים
+  [...STARTERS, CONFIG.boss.id].forEach(id => artTex(POKEMON[id].dex));
   Arena.ok = true;
 } catch (e) {
   console.warn("3D לא זמין", e);
