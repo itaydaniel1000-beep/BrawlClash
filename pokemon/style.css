@@ -303,3 +303,15 @@ body:not(.in-game) .panel { background: rgba(22,28,44,.82); backdrop-filter: blu
 @media (prefers-reduced-motion: reduce) { .slot-lever.can .knob { animation: none; } }
 
 .float.die-num { font-size: 44px; color: #ffe066; }
+
+/* ----- פריטים ושדרוג ----- */
+.wild-hud.item { border-color: #ffd166; background: linear-gradient(160deg, rgba(60,46,10,.92), rgba(28,22,8,.92)); }
+.wh-item { font-size: 12px; font-weight: bold; color: #ffe08a; margin-top: 2px; }
+.tag .items { font-size: 13px; }
+.luck { color: #7dffb0; font-weight: bold; margin: 2px 0; }
+.raffle { margin: 14px auto 6px; min-height: 64px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900;
+  background: linear-gradient(180deg, #2b2350, #1a1533); border: 3px solid #b18cff; border-radius: 16px; max-width: 260px; padding: 8px 14px; }
+.raffle.won { border-color: #ffd166; color: #ffd166; box-shadow: 0 0 18px rgba(255,209,102,.6); }
+.evo-to { color: #ffd166; margin: 4px 0; }
+.wild-hud.item, .wild-hud.item b, .wild-hud.item .wh-bottom { color: #fff; }
+.tag { max-width: 160px; }

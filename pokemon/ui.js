@@ -81,16 +81,16 @@ function renderArena(t) {
     t.innerHTML = `<div class="hud"></div><div class="tags"></div><div class="fx-layer"></div>`;
     Arena.mount(t);
   }
-  const cur = ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null;
+  const cur = highlightPid();
   const rolling = S.phase === "starterRoll" || S.phase === "roundRoll";
   t.querySelector(".tags").innerHTML = S.players.map(p => {
     let die = "";
     if (rolling) die = `<span class="die${p.ready ? "" : " waiting"}">${p.ready ? "✅" : "⏳"}</span>`;
     else if (p.roll && !(S.phase === "dice" && (!S.tied || S.tied.includes(p.pid)))) die = `<span class="die">${DIE[p.roll]}</span>`;
     const mine = p.pid === Net.myPid;
-    const dots = p.team.map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
+    const dots = teamDots(p);
     return `<button class="tag${p.pid === cur ? " active" : ""}${mine ? " mine" : ""}" data-pid="${p.pid}" onclick="showTeam('${p.pid}')">
-      <span class="tag-name">${esc(p.name)} ${die}</span>
+      <span class="tag-name">${esc(p.name)} ${itemIcons(p)}${die}</span>
       <span class="seat-team">${dots}</span>
     </button>`;
   }).join("");
@@ -100,7 +100,13 @@ function renderArena(t) {
     const d = POKEMON[S.wild.id];
     const pct = Math.round(100 * S.wild.hp / S.wild.maxHp);
     const cls = pct > 50 ? "good" : pct > 20 ? "mid" : "low";
-    hud += `<div class="wild-hud${S.wild.boss ? " boss" : ""}">
+    hud += S.wild.item
+      ? `<div class="wild-hud item">
+          <div class="wh-top"><b>${ITEMS[S.wild.id].icon} ${d.he}</b></div>
+          <div class="wh-item">${ITEMS[S.wild.id].text}</div>
+          <div class="wh-bottom"><span>🎁</span><span>🔢 ${numsLeft()}</span></div>
+        </div>`
+      : `<div class="wild-hud${S.wild.boss ? " boss" : ""}">
       <div class="wh-top"><b>${d.he}</b><span class="card-types">${typeBadges(d.types)}</span></div>
       <div class="hp"><div class="hp-fill ${cls}" style="width:${pct}%"></div></div>
       <div class="wh-bottom"><span>❤️ ${S.wild.hp}/${S.wild.maxHp}</span>${S.wild.boss ? "" : `<span>🔢 ${numsLeft()}</span>`}</div>
@@ -120,11 +126,11 @@ function renderFelt(t) {
   t.className = "table";
   const n = S.players.length;
   const myIndex = Math.max(0, S.players.findIndex(p => p.pid === Net.myPid));
-  const cur = ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null;
+  const cur = highlightPid();
   const rolling = S.phase === "starterRoll" || S.phase === "roundRoll";
   const seats = S.players.map((p, i) => {
     const {x, y} = seatPos((i - myIndex + n) % n, n);
-    const dots = p.team.map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
+    const dots = teamDots(p);
     let die = "";
     if (rolling) die = `<span class="die${p.ready ? "" : " waiting"}">${p.ready ? "✅" : "⏳"}</span>`;
     else if (p.roll) die = `<span class="die">${DIE[p.roll]}</span>`;
@@ -361,15 +367,16 @@ function gamePanel() {
       if (!isMyTurn()) {
         html = `<h2>התור של ${curName}</h2>${timerBar()}<p>מחכים שיחליט: לתקוף או לתפוס.</p>`;
       } else if (ui.attackOpen) {
-        html = `<h2>עם מי לתקוף?</h2>${timerBar()}` + carouselHTML(my.team, "attackAt", true);
+        ui.fightIdx = my.team.map((m, i) => i).filter(i => !isItem(my.team[i].id));
+        html = `<h2>עם מי לתקוף?</h2>${timerBar()}` + carouselHTML(ui.fightIdx.map(i => my.team[i]), "attackAt", true);
       } else if (ui.catchOpen) {
         html = `<h2>משוך בידית!</h2>${slotHTML(true)}
           <div class="row"><button class="btn" onclick="backToTurn()">↩ חזור</button></div>`;
       } else {
         html = `<h2>התור שלך!</h2>${timerBar()}
-          <p>מה תעשה מול ${wildName}?</p>
+          <p>${S.wild.item ? `${ITEMS[S.wild.id].icon} ${wildName}: ${ITEMS[S.wild.id].text}` : `מה תעשה מול ${wildName}?`}</p>
           <div class="row">
-            <button class="btn attack" onclick="openAttack()">⚔️ תקוף</button>
+            ${S.wild.item ? "" : `<button class="btn attack" onclick="openAttack()">⚔️ תקוף</button>`}
             ${S.wild.boss ? "" : `<button class="btn catch" onclick="openCatch()">🔴 תפוס</button>`}
           </div>`;
       }
@@ -377,8 +384,25 @@ function gamePanel() {
     case "anim":
       html = `<h2>${esc(S.action || "")}</h2>`;
       break;
+    case "upgradeSpin":
+      html = `<h2>✨ שדרוג!</h2><div class="raffle" id="raffle">🎁</div>`;
+      break;
+    case "upgradePick": {
+      const up = S.upgrade || {};
+      if (up.pid === Net.myPid && my) {
+        ui.evoIdx = evolvable(my);
+        const mon = my.team[ui.evoIdx[((ui.carousel % ui.evoIdx.length) + ui.evoIdx.length) % ui.evoIdx.length]];
+        const to = mon ? evolvesTo(mon.id).map(id => POKEMON[id].he).join(" / ") : "";
+        html = `<h2>✨ זכית בשדרוג! איזה פוקימון לפתח?</h2>` +
+          carouselHTML(ui.evoIdx.map(i => my.team[i]), "evolveAt", false) +
+          `<p class="evo-to">⬅ יתפתח ל: <b>${to}</b></p>`;
+      } else {
+        html = `<h2>✨ ${esc(playerName(up.pid))} זכה בשדרוג</h2><p>⏳ בוחר איזה פוקימון לפתח</p>`;
+      }
+      break;
+    }
     case "wheel":
-      html = `<h2>${esc(S.action || "")}</h2>${slotHTML(false)}
+      html = `<h2>${esc(S.action || "")}</h2>${S.wheel && S.wheel.luck ? `<p class="luck">🍀 המזל מחק ${S.wheel.luck} ${S.wheel.luck === 1 ? "מספר" : "מספרים"}</p>` : ""}${slotHTML(false)}
         <div id="wheelResult" class="wheel-result">${S.wheel && S.wheel.spinning && isMyTurn()
           ? `<button class="btn primary big stop-btn" onclick="stopReel()">✋ עצור!</button>` : "&nbsp;"}</div>`;
       break;
@@ -405,7 +429,7 @@ function carouselHTML(mons, onPick, withBack) {
   const m = mons[ui.carousel];
   let vs = "";
   if (S.wild && withBack) {
-    const {mult, dmg} = damageOf(m.id, S.wild.id);
+    const {mult, dmg} = playerDamage(me(), m.id, S.wild.id);
     vs = `<div class="vs ${mult > 1 ? "up" : mult < 1 ? "down" : ""}">מוריד ${dmg} • ${multText(mult)}</div>`;
   }
   return `<div class="carousel">
@@ -415,13 +439,53 @@ function carouselHTML(mons, onPick, withBack) {
     </div>
     <div class="row">
       ${withBack ? `<button class="btn" onclick="backToTurn()">↩ חזור</button>` : ""}
-      <button class="btn primary" ${m.hp <= 0 ? "disabled" : ""} onclick="${onPick}(${ui.carousel})">${m.hp <= 0 ? "התעלף" : "בחר"}</button>
+      <button class="btn primary" ${withBack && m.hp <= 0 ? "disabled" : ""} onclick="${onPick}(${ui.carousel})">${withBack && m.hp <= 0 ? "התעלף" : "בחר"}</button>
     </div>`;
 }
 
 function moveCarousel(d) { ui.carousel += d; renderPanel(); tickTimer(); }
 function pickStarterAt(i) { Net.act({t: "pick", id: S.starterPool[i]}); }
-function attackAt(i) { ui.attackOpen = false; Net.act({t: "attack", index: i}); }
+function attackAt(i) { ui.attackOpen = false; Net.act({t: "attack", index: (ui.fightIdx || [])[i] ?? i}); }
+function evolveAt(i) { const idx = (ui.evoIdx || [])[i]; if (idx !== undefined) Net.act({t: "evolve", index: idx}); }
+
+/* בזמן שדרוג מודגש מי שזכה, ובתור רגיל - מי שבתור */
+function highlightPid() {
+  if (!S) return null;
+  if (S.phase === "upgradePick" && S.upgrade) return S.upgrade.pid;
+  return ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null;
+}
+
+function teamDots(p) {
+  return p.team.filter(m => !isItem(m.id))
+    .map(m => `<i class="dot${m.hp <= 0 ? " dead" : ""}" style="background:${TYPES[POKEMON[m.id].types[0]].color}"></i>`).join("");
+}
+
+function itemIcons(p) {
+  const icons = p.team.filter(m => isItem(m.id)).map(m => ITEMS[m.id].icon).join("");
+  return icons ? `<span class="items">${icons}</span> ` : "";
+}
+
+/* ההגרלה: השמות רצים ומאטים עד שהם נעצרים על הזוכה */
+function playRaffle() {
+  const up = S.upgrade;
+  if (!up) return;
+  const names = up.pids.map(playerName).filter(Boolean);
+  const win = playerName(up.pid);
+  let t = 0, k = 0;
+  const steps = 22;
+  for (let i = 0; i < steps; i++) {
+    t += 40 + Math.pow(i / steps, 2.4) * 380;
+    const last = i === steps - 1;
+    const name = last ? win : names[(k++) % names.length];
+    setTimeout(() => {
+      const el = $("#raffle");
+      if (!el || !S || S.phase !== "upgradeSpin") return;
+      el.textContent = name;
+      el.classList.toggle("won", last);
+      Sfx.play(last ? "caught" : "click");
+    }, t);
+  }
+}
 function openAttack() { ui.attackOpen = true; ui.catchOpen = false; ui.carousel = 0; renderPanel(); tickTimer(); }
 function backToTurn() { ui.attackOpen = false; ui.catchOpen = false; renderPanel(); tickTimer(); }
 
@@ -575,7 +639,7 @@ function showTeam(pid) {
   const p = S && S.players.find(x => x.pid === pid);
   if (!p || ui.modalKind === "wheel") return;
   modal(`<h2>הפוקימונים של ${esc(p.name)}</h2>
-    <div class="team-grid">${p.team.map(m => cardHTML(m)).join("") || "<p>אין עדיין פוקימונים</p>"}</div>
+    <div class="team-grid">${p.team.map(m => cardHTML(m, ITEMS[m.id] ? `<div class="chance">${ITEMS[m.id].icon} ${ITEMS[m.id].text}</div>` : "")).join("") || "<p>אין עדיין פוקימונים</p>"}</div>
     <button class="btn primary" onclick="closeModal()">סגור</button>`, "team");
 }
 
@@ -626,11 +690,13 @@ function onState(msg) {
   if (S.phase === "starterPick" && currentPid() !== prevTurn) ui.carousel = 0;
 
   renderTable();
-  if (window.Arena && Arena.ok) Arena.sync(S, Net.myPid, ["turn", "starterPick", "anim", "wheel"].includes(S.phase) ? currentPid() : null, msg.fx);
+  if (window.Arena && Arena.ok) Arena.sync(S, Net.myPid, highlightPid(), msg.fx);
   renderPanel();
   tickTimer();
   if (msg.fx && msg.fx.kind === "damage") flashDamage(msg.fx.dmg, msg.fx.mult);
   reelOnState(msg.fx);
+  if (msg.fx && msg.fx.kind === "upgradeSpin") playRaffle();
+  if (msg.fx && msg.fx.kind === "upgradeWin" && msg.fx.pid === Net.myPid) { ui.carousel = 0; Sfx.play("turn"); buzz(150); renderPanel(); }
 }
 
 /* ---------- ניווט בלובי ---------- */

@@ -13,8 +13,42 @@ const shuffle = arr => {
   return a;
 };
 
-/* כל הפוקימונים חוץ מההתחלתיים והבוס */
-const wildPool = () => Object.keys(POKEMON).filter(id => !STARTERS.includes(id) && id !== CONFIG.boss.id);
+/* כל הפוקימונים חוץ מההתחלתיים, הבוס והפריטים */
+const wildPool = () => Object.keys(POKEMON).filter(id => !STARTERS.includes(id) && id !== CONFIG.boss.id && !ITEMS[id]);
+
+/* ---------- פריטים ובונוסים ---------- */
+const isItem = id => !!ITEMS[id];
+const itemSum = (p, key) => p.team.reduce((s, m) => s + ((ITEMS[m.id] || {})[key] || 0), 0);
+const luckOf = p => itemSum(p, "luck");
+
+/* נזק של שחקן: הנזק הרגיל, ועוד הבונוס של החרב */
+function playerDamage(p, monId, wildId) {
+  const {mult, dmg} = damageOf(monId, wildId);
+  return {mult, dmg: Math.round(dmg * (1 + (p ? itemSum(p, "dmg") : 0)))};
+}
+
+/* המגן: כל הפוקימונים של השחקן מקבלים יותר חיים מקסימליים. נקרא אחרי
+   כל שינוי בקבוצה, ומחשב מחדש מהחיים הבסיסיים - אז אין הכפלה כפולה */
+function applyShield(p) {
+  const f = 1 + itemSum(p, "hp");
+  p.team.forEach(m => {
+    if (isItem(m.id) || !POKEMON[m.id]) return;
+    const want = Math.round(POKEMON[m.id].hp * CONFIG.hpScale * f);
+    if (m.maxHp === want) return;
+    m.hp = m.maxHp > 0 ? Math.round(m.hp * want / m.maxHp) : want;
+    m.maxHp = want;
+  });
+}
+
+/* ---------- התפתחויות ---------- */
+const DEX_KEY = {};
+Object.keys(POKEMON).forEach(k => { if (!DEX_KEY[POKEMON[k].dex]) DEX_KEY[POKEMON[k].dex] = k; });
+function evolvesTo(id) {
+  const d = POKEMON[id];
+  const list = (typeof EVOLVES_DEX !== "undefined" && d && EVOLVES_DEX[d.dex]) || [];
+  return list.map(n => DEX_KEY[n]).filter(Boolean);
+}
+const evolvable = p => p.team.map((m, i) => i).filter(i => evolvesTo(p.team[i].id).length > 0);
 
 function makeMon(id) {
   const hp = POKEMON[id].hp * CONFIG.hpScale;
@@ -47,7 +81,8 @@ function slotSize(hp) {
 
 function makeWild(id) {
   const w = makeMon(id);
-  const n = slotSize(w.hp);
+  if (isItem(id)) w.item = true;
+  const n = w.item ? CONFIG.itemNums : slotSize(w.hp);
   w.nums = Array.from({length: n}, (_, i) => i + 1);
   w.secret = w.nums[rnd(n)];
   return w;
@@ -55,7 +90,7 @@ function makeWild(id) {
 
 /* החיים ירדו - מספרים שגויים נעלמים מהמכונה */
 function trimNums(w) {
-  if (!w || !w.nums) return;
+  if (!w || !w.nums || w.item) return;
   const target = slotSize(w.hp);
   while (w.nums.length > target) {
     const wrong = w.nums.filter(n => n !== w.secret);
@@ -92,12 +127,15 @@ const Engine = (() => {
     order: 3000 / SPEED,
     dice: 2800 / SPEED,
     wheel: 4400 / SPEED,
+    upgrade: 3400 / SPEED,
     anim: 1400 / SPEED,
     end: 12000 / SPEED
   };
 
   const P = pid => S.players.find(p => p.pid === pid);
-  const alive = p => p.team.filter(m => m.hp > 0);
+  // פריטים לא נלחמים, אז הם לא נחשבים "חיים" לתור ולהפסד
+  const alive = p => p.team.filter(m => m.hp > 0 && !isItem(m.id));
+  const upgradeGap = () => CONFIG.upgradeMin + rnd(CONFIG.upgradeMax - CONFIG.upgradeMin + 1);
   const anyAlive = () => S.players.some(p => alive(p).length > 0);
   const current = () => P(S.order[S.pos]);
 
@@ -154,7 +192,9 @@ const Engine = (() => {
 
   function newGame() {
     Object.assign(S, {
-      deck: shuffle(wildPool()).slice(0, CONFIG.deckSize),
+      deck: shuffle(shuffle(wildPool()).slice(0, CONFIG.deckSize - DECK_ITEMS.length).concat(DECK_ITEMS)),
+      upgradeIn: upgradeGap(),
+      upgrade: null,
       starterPool: STARTERS.slice(),
       wild: null,
       order: [],
@@ -237,6 +277,7 @@ const Engine = (() => {
   function pickStarter(id) {
     const p = current();
     p.team.push(makeMon(id));
+    applyShield(p);
     S.starterPool = S.starterPool.filter(x => x !== id);
     log(`${p.name} בחר ב${POKEMON[id].he}`);
     S.pos++;
@@ -248,7 +289,11 @@ const Engine = (() => {
     if (S.deck.length === 0) return startBoss();
     const id = S.deck.shift();
     S.wild = makeWild(id);
-    log(`פוקימון פראי הופיע: ${POKEMON[id].he}!`);
+    log(`${S.wild.item ? "פריט" : "פוקימון פראי"} הופיע: ${POKEMON[id].he}!`);
+    if (S.wild.item) {
+      return showMessage(`${ITEMS[id].icon} פריט הופיע!`,
+        `${POKEMON[id].he}: ${ITEMS[id].text}. הוא לא נלחם - רק תופסים אותו.`, "roundRoll");
+    }
     showMessage("פוקימון פראי הופיע!", `${POKEMON[id].he} קופץ מהחבילה אל השולחן.`, "roundRoll");
   }
 
@@ -279,16 +324,65 @@ const Engine = (() => {
     commit();
   }
 
+  /* תור נגמר. כל כמה תורות (3 עד 6, באקראי) מגיע שדרוג לפני התור הבא */
   function nextTurn() {
+    S.upgradeIn = (S.upgradeIn || 1) - 1;
+    if (S.upgradeIn <= 0) {
+      S.upgradeIn = upgradeGap();
+      return startUpgrade();
+    }
+    advance();
+  }
+
+  function advance() {
     S.pos++;
     skipDead();
+  }
+
+  /* ---------- שדרוג ----------
+     הגרלה בין השחקנים שיש להם פוקימון שיכול להתפתח. כל נקודת מזל
+     מוסיפה עוד כרטיס בהגרלה. הזוכה בוחר איזה פוקימון לפתח. */
+  function startUpgrade() {
+    const pool = S.players.filter(p => evolvable(p).length);
+    if (!pool.length) return advance();
+    const tickets = [];
+    pool.forEach(p => { for (let k = 0; k <= luckOf(p); k++) tickets.push(p); });
+    const win = tickets[rnd(tickets.length)];
+    S.upgrade = {pid: win.pid, pids: pool.map(p => p.pid)};
+    S.phase = "upgradeSpin";
+    S.action = null;
+    log(`שדרוג! ${win.name} זכה בהגרלה`);
+    schedule(MS.upgrade, upgradeWon);
+    commit({kind: "upgradeSpin"});
+  }
+
+  function upgradeWon() {
+    S.phase = "upgradePick";
+    stopTimer();
+    commit({kind: "upgradeWin", pid: S.upgrade && S.upgrade.pid});
+  }
+
+  function evolve(p, index) {
+    const m = p.team[index];
+    const opts = evolvesTo(m.id);
+    if (!opts.length) return;
+    const from = m.id, to = opts[rnd(opts.length)];
+    m.id = to;
+    m.maxHp = m.hp = POKEMON[to].hp * CONFIG.hpScale;
+    applyShield(p);
+    m.hp = m.maxHp;
+    S.upgrade = null;
+    log(`${p.name}: ${POKEMON[from].he} התפתח ל${POKEMON[to].he}`);
+    const extra = ITEMS[to] ? ` ${ITEMS[to].icon} ${ITEMS[to].text}!` : " הוא מתפתח עם חיים מלאים.";
+    showMessage("✨ התפתחות!", `${POKEMON[from].he} של ${p.name} התפתח ל${POKEMON[to].he}!${extra}`, "advance", MS.msg,
+      {kind: "evolve", pid: p.pid, index, from, to});
   }
 
   function attack(monIndex) {
     const p = current();
     const mon = p.team[monIndex];
-    if (!mon || mon.hp <= 0) return;
-    const {mult, dmg} = damageOf(mon.id, S.wild.id);
+    if (!mon || mon.hp <= 0 || isItem(mon.id) || S.wild.item) return;
+    const {mult, dmg} = playerDamage(p, mon.id, S.wild.id);
     S.wild.hp = Math.max(0, S.wild.hp - dmg);
     trimNums(S.wild);
     const text = `${p.name}: ${POKEMON[mon.id].he} תוקף - ${dmg} (${multText(mult)})`;
@@ -311,7 +405,15 @@ const Engine = (() => {
     const w = S.wild;
     if (!w.nums) { const fresh = makeWild(w.id); w.nums = fresh.nums; w.secret = fresh.secret; trimNums(w); }
     w.nums.sort((a, b) => a - b);
-    S.wheel = {nums: w.nums.slice(), spinning: true, pid: current().pid};
+    // מזל: מספרים שגויים נמחקים לפני הסיבוב
+    let luck = 0;
+    for (let k = luckOf(current()); k > 0 && w.nums.length > 1; k--) {
+      const wrong = w.nums.filter(n => n !== w.secret);
+      const x = wrong[rnd(wrong.length)];
+      w.nums = w.nums.filter(n => n !== x);
+      luck++;
+    }
+    S.wheel = {nums: w.nums.slice(), spinning: true, pid: current().pid, luck};
     S.phase = "wheel";
     S.action = `${current().name} מנסה לתפוס את ${POKEMON[S.wild.id].he}`;
     stopTimer();
@@ -328,7 +430,7 @@ const Engine = (() => {
     const land = nums[at % nums.length];
     const success = land === w.secret;
     if (!success) w.nums = w.nums.filter(n => n !== land);
-    S.wheel = {nums, spinning: false, at, land, success, auto: nums.length === 1, left: w.nums.length, pid: wh.pid};
+    S.wheel = {nums, spinning: false, at, land, success, auto: nums.length === 1, left: w.nums.length, pid: wh.pid, luck: wh.luck};
     schedule(MS.wheel, afterWheel);
     commit({kind: "wheel"});
   }
@@ -344,9 +446,11 @@ const Engine = (() => {
   function caught(p) {
     const w = S.wild;
     p.team.push({id: w.id, hp: w.hp, maxHp: w.maxHp});
+    applyShield(p);
     log(`${p.name} תפס את ${POKEMON[w.id].he}!`);
     S.wild = null;
-    resolveWild(`${p.name} תפס את ${POKEMON[w.id].he}!`, "הפוקימון מצטרף אליו ונשאר אצלו.");
+    resolveWild(`${p.name} תפס את ${POKEMON[w.id].he}!`,
+      ITEMS[w.id] ? `${ITEMS[w.id].icon} מעכשיו יש לו ${ITEMS[w.id].text}.` : "הפוקימון מצטרף אליו ונשאר אצלו.");
   }
 
   function wildFainted() {
@@ -378,12 +482,13 @@ const Engine = (() => {
   function wildTurn() {
     if (!anyAlive()) return endGame(false);
     const name = POKEMON[S.wild.id].he;
+    if (S.wild.item) return showMessage(`${ITEMS[S.wild.id].icon} ${name}`, `${name} לא נלחם. סבב חדש מתחיל.`, "roundRoll", MS.order);
     const hits = S.wild.boss ? S.players.length : 1;
     const lines = [];
     const fxHits = [];
     for (let k = 0; k < hits && anyAlive(); k++) {
       const targets = [];
-      S.players.forEach(p => p.team.forEach(m => m.hp > 0 && targets.push({p, m})));
+      S.players.forEach(p => p.team.forEach(m => m.hp > 0 && !isItem(m.id) && targets.push({p, m})));
       const {p, m} = targets[rnd(targets.length)];
       const {mult, dmg} = damageOf(S.wild.id, m.id);
       m.hp = Math.max(0, m.hp - dmg);
@@ -426,6 +531,7 @@ const Engine = (() => {
 
   const NEXT = {
     reroll,
+    advance,
     roundRoll: () => startRoll("roundRoll"),
     starterPick: startStarterPick,
     turns: startTurns,
@@ -465,6 +571,9 @@ const Engine = (() => {
         break;
       case "stop":
         if (S.phase === "wheel" && mine) stopSpin(a.at);
+        break;
+      case "evolve":
+        if (S.phase === "upgradePick" && S.upgrade && S.upgrade.pid === pid && evolvable(p).includes(a.index)) evolve(p, a.index);
         break;
     }
   }
@@ -513,6 +622,15 @@ const Engine = (() => {
         if (wasCurrent && S.wheel && S.wheel.spinning) { S.wheel = null; return skipDead(); }
         if (wasCurrent) S.pos--;
         break;
+      case "upgradeSpin":
+      case "upgradePick":
+        if (wasCurrent) S.pos--;
+        if (S.upgrade && S.upgrade.pid === pid) { S.upgrade = null; stopTimer(); return advance(); }
+        if (S.upgrade) S.upgrade.pids = S.upgrade.pids.filter(x => x !== pid);
+        break;
+      case "message":
+        if (wasCurrent && S.message && S.message.next === "advance") S.pos--;
+        break;
     }
     if (S.phase !== "end" && S.phase !== "message" && !anyAlive()) return endGame(false);
     commit();
@@ -537,6 +655,8 @@ const Engine = (() => {
       case "turn": skipDead(); return;
       case "anim": schedule(MS.anim, afterAnim); break;
       case "wheel": if (S.wheel && S.wheel.spinning) stopTimer(); else schedule(MS.wheel, afterWheel); break;
+      case "upgradeSpin": schedule(MS.upgrade, upgradeWon); break;
+      case "upgradePick": stopTimer(); break;
       case "message": schedule(MS.msg, continueMessage); break;
       case "end": schedule(MS.end, newGame); break;
     }

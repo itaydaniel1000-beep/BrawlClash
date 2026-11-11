@@ -515,7 +515,8 @@ function spotX(i, n) {
 function leadMon(team, prefer) {
   const pm = prefer && team[prefer.index];
   if (pm && pm.id === prefer.id && pm.hp > 0) return pm;
-  return team.find(m => m.hp > 0) || team[0] || null;
+  const fighters = team.filter(m => !ITEMS[m.id]);
+  return fighters.find(m => m.hp > 0) || fighters[0] || null;
 }
 
 function syncPlayers(S) {
@@ -864,6 +865,25 @@ function cheer(pid, delay) {
   }, delay + 2.8);
 }
 
+/* התפתחות: אור לבן עוטף את הפוקימון, ניצוצות זהב, והוא קופץ בצורה החדשה */
+function fxEvolve(fx) {
+  const p = players.get(fx.pid);
+  if (!p) return;
+  if (!ITEMS[fx.to]) p.prefer = {index: fx.index, id: fx.to};
+  const pos = playerWorld(fx.pid, 1);
+  const pv = playerView(fx.pid);
+  if (pv) focus(pv[0], pv[1], 2.2, 0, .8);
+  if (pos) { rise(pos, 0xffffff, 26); burst(pos, 0xffe066, 30, 2.4, .6); }
+  tween(.01, () => {
+    if (!ITEMS[fx.to]) setSpriteMon(p, {id: fx.to, hp: 1});
+    if (p.sprite) { p.sprite.userData.flash = 1; hop(p.sprite, .1, 3); }
+    shakeCam(.25);
+    window.Sfx && Sfx.play("caught");
+  }, .6);
+  cheer(fx.pid, .7);
+  busyUntil = now() + 1.6;
+}
+
 /* החלמה: נצנוצים ירוקים עולים */
 function healFx(pid) {
   const pos = playerWorld(pid, .3);
@@ -1040,6 +1060,7 @@ const Arena = {
     if (fx && fx.kind === "damage") fxAttack(fx);
     if (fx && fx.kind === "wildAttack") fxWildAttack(fx);
     if (fx && fx.kind === "wheel") fxWheel(S);
+    if (fx && fx.kind === "evolve") fxEvolve(fx);
     syncDice(S, fx);
     syncWild(S);
   }
