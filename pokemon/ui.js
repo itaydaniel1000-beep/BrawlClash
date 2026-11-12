@@ -278,6 +278,7 @@ function renderPanel() {
           <button class="btn primary big" onclick="go('roomMenu')">🚪 חדר</button>
         </div>
         <button class="btn primary big solo-btn" onclick="startSolo()">🧍 לבד</button>
+        <a class="btn primary big solo-btn world-btn" href="world.html">🌍 עולם</a>
         <button class="btn" onclick="go('home')">↩ חזור</button>`;
       break;
     case "randomCount":

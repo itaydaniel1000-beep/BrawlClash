@@ -316,3 +316,4 @@ body:not(.in-game) .panel { background: rgba(22,28,44,.82); backdrop-filter: blu
 .wild-hud.item, .wild-hud.item b, .wild-hud.item .wh-bottom { color: #fff; }
 .tag { max-width: 160px; }
 .solo-btn { display: block; width: 100%; margin: 10px 0; }
+.world-btn { text-decoration: none; text-align: center; background: linear-gradient(180deg, #4fd17a, #2aa457); border-color: #1d7a3f; color: #fff; }

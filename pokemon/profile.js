@@ -82,7 +82,11 @@ const Profile = (() => {
     resetGame,
     setSetting(k, v) { P.settings[k] = v; save(); },
     wipe() { const s = P.settings; P = blank(); P.settings = s; save(); },
-    dexList: () => Object.keys(POKEMON).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex)
+    dexList: () => Object.keys(POKEMON).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex),
+    // מהעולם: מה שנתפס ונראה שם נכנס לאותו פוקידקס
+    markSeen(id) { if (!P.seen[id]) { P.seen[id] = true; save(); } },
+    markCaught(id) { P.caught[id] = (P.caught[id] || 0) + 1; P.stats.catches++; P.stats.tries++; save(); },
+    markTry() { P.stats.tries++; save(); }
   };
 })();
 

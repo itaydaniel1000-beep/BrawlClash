@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>עולם הפוקימונים</title>
+  <link rel="stylesheet" href="world.css">
+  <script type="importmap">{"imports": {"three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="world" class="world">
+    <div class="wtags"></div>
+    <div class="whud" id="whud"></div>
+    <button id="actBtn" class="act-btn" hidden></button>
+  </div>
+  <div id="battle" class="battle" hidden></div>
+  <div id="wmodal" class="wmodal" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="data.js"></script>
+  <script src="pokedex.js"></script>
+  <script src="world-data.js"></script>
+  <script src="profile.js"></script>
+  <script src="wcore.js"></script>
+  <script src="wnet.js"></script>
+  <script src="wui.js"></script>
+  <script type="module" src="world3d.js"></script>
+</body>
+</html>
