@@ -96,3 +96,21 @@ button { font: inherit; }
 .sw:disabled { opacity: .4; }
 .wait { text-align: center; color: var(--muted); margin: 14px 0; }
 .nogl { padding: 30px; color: #222; text-align: center; }
+
+/* ----- מסך הניסיון ----- */
+.xpscreen { position: absolute; inset: 0; z-index: 5; background: rgba(8,12,24,.72); display: flex; align-items: center; justify-content: center; padding: 14px; }
+.xpbox { width: 100%; max-width: 420px; background: linear-gradient(180deg, #24304a, #182033); border: 3px solid #f5c542; border-radius: 18px; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.xpbox h2 { margin: 0 0 10px; text-align: center; color: #ffe08a; font-size: 20px; }
+.xpbox h2 small { color: #fff; font-size: 15px; }
+.xprow { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.07); border-radius: 12px; padding: 6px 10px; margin: 6px 0; }
+.xprow img { width: 48px; height: 48px; object-fit: contain; }
+.xpinfo { flex: 1; min-width: 0; }
+.xplvl { color: #9fd3ff; font-size: 13px; font-weight: bold; }
+.xpup { color: #7dffb0; font-size: 13px; font-weight: 900; }
+.xpbar { height: 10px; background: #0b0f18; border-radius: 6px; overflow: hidden; margin-top: 5px; border: 1px solid rgba(255,255,255,.15); }
+.xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4fc3ff, #7de0ff); border-radius: 6px; }
+.xpgain { color: #ffe08a; font-weight: 900; }
+.xprow.lvlup { animation: lvlFlash .6s; }
+@keyframes lvlFlash { 30% { background: rgba(125,255,176,.35); transform: scale(1.03); } }
+.xpgo { margin-top: 10px; }
+.xpgo:disabled { opacity: .5; }

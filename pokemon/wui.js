@@ -264,7 +264,8 @@ async function useMove(i) {
   b.busy = true;
   const mine = SV.party[b.me], foe = b.foe;
   const myMv = mine.moves[i], fMv = foeMove(foe);
-  const order = firstSide(mine, myMv, foe, fMv) === "a" ? [[mine, foe, myMv, true], [foe, mine, fMv, false]] : [[foe, mine, fMv, false], [mine, foe, myMv, true]];
+  // מול פוקימון פראי אני תמיד תוקף ראשון
+  const order = [[mine, foe, myMv, true], [foe, mine, fMv, false]];
   for (const [a, d, mv, isMe] of order) {
     if (a.hp <= 0 || d.hp <= 0) continue;
     await strike(a, d, mv, isMe);
@@ -319,7 +320,7 @@ async function throwBall() {
   b.ballAnim = null;
   if (ok) {
     Sfx.play("caught");
-    const mon = b.foe;
+    const mon = tameMon(b.foe);
     mon.xp = 0;
     const where = SV.party.length < W_MAX_PARTY ? "party" : "box";
     SV[where].push(mon);
@@ -327,6 +328,8 @@ async function throwBall() {
     Profile.markCaught(mon.id);
     WSave.save();
     await say(`תפסת את ${POKEMON[mon.id].he}!` + (where === "box" ? " הוא נשלח לקופסה." : ""), 1200);
+    await xpScreen(wXpFor(mon, false), "", mon);
+    WSave.save();
     b.menu = "over";
     b.busy = false;
     return showBattle();
@@ -355,9 +358,7 @@ async function winWild() {
   await say(`${POKEMON[b.foe.id].he} הפראי התעלף!`);
   const coins = 8 + b.foe.lvl * 2;
   SV.coins += coins;
-  const xp = wXpFor(b.foe, false);
-  await say(`${POKEMON[mine.id].he} קיבל ${xp} ניסיון · 🪙 ${coins}`);
-  await growth(mine, gainXp(mine, xp));
+  await xpScreen(wXpFor(b.foe, false), `🪙 +${coins}`);
   WSave.save();
   b.menu = "over";
   b.busy = false;
@@ -376,7 +377,7 @@ async function loseWild() {
 /* אירועי התקדמות: רמה, מתקפה חדשה, התפתחות */
 async function growth(mon, events) {
   for (const e of events) {
-    if (e.kind === "level") { Sfx.play("turn"); await say(`${POKEMON[mon.id].he} עלה לרמה ${e.lvl}!`, 1000); }
+    if (e.kind === "level" && !e.shown) { Sfx.play("turn"); await say(`${POKEMON[mon.id].he} עלה לרמה ${e.lvl}!`, 1000); }
     if (e.kind === "learn") await say(`${POKEMON[mon.id].he} למד ${WMOVES[e.move][0]}!`, 1000);
     if (e.kind === "choose") await chooseForget(mon, e.move);
     if (e.kind === "evolve") {
@@ -389,6 +390,65 @@ async function growth(mon, events) {
     }
   }
   renderHud();
+}
+
+/* ---------- מסך הניסיון ----------
+   אחרי כל קרב ותפיסה כל הצוות מקבל ניסיון (גם מי שלא נלחם, כמו שיתוף
+   ניסיון). כל פוקימון מקבל שורה עם מד שמתמלא, ואם המד מגיע לסוף -
+   "רמה עלתה!" והמד מתחיל מחדש. אחרי "המשך" מגיעים המתקפות החדשות
+   וההתפתחויות, אחד אחרי השני. */
+async function xpScreen(amount, extra, skip) {
+  const rows = SV.party.filter(m => m.hp > 0 && m !== skip).map(m => {
+    const before = {lvl: m.lvl, xp: m.xp};
+    const events = gainXp(m, amount);
+    events.forEach(e => { if (e.kind === "level") e.shown = true; });
+    return {m, before, events};
+  });
+  if (!rows.length) return;
+  const el = document.createElement("div");
+  el.className = "xpscreen";
+  el.innerHTML = `<div class="xpbox"><h2>⭐ ניסיון +${amount}${extra ? ` <small>${extra}</small>` : ""}</h2>
+    ${rows.map((r, i) => `<div class="xprow" data-i="${i}">
+      <img src="${ART_URL(POKEMON[r.m.id].dex)}" alt="">
+      <div class="xpinfo"><b>${POKEMON[r.m.id].he}</b> <span class="xplvl">רמה ${r.before.lvl}</span><span class="xpup"></span>
+        <div class="xpbar"><i style="width:${Math.round(100 * r.before.xp / xpToNext(r.before.lvl))}%"></i></div></div>
+      <span class="xpgain">+${amount}</span></div>`).join("")}
+    <button class="bbtn primary xpgo" disabled>המשך</button></div>`;
+  $w("#battle").appendChild(el);
+  Sfx.play("turn");
+  await wait(350);
+  // כל המדים מתמלאים יחד
+  await Promise.all(rows.map((r, i) => fillBar(el.querySelector(`.xprow[data-i="${i}"]`), r)));
+  const go = el.querySelector(".xpgo");
+  go.disabled = false;
+  await new Promise(res => { go.onclick = res; });
+  el.remove();
+  for (const r of rows) {
+    if (r.events.some(e => e.kind !== "level")) await growth(r.m, r.events);
+  }
+  renderHud();
+}
+
+async function fillBar(row, r) {
+  const bar = row.querySelector(".xpbar i"), lvl = row.querySelector(".xplvl"), up = row.querySelector(".xpup");
+  let L = r.before.lvl;
+  const step = async (pct, ms) => {
+    bar.style.transition = `width ${ms}ms linear`;
+    bar.style.width = pct + "%";
+    await wait(ms + 40);
+  };
+  while (L < r.m.lvl) {
+    await step(100, 650);
+    L++;
+    lvl.textContent = `רמה ${L}`;
+    up.textContent = " ⬆ רמה עלתה!";
+    row.classList.remove("lvlup"); void row.offsetWidth; row.classList.add("lvlup");
+    Sfx.play("caught");
+    bar.style.transition = "none";
+    bar.style.width = "0%";
+    await wait(60);
+  }
+  await step(Math.round(100 * r.m.xp / xpToNext(r.m.lvl)), 700);
 }
 
 function chooseForget(mon, move) {
@@ -479,11 +539,9 @@ function onPvp(st) {
       SV.wins++;
       SV.coins += 80;
       const foeLvl = Math.round(foeS.party.reduce((s, m) => s + m.lvl, 0) / foeS.party.length);
-      const mon = SV.party.find(m => m.uid === b.myMon.uid) || SV.party[0];
-      const ev = gainXp(mon, wXpFor({lvl: foeLvl}, true));
-      b.log = [...b.log, "ניצחת! 🪙 80"];
+      b.log = [...b.log, "ניצחת!"];
       showBattle();
-      growth(mon, ev).then(() => { b.menu = "over"; showBattle(); WSave.save(); });
+      xpScreen(wXpFor({lvl: foeLvl}, true), "🪙 +80").then(() => { b.menu = "over"; showBattle(); WSave.save(); });
       return;
     }
   } else if (mineS.need) b.menu = "mustSwitch";

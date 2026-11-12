@@ -54,6 +54,15 @@ function tutorMoves(mon) {
     .sort((a, b) => WMOVES[a][2] - WMOVES[b][2]);
 }
 
+/* פוקימון שמצטרף אליי מתחיל עם מתקפה אחת. את השאר הוא לומד לאט:
+   מתקפה אחת בכל עלייה ברמה (ועוד מה שלומדים בדיוק ברמה הזאת) */
+function tameMon(mon) {
+  const all = learnable(mon.id, mon.lvl);
+  mon.moves = [all[0] || "tackle"];
+  mon.pending = all.slice(1).filter(k => k !== mon.moves[0]);
+  return mon;
+}
+
 function makeWorldMon(id, lvl) {
   const moves = learnable(id, lvl).slice(-W_MAX_MOVES);
   const mon = {uid: Math.random().toString(36).slice(2, 10), id, lvl, xp: 0, moves: moves.length ? moves : ["tackle"]};
@@ -136,7 +145,13 @@ function gainXp(mon, amount) {
     mon.lvl++;
     mon.hp = Math.min(wMaxHp(mon), mon.hp + (wMaxHp(mon) - before));
     events.push({kind: "level", lvl: mon.lvl});
-    for (const m of learnedAt(mon.id, mon.lvl)) {
+    const fresh = learnedAt(mon.id, mon.lvl);
+    // מתקפה אחת מאלה שמחכות, בנוסף למה שלומדים בדיוק ברמה הזאת
+    if (mon.pending && mon.pending.length) {
+      mon.pending = mon.pending.filter(k => !mon.moves.includes(k) && !fresh.includes(k));
+      if (mon.pending.length) fresh.push(mon.pending.shift());
+    }
+    for (const m of fresh) {
       if (mon.moves.includes(m)) continue;
       if (mon.moves.length < W_MAX_MOVES) { mon.moves.push(m); events.push({kind: "learn", move: m}); }
       else events.push({kind: "choose", move: m});
@@ -167,7 +182,7 @@ const WSave = (() => {
   }
   function save() { try { localStorage.setItem(W_SAVE, JSON.stringify(s)); } catch (e) {} }
   function start(starterId) {
-    s = {party: [makeWorldMon(starterId, 5)], box: [], coins: 100, pos: {x: 0, z: 6}, wins: 0, catches: 0};
+    s = {party: [tameMon(makeWorldMon(starterId, 5))], box: [], coins: 100, pos: {x: 0, z: 6}, wins: 0, catches: 0};
     save();
     return s;
   }
