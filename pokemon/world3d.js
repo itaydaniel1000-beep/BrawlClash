@@ -25,6 +25,7 @@ const wilds = [];
 const others = new Map();
 const obstacles = [];          // {x, z, r} - אי אפשר לעבור דרכם
 let propList = [];             // עצים וסלעים - כדי להסתיר את מי שעומד בין המצלמה לשחקן
+const world = {};              // דברים שזזים בעיירה (המים במזרקה)
 const tex = {};
 const gltf = new GLTFLoader();
 let trainerG = null;
@@ -100,6 +101,7 @@ function buildWorld() {
   scene.add(sun, sun.target);
   root = new THREE.Group();
   scene.add(root);
+  world.water = null;
 
   const grass = canvasTex(256, 256, (c, w, h) => noise(c, w, h, "#72c450", 6000));
   grass.wrapS = grass.wrapT = THREE.RepeatWrapping;
@@ -122,6 +124,7 @@ function buildWorld() {
 
   building(CENTER, 0xe8463c, "🏥");
   building(TUTOR, 0x3b7be8, "📖");
+  buildTown();
 
   // דשא גבוה: איפה שהפראיים גרים
   const tuft = canvasTex(64, 64, (c) => {
@@ -189,23 +192,155 @@ function buildWorld() {
   }));
 }
 
+const lam = color => new THREE.MeshLambertMaterial({color});
+
+function box(w, h, d, color, x, y, z, parent) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof color === "number" ? lam(color) : color);
+  m.position.set(x, y, z);
+  m.castShadow = m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+function emblem(draw, size) {
+  return new THREE.MeshBasicMaterial({map: canvasTex(128, 128, draw), transparent: true});
+}
+
+/* כדור פוקימון מצויר - לשלט של המרכז */
+function ballFace(c) {
+  c.fillStyle = "#1d2230"; c.beginPath(); c.arc(64, 64, 62, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#e8322c"; c.beginPath(); c.arc(64, 64, 55, Math.PI, 0); c.fill();
+  c.fillStyle = "#fafafa"; c.beginPath(); c.arc(64, 64, 55, 0, Math.PI); c.fill();
+  c.fillStyle = "#1d2230"; c.fillRect(8, 58, 112, 12);
+  c.beginPath(); c.arc(64, 64, 20, 0, Math.PI * 2); c.fill();
+  c.fillStyle = "#fff"; c.beginPath(); c.arc(64, 64, 12, 0, Math.PI * 2); c.fill();
+}
+
 function building(pos, roof, icon) {
   const g = new THREE.Group();
   g.position.copy(pos);
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(6, 3.2, 5), new THREE.MeshLambertMaterial({color: 0xf6f1e6}));
-  wall.position.y = 1.6; wall.castShadow = wall.receiveShadow = true;
-  const top = new THREE.Mesh(new THREE.ConeGeometry(4.8, 2, 4), new THREE.MeshLambertMaterial({color: roof}));
-  top.position.y = 4.2; top.rotation.y = Math.PI / 4; top.scale.set(1, 1, .82); top.castShadow = true;
-  const door = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2, .1), new THREE.MeshLambertMaterial({color: 0x6b4426}));
-  door.position.set(0, 1, 2.55);
-  const sign = new THREE.Sprite(new THREE.SpriteMaterial({map: canvasTex(128, 128, (c) => {
+  const center = icon === "🏥";
+  const glass = new THREE.MeshLambertMaterial({color: 0x7fc8ff, emissive: 0x16466e, transparent: true, opacity: .85});
+  // קירות ובסיס
+  box(6.6, .3, 5.6, 0xc9c2b3, 0, .15, 0, g);
+  box(6, 3.2, 5, center ? 0xfdfdfb : 0xf3e3c3, 0, 1.75, 0, g);
+  box(6.1, .45, 5.1, roof, 0, 3.1, 0, g);                       // פס צבעוני מתחת לגג
+  if (center) {
+    // גג שטוח עם כיפה אדומה, דלת זכוכית רחבה וכדור גדול מעל הכניסה
+    box(6.4, .35, 5.4, 0xe8322c, 0, 3.55, 0, g);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(1.6, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), lam(0xe8322c));
+    dome.position.set(0, 3.7, -.6); dome.castShadow = true; g.add(dome);
+    box(2.4, 2.1, .12, glass, 0, 1.35, 2.52, g);
+    box(.12, 2.1, .14, 0xd0d6dc, 0, 1.35, 2.55, g);
+    for (const x of [-2.15, 2.15]) box(1.2, 1, .1, glass, x, 1.9, 2.52, g);
+    const sign = new THREE.Mesh(new THREE.CircleGeometry(.75, 32), emblem(ballFace));
+    sign.position.set(0, 3.1, 2.62); g.add(sign);
+  } else {
+    // בית עץ עם גג משופע כחול, ארובה, חלונות ושלט ספר
+    const gable = new THREE.Mesh(new THREE.CylinderGeometry(3.1, 3.1, 6.4, 3, 1), lam(roof));
+    gable.rotation.z = Math.PI / 2; gable.rotation.x = Math.PI / 2 * 0 ; gable.rotation.y = Math.PI / 2;
+    gable.scale.set(1, 1, .55); gable.position.set(0, 4.35, 0); gable.castShadow = true; g.add(gable);
+    box(.6, 1.4, .6, 0x8a5a3c, 1.8, 5, -1, g);
+    box(1.3, 2, .12, 0x7a4b2a, 0, 1.3, 2.52, g);
+    for (const x of [-2, 2]) { box(1.1, 1, .1, glass, x, 1.9, 2.52, g); box(1.3, .12, .2, 0xffffff, x, 1.35, 2.55, g); }
+    const sign = new THREE.Mesh(new THREE.CircleGeometry(.6, 32), emblem(c => {
+      c.fillStyle = "#fff"; c.beginPath(); c.arc(64, 64, 60, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = "#2f7fe0"; c.lineWidth = 8; c.stroke();
+      c.font = "70px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(icon, 64, 70);
+    }));
+    sign.position.set(0, 2.85, 2.62); g.add(sign);
+  }
+  // שלט צף מעל - רואים מרחוק לאן הולכים
+  const top = new THREE.Sprite(new THREE.SpriteMaterial({map: canvasTex(128, 128, c => {
     c.fillStyle = "#fff"; c.beginPath(); c.arc(64, 64, 58, 0, Math.PI * 2); c.fill();
-    c.font = "80px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(icon, 64, 70);
+    c.strokeStyle = center ? "#e8322c" : "#2f7fe0"; c.lineWidth = 10; c.stroke();
+    c.font = "70px serif"; c.textAlign = "center"; c.textBaseline = "middle"; c.fillText(icon, 64, 70);
   })}));
-  sign.position.set(0, 6.2, 0); sign.scale.set(1.8, 1.8, 1);
-  g.add(wall, top, door, sign);
+  top.position.set(0, 7, 0); top.scale.set(1.6, 1.6, 1);
+  g.add(top);
+  g.userData.sign = top;
   root.add(g);
   obstacles.push({x: pos.x, z: pos.z, r: 3.4});
+  return g;
+}
+
+/* העיירה: גדר עם פתחים לשבילים, מזרקה, פנסים וערוגות פרחים */
+function buildTown() {
+  const fence = new THREE.Group();
+  const R = TOWN_R - 1;
+  const postGeo = new THREE.BoxGeometry(.22, 1, .22), postMat = lam(0xffffff);
+  for (let i = 0; i < 72; i++) {
+    const a = i / 72 * Math.PI * 2;
+    const x = Math.cos(a) * R, z = Math.sin(a) * R;
+    if (Math.abs(x) < 3 || Math.abs(z) < 3) continue;      // פתחים לשבילים
+    const post = new THREE.Mesh(postGeo, postMat);
+    post.position.set(x, .5, z); post.castShadow = true; fence.add(post);
+    const b = (i + .5) / 72 * Math.PI * 2;
+    const nx = Math.cos(b) * R, nz = Math.sin(b) * R;
+    if (Math.abs(nx) < 3 || Math.abs(nz) < 3) continue;
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(.1, .14, 2 * Math.PI * R / 72 + .1), postMat);
+    rail.position.set(nx, .7, nz); rail.rotation.y = -b; fence.add(rail);
+    const rail2 = rail.clone(); rail2.position.y = .35; fence.add(rail2);
+  }
+  root.add(fence);
+
+  // מזרקה
+  const f = new THREE.Group();
+  f.position.set(0, 0, 1);
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(2, 2.1, .6, 32), lam(0xd9d4c7));
+  rim.position.y = .3; rim.castShadow = rim.receiveShadow = true;
+  const water = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, .1, 32), new THREE.MeshLambertMaterial({color: 0x4fb6ff, emissive: 0x0d3c66}));
+  water.position.y = .55;
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.25, .35, 1.4, 12), lam(0xd9d4c7));
+  pillar.position.y = 1; pillar.castShadow = true;
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(.8, .5, .25, 20), lam(0xd9d4c7));
+  bowl.position.y = 1.7;
+  f.add(rim, water, pillar, bowl);
+  root.add(f);
+  obstacles.push({x: 0, z: 1, r: 2.1});
+  world.water = water;
+
+  // פנסים
+  for (const [x, z] of [[-3, 9], [3, 9], [-3, -11], [3, -11], [10, 3], [-10, 3]]) {
+    const lp = new THREE.Group();
+    lp.position.set(x, 0, z);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.07, .09, 2.6, 8), lam(0x3a4256));
+    pole.position.y = 1.3;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 12, 8), new THREE.MeshLambertMaterial({color: 0xfff6c8, emissive: 0xffd36a}));
+    head.position.y = 2.7;
+    lp.add(pole, head);
+    root.add(lp);
+    obstacles.push({x, z, r: .25});
+  }
+
+  // ערוגות פרחים בעיירה ופרחים בשדות
+  const flowerTex = ["#ff6b8a", "#ffd34d", "#ffffff", "#b38cff", "#ff8c42"].map(col => canvasTex(32, 32, c => {
+    c.fillStyle = col;
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; c.beginPath(); c.arc(16 + Math.cos(a) * 7, 16 + Math.sin(a) * 7, 6, 0, Math.PI * 2); c.fill(); }
+    c.fillStyle = "#ffcc33"; c.beginPath(); c.arc(16, 16, 5, 0, Math.PI * 2); c.fill();
+  }));
+  const geo = new THREE.PlaneGeometry(.45, .45);
+  geo.rotateX(-Math.PI / 2);
+  flowerTex.forEach((t, k) => {
+    const n = 260;
+    const inst = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({map: t, transparent: true, alphaTest: .5}), n);
+    const m4 = new THREE.Matrix4();
+    for (let i = 0; i < n; i++) {
+      let x, z;
+      if (i < 40) {
+        // ערוגות ליד הבתים
+        const bed = [[-6, -2.4], [7, -2.4], [-9, 6], [9, 6]][i % 4];
+        x = bed[0] + rand(-1.6, 1.6); z = bed[1] + rand(-.5, .5);
+      } else {
+        const a = Math.random() * Math.PI * 2, dd = rand(TOWN_R + 2, SIZE - 4);
+        x = Math.cos(a) * dd; z = Math.sin(a) * dd;
+      }
+      m4.makeRotationY(Math.random() * Math.PI);
+      m4.setPosition(x, .06 + k * .002, z);
+      inst.setMatrixAt(i, m4);
+    }
+    root.add(inst);
+  });
 }
 
 function fit(obj, height) {
@@ -425,6 +560,8 @@ function frame() {
     const gp = p.g.position;
     p.g.visible = !(gp.z > me.pos.z - .5 && gp.z < me.pos.z + 12 && Math.abs(gp.x - me.pos.x) < (p.kind === "rock" ? 1.2 : 2.6));
   }
+
+  if (world.water) world.water.material.emissive.setHSL(.57, .7, .14 + Math.sin(t * 2) * .04);
 
   positionTags();
   renderer.render(scene, camera);

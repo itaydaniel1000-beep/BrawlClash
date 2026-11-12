@@ -140,7 +140,8 @@ function showMon(i) {
     <img src="${ART_URL(d.dex)}" alt=""><h2>${d.he} <small>רמה ${m.lvl}</small></h2>
     <div>${d.types.map(typeTag).join("")}</div>
     ${hpBarW(m.hp, st.hp)}<small>❤️ ${m.hp}/${st.hp} · ⭐ ${m.xp}/${xpToNext(m.lvl)}</small>
-    <div class="stats">⚔️ ${st.atk} · 🛡️ ${st.def} · ✨ ${st.spa} · 🔰 ${st.spd} · 💨 ${st.spe}</div>
+    <div class="stats">${[["⚔️", st.atk, "התקפה"], ["🛡️", st.def, "הגנה"], ["✨", st.spa, "מיוחד"], ["🔰", st.spd, "הגנה מיוחדת"], ["💨", st.spe, "מהירות"]]
+      .map(([i, v, t]) => `<span title="${t}"><i>${i}</i><b>${v}</b></span>`).join("")}</div>
     ${evo ? `<div class="evo-note">מתפתח ברמה ${evo}</div>` : ""}
     <div class="moves">${m.moves.map(moveChip).join("")}</div>
   </div><button class="wbtn" onclick="openParty()">חזור</button>`);
