@@ -62,55 +62,139 @@ button { font: inherit; }
 .tmove:disabled { opacity: .45; }
 .tmove small { font-size: 11px; }
 
-/* ----- קרב ----- */
-.battle { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; background: linear-gradient(180deg, #8fd3ff 0%, #c7ecff 45%, #7cc95a 46%, #5aa83f 100%); touch-action: manipulation; }
-.bfield { position: relative; flex: 1; min-height: 0; }
-.bside { position: absolute; display: flex; align-items: flex-end; gap: 10px; }
-.bside.foe { top: 6%; right: 4%; left: 4%; justify-content: space-between; flex-direction: row-reverse; }
-.bside.me { bottom: 2%; left: 4%; right: 4%; justify-content: space-between; }
-.bimg { width: min(38vw, 210px); height: min(38vw, 210px); object-fit: contain; filter: drop-shadow(0 8px 6px rgba(0,0,0,.25)); transition: transform .3s, opacity .3s; }
-.bimg.back { transform: scaleX(-1); }
-.bimg.hit { animation: hitShake .45s; }
-.bimg.gone { opacity: 0; transform: scale(.2); }
-@keyframes hitShake { 20%, 60% { translate: -10px 0; filter: brightness(2.2); } 40%, 80% { translate: 10px 0; } }
-.binfo { background: rgba(250,250,245,.95); color: #222; border-radius: 12px; padding: 7px 10px; min-width: 150px; max-width: 52%; box-shadow: 0 3px 10px rgba(0,0,0,.2); border-bottom: 4px solid #c9b98a; }
-.binfo small { color: #666; font-size: 12px; }
-.ballfx { position: absolute; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(180deg, #e3262e 48%, #222 48% 54%, #f5f5f5 54%); border: 2px solid #222; }
-.ballfx.fly { left: 20%; bottom: 25%; animation: ballFly .7s forwards; }
-.ballfx.shake { right: 24%; top: 26%; animation: ballShake .55s infinite; }
-@keyframes ballFly { to { left: 70%; bottom: 62%; transform: rotate(720deg); } }
-@keyframes ballShake { 25% { transform: rotate(-25deg); } 75% { transform: rotate(25deg); } }
-.blog { background: var(--panel); color: #fff; padding: 10px 14px; min-height: 52px; font-size: 16px; font-weight: bold; border-top: 3px solid #f5c542; }
-.bactions { background: #141925; padding: 10px 10px max(12px, env(safe-area-inset-bottom)); }
-.move-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.bmove { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; border-radius: 14px; border: none; background: var(--c); color: #fff; font-size: 16px; cursor: pointer; text-shadow: 0 1px 2px rgba(0,0,0,.5); box-shadow: inset 0 -4px 0 rgba(0,0,0,.2); }
-.bmove small { font-size: 12px; opacity: .95; }
-.brow { display: flex; gap: 8px; margin-top: 8px; }
-.bbtn { flex: 1; padding: 11px 6px; border-radius: 12px; border: 2px solid #3a4256; background: #2a3142; color: #fff; font-weight: bold; cursor: pointer; }
-.bbtn.ball { background: #e3262e; border-color: #ff7a7a; }
-.bbtn.primary { background: var(--gold); color: #3a2400; border-color: #f0a500; width: 100%; }
-.switch-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-.sw { display: flex; flex-direction: column; align-items: center; background: #232a3b; border: 2px solid #343d53; border-radius: 12px; padding: 6px; color: #fff; cursor: pointer; font-size: 13px; }
-.sw img { width: 44px; height: 44px; object-fit: contain; }
-.sw .whp { width: 100%; }
-.sw:disabled { opacity: .4; }
-.wait { text-align: center; color: var(--muted); margin: 14px 0; }
 .nogl { padding: 30px; color: #222; text-align: center; }
 
-/* ----- מסך הניסיון ----- */
-.xpscreen { position: absolute; inset: 0; z-index: 5; background: rgba(8,12,24,.72); display: flex; align-items: center; justify-content: center; padding: 14px; }
-.xpbox { width: 100%; max-width: 420px; background: linear-gradient(180deg, #24304a, #182033); border: 3px solid #f5c542; border-radius: 18px; padding: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
-.xpbox h2 { margin: 0 0 10px; text-align: center; color: #ffe08a; font-size: 20px; }
-.xpbox h2 small { color: #fff; font-size: 15px; }
-.xprow { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.07); border-radius: 12px; padding: 6px 10px; margin: 6px 0; }
-.xprow img { width: 48px; height: 48px; object-fit: contain; }
+
+/* ===== מסך הקרב ===== */
+.battle { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; background: #0f1422; touch-action: manipulation; }
+.bscene { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.sky { position: absolute; inset: 0 0 42% 0; background: linear-gradient(180deg, #58b7ff 0%, #9ad7ff 55%, #dff3ff 100%); }
+.cloud { position: absolute; width: 120px; height: 34px; border-radius: 30px; background: #fff; opacity: .9; box-shadow: 30px -14px 0 4px #fff, 64px -6px 0 -2px #fff; animation: drift 40s linear infinite; }
+.cloud.c1 { top: 10%; left: -30%; }
+.cloud.c2 { top: 26%; left: -60%; transform: scale(.7); animation-duration: 55s; animation-delay: -20s; }
+.cloud.c3 { top: 5%; left: -90%; transform: scale(.5); animation-duration: 70s; animation-delay: -35s; }
+@keyframes drift { to { left: 120%; } }
+.hills { position: absolute; left: 0; right: 0; bottom: 40%; height: 26%; }
+.hills i { position: absolute; bottom: 0; border-radius: 50% 50% 0 0; }
+.hills .h1 { left: -10%; width: 70%; height: 80%; background: #7cc767; }
+.hills .h2 { right: -15%; width: 80%; height: 100%; background: #6ab857; }
+.ground { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background:
+  repeating-linear-gradient(180deg, rgba(255,255,255,.05) 0 14px, rgba(0,0,0,.03) 14px 28px),
+  linear-gradient(180deg, #8fd36a, #5fae43); }
+.plat { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, #b7e88e 0%, #8bd062 55%, #5d9e3e 100%); box-shadow: 0 6px 0 #4b8a31, 0 14px 18px rgba(0,0,0,.18); }
+.plat.foe { width: 44%; height: 11%; right: 6%; top: 40%; }
+.plat.me { width: 62%; height: 15%; left: -4%; bottom: 3%; }
+.bimg { position: absolute; object-fit: contain; filter: drop-shadow(0 6px 4px rgba(0,0,0,.25)); transition: transform .35s, opacity .35s, filter .2s; }
+.bimg.foe { width: min(34vw, 190px); height: min(34vw, 190px); right: 12%; top: calc(46% - min(34vw, 190px)); }
+.bimg.me { width: min(48vw, 260px); height: min(48vw, 260px); left: 4%; bottom: 8%; transform: scaleX(-1); }
+.bimg.hit { animation: hitBlink .5s; }
+.bimg.gone { opacity: 0; transform: scale(.15) translateY(40px); }
+.bimg.foe.faint { animation: faintDown .6s forwards; }
+.bimg.me.faint { animation: faintDownMe .6s forwards; }
+@keyframes hitBlink { 0%, 40%, 80% { opacity: .2; filter: brightness(2.5); } 20%, 60%, 100% { opacity: 1; } }
+@keyframes faintDown { to { transform: translateY(60%); opacity: 0; } }
+@keyframes faintDownMe { to { transform: scaleX(-1) translateY(60%); opacity: 0; } }
+
+.infobox { position: absolute; min-width: 170px; max-width: 58%; background: linear-gradient(180deg, #ffffff, #eef3f6); color: #26303d; border-radius: 14px; padding: 7px 12px 8px; box-shadow: 0 4px 0 #b9c6cf, 0 8px 16px rgba(0,0,0,.18); border: 2px solid #fff; }
+.infobox.foe { left: 4%; top: 7%; border-bottom-right-radius: 4px; }
+.infobox.me { right: 4%; bottom: 25%; border-top-left-radius: 4px; }
+.ib-top { display: flex; align-items: center; gap: 6px; }
+.ib-top b { font-size: 17px; }
+.ib-types i { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; font-size: 10px; font-style: normal; margin-inline-start: 2px; }
+.ib-lv { margin-inline-start: auto; font-weight: 900; font-size: 14px; color: #3a4a5c; }
+.ib-hp { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.hplabel { background: #f5a623; color: #fff; font-size: 10px; font-weight: 900; padding: 1px 5px; border-radius: 6px; letter-spacing: .5px; }
+.hpbar { flex: 1; height: 9px; background: #4b5563; border-radius: 6px; overflow: hidden; border: 2px solid #4b5563; }
+.hpbar i { display: block; height: 100%; border-radius: 4px; transition: width .7s ease-out, background .3s; }
+.hpbar i.good { background: linear-gradient(180deg, #5ef08a, #2fbf5f); }
+.hpbar i.mid { background: linear-gradient(180deg, #ffd65a, #f0b400); }
+.hpbar i.low { background: linear-gradient(180deg, #ff7a6b, #e5372a); }
+.ib-num { text-align: left; font-weight: 900; font-size: 14px; margin-top: 2px; direction: ltr; }
+.ib-xp { height: 4px; background: #cfd8de; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.ib-xp i { display: block; height: 100%; background: #3aa8ff; }
+
+/* כדור */
+.ballfx { position: absolute; width: 36px; height: 36px; z-index: 3; }
+.ballfx i, .mini-ball { display: block; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #1d2230;
+  background: radial-gradient(circle at 50% 50%, #fff 0 18%, #1d2230 19% 26%, transparent 27%), linear-gradient(180deg, #ea3a3a 0 47%, #1d2230 47% 53%, #fafafa 53%); }
+.ballfx.fly { left: 18%; bottom: 30%; animation: ballFly .7s cubic-bezier(.3,.1,.5,1) forwards; }
+.ballfx.fly i { animation: spin .7s linear; }
+.ballfx.shake { right: calc(12% + min(17vw, 95px) - 18px); top: calc(46% - 40px); }
+.ballfx.shake i { animation: wob .55s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes ballFly { 60% { bottom: 66%; } to { left: calc(88% - min(17vw, 95px) - 18px); bottom: 54%; } }
+@keyframes spin { to { transform: rotate(-900deg); } }
+@keyframes wob { 25% { transform: rotate(-28deg); } 75% { transform: rotate(28deg); } }
+
+/* כניסה לקרב: הבזק ופסים */
+.bscene.intro .wipe { position: absolute; inset: 0; z-index: 6; pointer-events: none; background: repeating-linear-gradient(180deg, #0f1422 0 10%, transparent 10% 20%); animation: wipeOut .7s forwards; }
+.bscene.intro::after { content: ""; position: absolute; inset: 0; z-index: 7; background: #fff; pointer-events: none; animation: flashOut .45s forwards; }
+.bscene.intro .bimg.foe, .bscene.intro .plat.foe { animation: inFromLeft .7s ease-out; }
+.bscene.intro .bimg.me, .bscene.intro .plat.me { animation: inFromRight .7s ease-out; }
+.bscene.intro .infobox.foe { animation: inFromLeft .8s ease-out; }
+.bscene.intro .infobox.me { animation: inFromRight .8s ease-out; }
+@keyframes wipeOut { to { opacity: 0; transform: scaleY(0); } }
+@keyframes flashOut { to { opacity: 0; } }
+@keyframes inFromLeft { from { translate: -120vw 0; } }
+@keyframes inFromRight { from { translate: 120vw 0; } }
+
+/* לוח תחתון */
+.bpanel { background: linear-gradient(180deg, #2b3a55, #1b2438); padding: 10px 10px max(12px, env(safe-area-inset-bottom)); border-top: 4px solid #4a8fe0; }
+.dialog { background: #fff; color: #1f2733; border-radius: 14px; border: 3px solid #4a8fe0; box-shadow: inset 0 -3px 0 #d7e3ee; padding: 10px 14px; min-height: 54px; font-size: 17px; font-weight: 800; line-height: 1.35; }
+.bactions { margin-top: 10px; min-height: 120px; }
+.menu-wait { height: 120px; }
+.main-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.mm { display: flex; align-items: center; justify-content: center; gap: 8px; height: 56px; border-radius: 16px; border: 3px solid rgba(255,255,255,.85); color: #fff; font-size: 19px; font-weight: 900; cursor: pointer; text-shadow: 0 2px 2px rgba(0,0,0,.35); box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.mm span { font-size: 20px; }
+.mm .mini-ball { width: 22px; height: 22px; }
+.mm.fight { background: linear-gradient(180deg, #ff6b5b, #e33b2c); }
+.mm.ball { background: linear-gradient(180deg, #ffcf4a, #f0a500); color: #3a2400; text-shadow: none; }
+.mm.team { background: linear-gradient(180deg, #5fd987, #2fae58); }
+.mm.run { background: linear-gradient(180deg, #5aa9ff, #2f7fe0); }
+.mm:disabled { filter: grayscale(1); opacity: .45; }
+.mm:active, .bmove:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.move-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bmove { position: relative; display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 30px; border: 3px solid rgba(255,255,255,.9); background: var(--c); color: #fff; cursor: pointer; text-align: right; box-shadow: 0 4px 0 rgba(0,0,0,.25); text-shadow: 0 1px 2px rgba(0,0,0,.45); }
+.mv-ic { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,.92); display: flex; align-items: center; justify-content: center; font-size: 17px; text-shadow: none; }
+.mv-txt { display: flex; flex-direction: column; min-width: 0; }
+.mv-txt b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mv-txt small { font-size: 11px; opacity: .95; }
+.eff { position: absolute; top: -9px; left: 10px; font-style: normal; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 8px; text-shadow: none; }
+.eff.up { background: #ffe14d; color: #5a3b00; }
+.eff.down { background: #d7dde3; color: #3b4652; }
+.eff.no { background: #1d2230; color: #fff; }
+.back-btn { margin-top: 8px; width: 100%; padding: 9px; border-radius: 12px; border: 2px solid #4a5a78; background: #2a3550; color: #fff; font-weight: bold; cursor: pointer; }
+.big-go { width: 100%; height: 56px; border-radius: 16px; border: 3px solid #fff; background: linear-gradient(180deg, #ffcf4a, #f0a500); color: #3a2400; font-size: 19px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 0 #a86f00; }
+.switch-list { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.sw { display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto auto; column-gap: 6px; align-items: center; background: linear-gradient(180deg, #fff, #eef3f6); color: #26303d; border: 2px solid #fff; border-radius: 14px; padding: 5px 8px; cursor: pointer; text-align: right; box-shadow: 0 3px 0 #9fb0bd; }
+.sw img { grid-row: 1 / 4; width: 44px; height: 44px; object-fit: contain; }
+.sw-name { font-weight: 900; font-size: 14px; }
+.sw-lv { font-size: 11px; color: #5a6878; }
+.sw .hpbar { height: 6px; border-width: 1px; }
+.sw:disabled { opacity: .45; }
+.wait { text-align: center; color: #c9d6ea; margin: 14px 0; font-weight: bold; }
+
+/* ===== מסך הניסיון ===== */
+.xpscreen { position: absolute; inset: 0; z-index: 8; background: rgba(10,16,32,.6); display: flex; align-items: center; justify-content: center; padding: 14px; animation: flashOut .3s reverse; }
+.xpbox { width: 100%; max-width: 420px; background: linear-gradient(180deg, #ffffff, #eaf1f6); color: #26303d; border: 4px solid #4a8fe0; border-radius: 20px; padding: 14px; box-shadow: 0 6px 0 #2d64a8, 0 14px 30px rgba(0,0,0,.35); }
+.xpbox h2 { margin: 0 0 10px; text-align: center; color: #2d64a8; font-size: 20px; }
+.xpbox h2 small { color: #c58a00; font-size: 15px; }
+.xprow { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid #d5e1ea; border-radius: 14px; padding: 6px 10px; margin: 6px 0; box-shadow: 0 2px 0 #d5e1ea; }
+.xprow img { width: 50px; height: 50px; object-fit: contain; }
 .xpinfo { flex: 1; min-width: 0; }
-.xplvl { color: #9fd3ff; font-size: 13px; font-weight: bold; }
-.xpup { color: #7dffb0; font-size: 13px; font-weight: 900; }
-.xpbar { height: 10px; background: #0b0f18; border-radius: 6px; overflow: hidden; margin-top: 5px; border: 1px solid rgba(255,255,255,.15); }
-.xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4fc3ff, #7de0ff); border-radius: 6px; }
-.xpgain { color: #ffe08a; font-weight: 900; }
+.xpinfo b { font-size: 15px; }
+.xplvl { color: #2d64a8; font-size: 13px; font-weight: 900; margin-inline-start: 6px; }
+.xpup { color: #1f9d55; font-size: 13px; font-weight: 900; }
+.xpbar { height: 10px; background: #dbe5ec; border-radius: 6px; overflow: hidden; margin-top: 5px; border: 2px solid #c3d2dd; }
+.xpbar i { display: block; height: 100%; width: 0; background: linear-gradient(180deg, #6fd0ff, #2f9bff); border-radius: 4px; }
+.xpgain { color: #c58a00; font-weight: 900; font-size: 16px; }
 .xprow.lvlup { animation: lvlFlash .6s; }
-@keyframes lvlFlash { 30% { background: rgba(125,255,176,.35); transform: scale(1.03); } }
-.xpgo { margin-top: 10px; }
+@keyframes lvlFlash { 30% { background: #d9ffe8; transform: scale(1.03); } }
+.xpgo { margin-top: 10px; width: 100%; height: 50px; border-radius: 14px; border: 3px solid #fff; background: linear-gradient(180deg, #ffcf4a, #f0a500); color: #3a2400; font-size: 18px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 0 #a86f00; }
 .xpgo:disabled { opacity: .5; }
+
+/* ===== כפתורים בעולם ===== */
+.hbtn { background: linear-gradient(180deg, #ffffff, #e8eff4); color: #26303d; border: 3px solid #4a8fe0; box-shadow: 0 3px 0 #2d64a8; }
+.hchip { background: linear-gradient(180deg, #ffffff, #e8eff4); color: #26303d; border: 3px solid #4a8fe0; box-shadow: 0 3px 0 #2d64a8; padding: 6px 10px; }
+.wtag.player { background: #fff; color: #26303d; border: 3px solid #4a8fe0; }
+.wtag.lvl { background: rgba(255,255,255,.92); border: 2px solid #9fb0bd; }
+.act-btn { border-radius: 30px; }

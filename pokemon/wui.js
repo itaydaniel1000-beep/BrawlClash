@@ -192,50 +192,100 @@ function onEncounter(w) {
   showBattle();
 }
 
+/* ---------- מסך הקרב ----------
+   זירה עם שמיים, גבעות ושתי במות דשא: היריב רחוק למעלה, שלי קרוב למטה.
+   תיבות מידע לבנות עם מד חיים, תיבת דיאלוג, ותפריט ראשי - קרב / כדור /
+   פוקימונים / ברח. מדי החיים יורדים בהדרגה מהערך הקודם לחדש. */
 function showBattle() {
   const b = battle;
   const el = $w("#battle");
+  const first = el.hidden || !b.shown;
   el.hidden = false;
-  if (b.kind === "pvp" && !b.myMon) { el.innerHTML = `<div class="bfield"></div><div class="blog">מתכוננים לקרב...</div><div class="bactions"></div>`; return; }
+  b.shown = true;
+  if (b.kind === "pvp" && !b.myMon) {
+    el.innerHTML = `<div class="bscene">${sceneBack()}</div><div class="bpanel"><div class="dialog">מתכוננים לקרב...</div><div class="bactions"></div></div>`;
+    return;
+  }
   const mine = b.kind === "wild" ? SV.party[b.me] : b.myMon;
   const foe = b.kind === "wild" ? b.foe : b.foeMon;
   const fMax = wMaxHp(foe), mMax = wMaxHp(mine);
-  let actions = "";
-  if (b.busy) actions = `<p class="wait">…</p>`;
-  else if (b.menu === "switch" || b.menu === "mustSwitch") {
+  const fPct = Math.max(0, 100 * foe.hp / fMax), mPct = Math.max(0, 100 * mine.hp / mMax);
+  // מד החיים מתחיל מהמקום הקודם ויורד בהדרגה
+  const fFrom = b.lastFoe && b.lastFoe.id === foe.id ? b.lastFoe.pct : fPct;
+  const mFrom = b.lastMe && b.lastMe.uid === (mine.uid || mine.id) ? b.lastMe.pct : mPct;
+  b.lastFoe = {id: foe.id, pct: fPct};
+  b.lastMe = {uid: mine.uid || mine.id, pct: mPct};
+
+  el.innerHTML = `
+    <div class="bscene${first ? " intro" : ""}">
+      ${sceneBack()}
+      <div class="plat foe"></div><div class="plat me"></div>
+      <img class="bimg foe${b.foeHit ? " hit" : ""}${b.caught ? " gone" : ""}${foe.hp <= 0 ? " faint" : ""}" src="${ART_URL(POKEMON[foe.id].dex)}" alt="">
+      <img class="bimg me${b.meHit ? " hit" : ""}${mine.hp <= 0 ? " faint" : ""}" src="${ART_URL(POKEMON[mine.id].dex)}" alt="">
+      ${infoBox(foe, fFrom, fPct, false)}
+      ${infoBox(mine, mFrom, mPct, true)}
+      ${b.ballAnim ? `<div class="ballfx ${b.ballAnim}"><i></i></div>` : ""}
+      ${first ? `<div class="wipe"></div>` : ""}
+    </div>
+    <div class="bpanel">
+      <div class="dialog">${b.log.map(escW).join("<br>")}</div>
+      <div class="bactions">${battleMenu(b, mine, foe)}</div>
+    </div>`;
+  b.foeHit = b.meHit = false;
+  setTimeout(() => el.querySelectorAll(".hpbar i[data-to]").forEach(i => {
+    i.style.width = i.dataset.to + "%";
+    i.className = hpClass(Number(i.dataset.to));
+  }), 40);
+}
+
+const hpClass = p => p > 50 ? "good" : p > 20 ? "mid" : "low";
+
+function sceneBack() {
+  return `<div class="sky"><i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i></div>
+    <div class="hills"><i class="h1"></i><i class="h2"></i></div><div class="ground"></div>`;
+}
+
+function infoBox(m, from, to, mine) {
+  const d = POKEMON[m.id];
+  const max = wMaxHp(m);
+  const xpPct = mine && m.xp !== undefined ? Math.round(100 * (m.xp || 0) / xpToNext(m.lvl)) : null;
+  return `<div class="infobox ${mine ? "me" : "foe"}">
+    <div class="ib-top"><b>${d.he}</b><span class="ib-types">${d.types.map(t => `<i style="background:${TYPES[t].color}">${TYPES[t].icon}</i>`).join("")}</span><span class="ib-lv">רמה ${m.lvl}</span></div>
+    <div class="ib-hp"><span class="hplabel">HP</span><div class="hpbar"><i class="${hpClass(from)}" style="width:${from}%" data-to="${to}"></i></div></div>
+    ${mine ? `<div class="ib-num">${Math.max(0, m.hp)} / ${max}</div>` : ""}
+    ${xpPct !== null && battle.kind === "wild" ? `<div class="ib-xp"><i style="width:${xpPct}%"></i></div>` : ""}
+  </div>`;
+}
+
+function battleMenu(b, mine, foe) {
+  if (b.busy) return `<div class="menu-wait"></div>`;
+  if (b.menu === "switch" || b.menu === "mustSwitch") {
     const party = b.kind === "wild" ? SV.party : b.myParty;
     const cur = b.kind === "wild" ? b.me : b.myActive;
-    actions = `<div class="switch-list">${party.map((m, i) => `<button class="sw" ${m.hp <= 0 || i === cur ? "disabled" : ""} onclick="doSwitch(${i})">
-      <img src="${ART_URL(POKEMON[m.id].dex)}" alt=""><span>${POKEMON[m.id].he} · ${m.lvl}</span>${hpBarW(m.hp, wMaxHp(m))}</button>`).join("")}</div>
-      ${b.menu === "switch" ? `<button class="bbtn" onclick="battle.menu='main'; showBattle()">↩</button>` : ""}`;
-  } else if (b.menu === "waiting") {
-    actions = `<p class="wait">⏳ מחכים ל${escW(b.foeName || "יריב")}</p>`;
-  } else if (b.menu === "over") {
-    actions = `<button class="bbtn primary" onclick="endBattle()">המשך</button>`;
-  } else {
-    actions = `<div class="move-grid">${mine.moves.map((k, i) => {
+    return `<div class="switch-list">${party.map((m, i) => `<button class="sw" ${m.hp <= 0 || i === cur ? "disabled" : ""} onclick="doSwitch(${i})">
+        <img src="${ART_URL(POKEMON[m.id].dex)}" alt=""><span class="sw-name">${POKEMON[m.id].he}</span><span class="sw-lv">רמה ${m.lvl}</span>
+        <div class="hpbar"><i class="${hpClass(100 * m.hp / wMaxHp(m))}" style="width:${Math.max(0, 100 * m.hp / wMaxHp(m))}%"></i></div></button>`).join("")}</div>
+      ${b.menu === "switch" ? `<button class="back-btn" onclick="battle.menu='main'; showBattle()">↩ חזרה</button>` : ""}`;
+  }
+  if (b.menu === "waiting") return `<p class="wait">⏳ מחכים ל${escW(b.foeName || "יריב")}</p>`;
+  if (b.menu === "over") return `<button class="big-go" onclick="endBattle()">המשך ▶</button>`;
+  if (b.menu === "fight") {
+    return `<div class="move-grid">${mine.moves.map((k, i) => {
       const mv = WMOVES[k];
       const mult = typeMult(mv[1], POKEMON[foe.id].types);
-      return `<button class="bmove" style="--c:${TYPES[mv[1]].color}" onclick="useMove(${i})"><b>${mv[0]}</b>
-        <small>${TYPES[mv[1]].icon} ${mv[2]}${mult > 1 ? " · 💥" : mult < 1 ? " · 🔻" : ""}</small></button>`;
+      const eff = mult > 1 ? `<em class="eff up">יעיל מאוד</em>` : mult === 0 ? `<em class="eff no">אין השפעה</em>` : mult < 1 ? `<em class="eff down">לא יעיל</em>` : "";
+      return `<button class="bmove" style="--c:${TYPES[mv[1]].color}" onclick="useMove(${i})">
+        <span class="mv-ic">${TYPES[mv[1]].icon}</span><span class="mv-txt"><b>${mv[0]}</b><small>עוצמה ${mv[2]} · ${TYPES[mv[1]].he}</small></span>${eff}</button>`;
     }).join("")}</div>
-    <div class="brow">
-      ${b.kind === "wild" ? `<button class="bbtn ball" onclick="throwBall()">🔴 כדור</button>` : ""}
-      <button class="bbtn" onclick="battle.menu='switch'; showBattle()">🔄 החלף</button>
-      <button class="bbtn" onclick="runAway()">${b.kind === "wild" ? "🏃 ברח" : "🏳️ כניעה"}</button>
-    </div>`;
+    <button class="back-btn" onclick="battle.menu='main'; showBattle()">↩ חזרה</button>`;
   }
-  el.innerHTML = `
-    <div class="bfield">
-      <div class="bside foe"><div class="binfo"><b>${POKEMON[foe.id].he}</b> <small>רמה ${foe.lvl}</small>${hpBarW(foe.hp, fMax)}</div>
-        <img class="bimg${b.foeHit ? " hit" : ""}${b.caught ? " gone" : ""}" src="${ART_URL(POKEMON[foe.id].dex)}" alt=""></div>
-      <div class="bside me"><img class="bimg back${b.meHit ? " hit" : ""}" src="${ART_URL(POKEMON[mine.id].dex)}" alt="">
-        <div class="binfo"><b>${POKEMON[mine.id].he}</b> <small>רמה ${mine.lvl}</small>${hpBarW(mine.hp, mMax)}<small>${mine.hp}/${mMax}</small></div></div>
-      ${b.ballAnim ? `<div class="ballfx ${b.ballAnim}"></div>` : ""}
-    </div>
-    <div class="blog">${b.log.map(escW).join("<br>")}</div>
-    <div class="bactions">${actions}</div>`;
-  b.foeHit = b.meHit = false;
+  const wild = b.kind === "wild";
+  return `<div class="main-menu">
+    <button class="mm fight" onclick="battle.menu='fight'; showBattle()"><span>⚔️</span>קרב</button>
+    <button class="mm ball" ${wild ? `onclick="throwBall()"` : "disabled"}><span class="mini-ball"></span>כדור</button>
+    <button class="mm team" onclick="battle.menu='switch'; showBattle()"><span>🔄</span>פוקימונים</button>
+    <button class="mm run" onclick="runAway()"><span>${wild ? "🏃" : "🏳️"}</span>${wild ? "ברח" : "כניעה"}</button>
+  </div>`;
 }
 
 async function say(lines, ms = 900) {
@@ -457,7 +507,7 @@ function chooseForget(mon, move) {
     showBattle();
     $w("#battle .bactions").innerHTML = `<div class="move-grid">${mon.moves.map((k, j) =>
       `<button class="bmove" style="--c:${TYPES[WMOVES[k][1]].color}" data-j="${j}"><b>${WMOVES[k][0]}</b></button>`).join("")}</div>
-      <button class="bbtn" data-j="-1">לא ללמוד</button>`;
+      <button class="back-btn" data-j="-1">לא ללמוד</button>`;
     $w("#battle .bactions").onclick = async e => {
       const btn = e.target.closest("[data-j]");
       if (!btn) return;
