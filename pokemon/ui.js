@@ -739,6 +739,7 @@ function onState(msg) {
   if (msg.fx && msg.fx.kind === "damage") flashDamage(msg.fx.dmg, msg.fx.mult);
   reelOnState(msg.fx);
   if (msg.fx && msg.fx.kind === "upgradeSpin") playRaffle();
+  if (msg.fx && msg.fx.kind === "evolve") Music.jingle("evolve");
   if (msg.fx && msg.fx.kind === "upgradeWin" && msg.fx.pid === Net.myPid) { ui.carousel = 0; Sfx.play("turn"); buzz(150); renderPanel(); }
 }
 

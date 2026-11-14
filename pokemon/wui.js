@@ -107,7 +107,7 @@ function onPlace(p) {
 function heal() {
   healParty(SV.party);
   WSave.save();
-  Sfx.play("caught");
+  if (!Music.jingle("heal")) Sfx.play("caught");
   toast("כל הפוקימונים שלך בריאים! ❤️");
   renderHud();
 }
@@ -433,14 +433,15 @@ async function loseWild() {
 /* אירועי התקדמות: רמה, מתקפה חדשה, התפתחות */
 async function growth(mon, events) {
   for (const e of events) {
-    if (e.kind === "level" && !e.shown) { Sfx.play("turn"); await say(`${POKEMON[mon.id].he} עלה לרמה ${e.lvl}!`, 1000); }
+    if (e.kind === "level" && !e.shown) { if (!Music.jingle("levelup")) Sfx.play("turn"); await say(`${POKEMON[mon.id].he} עלה לרמה ${e.lvl}!`, 1000); }
     if (e.kind === "learn") await say(`${POKEMON[mon.id].he} למד ${WMOVES[e.move][0]}!`, 1000);
     if (e.kind === "choose") await chooseForget(mon, e.move);
     if (e.kind === "evolve") {
+      Music.jingle("evolve");
       await say(`מה? ${POKEMON[e.from].he} מתפתח!`, 1300);
       evolveMon(mon, e.to);
       Profile.markCaught(e.to);
-      Sfx.play("caught");
+      if (!Music.isOn()) Sfx.play("caught");
       await say(`${POKEMON[e.from].he} התפתח ל${POKEMON[e.to].he}! ✨`, 1600);
       if (SV.party[0] === mon) World3D.setLead(mon.id);
     }
@@ -499,7 +500,7 @@ async function fillBar(row, r) {
     lvl.textContent = `רמה ${L}`;
     up.textContent = " ⬆ רמה עלתה!";
     row.classList.remove("lvlup"); void row.offsetWidth; row.classList.add("lvlup");
-    Sfx.play("caught");
+    if (!Music.jingle("levelup")) Sfx.play("caught");
     bar.style.transition = "none";
     bar.style.width = "0%";
     await wait(60);
