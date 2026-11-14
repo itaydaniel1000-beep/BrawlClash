@@ -46,6 +46,7 @@ function closeModal() { $w("#wmodal").hidden = true; $w("#wmodal").innerHTML = "
 /* ---------- התחלה ---------- */
 
 function chooseStarter() {
+  Music.play("title");
   modal(`<h2>בחר את הפוקימון הראשון שלך</h2>
     <div class="starters">${STARTERS.map(id => `<button class="starter" onclick="pickStarter('${id}')">
       <img src="${ART_URL(POKEMON[id].dex)}" alt=""><b>${POKEMON[id].he}</b><span>${POKEMON[id].types.map(typeTag).join("")}</span></button>`).join("")}</div>`);
@@ -60,6 +61,7 @@ function pickStarter(id) {
 
 function enterWorld() {
   World3D.init($w("#world"), SV.pos, {onEncounter, onPlace});
+  Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
   WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onStatus: s => { netStatus = s; renderHud(); }});
@@ -83,6 +85,7 @@ function renderHud() {
     <a class="hbtn" href="index.html">↩</a>
     <button class="hbtn lead" onclick="openParty()"><img src="${ART_URL(POKEMON[lead.id].dex)}" alt=""><span>${POKEMON[lead.id].he} · ${lead.lvl}</span></button>
     <span class="hchip">🪙 ${SV.coins}</span>
+    <button class="hbtn" onclick="Music.toggle(!Music.isOn()); renderHud()">${Music.isOn() ? "🎵" : "🔇"}</button>
     <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)}` : "⏳"}</span>`;
 }
 
@@ -201,6 +204,7 @@ function showBattle() {
   const b = battle;
   const el = $w("#battle");
   const first = el.hidden || !b.shown;
+  if (first) Music.play("battle");
   el.hidden = false;
   b.shown = true;
   if (b.kind === "pvp" && !b.myMon) {
@@ -378,6 +382,7 @@ async function throwBall() {
     SV.catches++;
     Profile.markCaught(mon.id);
     WSave.save();
+    Music.play("victory");
     await say(`תפסת את ${POKEMON[mon.id].he}!` + (where === "box" ? " הוא נשלח לקופסה." : ""), 1200);
     await xpScreen(wXpFor(mon, false), "", mon);
     WSave.save();
@@ -405,7 +410,7 @@ async function runAway() {
 async function winWild() {
   const b = battle;
   const mine = SV.party[b.me];
-  Sfx.play("win");
+  if (Music.isOn()) Music.play("victory"); else Sfx.play("win");
   await say(`${POKEMON[b.foe.id].he} הפראי התעלף!`);
   const coins = 8 + b.foe.lvl * 2;
   SV.coins += coins;
@@ -527,6 +532,7 @@ function endBattle() {
   battle = null;
   $w("#battle").hidden = true;
   World3D.pause(false);
+  Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
   onPlace(place);
@@ -591,6 +597,7 @@ function onPvp(st) {
       SV.coins += 80;
       const foeLvl = Math.round(foeS.party.reduce((s, m) => s + m.lvl, 0) / foeS.party.length);
       b.log = [...b.log, "ניצחת!"];
+      Music.play("victory");
       showBattle();
       xpScreen(wXpFor({lvl: foeLvl}, true), "🪙 +80").then(() => { b.menu = "over"; showBattle(); WSave.save(); });
       return;

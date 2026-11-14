@@ -61,6 +61,7 @@ function seatPos(i, n) {
 /* ---------- השולחן ---------- */
 
 function renderTable() {
+  musicSync();
   const t = $("#table");
   const inGame = !!S && ui.screen === "game";
   document.body.classList.toggle("in-game", inGame);
@@ -236,6 +237,9 @@ function settingsScreen() {
   return `<div class="screen-head"><button class="btn small" onclick="go('home')">↩</button><h2>הגדרות</h2><span></span></div>
     <div class="settings">
       ${toggle("sound", "🔊", "צלילים")}
+      <label class="set-row"><span>🎵 מוזיקה</span>
+        <input type="checkbox" ${Music.isOn() ? "checked" : ""} onchange="Music.toggle(this.checked)">
+        <i class="switch"></i></label>
       ${toggle("vibrate", "📳", "רטט בתור שלי")}
       <button class="set-row" onclick="editName()"><span>✏️ שינוי שם</span><span class="muted">${esc(ui.name)}</span></button>
       <button class="set-row danger" onclick="confirmWipe()"><span>🗑️ איפוס התקדמות</span></button>
@@ -721,7 +725,10 @@ function onState(msg) {
   if (S.phase !== "turn" || !isMyTurn()) ui.catchOpen = false;
   const myTurnNow = (S.phase === "turn" || S.phase === "starterPick") && isMyTurn();
   if (myTurnNow && (prevPhase !== S.phase || prevTurn !== currentPid())) { Sfx.play("turn"); buzz(150); }
-  if (S.phase === "end" && prevPhase !== "end") Sfx.play(S.win ? "win" : "lose");
+  if (S.phase === "end" && prevPhase !== "end") {
+    if (S.win && Music.isOn()) Music.play("victory", "title");
+    else { Sfx.play(S.win ? "win" : "lose"); Music.stop(); setTimeout(() => Music.play("title"), 1500); }
+  }
   if (S.phase !== prevPhase && S.phase === "starterPick") ui.carousel = 0;
   if (S.phase === "starterPick" && currentPid() !== prevTurn) ui.carousel = 0;
 
@@ -809,6 +816,14 @@ function leaveGame() {
   ui.catchOpen = false;
   closeModal();
   render();
+}
+
+// מוזיקה לפי המסך: פתיחה בתפריטים ובלובי, קרב בזמן משחק
+function musicSync() {
+  if (ui.screen === "game" && S) {
+    if (S.phase === "end") return;
+    Music.play(S.phase === "waiting" ? "title" : "battle");
+  } else Music.play("title");
 }
 
 function render() {
