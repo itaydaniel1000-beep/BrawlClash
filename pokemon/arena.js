@@ -743,7 +743,7 @@ function fxAttack(fx) {
   const mon = {id: fx.id, hp: 1};
   setSpriteMon(p, p.mon && p.mon.id === fx.id ? p.mon : mon);
   const s = p.sprite;
-  const color = new THREE.Color(TYPES[POKEMON[fx.id].types[0]].color);
+  const color = new THREE.Color(TYPES[fx.mtype || POKEMON[fx.id].types[0]].color);
   const pv = playerView(fx.pid);
   if (pv) focus(pv[0], pv[1], .5, 0, .8);
   focus(...wildView(), .9, .55, .75);

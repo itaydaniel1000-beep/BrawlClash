@@ -22,10 +22,34 @@ const itemSum = (p, key) => p.team.reduce((s, m) => s + ((ITEMS[m.id] || {})[key
 const luckOf = p => itemSum(p, "luck");
 
 /* נזק של שחקן: הנזק הרגיל, ועוד הבונוס של החרב */
-function playerDamage(p, monId, wildId) {
-  const {mult, dmg} = damageOf(monId, wildId);
+function playerDamage(p, monId, wildId, moveKey) {
+  const {mult, dmg} = moveKey ? moveDamage(monId, moveKey, wildId) : damageOf(monId, wildId);
   return {mult, dmg: Math.round(dmg * (1 + (p ? itemSum(p, "dmg") : 0)))};
 }
+
+/* ---------- מתקפות ----------
+   לכל פוקימון עד 4 מתקפות אמיתיות שלו (מאותם נתונים של העולם): מה שהוא
+   יודע עד רמה 30. הנזק תלוי בעוצמה ובסוג של המתקפה - מתקפת אש נגד עשב
+   יעילה מאוד גם אם הפוקימון עצמו לא מסוג אש. מתקפה מהסוג של הפוקימון
+   עצמו חזקה קצת יותר. */
+const TABLE_MOVE_LEVEL = 30;
+function monMoves(id) {
+  const d = POKEMON[id];
+  if (typeof WLEARN === "undefined" || !d) return [];
+  const list = (WLEARN[d.dex] || []).filter(([l, k]) => l <= TABLE_MOVE_LEVEL && WMOVES[k]).map(([, k]) => k);
+  const uniq = [...new Set(list)];
+  return uniq.length ? uniq.slice(-4) : ["tackle"];
+}
+
+function moveDamage(attId, moveKey, defId) {
+  const mv = WMOVES[moveKey];
+  if (!mv) return damageOf(attId, defId);
+  const mult = typeMultiplier([mv[1]], POKEMON[defId].types);
+  const stab = POKEMON[attId].types.includes(mv[1]) ? 1.2 : 1;
+  return {mult, dmg: Math.max(mult ? 1 : 0, Math.round(POKEMON[attId].power * (mv[2] / 75) * stab * mult))};
+}
+
+const moveName = k => (WMOVES[k] || ["מתקפה"])[0];
 
 /* המגן: כל הפוקימונים של השחקן מקבלים יותר חיים מקסימליים. נקרא אחרי
    כל שינוי בקבוצה, ומחשב מחדש מהחיים הבסיסיים - אז אין הכפלה כפולה */
@@ -385,19 +409,21 @@ const Engine = (() => {
       {kind: "evolve", pid: p.pid, index, from, to});
   }
 
-  function attack(monIndex) {
+  function attack(monIndex, moveKey) {
     const p = current();
     const mon = p.team[monIndex];
     if (!mon || mon.hp <= 0 || isItem(mon.id) || S.wild.item) return;
-    const {mult, dmg} = playerDamage(p, mon.id, S.wild.id);
+    const moves = monMoves(mon.id);
+    if (moves.length && !moves.includes(moveKey)) moveKey = moves[0];
+    const {mult, dmg} = playerDamage(p, mon.id, S.wild.id, moveKey);
     S.wild.hp = Math.max(0, S.wild.hp - dmg);
     trimNums(S.wild);
-    const text = `${p.name}: ${POKEMON[mon.id].he} תוקף - ${dmg} (${multText(mult)})`;
+    const text = `${p.name}: ${POKEMON[mon.id].he} משתמש ב${moveName(moveKey)} - ${dmg} (${multText(mult)})`;
     log(text);
     S.phase = "anim";
     S.action = text;
     schedule(MS.anim, afterAnim);
-    commit({kind: "damage", dmg, mult, pid: p.pid, index: monIndex, id: mon.id});
+    commit({kind: "damage", dmg, mult, pid: p.pid, index: monIndex, id: mon.id, mtype: (WMOVES[moveKey] || [])[1]});
   }
 
   function afterAnim() {
@@ -497,11 +523,14 @@ const Engine = (() => {
       const targets = [];
       S.players.forEach(p => p.team.forEach(m => m.hp > 0 && !isItem(m.id) && targets.push({p, m})));
       const {p, m} = targets[rnd(targets.length)];
-      const {mult, dmg} = damageOf(S.wild.id, m.id);
+      // גם הפראי תוקף עם אחת המתקפות שלו
+      const wm = monMoves(S.wild.id);
+      const mk = wm.length ? wm[rnd(wm.length)] : null;
+      const {mult, dmg} = mk ? moveDamage(S.wild.id, mk, m.id) : damageOf(S.wild.id, m.id);
       m.hp = Math.max(0, m.hp - dmg);
-      fxHits.push({pid: p.pid, id: m.id, index: p.team.indexOf(m), dmg, mult, ko: m.hp === 0});
+      fxHits.push({pid: p.pid, id: m.id, index: p.team.indexOf(m), dmg, mult, ko: m.hp === 0, mtype: mk ? WMOVES[mk][1] : null});
       const ko = m.hp === 0 ? " - התעלף! 💫" : "";
-      lines.push(`תוקף את ${POKEMON[m.id].he} של ${p.name}: ‎-${dmg} (${multText(mult)})${ko}`);
+      lines.push(`${mk ? moveName(mk) + " על " : "תוקף את "}${POKEMON[m.id].he} של ${p.name}: ‎-${dmg} (${multText(mult)})${ko}`);
       log(`${name} ${lines[lines.length - 1]}`);
     }
     const title = `תור של ${name}`;
@@ -571,7 +600,7 @@ const Engine = (() => {
         if (S.phase === "starterPick" && mine && S.starterPool.includes(a.id)) pickStarter(a.id);
         break;
       case "attack":
-        if (S.phase === "turn" && mine) attack(a.index);
+        if (S.phase === "turn" && mine) attack(a.index, a.move);
         break;
       case "catch":
         if (S.phase === "turn" && mine && !S.wild.boss) startCatch();

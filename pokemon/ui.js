@@ -368,6 +368,8 @@ function gamePanel() {
     case "turn":
       if (!isMyTurn()) {
         html = `<h2>התור של ${curName}</h2>${timerBar()}<p>מחכים שיחליט: לתקוף או לתפוס.</p>`;
+      } else if (ui.attackOpen && ui.attackMon !== null && ui.attackMon !== undefined && my.team[ui.attackMon]) {
+        html = movesPanel(my, ui.attackMon);
       } else if (ui.attackOpen) {
         ui.fightIdx = my.team.map((m, i) => i).filter(i => !isItem(my.team[i].id));
         html = `<h2>עם מי לתקוף?</h2>${timerBar()}` + carouselHTML(ui.fightIdx.map(i => my.team[i]), "attackAt", true);
@@ -431,8 +433,10 @@ function carouselHTML(mons, onPick, withBack) {
   const m = mons[ui.carousel];
   let vs = "";
   if (S.wild && withBack) {
-    const {mult, dmg} = playerDamage(me(), m.id, S.wild.id);
-    vs = `<div class="vs ${mult > 1 ? "up" : mult < 1 ? "down" : ""}">מוריד ${dmg} • ${multText(mult)}</div>`;
+    // המתקפה הכי חזקה שלו נגד הפראי הזה
+    const best = monMoves(m.id).map(k => ({k, ...playerDamage(me(), m.id, S.wild.id, k)})).sort((a, b) => b.dmg - a.dmg)[0]
+      || {...playerDamage(me(), m.id, S.wild.id), k: null};
+    vs = `<div class="vs ${best.mult > 1 ? "up" : best.mult < 1 ? "down" : ""}">⚔️ ${monMoves(m.id).length} מתקפות • עד ${best.dmg} נזק</div>`;
   }
   return `<div class="carousel">
       <button class="arrow" onclick="moveCarousel(-1)" aria-label="הקודם">▶</button>
@@ -447,7 +451,36 @@ function carouselHTML(mons, onPick, withBack) {
 
 function moveCarousel(d) { ui.carousel += d; renderPanel(); tickTimer(); }
 function pickStarterAt(i) { Net.act({t: "pick", id: S.starterPool[i]}); }
-function attackAt(i) { ui.attackOpen = false; Net.act({t: "attack", index: (ui.fightIdx || [])[i] ?? i}); }
+/* בוחרים פוקימון, ואז את המתקפה שלו */
+function attackAt(i) {
+  const idx = (ui.fightIdx || [])[i] ?? i;
+  const my = me();
+  if (!my || !monMoves(my.team[idx].id).length) { ui.attackOpen = false; return Net.act({t: "attack", index: idx}); }
+  ui.attackMon = idx;
+  renderPanel();
+}
+
+function useTableMove(k) {
+  const idx = ui.attackMon;
+  ui.attackOpen = false;
+  ui.attackMon = null;
+  Net.act({t: "attack", index: idx, move: k});
+}
+
+function movesPanel(my, idx) {
+  const m = my.team[idx];
+  const d = POKEMON[m.id];
+  const buttons = monMoves(m.id).map(k => {
+    const mv = WMOVES[k];
+    const {mult, dmg} = playerDamage(my, m.id, S.wild.id, k);
+    const eff = mult > 1 ? `<em class="eff up">יעיל מאוד</em>` : mult === 0 ? `<em class="eff no">אין השפעה</em>` : mult < 1 ? `<em class="eff down">לא יעיל</em>` : "";
+    return `<button class="tmv" style="--c:${TYPES[mv[1]].color}" onclick="useTableMove('${k}')">
+      <span class="tmv-ic">${TYPES[mv[1]].icon}</span><span class="tmv-txt"><b>${mv[0]}</b><small>מוריד ${dmg} · ${TYPES[mv[1]].he}</small></span>${eff}</button>`;
+  }).join("");
+  return `<h2><img class="tmv-mon" src="${ART_URL(d.dex)}" alt=""> איזו מתקפה של ${d.he}?</h2>
+    <div class="tmv-grid">${buttons}</div>
+    <div class="row"><button class="btn" onclick="ui.attackMon = null; renderPanel()">↩ חזור</button></div>`;
+}
 function evolveAt(i) { const idx = (ui.evoIdx || [])[i]; if (idx !== undefined) Net.act({t: "evolve", index: idx}); }
 
 /* בזמן שדרוג מודגש מי שזכה, ובתור רגיל - מי שבתור */
@@ -488,8 +521,8 @@ function playRaffle() {
     }, t);
   }
 }
-function openAttack() { ui.attackOpen = true; ui.catchOpen = false; ui.carousel = 0; renderPanel(); tickTimer(); }
-function backToTurn() { ui.attackOpen = false; ui.catchOpen = false; renderPanel(); tickTimer(); }
+function openAttack() { ui.attackOpen = true; ui.attackMon = null; ui.catchOpen = false; ui.carousel = 0; renderPanel(); tickTimer(); }
+function backToTurn() { ui.attackOpen = false; ui.attackMon = null; ui.catchOpen = false; renderPanel(); tickTimer(); }
 
 /* ---------- מכונת המספרים ----------
    המספרים רצים לפי הסדר (1, 2, 3...) בלי סוף. השחקן לוחץ "עצור",
@@ -641,7 +674,8 @@ function showTeam(pid) {
   const p = S && S.players.find(x => x.pid === pid);
   if (!p || ui.modalKind === "wheel") return;
   modal(`<h2>הפוקימונים של ${esc(p.name)}</h2>
-    <div class="team-grid">${p.team.map(m => cardHTML(m, ITEMS[m.id] ? `<div class="chance">${ITEMS[m.id].icon} ${ITEMS[m.id].text}</div>` : "")).join("") || "<p>אין עדיין פוקימונים</p>"}</div>
+    <div class="team-grid">${p.team.map(m => cardHTML(m, ITEMS[m.id] ? `<div class="chance">${ITEMS[m.id].icon} ${ITEMS[m.id].text}</div>`
+      : `<div class="card-moves">${monMoves(m.id).map(k => `<span style="background:${TYPES[WMOVES[k][1]].color}">${WMOVES[k][0]}</span>`).join("")}</div>`)).join("") || "<p>אין עדיין פוקימונים</p>"}</div>
     <button class="btn primary" onclick="closeModal()">סגור</button>`, "team");
 }
 
@@ -683,7 +717,7 @@ function onState(msg) {
   if (ui.screen !== "game") { ui.screen = "game"; ui.note = ""; }
 
   // התור עבר - סוגרים חלונות שנשארו פתוחים
-  if (S.phase !== "turn" || currentPid() !== prevTurn || !isMyTurn()) ui.attackOpen = false;
+  if (S.phase !== "turn" || currentPid() !== prevTurn || !isMyTurn()) { ui.attackOpen = false; ui.attackMon = null; }
   if (S.phase !== "turn" || !isMyTurn()) ui.catchOpen = false;
   const myTurnNow = (S.phase === "turn" || S.phase === "starterPick") && isMyTurn();
   if (myTurnNow && (prevPhase !== S.phase || prevTurn !== currentPid())) { Sfx.play("turn"); buzz(150); }
