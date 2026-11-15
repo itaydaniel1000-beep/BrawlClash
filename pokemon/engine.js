@@ -24,7 +24,7 @@ const luckOf = p => itemSum(p, "luck");
 /* נזק של שחקן: הנזק הרגיל, ועוד הבונוס של החרב */
 function playerDamage(p, monId, wildId, moveKey) {
   const {mult, dmg} = moveKey ? moveDamage(monId, moveKey, wildId) : damageOf(monId, wildId);
-  return {mult, dmg: Math.round(dmg * (1 + (p ? itemSum(p, "dmg") : 0)))};
+  return {mult, dmg: Math.round(dmg * (1 + (p ? itemSum(p, "dmg") : 0)) * (p && p.boost && p.boost.atk ? 2 : 1))};
 }
 
 /* ---------- מתקפות ----------
@@ -526,7 +526,10 @@ const Engine = (() => {
       // גם הפראי תוקף עם אחת המתקפות שלו
       const wm = monMoves(S.wild.id);
       const mk = wm.length ? wm[rnd(wm.length)] : null;
-      const {mult, dmg} = mk ? moveDamage(S.wild.id, mk, m.id) : damageOf(S.wild.id, m.id);
+      const r = mk ? moveDamage(S.wild.id, mk, m.id) : damageOf(S.wild.id, m.id);
+      const mult = r.mult;
+      // 👑 פי 2 הגנה: חצי נזק
+      const dmg = p.boost && p.boost.def ? Math.ceil(r.dmg / 2) : r.dmg;
       m.hp = Math.max(0, m.hp - dmg);
       fxHits.push({pid: p.pid, id: m.id, index: p.team.indexOf(m), dmg, mult, ko: m.hp === 0, mtype: mk ? WMOVES[mk][1] : null});
       const ko = m.hp === 0 ? " - התעלף! 💫" : "";
@@ -538,6 +541,35 @@ const Engine = (() => {
     if (!anyAlive()) return showMessage(title, lines.join("\n"), "lose", MS.msg, fx);
     // הפוקימון אף פעם לא בורח: נשאר בזירה עד שתופסים אותו או שהוא מתעלף
     return showMessage(title, lines.join("\n") + `\n\n${name} נשאר בזירה. סבב חדש מתחיל.`, "roundRoll", MS.msg, fx);
+  }
+
+  /* 👑 כוחות מיוחדים - רק לשמות השמורים */
+  function adminAct(p, a) {
+    if (S.phase === "waiting" || S.phase === "end") return;
+    if (a.op === "atk" || a.op === "def") {
+      p.boost = {...(p.boost || {}), [a.op]: !(p.boost || {})[a.op]};
+      log(`👑 ${p.name}: פי 2 ${a.op === "atk" ? "התקפה" : "הגנה"} ${p.boost[a.op] ? "פועל" : "כבוי"}`);
+      return commit();
+    }
+    if (a.op === "take") {
+      if (S.phase !== "turn" || current() !== p || !S.wild) return;
+      const w = S.wild;
+      log(`👑 ${p.name} לקח את ${POKEMON[w.id].he}!`);
+      if (w.boss) {
+        p.team.push({id: w.id, hp: w.maxHp, maxHp: w.maxHp});
+        S.wild = null;
+        return endGame(true);
+      }
+      return caught(p);
+    }
+    if ((a.op === "create" || a.op === "give") && POKEMON[a.id]) {
+      const to = a.op === "give" ? P(a.to) : p;
+      if (!to) return;
+      to.team.push(makeMon(a.id));
+      applyShield(to);
+      log(a.op === "give" ? `👑 ${p.name} נתן ל${to.name} את ${POKEMON[a.id].he}` : `👑 ${p.name} יצר את ${POKEMON[a.id].he}`);
+      return commit();
+    }
   }
 
   function endGame(win) {
@@ -607,6 +639,9 @@ const Engine = (() => {
         break;
       case "stop":
         if (S.phase === "wheel" && mine) stopSpin(a.at);
+        break;
+      case "admin":
+        if (Admin.reserved(p.name)) adminAct(p, a);
         break;
       case "evolve":
         if (S.phase === "upgradePick" && S.upgrade && S.upgrade.pid === pid && evolvable(p).includes(a.index)) evolve(p, a.index);

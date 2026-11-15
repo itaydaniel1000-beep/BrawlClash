@@ -128,7 +128,11 @@ const Net = (() => {
     const S = Engine.state();
     switch (d.t) {
       case "hello":
-        if (Engine.canJoin()) {
+        // שם שכבר יש בחדר, או שם שמור בלי הקוד - לא נכנסים
+        if (S && (S.players.some(p => p.name === d.name) || (Admin.reserved(d.name) && !d.adm))) {
+          conn.send({t: "nametaken"});
+          setTimeout(() => conn.close(), 500);
+        } else if (Engine.canJoin()) {
           conn.pid = d.pid;
           conns[d.pid] = conn;
           lastSeen[d.pid] = Date.now();
@@ -279,8 +283,9 @@ const Net = (() => {
   }
 
   async function joinRoom(code) {
-    const r = await connectTo(`room-${code}`, {t: "hello", pid: myPid, name: myName});
+    const r = await connectTo(`room-${code}`, {t: "hello", pid: myPid, name: myName, adm: Admin.unlocked()});
     if (!r) return "notfound";
+    if (r.reply.t === "nametaken") return "nametaken";
     if (r.reply.t !== "welcome") return "full";
     becomeClient(r.conn);
     return "ok";
@@ -296,7 +301,7 @@ const Net = (() => {
         Engine.lobby({roomKey: key, code: null, mode: "random", N}, {pid: myPid, name: myName});
         return;
       }
-      const r = await connectTo(key, {t: "hello", pid: myPid, name: myName});
+      const r = await connectTo(key, {t: "hello", pid: myPid, name: myName, adm: Admin.unlocked()});
       if (r && r.reply.t === "welcome") { becomeClient(r.conn); return; }
     }
     throw new Error("no slot");

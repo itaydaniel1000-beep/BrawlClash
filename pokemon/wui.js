@@ -5,7 +5,12 @@
 const $w = s => document.querySelector(s);
 const escW = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const wait = ms => new Promise(r => setTimeout(r, ms));
-const myName = (() => { try { return localStorage.getItem("pokemon-table-name") || "מאמן"; } catch (e) { return "מאמן"; } })();
+const myName = (() => {
+  let n = "מאמן";
+  try { n = localStorage.getItem("pokemon-table-name") || "מאמן"; } catch (e) {}
+  return Admin.reserved(n) && !Admin.unlocked() ? "מאמן" : n;
+})();
+const isAdmin = Admin.isMe(myName);
 
 let SV = null;                // השמירה
 let battle = null;            // הקרב הפעיל
@@ -64,7 +69,8 @@ function enterWorld() {
   Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
-  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onStatus: s => { netStatus = s; renderHud(); }});
+  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot,
+    onStatus: s => { netStatus = s; renderHud(); if (s === "nametaken") toast("כבר יש בעולם מישהו עם השם שלך", 4000); }});
   WNet.join(myName);
   setInterval(() => {
     const st = World3D.state();
@@ -86,7 +92,7 @@ function renderHud() {
     <button class="hbtn lead" onclick="openParty()"><img src="${ART_URL(POKEMON[lead.id].dex)}" alt=""><span>${POKEMON[lead.id].he} · ${lead.lvl}</span></button>
     <span class="hchip">🪙 ${SV.coins}</span>
     <button class="hbtn" onclick="Music.toggle(!Music.isOn()); renderHud()">${Music.isOn() ? "🎵" : "🔇"}</button>
-    <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)}` : "⏳"}</span>`;
+    <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)}` : netStatus === "nametaken" ? "🚫" : "⏳"}</span>`;
 }
 
 function onPlace(p) {
@@ -274,6 +280,17 @@ function battleMenu(b, mine, foe) {
   }
   if (b.menu === "waiting") return `<p class="wait">⏳ מחכים ל${escW(b.foeName || "יריב")}</p>`;
   if (b.menu === "over") return `<button class="big-go" onclick="endBattle()">המשך ▶</button>`;
+  if (b.menu === "admin") {
+    const bo = Admin.boost;
+    return `<div class="adm-menu">
+      <button class="${bo.atk ? "on" : ""}" onclick="admToggle('atk')">⚔️ פי 2 התקפה</button>
+      <button class="${bo.def ? "on" : ""}" onclick="admToggle('def')">🛡️ פי 2 הגנה</button>
+      <button onclick="admTake()">🫳 לקחת את ${POKEMON[foe.id].he}</button>
+      <button onclick="admCreate(false)">✨ ליצור פוקימון</button>
+      ${b.kind === "pvp" ? `<button onclick="admCreate(true)">🎁 לתת ל${escW(b.foeName || "יריב")}</button>` : ""}
+    </div>
+    <button class="back-btn" onclick="battle.menu='main'; showBattle()">↩ חזרה</button>`;
+  }
   if (b.menu === "fight") {
     return `<div class="move-grid">${mine.moves.map((k, i) => {
       const mv = WMOVES[k];
@@ -290,7 +307,7 @@ function battleMenu(b, mine, foe) {
     <button class="mm ball" ${wild ? `onclick="throwBall()"` : "disabled"}><span class="mini-ball"></span>כדור</button>
     <button class="mm team" onclick="battle.menu='switch'; showBattle()"><span>🔄</span>פוקימונים</button>
     <button class="mm run" onclick="runAway()"><span>${wild ? "🏃" : "🏳️"}</span>${wild ? "ברח" : "כניעה"}</button>
-  </div>`;
+  </div>${isAdmin ? `<button class="back-btn adm-crown" onclick="battle.menu='admin'; showBattle()">👑 כוחות</button>` : ""}`;
 }
 
 async function say(lines, ms = 900) {
@@ -304,6 +321,9 @@ async function say(lines, ms = 900) {
 /* תקיפה אחת, עם ההודעה והאפקט */
 async function strike(att, def, moveKey, attIsMe) {
   const r = wDamage(att, def, moveKey);
+  // 👑 פי 2 התקפה / פי 2 הגנה
+  if (isAdmin && attIsMe && Admin.boost.atk) r.dmg *= 2;
+  if (isAdmin && !attIsMe && Admin.boost.def) r.dmg = Math.ceil(r.dmg / 2);
   def.hp = Math.max(0, def.hp - r.dmg);
   if (r.hit && r.dmg) { if (attIsMe) battle.foeHit = true; else battle.meHit = true; }
   Sfx.play(!r.hit ? "miss" : r.mult > 1 ? "superhit" : attIsMe ? "hit" : "hurt");
@@ -361,14 +381,14 @@ async function doSwitch(i) {
   await foeTurn();
 }
 
-async function throwBall() {
+async function throwBall(force) {
   const b = battle;
   if (b.busy) return;
   b.busy = true;
   Sfx.play("throw");
   b.ballAnim = "fly";
   await say("זורקים כדור!", 700);
-  const ok = Math.random() < wCatchChance(b.foe);
+  const ok = force === true || Math.random() < wCatchChance(b.foe);
   b.caught = true;
   b.ballAnim = "shake";
   for (let k = 0; k < 3; k++) { Sfx.play("wobble"); await say(".".repeat(k + 1), 550); if (!ok && k === 1 && Math.random() < .5) break; }
@@ -585,6 +605,7 @@ function onPvp(st) {
   b.myMon = mineS.party[mineS.active];
   b.foeMon = foeS.party[foeS.active];
   b.foeName = foeS.name;
+  if (isAdmin && !b.boostSent) { b.boostSent = true; WNet.admin(b.bid, {op: "boost", boost: Admin.boost}); }
   if (st.fx) st.fx.forEach(f => { if (f.hit && f.dmg) { if (f.by === WNet.myPid) b.foeHit = true; else b.meHit = true; } });
   if (st.fx && st.fx.length) Sfx.play(st.fx.some(f => f.mult > 1) ? "superhit" : "hit");
   b.log = st.log && st.log.length ? st.log : [`קרב נגד ${foeS.name}!`];
@@ -615,6 +636,66 @@ useMove = async function (i) {
   if (battle && battle.kind === "pvp") { battle.menu = "waiting"; showBattle(); WNet.act(battle.bid, {kind: "move", i}); return; }
   return _useMove(i);
 };
+
+/* ---------- 👑 כוחות מיוחדים ---------- */
+
+function admToggle(k) {
+  Admin.boost[k] = !Admin.boost[k];
+  if (battle && battle.kind === "pvp") WNet.admin(battle.bid, {op: "boost", boost: Admin.boost});
+  showBattle();
+}
+
+async function admTake() {
+  const b = battle;
+  if (!b || b.busy) return;
+  if (b.kind === "pvp") { b.menu = "main"; WNet.admin(b.bid, {op: "take"}); showBattle(); return; }
+  b.menu = "main";
+  return throwBall(true);
+}
+
+const topLvl = () => Math.max(5, ...SV.party.map(m => m.lvl));
+
+async function admCreate(give) {
+  const b = battle;
+  if (!b || b.busy) return;
+  const id = await Admin.pick(give ? `🎁 לתת ל${b.foeName || "יריב"}` : "✨ ליצור פוקימון");
+  if (!id || battle !== b) return;
+  b.menu = "main";
+  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl: topLvl()}); showBattle(); return; }
+  addMon(makeWorldMon(id, topLvl()));
+  await say(`✨ יצרת את ${POKEMON[id].he}!`, 1000);
+  b.busy = false;
+  showBattle();
+}
+
+function addMon(mon) {
+  const where = SV.party.length < W_MAX_PARTY ? "party" : "box";
+  SV[where].push(mon);
+  Profile.markCaught(mon.id);
+  WSave.save();
+  return where;
+}
+
+// היריב לקח לי פוקימון - הוא יוצא מהשמירה לתמיד
+function onLost(uid) {
+  for (const k of ["party", "box"]) {
+    const i = SV[k].findIndex(m => m.uid === uid);
+    if (i >= 0) { toast(`👑 ${POKEMON[SV[k][i].id].he} נלקח ממך!`); SV[k].splice(i, 1); break; }
+  }
+  if (!SV.party.length) SV.party.push(SV.box.length ? SV.box.shift() : makeWorldMon("pikachu", 5));
+  WSave.save();
+  renderHud();
+}
+
+// קיבלתי פוקימון (לקחתי, יצרתי, או שנתנו לי)
+function onGot(m) {
+  if (!m || !POKEMON[m.id]) return;
+  const mon = makeWorldMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
+  if (m.moves && m.moves.length) mon.moves = m.moves.filter(k => WMOVES[k]).slice(0, 4);
+  addMon(mon);
+  toast(`🎁 ${POKEMON[m.id].he} הצטרף אליך!`);
+  renderHud();
+}
 
 /* ---------- הפעלה ---------- */
 

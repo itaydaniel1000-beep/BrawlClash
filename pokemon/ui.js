@@ -424,6 +424,9 @@ function gamePanel() {
         <button class="btn" onclick="leaveGame()">יציאה ללובי</button>`;
       break;
   }
+  if (Admin.isMe(ui.name) && my && S.phase !== "waiting" && S.phase !== "end") {
+    html += `<button class="btn adm-crown adm-open" onclick="openAdmin()">👑 כוחות</button>`;
+  }
   if (S.log && S.log.length && S.phase !== "waiting") {
     html += `<details class="log"><summary>מה קרה עד עכשיו</summary><ul>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ul></details>`;
   }
@@ -683,6 +686,33 @@ function showTeam(pid) {
     <button class="btn primary" onclick="closeModal()">סגור</button>`, "team");
 }
 
+/* ---------- 👑 כוחות מיוחדים ---------- */
+function openAdmin() {
+  const my = me();
+  if (!my || !S) return;
+  const b = my.boost || {};
+  const canTake = S.phase === "turn" && isMyTurn() && S.wild;
+  const others = S.players.filter(p => p.pid !== Net.myPid);
+  modal(`<h2>👑 כוחות</h2>
+    <div class="adm-menu">
+      <button class="${b.atk ? "on" : ""}" onclick="adminAct('atk')">⚔️ פי 2 התקפה</button>
+      <button class="${b.def ? "on" : ""}" onclick="adminAct('def')">🛡️ פי 2 הגנה</button>
+      <button ${canTake ? "" : "disabled"} onclick="adminAct('take')">🫳 לקחת את ${S.wild ? POKEMON[S.wild.id].he : "הפוקימון"}</button>
+      <button onclick="adminCreate()">✨ ליצור פוקימון</button>
+      ${others.map(p => `<button onclick="adminCreate('${p.pid}')">🎁 לתת ל${esc(p.name)}</button>`).join("")}
+    </div>
+    <div class="row"><button class="btn" onclick="closeModal()">סגור</button></div>`, "admin");
+}
+function adminAct(op) {
+  Net.act({t: "admin", op});
+  closeModal();
+}
+async function adminCreate(to) {
+  closeModal();
+  const id = await Admin.pick(to ? `🎁 לתת ל${playerName(to)}` : "✨ ליצור פוקימון");
+  if (id) Net.act({t: "admin", op: to ? "give" : "create", id, to});
+}
+
 function modal(html, kind) {
   ui.modalKind = kind;
   $("#modal").innerHTML = `<div class="modal-box">${html}</div>`;
@@ -747,9 +777,10 @@ function onState(msg) {
 
 function go(screen) { ui.screen = screen; ui.note = ""; render(); }
 
-function saveName() {
+async function saveName() {
   const v = ($("#nameInput").value || "").trim();
   if (!v) { ui.note = "צריך להקליד שם"; return render(); }
+  if (!(await Admin.allowName(v))) { ui.note = "השם הזה תפוס"; return render(); }
   ui.name = v;
   Net.setName(v);
   try { localStorage.setItem(NAME_KEY, v); } catch (e) {}
@@ -795,7 +826,7 @@ function startJoin() {
     if (r === "ok") return;
     Net.leave(true);
     ui.screen = "joinCode";
-    ui.note = r === "full" ? "החדר מלא, או שהמשחק בו כבר התחיל." : `לא נמצא חדר עם הקוד ${code}.`;
+    ui.note = r === "full" ? "החדר מלא, או שהמשחק בו כבר התחיל." : r === "nametaken" ? "כבר יש בחדר מישהו עם השם שלך" : `לא נמצא חדר עם הקוד ${code}.`;
     render();
   });
 }
@@ -856,5 +887,6 @@ document.addEventListener("keydown", e => {
 });
 
 try { ui.name = localStorage.getItem(NAME_KEY) || ""; } catch (e) {}
+if (Admin.reserved(ui.name) && !Admin.unlocked()) ui.name = "";
 Net.setName(ui.name);
 render();

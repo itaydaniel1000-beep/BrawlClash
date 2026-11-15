@@ -9,7 +9,8 @@
    אם המארח יוצא, כולם מתחברים מחדש ומישהו אחר תופס את הכתובת. */
 
 const WNet = (() => {
-  const NS = "pokemon-world-itay-v1-";
+  // ?w=שם פותח עולם נפרד (לבדיקות או לחברים בלבד)
+  const NS = "pokemon-world-itay-v1-" + ((new URLSearchParams(location.search).get("w") || "").replace(/[^a-z0-9]/gi, "").slice(0, 16) + (new URLSearchParams(location.search).get("w") ? "-" : ""));
   const MAX = 12;
   const ICE = {
     iceServers: [
@@ -29,7 +30,7 @@ const WNet = (() => {
   let players = {};           // אצל המארח: כל השחקנים, כולל עצמו
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
   let tick = null, stopped = true, reconnecting = false;
-  let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}};
+  let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}};
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -61,8 +62,8 @@ const WNet = (() => {
       const onErr = e => { if (e.type === "peer-unavailable" && String(e.message).includes(NS + id)) finish(null); };
       const t = setTimeout(() => finish(null), 8000);
       peer.on("error", onErr);
-      conn.on("open", () => conn.send({t: "hi", pid: myPid, name: me.name}));
-      conn.on("data", function first(d) { conn.off("data", first); finish(d.t === "welcome" ? conn : (d.t === "full" ? "full" : null)); });
+      conn.on("open", () => conn.send({t: "hi", pid: myPid, name: me.name, adm: Admin.unlocked()}));
+      conn.on("data", function first(d) { conn.off("data", first); finish(d.t === "welcome" ? conn : (d.t === "full" || d.t === "nametaken" ? d.t : null)); });
     });
   }
 
@@ -78,6 +79,7 @@ const WNet = (() => {
       if (peer) { becomeHost(peer, k); return; }
       const c = await connectTo(`world-${k}`);
       if (c === "full") continue;
+      if (c === "nametaken") { stopped = true; ui.onStatus("nametaken"); return; }
       if (c) { becomeClient(c, k); return; }
       // הכתובת תפוסה אבל אף אחד לא עונה (מארח שנעלם) - מנסים שוב רגע אחר כך
       await wait(1500);
@@ -156,6 +158,8 @@ const WNet = (() => {
   function hostData(conn, d) {
     if (d.t === "hi") {
       if (Object.keys(players).length >= MAX) { conn.send({t: "full"}); return; }
+      // שם שכבר יש בעולם, או שם שמור בלי הקוד
+      if (Object.values(players).some(p => p.pid !== d.pid && p.name === d.name) || (Admin.reserved(d.name) && !d.adm)) { conn.send({t: "nametaken"}); return; }
       conn.pid = d.pid;
       conns[d.pid] = conn;
       players[d.pid] = {pid: d.pid, name: d.name, x: 0, z: 6, r: 0, mv: 0, lead: null, busy: false};
@@ -188,6 +192,9 @@ const WNet = (() => {
       case "bquit":
         battleQuit(pid, d.bid);
         break;
+      case "badm":
+        battleAdmin(pid, d);
+        break;
     }
   }
 
@@ -197,6 +204,8 @@ const WNet = (() => {
       case "chal": ui.onChallenge(d.from, d.name); break;
       case "ans": ui.onAnswer(d.from, d.ok, d.busy); break;
       case "bstate": ui.onBattle(d.st); break;
+      case "lost": ui.onLost(d.uid); break;
+      case "got": ui.onGot(d.mon); break;
     }
   }
 
@@ -280,6 +289,9 @@ const WNet = (() => {
       const am = att.party[att.active], dm = def.party[def.active];
       if (am.hp <= 0 || dm.hp <= 0) continue;
       const r = wDamage(am, dm, mv);
+      // 👑 פי 2 התקפה / פי 2 הגנה
+      if (att.boost && att.boost.atk) r.dmg *= 2;
+      if (def.boost && def.boost.def) r.dmg = Math.ceil(r.dmg / 2);
       dm.hp = Math.max(0, dm.hp - r.dmg);
       fx.push({by: att.pid, move: mv, dmg: r.dmg, hit: r.hit, mult: r.mult});
       log.push(`${POKEMON[am.id].he} של ${att.name} משתמש ב${WMOVES[mv][0]}` + (r.hit ? ` - ${r.dmg}${r.mult > 1 ? " (יעיל מאוד!)" : r.mult < 1 ? " (לא יעיל)" : ""}` : " - פספס!"));
@@ -295,6 +307,39 @@ const WNet = (() => {
     b.turn++;
     b.log = log;
     pushBattle(b, fx);
+  }
+
+  /* 👑 כוחות בקרב נגד שחקן - רק לשמות השמורים */
+  function battleAdmin(pid, d) {
+    const b = battles[d.bid];
+    const s = b && sideOf(b, pid);
+    if (!s || b.over || !s.party || !Admin.reserved(s.name)) return;
+    const f = s === b.a ? b.b : b.a;
+    if (d.op === "boost") { s.boost = {atk: !!(d.boost || {}).atk, def: !!(d.boost || {}).def}; return; }
+    const fresh = (id, lvl, moves) => { const m = makeWorldMon(id, Math.max(1, Math.min(100, lvl | 0))); if (moves && moves.length) m.moves = moves.slice(0, 4); return m; };
+    if (d.op === "take" && f.party) {
+      const m = f.party.splice(f.active, 1)[0];
+      if (!m) return;
+      const mine = fresh(m.id, m.lvl, m.moves);
+      s.party.push(mine);
+      toPid(f.pid, {t: "lost", uid: m.uid});
+      toPid(pid, {t: "got", mon: {id: m.id, lvl: m.lvl, moves: m.moves}});
+      b.log = [`👑 ${s.name} לקח את ${POKEMON[m.id].he} של ${f.name}!`];
+      f.act = null;
+      const next = firstAlive(f.party);
+      if (next < 0) { b.over = s.pid; b.log.push(`${s.name} ניצח!`); }
+      else { f.active = next; f.need = false; }
+      return pushBattle(b);
+    }
+    if ((d.op === "create" || d.op === "give") && POKEMON[d.id]) {
+      const to = d.op === "give" ? f : s;
+      if (!to.party) return;
+      const m = fresh(d.id, d.lvl);
+      to.party.push(m);
+      toPid(to.pid, {t: "got", mon: {id: m.id, lvl: m.lvl, moves: m.moves}});
+      b.log = [d.op === "give" ? `👑 ${s.name} נתן ל${f.name} את ${POKEMON[d.id].he}` : `👑 ${s.name} יצר את ${POKEMON[d.id].he}`];
+      return pushBattle(b);
+    }
   }
 
   function battleQuit(pid, bid) {
@@ -343,6 +388,7 @@ const WNet = (() => {
     sendParty: (bid, party) => send({t: "party", bid, party}),
     act: (bid, act) => send({t: "bact", bid, act}),
     quit: bid => send({t: "bquit", bid}),
+    admin: (bid, d) => send({t: "badm", bid, ...d}),
     world: () => worldNo,
     role: () => role
   };
