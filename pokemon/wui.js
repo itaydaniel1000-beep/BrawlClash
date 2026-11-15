@@ -69,7 +69,7 @@ function enterWorld() {
   Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
-  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave,
+  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave, onGotCoins, onGaveCoins,
     onStatus: s => { netStatus = s; renderHud(); if (s === "nametaken") toast("כבר יש בעולם מישהו עם השם שלך", 4000); }});
   WNet.join(myName);
   setInterval(() => {
@@ -707,6 +707,8 @@ function openGifts() {
     <div class="adm-menu">
       <button onclick="giftTo(null)">✨ ליצור לעצמי</button>
       ${others.map(p => `<button onclick="giftTo('${p.pid}')">🎁 להביא ל${escW(p.name)}</button>`).join("")}
+      <button onclick="coinsTo(null)">🪙 כסף לעצמי</button>
+      ${others.map(p => `<button onclick="coinsTo('${p.pid}')">🪙 כסף ל${escW(p.name)}</button>`).join("")}
     </div>
     <div class="row2"><button class="wbtn" onclick="closeModal()">סגור</button></div>`);
 }
@@ -720,6 +722,32 @@ async function giftTo(pid) {
   if (!pid) { const where = addMon(makeWorldMon(id, lvl)); renderHud(); return toast(`✨ ${POKEMON[id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`); }
   WNet.gift(pid, id, lvl);
 }
+
+/* 🪙 כמה כסף לתת */
+function coinsTo(pid) {
+  const name = pid ? (worldPlayers[pid] || {}).name || "" : "";
+  modal(`<h2>🪙 ${pid ? `כסף ל${escW(name)}` : "כסף לעצמי"}</h2>
+    <div class="adm-lvl"><button onclick="coinStep(-100)">−100</button><button onclick="coinStep(-10)">−10</button>
+      <input id="coinAmt" type="number" min="1" max="1000000" value="100"><button onclick="coinStep(10)">+10</button><button onclick="coinStep(100)">+100</button></div>
+    <div class="adm-menu" style="margin-top:10px">${[50, 500, 1000, 10000].map(n => `<button onclick="document.getElementById('coinAmt').value=${n}">${n}</button>`).join("")}</div>
+    <div class="row2"><button class="wbtn" onclick="closeModal()">ביטול</button>
+    <button class="wbtn primary" onclick="sendCoins(${pid ? `'${pid}'` : "null"})">🪙 שלח</button></div>`);
+}
+function coinStep(d) { const el = document.getElementById("coinAmt"); el.value = Math.max(1, Math.min(1000000, (Number(el.value) || 0) + d)); }
+function sendCoins(pid) {
+  const n = Math.max(1, Math.min(1000000, Math.round(Number(document.getElementById("coinAmt").value) || 0)));
+  closeModal();
+  if (!pid) { SV.coins += n; WSave.save(); renderHud(); return toast(`🪙 +${n}`); }
+  WNet.coins(pid, n);
+}
+function onGotCoins(n, from) {
+  SV.coins += n;
+  WSave.save();
+  renderHud();
+  Sfx.play("caught");
+  toast(`🪙 ${from} הביא לך ${n} מטבעות!`, 3500);
+}
+function onGaveCoins(n, to) { toast(`🪙 ${n} מטבעות נשלחו ל${to}!`); }
 
 function onGave(to, id, lvl) { toast(`🎁 ${POKEMON[id].he}${lvl ? ` (רמה ${lvl})` : ""} נשלח ל${to}!`); }
 
