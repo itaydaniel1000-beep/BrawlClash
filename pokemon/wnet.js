@@ -30,7 +30,7 @@ const WNet = (() => {
   let players = {};           // אצל המארח: כל השחקנים, כולל עצמו
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
   let tick = null, stopped = true, reconnecting = false;
-  let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}};
+  let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}};
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -195,6 +195,15 @@ const WNet = (() => {
       case "badm":
         battleAdmin(pid, d);
         break;
+      case "gift": {
+        // 👑 מתנה מחוץ לקרב - רק מהשמות השמורים
+        const from = players[pid];
+        if (!from || !Admin.reserved(from.name) || !players[d.to] || !POKEMON[d.id]) break;
+        const m = makeWorldMon(d.id, Math.max(1, Math.min(100, d.lvl | 0)));
+        toPid(d.to, {t: "got", mon: {id: m.id, lvl: m.lvl, moves: m.moves}, from: from.name});
+        toPid(pid, {t: "gave", to: players[d.to].name, id: d.id});
+        break;
+      }
     }
   }
 
@@ -205,7 +214,8 @@ const WNet = (() => {
       case "ans": ui.onAnswer(d.from, d.ok, d.busy); break;
       case "bstate": ui.onBattle(d.st); break;
       case "lost": ui.onLost(d.uid); break;
-      case "got": ui.onGot(d.mon); break;
+      case "got": ui.onGot(d.mon, d.from); break;
+      case "gave": ui.onGave(d.to, d.id); break;
     }
   }
 
@@ -389,6 +399,7 @@ const WNet = (() => {
     act: (bid, act) => send({t: "bact", bid, act}),
     quit: bid => send({t: "bquit", bid}),
     admin: (bid, d) => send({t: "badm", bid, ...d}),
+    gift: (to, id, lvl) => send({t: "gift", to, id, lvl}),
     world: () => worldNo,
     role: () => role
   };

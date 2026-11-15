@@ -69,7 +69,7 @@ function enterWorld() {
   Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
-  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot,
+  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave,
     onStatus: s => { netStatus = s; renderHud(); if (s === "nametaken") toast("כבר יש בעולם מישהו עם השם שלך", 4000); }});
   WNet.join(myName);
   setInterval(() => {
@@ -91,6 +91,7 @@ function renderHud() {
     <a class="hbtn" href="index.html">↩</a>
     <button class="hbtn lead" onclick="openParty()"><img src="${ART_URL(POKEMON[lead.id].dex)}" alt=""><span>${POKEMON[lead.id].he} · ${lead.lvl}</span></button>
     <span class="hchip">🪙 ${SV.coins}</span>
+    ${isAdmin ? `<button class="hbtn adm-crown" onclick="openGifts()">👑</button>` : ""}
     <button class="hbtn" onclick="Music.toggle(!Music.isOn()); renderHud()">${Music.isOn() ? "🎵" : "🔇"}</button>
     <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)}` : netStatus === "nametaken" ? "🚫" : "⏳"}</span>`;
 }
@@ -688,14 +689,37 @@ function onLost(uid) {
 }
 
 // קיבלתי פוקימון (לקחתי, יצרתי, או שנתנו לי)
-function onGot(m) {
+function onGot(m, from) {
   if (!m || !POKEMON[m.id]) return;
   const mon = makeWorldMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
   if (m.moves && m.moves.length) mon.moves = m.moves.filter(k => WMOVES[k]).slice(0, 4);
   addMon(mon);
-  toast(`🎁 ${POKEMON[m.id].he} הצטרף אליך!`);
+  toast(from ? `🎁 ${from} הביא לך את ${POKEMON[m.id].he}!` : `🎁 ${POKEMON[m.id].he} הצטרף אליך!`, 3500);
   renderHud();
 }
+
+/* 👑 מחוץ לקרב: ליצור פוקימון לעצמי או להביא לשחקן אחר שבעולם */
+function openGifts() {
+  if (battle) return;
+  const others = Object.values(worldPlayers).filter(p => p.pid !== WNet.myPid);
+  modal(`<h2>👑 כוחות</h2>
+    <div class="adm-menu">
+      <button onclick="giftTo(null)">✨ ליצור לעצמי</button>
+      ${others.map(p => `<button onclick="giftTo('${p.pid}')">🎁 להביא ל${escW(p.name)}</button>`).join("")}
+    </div>
+    <div class="row2"><button class="wbtn" onclick="closeModal()">סגור</button></div>`);
+}
+
+async function giftTo(pid) {
+  closeModal();
+  const name = pid ? (worldPlayers[pid] || {}).name : null;
+  const id = await Admin.pick(pid ? `🎁 להביא ל${name || ""}` : "✨ ליצור לעצמי");
+  if (!id) return;
+  if (!pid) { const where = addMon(makeWorldMon(id, topLvl())); renderHud(); return toast(`✨ ${POKEMON[id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`); }
+  WNet.gift(pid, id, topLvl());
+}
+
+function onGave(to, id) { toast(`🎁 ${POKEMON[id].he} נשלח ל${to}!`); }
 
 /* ---------- הפעלה ---------- */
 
