@@ -659,11 +659,12 @@ const topLvl = () => Math.max(5, ...SV.party.map(m => m.lvl));
 async function admCreate(give) {
   const b = battle;
   if (!b || b.busy) return;
-  const id = await Admin.pick(give ? `🎁 לתת ל${b.foeName || "יריב"}` : "✨ ליצור פוקימון");
-  if (!id || battle !== b) return;
+  const got = await Admin.pick(give ? `🎁 לתת ל${b.foeName || "יריב"}` : "✨ ליצור פוקימון", topLvl());
+  if (!got || battle !== b) return;
+  const {id, lvl} = got;
   b.menu = "main";
-  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl: topLvl()}); showBattle(); return; }
-  addMon(makeWorldMon(id, topLvl()));
+  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl}); showBattle(); return; }
+  addMon(makeWorldMon(id, lvl));
   await say(`✨ יצרת את ${POKEMON[id].he}!`, 1000);
   b.busy = false;
   showBattle();
@@ -694,7 +695,7 @@ function onGot(m, from) {
   const mon = makeWorldMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
   if (m.moves && m.moves.length) mon.moves = m.moves.filter(k => WMOVES[k]).slice(0, 4);
   addMon(mon);
-  toast(from ? `🎁 ${from} הביא לך את ${POKEMON[m.id].he}!` : `🎁 ${POKEMON[m.id].he} הצטרף אליך!`, 3500);
+  toast(from ? `🎁 ${from} הביא לך את ${POKEMON[m.id].he} ברמה ${mon.lvl}!` : `🎁 ${POKEMON[m.id].he} הצטרף אליך!`, 3500);
   renderHud();
 }
 
@@ -713,13 +714,14 @@ function openGifts() {
 async function giftTo(pid) {
   closeModal();
   const name = pid ? (worldPlayers[pid] || {}).name : null;
-  const id = await Admin.pick(pid ? `🎁 להביא ל${name || ""}` : "✨ ליצור לעצמי");
-  if (!id) return;
-  if (!pid) { const where = addMon(makeWorldMon(id, topLvl())); renderHud(); return toast(`✨ ${POKEMON[id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`); }
-  WNet.gift(pid, id, topLvl());
+  const got = await Admin.pick(pid ? `🎁 להביא ל${name || ""}` : "✨ ליצור לעצמי", topLvl());
+  if (!got) return;
+  const {id, lvl} = got;
+  if (!pid) { const where = addMon(makeWorldMon(id, lvl)); renderHud(); return toast(`✨ ${POKEMON[id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`); }
+  WNet.gift(pid, id, lvl);
 }
 
-function onGave(to, id) { toast(`🎁 ${POKEMON[id].he} נשלח ל${to}!`); }
+function onGave(to, id, lvl) { toast(`🎁 ${POKEMON[id].he}${lvl ? ` (רמה ${lvl})` : ""} נשלח ל${to}!`); }
 
 /* ---------- הפעלה ---------- */
 

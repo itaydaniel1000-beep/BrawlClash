@@ -201,7 +201,7 @@ const WNet = (() => {
         if (!from || !Admin.reserved(from.name) || !players[d.to] || !POKEMON[d.id]) break;
         const m = makeWorldMon(d.id, Math.max(1, Math.min(100, d.lvl | 0)));
         toPid(d.to, {t: "got", mon: {id: m.id, lvl: m.lvl, moves: m.moves}, from: from.name});
-        toPid(pid, {t: "gave", to: players[d.to].name, id: d.id});
+        toPid(pid, {t: "gave", to: players[d.to].name, id: d.id, lvl: m.lvl});
         break;
       }
     }
@@ -215,7 +215,7 @@ const WNet = (() => {
       case "bstate": ui.onBattle(d.st); break;
       case "lost": ui.onLost(d.uid); break;
       case "got": ui.onGot(d.mon, d.from); break;
-      case "gave": ui.onGave(d.to, d.id); break;
+      case "gave": ui.onGave(d.to, d.id, d.lvl); break;
     }
   }
 

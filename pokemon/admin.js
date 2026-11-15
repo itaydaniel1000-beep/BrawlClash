@@ -30,7 +30,8 @@ const Admin = (() => {
   const boost = {atk: false, def: false};
 
   /* ---- בוחר פוקימון מהפוקידקס ---- */
-  function pick(title) {
+  // lvl: אם נותנים רמה התחלתית - יש גם בחירת רמה, ומחזירים {id, lvl}
+  function pick(title, lvl) {
     return new Promise(resolve => {
       let el = document.getElementById("admPick");
       if (!el) { el = document.createElement("div"); el.id = "admPick"; document.body.appendChild(el); }
@@ -38,6 +39,8 @@ const Admin = (() => {
       el.className = "adm-pick";
       el.innerHTML = `<div class="adm-box">
         <div class="adm-head"><b>${title}</b><button class="adm-x">✕</button></div>
+        ${lvl ? `<div class="adm-lvl"><span>רמה</span><button data-d="-10">−10</button><button data-d="-1">−</button>
+          <input type="number" min="1" max="100" value="${lvl}"><button data-d="1">+</button><button data-d="10">+10</button></div>` : ""}
         <input class="adm-search" placeholder="🔍" autocomplete="off">
         <div class="adm-grid"></div></div>`;
       const grid = el.querySelector(".adm-grid"), input = el.querySelector(".adm-search");
@@ -46,7 +49,13 @@ const Admin = (() => {
         const list = ids.filter(id => !q || POKEMON[id].he.includes(q) || id.includes(q) || String(POKEMON[id].dex) === q).slice(0, 90);
         grid.innerHTML = list.map(id => `<button data-id="${id}"><img loading="lazy" src="${ART_URL(POKEMON[id].dex)}" alt=""><span>${POKEMON[id].he}</span><small>#${POKEMON[id].dex}</small></button>`).join("");
       };
-      const close = v => { el.remove(); resolve(v); };
+      const lv = el.querySelector(".adm-lvl input");
+      const level = () => Math.max(1, Math.min(100, Math.round(Number(lv.value) || 1)));
+      if (lv) {
+        el.querySelectorAll(".adm-lvl button").forEach(b => { b.onclick = () => { lv.value = Math.max(1, Math.min(100, level() + Number(b.dataset.d))); }; });
+        lv.onchange = () => { lv.value = level(); };
+      }
+      const close = v => { el.remove(); resolve(v && lv ? {id: v, lvl: level()} : v); };
       input.oninput = draw;
       el.querySelector(".adm-x").onclick = () => close(null);
       grid.onclick = e => { const b = e.target.closest("button[data-id]"); if (b) close(b.dataset.id); };
@@ -62,6 +71,9 @@ const Admin = (() => {
     .adm-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#3b4cca;color:#fff;font-size:18px}
     .adm-x{background:none;border:0;color:#fff;font-size:20px;cursor:pointer}
     .adm-search{margin:10px;padding:10px;font-size:17px;border:2px solid #ccc;border-radius:10px}
+    .adm-lvl{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 10px 0;font-weight:800;font-size:17px}
+    .adm-lvl button{min-width:44px;padding:8px 6px;border-radius:10px;border:2px solid #3b4cca;background:#eef0ff;color:#3b4cca;font-weight:800;font-size:16px;cursor:pointer;font-family:inherit}
+    .adm-lvl input{width:70px;padding:8px;font-size:20px;font-weight:800;text-align:center;border:2px solid #ffcb05;border-radius:10px}
     .adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;padding:0 10px 10px;overflow:auto}
     .adm-grid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border:2px solid #ddd;border-radius:10px;background:#f7f7f7;cursor:pointer;font-family:inherit}
     .adm-grid button:hover{border-color:#ffcb05;background:#fffbe6}
