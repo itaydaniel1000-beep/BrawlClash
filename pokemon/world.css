@@ -196,7 +196,10 @@ button { font: inherit; }
 .hbtn { background: linear-gradient(180deg, #ffffff, #e8eff4); color: #26303d; border: 3px solid #4a8fe0; box-shadow: 0 3px 0 #2d64a8; }
 .hchip { background: linear-gradient(180deg, #ffffff, #e8eff4); color: #26303d; border: 3px solid #4a8fe0; box-shadow: 0 3px 0 #2d64a8; padding: 6px 10px; }
 .wtag.player { background: #fff; color: #26303d; border: 3px solid #4a8fe0; }
-.wtag.lvl { background: rgba(255,255,255,.92); border: 2px solid #9fb0bd; }
+.wtag.lvl { background: rgba(255,255,255,.92); border: 2px solid #9fb0bd; text-align: center; line-height: 1.15; }
+.wtag.lvl .tag-hp { width: 54px; height: 6px; margin: 2px auto 1px; background: #4a5560; border-radius: 4px; overflow: hidden; border: 1px solid #26303d; }
+.wtag.lvl .tag-hp i { display: block; height: 100%; width: 100%; background: linear-gradient(#7ef08a, #2fbf4a); }
+.wtag.lvl small { display: block; font-size: 10px; direction: ltr; color: #3a4652; }
 .act-btn { border-radius: 30px; }
 
 /* ===== חלונות העולם: לבן-כחול, כמו מסך הקרב ===== */

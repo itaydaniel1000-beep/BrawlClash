@@ -581,7 +581,14 @@ function positionTags() {
   };
   for (const [, o] of others) place(o.tag, o.node.position, 2.1);
   for (const w of wilds) {
-    if (!w.tag) { w.tag = document.createElement("div"); w.tag.className = "wtag lvl"; w.tag.textContent = `רמה ${w.lvl}`; tagLayer.appendChild(w.tag); }
+    if (!w.tag) {
+      // רמה + מד חיים מעל כל פוקימון פראי
+      const max = typeof wMaxHp === "function" ? wMaxHp({id: w.id, lvl: w.lvl}) : 0;
+      w.tag = document.createElement("div");
+      w.tag.className = "wtag lvl";
+      w.tag.innerHTML = `<span>רמה ${w.lvl}</span>${max ? `<div class="tag-hp"><i></i></div><small>${max}/${max}</small>` : ""}`;
+      tagLayer.appendChild(w.tag);
+    }
     place(w.tag, w.g.position, w.size + .3);
   }
   tagLayer.querySelectorAll(".wtag.lvl").forEach(el => { if (!wilds.some(w => w.tag === el)) el.remove(); });

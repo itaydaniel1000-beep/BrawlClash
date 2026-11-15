@@ -264,7 +264,7 @@ function infoBox(m, from, to, mine) {
   return `<div class="infobox ${mine ? "me" : "foe"}">
     <div class="ib-top"><b>${d.he}</b><span class="ib-types">${d.types.map(t => `<i style="background:${TYPES[t].color}">${TYPES[t].icon}</i>`).join("")}</span><span class="ib-lv">רמה ${m.lvl}</span></div>
     <div class="ib-hp"><span class="hplabel">HP</span><div class="hpbar"><i class="${hpClass(from)}" style="width:${from}%" data-to="${to}"></i></div></div>
-    ${mine ? `<div class="ib-num">${Math.max(0, m.hp)} / ${max}</div>` : ""}
+    <div class="ib-num">${Math.max(0, m.hp)} / ${max}</div>
     ${xpPct !== null && battle.kind === "wild" ? `<div class="ib-xp"><i style="width:${xpPct}%"></i></div>` : ""}
   </div>`;
 }
