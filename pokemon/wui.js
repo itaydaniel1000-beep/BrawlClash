@@ -96,7 +96,7 @@ function renderHud() {
     <button class="hbtn" onclick="openTrade()" title="טרייד">🤝</button>
     ${isAdmin ? `<button class="hbtn adm-crown" onclick="openGifts()">👑</button>` : ""}
     <button class="hbtn" onclick="Music.toggle(!Music.isOn()); renderHud()">${Music.isOn() ? "🎵" : "🔇"}</button>
-    <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)}` : netStatus === "nametaken" ? "🚫" : "⏳"}</span>`;
+    <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)} · שרת ${WNet.world() + 1}` : netStatus === "nametaken" ? "🚫" : "⏳"}</span>`;
   if (renderHud.last !== html) { renderHud.last = html; $w("#whud").innerHTML = html; }
 }
 
@@ -807,6 +807,7 @@ function openTrade() {
   modal(`<h2>🤝 טרייד</h2>
     <input id="tradeSearch" class="tsearch" placeholder="🔍 חיפוש לפי שם" autocomplete="off" oninput="drawTradeList()">
     <div id="tradeList" class="tlist"></div>
+    <p class="thint">${WNet.lobbyInfo()}</p>
     <button class="wbtn" onclick="closeModal()">סגור</button>`);
   drawTradeList();
 }

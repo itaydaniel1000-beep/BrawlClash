@@ -641,6 +641,10 @@ const WNet = (() => {
     tradeAns: tradeAnswer,
     tradeFar,
     dir: () => dir,
+    // מצב החיבור לכל השרתים - כדי לדעת מה לא עובד
+    lobbyInfo: () => `שרת ${worldNo + 1} · ${role === "host" ? "אתה המארח" : role === "client" ? "מחובר למארח" : "לא מחובר"}`
+      + (worldNo === 0 ? "" : ` · שרת 1: ${lobbyConn && lobbyConn.open ? "מחובר" : "לא מחובר"}`)
+      + ` · רואים ${dir.length} שחקנים בכל השרתים`,
     tradeOffer: (tid, mons, coins, total) => routeOf(tid)({t: "toffer", tid, mons, coins, total}),
     tradeReady: (tid, on) => routeOf(tid)({t: "tready", tid, on}),
     tradeOk: tid => routeOf(tid)({t: "tok", tid}),
