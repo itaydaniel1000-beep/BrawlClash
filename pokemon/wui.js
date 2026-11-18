@@ -69,7 +69,7 @@ function enterWorld() {
   Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
-  WNet.setUI({onPlayers, onSpecial, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave, onGotCoins, onGaveCoins,
+  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave, onGotCoins, onGaveCoins,
     onStatus: s => { netStatus = s; renderHud(); if (s === "nametaken") toast("כבר יש בעולם מישהו עם השם שלך", 4000); }});
   WNet.join(myName);
   setInterval(() => {
@@ -101,7 +101,7 @@ function onPlace(p) {
   const b = $w("#actBtn");
   if (!p || battle) { b.hidden = true; return; }
   b.hidden = false;
-  if (p === "center") { b.textContent = WNet.special() ? "🏥 מרכז פוקימון" : "🏥 ריפוי"; b.onclick = WNet.special() ? openCenter : heal; }
+  if (p === "center") { b.textContent = "🏥 ריפוי"; b.onclick = heal; }
   else if (p === "tutor") { b.textContent = "📖 מורה למתקפות"; b.onclick = openTutor; }
   else if (p.startsWith("player:")) {
     const pid = p.slice(7);
@@ -117,42 +117,6 @@ function heal() {
   if (!Music.jingle("heal")) Sfx.play("caught");
   toast("כל הפוקימונים שלך בריאים! ❤️");
   renderHud();
-}
-
-/* מרכז הפוקימון: ריפוי וחנות. בחנות יש את החפצים של מגה ודיינמקס */
-function openCenter() {
-  const g = SV.gear || (SV.gear = {});
-  const item = (key, flag) => {
-    const d = POKEMON[key], price = GEAR_PRICE[key];
-    return `<div class="shop-row"><img src="${ART_URL(d.dex)}" alt=""><div class="shop-txt"><b>${d.he}</b><small>${ITEMS[key].text}</small></div>
-      ${g[flag] ? `<span class="owned">✔ יש לך</span>` : `<button class="mini" ${SV.coins < price ? "disabled" : ""} onclick="buyGear('${key}', '${flag}')">🪙 ${price}</button>`}</div>`;
-  };
-  modal(`<h2>🏥 מרכז פוקימון</h2>
-    <button class="wbtn primary" onclick="closeModal(); heal()">❤️ לרפא את כל הפוקימונים</button>
-    <h3>🛒 חנות <small>יש לך 🪙 ${SV.coins}</small></h3>
-    ${item("key-stone", "mega")}${item("dynamax-band", "band")}
-    <button class="wbtn" onclick="closeModal()">סגור</button>`);
-}
-function buyGear(key, flag) {
-  const price = GEAR_PRICE[key];
-  if (SV.coins < price || (SV.gear || {})[flag]) return;
-  SV.coins -= price;
-  SV.gear[flag] = true;
-  WSave.save();
-  renderHud();
-  Sfx.play("caught");
-  toast(`קנית ${POKEMON[key].he}! ${ITEMS[key].icon}`);
-  openCenter();
-}
-
-/* אדמין הדליק או כיבה מגה ודיינמקס בעולם */
-let specialShown = null;
-function onSpecial(on) {
-  if (specialShown === on) return;
-  const first = specialShown === null;
-  specialShown = on;
-  if (!first || on) toast(on ? "💎🔴 מגה ודיינמקס פועלים בעולם! החפצים בחנות של המרכז" : "מגה ודיינמקס כובו", 3500);
-  onPlace(place);
 }
 
 function onPlayers(list) {
@@ -329,16 +293,15 @@ function battleMenu(b, mine, foe) {
     <button class="back-btn" onclick="battle.menu='main'; showBattle()">↩ חזרה</button>`;
   }
   if (b.menu === "fight") {
-    const asMax = mine.dmax || (b.arm && b.arm.kind === "dmax");
-    const armNote = b.arm ? `<p class="sp-armed">${b.arm.kind === "mega" ? "💎 עם המתקפה הוא יעשה מגה-אבולוציה" : "🔴 עם המתקפה הוא יעשה " + (GMAX_OF[mine.id] ? "ג'יגנטמקס" : "דיינמקס")}</p>` : "";
-    return armNote + `<div class="move-grid">${mine.moves.map((k, i) => {
-      const mv = asMax ? maxMove(b.arm && b.arm.kind === "dmax" && GMAX_OF[mine.id] ? GMAX_OF[mine.id] : mine.id, k) : WMOVES[k];
+    // ג'יגנטמקס: כל המתקפות הן מתקפות מקס
+    return (mine.dmax ? `<p class="sp-armed">🔴 ג'יגנטמקס: מתקפות מקס</p>` : "") + `<div class="move-grid">${mine.moves.map((k, i) => {
+      const mv = mine.dmax ? maxMove(mine.id, k) : WMOVES[k];
       const mult = typeMult(mv[1], POKEMON[foe.id].types);
       const eff = mult > 1 ? `<em class="eff up">יעיל מאוד</em>` : mult === 0 ? `<em class="eff no">אין השפעה</em>` : mult < 1 ? `<em class="eff down">לא יעיל</em>` : "";
       return `<button class="bmove" style="--c:${TYPES[mv[1]].color}" onclick="useMove(${i})">
         <span class="mv-ic">${TYPES[mv[1]].icon}</span><span class="mv-txt"><b>${mv[0]}</b><small>עוצמה ${mv[2]} · ${TYPES[mv[1]].he}</small></span>${eff}</button>`;
     }).join("")}</div>
-    <button class="back-btn" onclick="battle.arm = null; battle.menu='main'; showBattle()">↩ חזרה</button>`;
+    <button class="back-btn" onclick="battle.menu='main'; showBattle()">↩ חזרה</button>`;
   }
   const wild = b.kind === "wild";
   return `<div class="main-menu">
@@ -346,35 +309,7 @@ function battleMenu(b, mine, foe) {
     <button class="mm ball" ${wild ? `onclick="throwBall()"` : "disabled"}><span class="mini-ball"></span>כדור</button>
     <button class="mm team" onclick="battle.menu='switch'; showBattle()"><span>🔄</span>פוקימונים</button>
     <button class="mm run" onclick="runAway()"><span>${wild ? "🏃" : "🏳️"}</span>${wild ? "ברח" : "כניעה"}</button>
-  </div>${specialRow(b, mine)}${isAdmin ? `<button class="back-btn adm-crown" onclick="battle.menu='admin'; showBattle()">👑 כוחות</button>` : ""}`;
-}
-
-/* מגה ודיינמקס: רק כשאדמין הפעיל בעולם, ורק עם החפץ (קונים במרכז).
-   כל אחד פעם אחת בקרב. הלחיצה "מכינה" אותו, והוא קורה עם המתקפה הבאה */
-function spUsed(b, kind) {
-  if (b.kind === "pvp") return !!(b.mySide && b.mySide[kind === "mega" ? "megaUsed" : "dmaxUsed"]);
-  return !!b[kind === "mega" ? "megaUsed" : "dmaxUsed"];
-}
-function specialRow(b, mine) {
-  if (!WNet.special() || !mine || mine.hp <= 0) return "";
-  if (mine.dmax) return `<p class="sp-armed">🔴 ${POKEMON[mine.id].form === "gmax" ? "ג'יגנטמקס" : "דיינמקס"}: עוד ${mine.dmax} ${mine.dmax === 1 ? "תור" : "תורות"}</p>`;
-  const g = SV.gear || {};
-  const btns = [];
-  if (g.mega && !spUsed(b, "mega") && canMega(mine.id)) {
-    MEGA_OF[mine.id].forEach(f => {
-      const tag = (f.match(/-mega-([xyz])$/) || [])[1];
-      btns.push(`<button class="sp-btn mega" onclick="armSpecial('mega', '${f}')">💎 מגה${tag ? " " + tag.toUpperCase() : ""}</button>`);
-    });
-  }
-  if (g.band && !spUsed(b, "dmax") && canDmax(mine.id)) {
-    btns.push(`<button class="sp-btn dmax" onclick="armSpecial('dmax')">🔴 ${GMAX_OF[mine.id] ? "ג'יגנטמקס" : "דיינמקס"}</button>`);
-  }
-  return btns.length ? `<div class="sp-row">${btns.join("")}</div>` : "";
-}
-function armSpecial(kind, form) {
-  battle.arm = {kind, form};
-  battle.menu = "fight";
-  showBattle();
+  </div>${isAdmin ? `<button class="back-btn adm-crown" onclick="battle.menu='admin'; showBattle()">👑 כוחות</button>` : ""}`;
 }
 
 async function say(lines, ms = 900) {
@@ -405,15 +340,6 @@ async function useMove(i) {
   if (b.busy) return;
   b.busy = true;
   const mine = SV.party[b.me], foe = b.foe;
-  if (b.arm) {
-    const text = wApplySpecial(mine, b.arm);
-    if (text) {
-      b[b.arm.kind === "mega" ? "megaUsed" : "dmaxUsed"] = true;
-      Music.jingle("evolve");
-      await say(text, 1300);
-    }
-    b.arm = null;
-  }
   const myMv = mine.moves[i], fMv = foeMove(foe);
   // מול פוקימון פראי אני תמיד תוקף ראשון
   const order = [[mine, foe, myMv, true], [foe, mine, fMv, false]];
@@ -421,7 +347,7 @@ async function useMove(i) {
     if (a.hp <= 0 || d.hp <= 0) continue;
     await strike(a, d, mv, isMe);
   }
-  if (mine.dmax && mine.hp > 0) {
+  if (mine.dmax && !mine.perm && mine.hp > 0) {
     mine.dmax--;
     if (!mine.dmax) { const name = POKEMON[mine.id].he; wEndDmax(mine); await say(`${name} חזר לגודל רגיל`); }
   }
@@ -678,7 +604,7 @@ function onPvp(st) {
     World3D.pause(true);
     $w("#actBtn").hidden = true;
     battle = {kind: "pvp", bid: st.bid, log: ["מתכוננים לקרב..."], busy: true, menu: "main"};
-    WNet.sendParty(st.bid, SV.party.map(m => ({uid: m.uid, id: m.id, lvl: m.lvl, moves: m.moves})), SV.gear || {});
+    WNet.sendParty(st.bid, SV.party.map(m => ({uid: m.uid, id: m.id, lvl: m.lvl, moves: m.moves, perm: !!m.perm})));
     showBattle.pvpWaiting = true;
     return;
   }
@@ -687,7 +613,6 @@ function onPvp(st) {
   const mineS = st.sides.find(s => s.pid === WNet.myPid), foeS = st.sides.find(s => s.pid !== WNet.myPid);
   if (!mineS || !foeS || !mineS.party || !foeS.party) return;
   b.myParty = mineS.party;
-  b.mySide = mineS;
   b.myActive = mineS.active;
   b.myMon = mineS.party[mineS.active];
   b.foeMon = foeS.party[foeS.active];
@@ -720,11 +645,7 @@ function onPvp(st) {
 /* בקרב נגד שחקן הכפתורים שולחים למארח במקום לחשב כאן */
 const _useMove = useMove;
 useMove = async function (i) {
-  if (battle && battle.kind === "pvp") {
-    const sp = battle.arm || null;
-    battle.arm = null;
-    battle.menu = "waiting"; showBattle(); WNet.act(battle.bid, {kind: "move", i, sp}); return;
-  }
+  if (battle && battle.kind === "pvp") { battle.menu = "waiting"; showBattle(); WNet.act(battle.bid, {kind: "move", i}); return; }
   return _useMove(i);
 };
 
@@ -752,10 +673,14 @@ async function admCreate(give) {
   const got = await Admin.pick(give ? `🎁 לתת ל${b.foeName || "יריב"}` : "✨ ליצור פוקימון", topLvl());
   if (!got || battle !== b) return;
   const {id, lvl} = got;
+  // לפוקימון עם מגה או ג'יגנטמקס - בוחרים צורה
+  const form = await Admin.pickForm(id);
+  if (form === undefined || battle !== b) return;
   b.menu = "main";
-  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl}); showBattle(); return; }
-  addMon(makeWorldMon(id, lvl));
-  await say(`✨ יצרת את ${POKEMON[id].he}!`, 1000);
+  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl, form}); showBattle(); return; }
+  const made = makeFormMon(id, lvl, form);
+  addMon(made);
+  await say(`✨ יצרת את ${POKEMON[made.id].he}!`, 1000);
   b.busy = false;
   showBattle();
 }
@@ -763,7 +688,7 @@ async function admCreate(give) {
 function addMon(mon) {
   const where = SV.party.length < W_MAX_PARTY ? "party" : "box";
   SV[where].push(mon);
-  Profile.markCaught(mon.id);
+  Profile.markCaught(baseOf(mon.id));   // מגה / ג'יגנטמקס נספרים כפוקימון הבסיסי
   WSave.save();
   return where;
 }
@@ -782,7 +707,8 @@ function onLost(uid) {
 // קיבלתי פוקימון (לקחתי, יצרתי, או שנתנו לי)
 function onGot(m, from) {
   if (!m || !POKEMON[m.id]) return;
-  const mon = makeWorldMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
+  // makeFormMon מזהה לבד צורה של מגה / ג'יגנטמקס
+  const mon = makeFormMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
   if (m.moves && m.moves.length) mon.moves = m.moves.filter(k => WMOVES[k]).slice(0, 4);
   addMon(mon);
   toast(from ? `🎁 ${from} הביא לך את ${POKEMON[m.id].he} ברמה ${mon.lvl}!` : `🎁 ${POKEMON[m.id].he} הצטרף אליך!`, 3500);
@@ -799,7 +725,6 @@ function openGifts() {
       ${others.map(p => `<button onclick="giftTo('${p.pid}')">🎁 להביא ל${escW(p.name)}</button>`).join("")}
       <button onclick="coinsTo(null)">🪙 כסף לעצמי</button>
       ${others.map(p => `<button onclick="coinsTo('${p.pid}')">🪙 כסף ל${escW(p.name)}</button>`).join("")}
-      <button class="${WNet.special() ? "on" : ""}" onclick="WNet.setSpecial(!WNet.special()); closeModal(); toast('⏳')">💎🔴 מגה ודיינמקס: ${WNet.special() ? "פועל" : "כבוי"}</button>
     </div>
     <div class="row2"><button class="wbtn" onclick="closeModal()">סגור</button></div>`);
 }
@@ -810,8 +735,15 @@ async function giftTo(pid) {
   const got = await Admin.pick(pid ? `🎁 להביא ל${name || ""}` : "✨ ליצור לעצמי", topLvl());
   if (!got) return;
   const {id, lvl} = got;
-  if (!pid) { const where = addMon(makeWorldMon(id, lvl)); renderHud(); return toast(`✨ ${POKEMON[id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`); }
-  WNet.gift(pid, id, lvl);
+  const form = await Admin.pickForm(id);
+  if (form === undefined) return;
+  if (!pid) {
+    const made = makeFormMon(id, lvl, form);
+    const where = addMon(made);
+    renderHud();
+    return toast(`✨ ${POKEMON[made.id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`);
+  }
+  WNet.gift(pid, id, lvl, form);
 }
 
 /* 🪙 כמה כסף לתת */

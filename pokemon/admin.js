@@ -64,6 +64,33 @@ const Admin = (() => {
     });
   }
 
+  /* ---- בחירת צורה: רגיל / מגה (X, Y, Z) / ג'יגנטמקס ----
+     לפוקימון בלי צורות מחזיר null מיד. null = רגיל, מפתח = הצורה, undefined = ביטול */
+  function pickForm(id) {
+    const list = typeof formsOf === "function" ? formsOf(id) : [];
+    if (!list.length) return Promise.resolve(null);
+    return new Promise(resolve => {
+      const el = document.createElement("div");
+      el.className = "adm-pick";
+      const label = k => {
+        if (POKEMON[k].form === "gmax") return "🔴 ג'יגנטמקס";
+        const tag = (k.match(/-mega-([xyz])$/) || [])[1];
+        return "💎 מגה" + (tag ? " " + tag.toUpperCase() : "");
+      };
+      const cell = (k, text) => `<button data-k="${k}"><img src="${ART_URL(POKEMON[k].dex)}" alt=""><span>${text}</span><small>${POKEMON[k].he}</small></button>`;
+      el.innerHTML = `<div class="adm-box">
+        <div class="adm-head"><b>באיזו צורה?</b><button class="adm-x">✕</button></div>
+        <div class="adm-grid adm-forms">${cell(id, "רגיל")}${list.map(k => cell(k, label(k))).join("")}</div></div>`;
+      document.body.appendChild(el);
+      const close = v => { el.remove(); resolve(v); };
+      el.querySelector(".adm-x").onclick = () => close(undefined);
+      el.querySelector(".adm-grid").onclick = e => {
+        const b = e.target.closest("button[data-k]");
+        if (b) close(b.dataset.k === id ? null : b.dataset.k);
+      };
+    });
+  }
+
   const css = document.createElement("style");
   css.textContent = `
     .adm-pick{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px;direction:rtl}
@@ -80,6 +107,8 @@ const Admin = (() => {
     .adm-grid img{width:64px;height:64px;object-fit:contain}
     .adm-grid span{font-size:13px;font-weight:700}
     .adm-grid small{font-size:11px;color:#888}
+    .adm-forms{padding-top:10px;grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+    .adm-forms img{width:96px;height:96px}
     .adm-menu{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .adm-menu button{padding:12px 6px;border-radius:12px;border:3px solid #b8860b;background:linear-gradient(#fff7cc,#ffd84a);color:#3a2a00;font-weight:800;font-size:16px;cursor:pointer;font-family:inherit}
     .adm-menu button.on{background:linear-gradient(#b6ffb0,#3ccf4e);border-color:#1d7a28;color:#063b0c}
@@ -87,5 +116,5 @@ const Admin = (() => {
     .adm-crown{background:linear-gradient(#fff7cc,#ffd84a)!important;border-color:#b8860b!important;color:#3a2a00!important}`;
   document.head.appendChild(css);
 
-  return {reserved, unlocked, unlock, allowName, isMe: n => reserved(n) && unlocked(), boost, pick};
+  return {reserved, unlocked, unlock, allowName, isMe: n => reserved(n) && unlocked(), boost, pick, pickForm};
 })();

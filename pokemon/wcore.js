@@ -35,12 +35,12 @@ const xpToNext = lvl => 12 + Math.round(lvl * lvl * 1.1);
 
 /* מה שהפוקימון יודע עד הרמה הזאת (לפי הסדר שבו לומדים) */
 function learnable(id, lvl) {
-  return (WLEARN[POKEMON[id].dex] || []).filter(([l]) => l <= lvl).map(([, m]) => m);
+  return (WLEARN[POKEMON[baseOf(id)].dex] || []).filter(([l]) => l <= lvl).map(([, m]) => m);
 }
 
 /* מתקפות שלומדים בדיוק ברמה הזאת */
 function learnedAt(id, lvl) {
-  return (WLEARN[POKEMON[id].dex] || []).filter(([l]) => l === lvl).map(([, m]) => m);
+  return (WLEARN[POKEMON[baseOf(id)].dex] || []).filter(([l]) => l === lvl).map(([, m]) => m);
 }
 
 /* כל מה שהמורה יכול ללמד: מה שהיה אמור לדעת עד עכשיו, ועוד מתקפות
@@ -173,30 +173,22 @@ function evolveMon(mon, to) {
   mon.hp = Math.max(1, Math.round(wMaxHp(mon) * ratio));
 }
 
-/* ---------- מגה ודיינמקס ----------
-   sp = {kind: "mega", form} או {kind: "dmax"}. מחזיר את ההודעה, או null אם אי אפשר.
-   מגה נשארת עד סוף הקרב. דיינמקס 3 תורות, וגם נגמר כשמחליפים או מתעלפים. */
-function wApplySpecial(m, sp) {
-  if (!m || m.hp <= 0 || !sp) return null;
-  const from = m.id;
-  if (sp.kind === "mega") {
-    if (m.dmax || !(MEGA_OF[from] || []).includes(sp.form)) return null;
-    m.base = from;
-    m.id = sp.form;
-    return `💎 ${POKEMON[from].he} עשה מגה-אבולוציה ל${POKEMON[sp.form].he}!`;
-  }
-  if (sp.kind === "dmax") {
-    if (m.dmax || !canDmax(from)) return null;
-    if (GMAX_OF[from]) { m.base = from; m.id = GMAX_OF[from]; }
-    m.dmax = DMAX_TURNS;
-    m.hp *= 2;
-    return `🔴 ${POKEMON[from].he} עשה ${GMAX_OF[from] ? "ג'יגנטמקס" : "דיינמקס"}!`;
-  }
-  return null;
+/* ---------- צורות ----------
+   פוקימון שאדמין זימן בצורה של מגה או ג'יגנטמקס נשאר כך לתמיד (perm).
+   ג'יגנטמקס כזה גדול כל הזמן: חיים כפולים ומתקפות מקס. */
+function makeFormMon(id, lvl, form) {
+  if (POKEMON[id] && POKEMON[id].form) { form = id; id = baseOf(id); }
+  if (!form || !formsOf(id).includes(form)) return makeWorldMon(id, lvl);
+  const m = makeWorldMon(form, lvl);
+  m.base = id;
+  m.perm = true;
+  if (POKEMON[form].form === "gmax") m.dmax = PERM_DMAX;
+  m.hp = wMaxHp(m);
+  return m;
 }
 
 function wEndDmax(m) {
-  if (!m || (!m.dmax && !(POKEMON[m.id] && POKEMON[m.id].form === "gmax"))) return;
+  if (!m || m.perm || (!m.dmax && !(POKEMON[m.id] && POKEMON[m.id].form === "gmax"))) return;
   const hp = m.hp;
   m.dmax = 0;
   if (POKEMON[m.id] && POKEMON[m.id].form === "gmax") { m.id = m.base || baseOf(m.id); delete m.base; }
@@ -205,6 +197,7 @@ function wEndDmax(m) {
 
 // סוף הקרב: חוזרים לצורה הרגילה
 function wResetForms(m) {
+  if (!m || m.perm) return;
   wEndDmax(m);
   if (m && POKEMON[m.id] && POKEMON[m.id].form === "mega") { m.id = m.base || baseOf(m.id); delete m.base; }
 }
@@ -217,12 +210,12 @@ const WSave = (() => {
     try { s = JSON.parse(localStorage.getItem(W_SAVE) || "null"); } catch (e) { s = null; }
     if (s && !Array.isArray(s.party)) s = null;
     // שמירה מאמצע קרב: מחזירים כל פוקימון לצורה הרגילה
-    if (s) { s.gear = s.gear || {}; [...s.party, ...(s.box || [])].forEach(wResetForms); }
+    if (s) [...s.party, ...(s.box || [])].forEach(wResetForms);
     return s;
   }
   function save() { try { localStorage.setItem(W_SAVE, JSON.stringify(s)); } catch (e) {} }
   function start(starterId) {
-    s = {party: [tameMon(makeWorldMon(starterId, 5))], box: [], gear: {}, coins: 100, pos: {x: 0, z: 6}, wins: 0, catches: 0};
+    s = {party: [tameMon(makeWorldMon(starterId, 5))], box: [], coins: 100, pos: {x: 0, z: 6}, wins: 0, catches: 0};
     save();
     return s;
   }

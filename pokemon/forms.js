@@ -1,7 +1,8 @@
 /* ===== מגה, דיינמקס וג'יגנטמקס =====
    נוצר מנתוני PokeAPI. הצורות נכנסות ל-POKEMON עם form ו-base, כדי שכל
    הציור והחישוב (שם, תמונה, סוגים, חוזק) יעבדו עליהן כמו על כל פוקימון.
-   הן לא מופיעות בחבילה, בעולם, בפוקידקס ובבוחר של הכתר.
+   הן לא מופיעות בחבילה, בעולם, בפוקידקס ובבוחר של הכתר: מקבלים אותן רק
+   כשאדמין מזמן פוקימון ובוחר לו צורה.
    dex של צורה = מספר התמונה שלה ב-PokeAPI. */
 const FORMS = {
   "venusaur-mega": {dex: 10033, he: "מגה ונוזאור", types: ["grass", "poison"], hp: 80, power: 41, catch: 0, form: "mega", base: "venusaur"},
@@ -140,22 +141,9 @@ const MEGA_OF = {"venusaur": ["venusaur-mega"], "charizard": ["charizard-mega-x"
 /* פוקימון ← צורת הג'יגנטמקס שלו */
 const GMAX_OF = {"venusaur": "venusaur-gmax", "charizard": "charizard-gmax", "blastoise": "blastoise-gmax", "butterfree": "butterfree-gmax", "pikachu": "pikachu-gmax", "meowth": "meowth-gmax", "machamp": "machamp-gmax", "gengar": "gengar-gmax", "kingler": "kingler-gmax", "lapras": "lapras-gmax", "eevee": "eevee-gmax", "snorlax": "snorlax-gmax", "garbodor": "garbodor-gmax", "melmetal": "melmetal-gmax", "rillaboom": "rillaboom-gmax", "cinderace": "cinderace-gmax", "inteleon": "inteleon-gmax", "corviknight": "corviknight-gmax", "orbeetle": "orbeetle-gmax", "drednaw": "drednaw-gmax", "coalossal": "coalossal-gmax", "flapple": "flapple-gmax", "appletun": "appletun-gmax", "sandaconda": "sandaconda-gmax", "toxtricity-amped": "toxtricity-amped-gmax", "centiskorch": "centiskorch-gmax", "hatterene": "hatterene-gmax", "grimmsnarl": "grimmsnarl-gmax", "alcremie": "alcremie-gmax", "copperajah": "copperajah-gmax", "duraludon": "duraludon-gmax", "urshifu-single-strike": "urshifu-single-strike-gmax"};
 
-/* ---------- החפצים ----------
-   אבן מגה: מגה-אבולוציה לפוקימון אחד, פעם אחת בכל קרב, עד סוף הקרב.
-   צמיד דיינמקס: דיינמקס (או ג'יגנטמקס למי שיש לו) פעם אחת בכל קרב, ל-3 תורות.
-   במשחק השולחן הם קלפים בחבילה שתופסים כמו פריט. בעולם קונים אותם במרכז. */
-const GEAR = {
-  "key-stone":    {dex: -1, he: "אבן מגה", types: ["normal"], hp: 1, power: 0, catch: .3, form: "gear"},
-  "dynamax-band": {dex: -2, he: "צמיד דיינמקס", types: ["normal"], hp: 1, power: 0, catch: .3, form: "gear"}
-};
-Object.assign(POKEMON, GEAR);
-Object.assign(ITEMS, {
-  "key-stone":    {mega: 1, icon: "💎", text: "אפשר להפוך פוקימון למגה פעם בכל קרב"},
-  "dynamax-band": {band: 1, icon: "🔴", text: "אפשר לעשות דיינמקס פעם בכל קרב"}
-});
-const GEAR_IDS = ["key-stone", "dynamax-band"];
-const GEAR_PRICE = {"key-stone": 400, "dynamax-band": 400};
-const DMAX_TURNS = 3;
+/* צורה שאדמין זימן נשארת לתמיד (perm). ג'יגנטמקס כזה גדול כל הזמן:
+   חיים כפולים ומתקפות מקס. dmax של 99 = לא נגמר */
+const PERM_DMAX = 99;
 
 const isForm = id => !!(POKEMON[id] && POKEMON[id].form);
 const baseOf = id => (POKEMON[id] && POKEMON[id].base) || id;
@@ -163,6 +151,8 @@ const baseOf = id => (POKEMON[id] && POKEMON[id].base) || id;
 const NO_DMAX = ["zacian", "zamazenta", "eternatus"];
 const canMega = id => !!MEGA_OF[id];
 const canDmax = id => !!POKEMON[id] && !POKEMON[id].form && !NO_DMAX.includes(id) && !ITEMS[id];
+// הצורות שאדמין יכול לבחור לפוקימון: מגה (X / Y / Z) וג'יגנטמקס
+const formsOf = id => [...(MEGA_OF[id] || []), ...(GMAX_OF[id] ? [GMAX_OF[id]] : [])];
 
 /* ---------- מתקפות מקס ----------
    בדיינמקס כל מתקפה הופכת למתקפת מקס מאותו סוג. העוצמה לפי הטבלה של הסדרה,

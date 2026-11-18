@@ -30,7 +30,6 @@ const WNet = (() => {
   let players = {};           // אצל המארח: כל השחקנים, כולל עצמו
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
   let tick = null, stopped = true, reconnecting = false;
-  let special = false;        // מגה ודיינמקס בעולם - רק אדמין מדליק ומכבה
   let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}, onGotCoins() {}};
   const toastCoins = (n, to) => ui.onGaveCoins && ui.onGaveCoins(n, to);
 
@@ -133,10 +132,9 @@ const WNet = (() => {
     tick = setInterval(() => {
       if (role === "host") {
         players[myPid] = {...me, pid: myPid};
-        const msg = {t: "world", players, special};
+        const msg = {t: "world", players};
         for (const pid in conns) try { conns[pid].send(msg); } catch (e) {}
         ui.onPlayers(players);
-        ui.onSpecial && ui.onSpecial(special);
       } else if (role === "client" && hostConn) {
         try { hostConn.send({t: "pos", p: me}); } catch (e) {}
       }
@@ -187,11 +185,7 @@ const WNet = (() => {
         startBattle(d.to, pid);
         break;
       case "party":
-        battleParty(pid, d.bid, d.party, d.gear);
-        break;
-      case "special":
-        // 👑 רק השמות השמורים
-        if (players[pid] && Admin.reserved(players[pid].name)) special = !!d.on;
+        battleParty(pid, d.bid, d.party);
         break;
       case "bact":
         battleAct(pid, d.bid, d.act);
@@ -215,9 +209,9 @@ const WNet = (() => {
         // 👑 מתנה מחוץ לקרב - רק מהשמות השמורים
         const from = players[pid];
         if (!from || !Admin.reserved(from.name) || !players[d.to] || !POKEMON[d.id]) break;
-        const m = makeWorldMon(d.id, Math.max(1, Math.min(100, d.lvl | 0)));
+        const m = makeFormMon(d.id, Math.max(1, Math.min(100, d.lvl | 0)), d.form);
         toPid(d.to, {t: "got", mon: {id: m.id, lvl: m.lvl, moves: m.moves}, from: from.name});
-        toPid(pid, {t: "gave", to: players[d.to].name, id: d.id, lvl: m.lvl});
+        toPid(pid, {t: "gave", to: players[d.to].name, id: m.id, lvl: m.lvl});
         break;
       }
     }
@@ -225,10 +219,7 @@ const WNet = (() => {
 
   function clientData(d) {
     switch (d.t) {
-      case "world":
-        ui.onPlayers(d.players);
-        if ("special" in d && !!d.special !== special) { special = !!d.special; ui.onSpecial && ui.onSpecial(special); }
-        break;
+      case "world": ui.onPlayers(d.players); break;
       case "chal": ui.onChallenge(d.from, d.name); break;
       case "ans": ui.onAnswer(d.from, d.ok, d.busy); break;
       case "bstate": ui.onBattle(d.st); break;
@@ -263,13 +254,12 @@ const WNet = (() => {
 
   function sideOf(b, pid) { return b.a.pid === pid ? b.a : b.b.pid === pid ? b.b : null; }
 
-  function battleParty(pid, bid, party, gear) {
+  function battleParty(pid, bid, party) {
     const b = battles[bid];
     const s = b && sideOf(b, pid);
     if (!s || s.party) return;
-    s.gear = {mega: !!(gear && gear.mega), band: !!(gear && gear.band)};
-    s.megaUsed = s.dmaxUsed = false;
-    s.party = (party || []).slice(0, W_MAX_PARTY).map(m => ({uid: m.uid, id: m.id, lvl: Math.min(100, m.lvl | 0), moves: (m.moves || []).filter(k => WMOVES[k]).slice(0, 4), hp: 0}))
+    s.party = (party || []).slice(0, W_MAX_PARTY).map(m => ({uid: m.uid, id: m.id, lvl: Math.min(100, m.lvl | 0), moves: (m.moves || []).filter(k => WMOVES[k]).slice(0, 4), hp: 0,
+      ...(m.perm && POKEMON[m.id] && POKEMON[m.id].form ? {perm: true, base: baseOf(m.id), dmax: POKEMON[m.id].form === "gmax" ? PERM_DMAX : 0} : {})}))
       .filter(m => POKEMON[m.id] && m.moves.length);
     s.party.forEach(m => { m.hp = wMaxHp(m); });
     if (!s.party.length) s.party = [makeWorldMon("pikachu", 5)];
@@ -288,10 +278,6 @@ const WNet = (() => {
       if (!m || m.hp <= 0 || act.i === s.active) return refuse();
     } else if (act.kind === "move") {
       if (s.need || !s.party[s.active].moves[act.i]) return refuse();
-      // מגה / דיינמקס עם המתקפה: רק כשפועל, יש חפץ ועוד לא השתמשו בקרב הזה
-      const sp = act.sp;
-      const ok = sp && special && (sp.kind === "mega" ? s.gear.mega && !s.megaUsed : sp.kind === "dmax" ? s.gear.band && !s.dmaxUsed : false);
-      act = {kind: "move", i: act.i, sp: ok ? {kind: sp.kind, form: sp.form} : null};
     } else return refuse();
     // אחרי התעלפות: רק החלפה, והיא קורית מיד בלי תור של היריב
     if (s.need) {
@@ -318,15 +304,6 @@ const WNet = (() => {
         log.push(`${s.name} מחליף ל${POKEMON[s.party[s.active].id].he}`);
       }
     }
-    // מגה ודיינמקס קורים לפני שתוקפים
-    for (const s of [b.a, b.b]) {
-      if (s.act.kind !== "move" || !s.act.sp) continue;
-      const text = wApplySpecial(s.party[s.active], s.act.sp);
-      if (!text) continue;
-      if (s.act.sp.kind === "mega") s.megaUsed = true; else s.dmaxUsed = true;
-      log.push(`${s.name}: ${text}`);
-      fx.push({by: s.pid, sp: s.act.sp.kind});
-    }
     const A = b.a, B = b.b;
     const mvA = A.act.kind === "move" ? A.party[A.active].moves[A.act.i] : null;
     const mvB = B.act.kind === "move" ? B.party[B.active].moves[B.act.i] : null;
@@ -349,7 +326,7 @@ const WNet = (() => {
     // דיינמקס: עוד תור עבר
     for (const s of [A, B]) {
       const m = s.party[s.active];
-      if (s.act.kind === "move" && m.dmax && m.hp > 0) {
+      if (s.act.kind === "move" && m.dmax && !m.perm && m.hp > 0) {
         m.dmax--;
         if (!m.dmax) { const name = POKEMON[m.id].he; wEndDmax(m); log.push(`${name} של ${s.name} חזר לגודל רגיל`); }
       }
@@ -373,7 +350,7 @@ const WNet = (() => {
     if (!s || b.over || !s.party || !Admin.reserved(s.name)) return;
     const f = s === b.a ? b.b : b.a;
     if (d.op === "boost") { s.boost = {atk: !!(d.boost || {}).atk, def: !!(d.boost || {}).def}; return; }
-    const fresh = (id, lvl, moves) => { const m = makeWorldMon(id, Math.max(1, Math.min(100, lvl | 0))); if (moves && moves.length) m.moves = moves.slice(0, 4); return m; };
+    const fresh = (id, lvl, moves, form) => { const m = makeFormMon(id, Math.max(1, Math.min(100, lvl | 0)), form); if (moves && moves.length) m.moves = moves.slice(0, 4); return m; };
     if (d.op === "take" && f.party) {
       const m = f.party.splice(f.active, 1)[0];
       if (!m) return;
@@ -391,10 +368,10 @@ const WNet = (() => {
     if ((d.op === "create" || d.op === "give") && POKEMON[d.id]) {
       const to = d.op === "give" ? f : s;
       if (!to.party) return;
-      const m = fresh(d.id, d.lvl);
+      const m = fresh(d.id, d.lvl, null, d.form);
       to.party.push(m);
       toPid(to.pid, {t: "got", mon: {id: m.id, lvl: m.lvl, moves: m.moves}});
-      b.log = [d.op === "give" ? `👑 ${s.name} נתן ל${f.name} את ${POKEMON[d.id].he}` : `👑 ${s.name} יצר את ${POKEMON[d.id].he}`];
+      b.log = [d.op === "give" ? `👑 ${s.name} נתן ל${f.name} את ${POKEMON[m.id].he}` : `👑 ${s.name} יצר את ${POKEMON[m.id].he}`];
       return pushBattle(b);
     }
   }
@@ -412,7 +389,7 @@ const WNet = (() => {
   function battleState(b, fx) {
     return {
       bid: b.bid, phase: b.over ? "over" : "turn", turn: b.turn, over: b.over, log: b.log, fx: fx || null,
-      sides: [b.a, b.b].map(s => ({pid: s.pid, name: s.name, active: s.active, need: s.need, ready: !!s.act, party: s.party, megaUsed: !!s.megaUsed, dmaxUsed: !!s.dmaxUsed}))
+      sides: [b.a, b.b].map(s => ({pid: s.pid, name: s.name, active: s.active, need: s.need, ready: !!s.act, party: s.party}))
     };
   }
 
@@ -442,13 +419,11 @@ const WNet = (() => {
     setUI: h => Object.assign(ui, h),
     challenge: to => send({t: "chal", to}),
     answer: (to, ok) => send({t: "ans", to, ok}),
-    sendParty: (bid, party, gear) => send({t: "party", bid, party, gear}),
-    special: () => special,
-    setSpecial: on => send({t: "special", on}),
+    sendParty: (bid, party) => send({t: "party", bid, party}),
     act: (bid, act) => send({t: "bact", bid, act}),
     quit: bid => send({t: "bquit", bid}),
     admin: (bid, d) => send({t: "badm", bid, ...d}),
-    gift: (to, id, lvl) => send({t: "gift", to, id, lvl}),
+    gift: (to, id, lvl, form) => send({t: "gift", to, id, lvl, form}),
     coins: (to, n) => send({t: "coins", to, n}),
     world: () => worldNo,
     role: () => role

@@ -334,8 +334,5 @@ body:not(.in-game) .panel { background: rgba(22,28,44,.82); backdrop-filter: blu
 .card-moves { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-top: 4px; }
 .card-moves span { font-size: 10px; color: #fff; padding: 1px 6px; border-radius: 8px; text-shadow: 0 1px 1px rgba(0,0,0,.4); }
 
-/* ----- מגה ודיינמקס ----- */
-.sp-row { margin: 4px 0 2px; }
-.btn.sp-mega { background: linear-gradient(135deg, #7b5cff, #3fc6ff); color: #fff; border-color: #6a50e0; }
-.btn.sp-dmax { background: linear-gradient(135deg, #ff3355, #b3002d); color: #fff; border-color: #c4002f; }
+/* ----- ג'יגנטמקס ----- */
 .sp-note { color: #ff6b81 !important; font-weight: bold; margin: 4px 0 !important; }
