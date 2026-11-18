@@ -1,131 +1,177 @@
 /* ===== העולם: רשת =====
-   כל מי שנכנס לעולם מגיע לאותו מקום: הראשון תופס את הכתובת world-0
-   והופך למארח, וכל השאר מתחברים אליו. כשמתמלא (12) עוברים ל-world-1.
+   כל ההודעות עוברות דרך שרת הודעות ציבורי (MQTT), ולא בחיבור ישיר בין
+   הטלפונים - חיבור ישיר נחסם הרבה פעמים ברשתות ביתיות וסלולריות.
 
-   המארח מעביר לכולם איפה כל אחד עומד, מעביר הזמנות לקרב, ומנהל את
-   הקרבות בין שחקנים: שני השחקנים שולחים לו מה הם עושים בתור, והוא
-   מחשב (עם wcore.js) ושולח לשניהם את התוצאה. ככה שניהם רואים אותו קרב.
-
-   אם המארח יוצא, כולם מתחברים מחדש ומישהו אחר תופס את הכתובת. */
+   כל שחקן מפרסם "נוכחות" (שם, באיזה שרת, מתי נכנס). כך כולם מכירים את כל
+   השחקנים בכל השרתים. בכל שרת יש עד 12 שחקנים, והמארח שלו הוא מי שנכנס
+   ראשון - כולם מחשבים את זה מאותה רשימה ומסכימים. המארח מנהל את הקרבות
+   והטריידים בין שחקנים בשרת, כמו קודם. המיקום של כל שחקן נשלח ישר לכל מי
+   שבאותו שרת. אם המארח יוצא, הבא בתור הופך למארח. */
 
 const WNet = (() => {
+  const params = new URLSearchParams(location.search);
   // ?w=שם פותח עולם נפרד (לבדיקות או לחברים בלבד)
-  const NS = "pokemon-world-itay-v1-" + ((new URLSearchParams(location.search).get("w") || "").replace(/[^a-z0-9]/gi, "").slice(0, 16) + (new URLSearchParams(location.search).get("w") ? "-" : ""));
+  const W = (params.get("w") || "").replace(/[^a-z0-9]/gi, "").slice(0, 16) || "main";
+  const ROOT = "pkmn-itay-v2/" + W;
+  // שרתי הודעות ציבוריים - אם הראשון לא עונה, עוברים לבא. ?mqtt= לבדיקות
+  const BROKERS = params.get("mqtt") ? [params.get("mqtt")] : ["wss://broker.emqx.io:8084/mqtt", "wss://broker.hivemq.com:8884/mqtt"];
   const MAX = 12;
-  const ICE = {
-    iceServers: [
-      {urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
-      {urls: "stun:stun.cloudflare.com:3478"},
-      {urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject"},
-      {urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject"},
-      {urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject"}
-    ]
-  };
-  const opts = () => ({config: ICE, debug: 0});
+  const STALE = 75000;        // נוכחות שלא התעדכנה 75 שניות - השחקן כבר לא כאן
 
   const myPid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
   let me = {name: "", x: 0, z: 0, r: 0, mv: 0, lead: null, busy: false};
-  let role = null, hostPeer = null, clientPeer = null, hostConn = null, worldNo = 0;
-  let conns = {};             // אצל המארח: pid -> חיבור
-  let players = {};           // אצל המארח: כל השחקנים, כולל עצמו
+  let role = null, worldNo = 0, hostPid = null, joinedAt = 0, joined = false;
+  let client = null;
+  let presence = {};          // כל השחקנים בכל השרתים: pid -> {pid, name, w, joined, seen}
+  let pos = {};               // מי שבשרת שלי: pid -> מיקום
+  let players = {};           // מי שבשרת שלי, כולל עצמי
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
-  let trades = {};            // אצל המארח: הטריידים שפתוחים עכשיו
-  let tick = null, stopped = true, reconnecting = false;
+  let trades = {};            // אצל המארח / אצל מי שמנהל טרייד: הטריידים הפתוחים
+  let tick = null, stopped = true, lastPosSent = 0, lastPosJson = "", lastPresence = 0;
   let ui = {onTradeReq() {}, onTradeAns() {}, onTrade() {}, onTradeDone() {}, onTradeEnd() {}, onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}, onGotCoins() {}};
   const toastCoins = (n, to) => ui.onGaveCoins && ui.onGaveCoins(n, to);
-
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
-  function claim(id) {
-    return new Promise((resolve, reject) => {
-      const p = new Peer(NS + id, opts());
-      const t = setTimeout(() => { p.destroy(); reject(new Error("timeout")); }, 12000);
-      p.on("open", () => { clearTimeout(t); resolve(p); });
-      p.on("error", e => { clearTimeout(t); p.destroy(); if (e.type === "unavailable-id") resolve(null); else reject(e); });
-    });
+  const T = {
+    presence: pid => `${ROOT}/p/${pid}`,
+    inbox: pid => `${ROOT}/u/${pid}`,
+    world: k => `${ROOT}/w${k}`
+  };
+  function pub(topic, obj, opts) {
+    if (!client || !client.connected) return;
+    try { client.publish(topic, obj === null ? "" : JSON.stringify(obj), opts || {qos: 0}); } catch (e) {}
   }
 
-  function clientPeerReady() {
-    if (clientPeer && clientPeer.open && !clientPeer.destroyed) return Promise.resolve(clientPeer);
-    return new Promise((resolve, reject) => {
-      const p = new Peer(undefined, opts());
-      const t = setTimeout(() => reject(new Error("timeout")), 12000);
-      p.on("open", () => { clearTimeout(t); clientPeer = p; resolve(p); });
-      p.on("error", e => { if (!p.open) { clearTimeout(t); reject(e); } });
-    });
-  }
+  /* ---------- חיבור ---------- */
 
-  async function connectTo(id) {
-    const peer = await clientPeerReady();
+  function connectBroker(url) {
     return new Promise(resolve => {
-      let done = false;
-      const conn = peer.connect(NS + id, {reliable: true});
-      const finish = v => { if (done) return; done = true; clearTimeout(t); peer.off("error", onErr); if (!v) try { conn.close(); } catch (e) {} resolve(v); };
-      const onErr = e => { if (e.type === "peer-unavailable" && String(e.message).includes(NS + id)) finish(null); };
-      const t = setTimeout(() => finish(null), 8000);
-      peer.on("error", onErr);
-      conn.on("open", () => conn.send({t: "hi", pid: myPid, name: me.name, adm: Admin.unlocked()}));
-      conn.on("data", function first(d) { conn.off("data", first); finish(d.t === "welcome" ? conn : (d.t === "full" || d.t === "nametaken" ? d.t : null)); });
+      let c;
+      try {
+        c = mqtt.connect(url, {
+          clientId: "pk_" + myPid, keepalive: 20, clean: true, reconnectPeriod: 3000, connectTimeout: 8000,
+          will: {topic: T.presence(myPid), payload: "", retain: true, qos: 1}
+        });
+      } catch (e) { return resolve(null); }
+      const t = setTimeout(() => { try { c.end(true); } catch (e) {} resolve(null); }, 9000);
+      c.once("connect", () => { clearTimeout(t); resolve(c); });
     });
   }
-
-  /* ---------- כניסה ---------- */
 
   async function join(name) {
     me.name = name;
     stopped = false;
-    for (let k = 0; k < 20 && !stopped; k++) {
-      ui.onStatus("connecting");
-      let peer = null;
-      try { peer = await claim(`world-${k}`); } catch (e) { await wait(800); k--; continue; }
-      if (peer) { becomeHost(peer, k); return; }
-      const c = await connectTo(`world-${k}`);
-      if (c === "full") continue;
-      if (c === "nametaken") { stopped = true; ui.onStatus("nametaken"); return; }
-      if (c) { becomeClient(c, k); return; }
-      // הכתובת תפוסה אבל אף אחד לא עונה (מארח שנעלם) - מנסים שוב רגע אחר כך
-      await wait(1500);
-      k--;
+    ui.onStatus("connecting");
+    while (!stopped && !client) {
+      for (const url of BROKERS) { client = await connectBroker(url); if (client) break; }
+      if (!client) await wait(3000);
+    }
+    if (stopped) return;
+    client.on("message", onMessage);
+    // אחרי נפילה וחיבור מחדש: נרשמים שוב ומפרסמים נוכחות
+    client.on("connect", () => { subscribe(); if (joined) announce(); });
+    client.on("offline", () => ui.onStatus("reconnecting"));
+    subscribe();
+    await wait(1800);   // אוספים את הנוכחות של כל מי שכבר בפנים
+    if (stopped) return;
+    prune();
+    // שם שכבר מחובר (אולי מהכניסה הקודמת, שעוד לא התנקתה) - מחכים קצת ובודקים שוב
+    const taken = () => Object.values(presence).some(p => p.pid !== myPid && p.name === name);
+    for (let k = 0; k < 4 && taken() && !stopped; k++) { await wait(12000); prune(); }
+    if (stopped) return;
+    if (taken() || (Admin.reserved(name) && !Admin.unlocked())) {
+      stopped = true;
+      ui.onStatus("nametaken");
+      return;
+    }
+    // השרת הראשון שיש בו מקום
+    const count = {};
+    Object.values(presence).forEach(p => { count[p.w] = (count[p.w] || 0) + 1; });
+    let k = 0;
+    while ((count[k] || 0) >= MAX) k++;
+    worldNo = k;
+    joinedAt = Date.now();
+    joined = true;
+    client.subscribe(T.world(worldNo) + "/#");
+    announce();
+    recompute();
+    startTick();
+    ui.onStatus("online");
+  }
+
+  function subscribe() {
+    client.subscribe([T.presence("+"), T.inbox(myPid)]);
+    if (joined) client.subscribe(T.world(worldNo) + "/#");
+  }
+
+  function announce() {
+    lastPresence = Date.now();
+    pub(T.presence(myPid), {pid: myPid, name: me.name, w: worldNo, joined: joinedAt, seen: Date.now()}, {qos: 1, retain: true});
+  }
+
+  function onMessage(topic, buf) {
+    const raw = buf && buf.toString();
+    const parts = topic.slice(ROOT.length + 1).split("/");
+    if (parts[0] === "p") {
+      const pid = parts[1];
+      if (!raw) { delete presence[pid]; delete pos[pid]; return recompute(); }
+      try { const p = JSON.parse(raw); if (p && p.pid === pid) presence[pid] = p; } catch (e) {}
+      return recompute();
+    }
+    let m;
+    try { m = JSON.parse(raw); } catch (e) { return; }
+    if (!m) return;
+    if (parts[0] === "u") return deliver(m);
+    if (parts[0] === "w" + worldNo && parts[1] === "pos" && m.pid && m.pid !== myPid) {
+      pos[m.pid] = m.p || {};
+      return;
     }
   }
 
-  function becomeHost(peer, k) {
-    role = "host";
-    hostPeer = peer;
-    worldNo = k;
-    players = {[myPid]: {...me, pid: myPid}};
-    peer.on("connection", conn => {
-      conn.on("data", d => hostData(conn, d));
-      conn.on("close", () => { if (conn.pid) dropPlayer(conn.pid); if (conn.lobbyPid) delete lobby[conn.lobbyPid]; });
-    });
-    peer.on("disconnected", () => { try { peer.reconnect(); } catch (e) {} });
-    startTick();
-    ui.onStatus("online");
-    ensureLobby();
+  // הודעה שהגיעה אליי: למארח (h), טרייד משרת אחר (x), או רגילה
+  function deliver(m) {
+    const from = m.from;
+    if (m.h) {
+      if (role === "host") return hostHandle(from, m);
+      if (hostPid && hostPid !== myPid) pub(T.inbox(hostPid), m);   // עוד לא כולם יודעים מי המארח
+      return;
+    }
+    if (m.t === "x") return xIncoming(m.m);
+    clientData(m);
   }
 
-  function becomeClient(conn, k) {
-    role = "client";
-    hostConn = conn;
-    worldNo = k;
-    conn.on("data", d => clientData(d));
-    conn.on("close", () => { if (!stopped) rejoin(); });
-    startTick();
-    ui.onStatus("online");
-    ensureLobby();
+  // נוכחות ישנה (שחקן שנעלם בלי להיפרד)
+  function prune() {
+    const now = Date.now();
+    for (const pid in presence) if (pid !== myPid && now - (presence[pid].seen || 0) > STALE) { delete presence[pid]; delete pos[pid]; }
   }
 
-  async function rejoin() {
-    if (reconnecting) return;
-    reconnecting = true;
-    role = null;
-    hostConn = null;
-    ui.onStatus("reconnecting");
-    ui.onBattle(null);
-    clearInterval(tick);
-    await wait(500 + Math.random() * 1500);
-    reconnecting = false;
-    if (!stopped) join(me.name);
+  /* מחשבים מחדש: מי בשרת שלי, מי המארח, ומי יצא */
+  function recompute() {
+    if (!joined) return;
+    prune();
+    presence[myPid] = {pid: myPid, name: me.name, w: worldNo, joined: joinedAt, seen: Date.now()};
+    const mine = Object.values(presence).filter(p => p.w === worldNo)
+      .sort((a, b) => (a.joined - b.joined) || (a.pid < b.pid ? -1 : 1));
+    const before = players;
+    players = {};
+    mine.forEach(p => { players[p.pid] = {x: 0, z: 6, r: 0, mv: 0, lead: null, busy: false, ...(p.pid === myPid ? me : pos[p.pid]), pid: p.pid, name: p.name}; });
+    // מי שיצא מהשרת
+    for (const pid in before) if (!players[pid] && role === "host") dropPlayer(pid);
+    // טרייד עם שחקן משרת אחר שנעלם
+    for (const pid in xNames) if (!presence[pid.slice(2)]) xGone(pid.slice(2));
+    const newHost = mine.length ? mine[0].pid : myPid;
+    if (newHost !== hostPid) {
+      const had = hostPid;
+      hostPid = newHost;
+      role = newHost === myPid ? "host" : "client";
+      if (had) {
+        // המארח התחלף: קרבות וטריידים שהוא ניהל נגמרו
+        battles = {};
+        ui.onBattle(null);
+        for (const tid in tradeRoutes) if (tradeRoutes[tid] === send) { delete tradeRoutes[tid]; ui.onTradeEnd(tid, "המארח התחלף"); }
+      }
+    }
   }
 
   /* ---------- מיקום ---------- */
@@ -133,16 +179,18 @@ const WNet = (() => {
   function startTick() {
     clearInterval(tick);
     tick = setInterval(() => {
-      if (role === "host") {
-        players[myPid] = {...me, pid: myPid};
-        const msg = {t: "world", players};
-        for (const pid in conns) try { conns[pid].send(msg); } catch (e) {}
-        ui.onPlayers(players);
-        if (worldNo === 0 && (startTick.n = (startTick.n || 0) + 1) % 16 === 0) buildDir();
-      } else if (role === "client" && hostConn) {
-        try { hostConn.send({t: "pos", p: me}); } catch (e) {}
+      const now = Date.now();
+      // המיקום שלי: כשמשהו השתנה, ולפחות פעם בשנייה
+      const j = JSON.stringify(me);
+      if (j !== lastPosJson || now - lastPosSent > 1000) {
+        lastPosJson = j;
+        lastPosSent = now;
+        pub(T.world(worldNo) + "/pos", {pid: myPid, p: me});
       }
-    }, 120);
+      if (now - lastPresence > 15000) announce();
+      recompute();
+      ui.onPlayers(players);
+    }, 150);
   }
 
   function setMe(p) { Object.assign(me, p); }
@@ -151,44 +199,16 @@ const WNet = (() => {
 
   function send(msg) {
     if (role === "host") hostHandle(myPid, msg);
-    else if (hostConn) try { hostConn.send(msg); } catch (e) {}
+    else if (hostPid) pub(T.inbox(hostPid), {...msg, h: 1, from: myPid});
   }
 
   function toPid(pid, msg) {
     if (pid === myPid) return clientData(msg);
-    const c = conns[pid];
-    if (c) try { c.send(msg); } catch (e) {}
-  }
-
-  function hostData(conn, d) {
-    // חיבור לובי משרת אחר (רק אצל המארח של שרת 0)
-    if (d.t === "lobby" && worldNo === 0 && !conn.pid) {
-      conn.lobbyPid = d.pid;
-      lobby[d.pid] = {conn, name: String(d.name || "").slice(0, 20), w: d.w | 0};
-      return;
-    }
-    if (conn.lobbyPid) {
-      if (d.t === "relay") relayDeliver(d.to, {...d.msg, from: conn.lobbyPid});
-      return;
-    }
-    if (d.t === "hi") {
-      if (Object.keys(players).length >= MAX) { conn.send({t: "full"}); return; }
-      // שם שכבר יש בעולם, או שם שמור בלי הקוד
-      if (Object.values(players).some(p => p.pid !== d.pid && p.name === d.name) || (Admin.reserved(d.name) && !d.adm)) { conn.send({t: "nametaken"}); return; }
-      conn.pid = d.pid;
-      conns[d.pid] = conn;
-      players[d.pid] = {pid: d.pid, name: d.name, x: 0, z: 6, r: 0, mv: 0, lead: null, busy: false};
-      conn.send({t: "welcome"});
-      return;
-    }
-    if (conn.pid) hostHandle(conn.pid, d);
+    pub(T.inbox(pid), {...msg, from: myPid});
   }
 
   function hostHandle(pid, d) {
     switch (d.t) {
-      case "pos":
-        if (players[pid]) Object.assign(players[pid], d.p, {pid});
-        break;
       case "chal":
         if (players[d.to] && !busy(d.to) && !busy(pid)) toPid(d.to, {t: "chal", from: pid, name: (players[pid] || {}).name});
         else toPid(pid, {t: "ans", from: d.to, ok: false, busy: true});
@@ -222,9 +242,6 @@ const WNet = (() => {
       case "badm":
         battleAdmin(pid, d);
         break;
-      case "relay":
-        if (worldNo === 0) relayDeliver(d.to, {...d.msg, from: pid});
-        break;
       case "coins": {
         // 👑 כסף במתנה - רק מהשמות השמורים
         const from = players[pid];
@@ -249,8 +266,6 @@ const WNet = (() => {
   function clientData(d) {
     switch (d.t) {
       case "world": ui.onPlayers(d.players); break;
-      case "dir": dir = d.list || []; break;
-      case "x": xIncoming(d.m); break;
       case "chal": ui.onChallenge(d.from, d.name); break;
       case "ans": ui.onAnswer(d.from, d.ok, d.busy); break;
       case "bstate": ui.onBattle(d.st); break;
@@ -261,14 +276,13 @@ const WNet = (() => {
       case "gaveCoins": toastCoins(d.n, d.to); break;
       case "treq": ui.onTradeReq(d.from, d.name); break;
       case "tans": ui.onTradeAns(d.ok, d.busy, d.name); break;
-      case "tstate": ui.onTrade(d.st); break;
+      case "tstate": if (!tradeRoutes[d.st.tid]) tradeRoutes[d.st.tid] = send; ui.onTrade(d.st); break;
       case "tdone": delete tradeRoutes[d.tid]; ui.onTradeDone(d); break;
       case "tend": delete tradeRoutes[d.tid]; ui.onTradeEnd(d.tid, d.by); break;
     }
   }
 
   function dropPlayer(pid) {
-    delete conns[pid];
     delete players[pid];
     for (const bid in battles) if (battles[bid].a.pid === pid || battles[bid].b.pid === pid) battleQuit(pid, bid);
     for (const tid in trades) if (trades[tid].a.pid === pid || trades[tid].b.pid === pid) tradeEnd(tid, "החיבור");
@@ -366,29 +380,15 @@ const WNet = (() => {
     t.out(t.b.pid, {t: "tstate", st: {...base, you: t.b.pid}});
   }
 
+
   /* ---------- טרייד עם שחקן משרת אחר ----------
-     המארח של שרת 0 הוא "הלובי": כל מי שבשרת אחר מחזיק אליו חיבור קטן נוסף
-     (בלי להיכנס לעולם שם). כך הוא מכיר את כל השחקנים בכל השרתים - שולח לכולם
-     רשימה (dir) - ומעביר הודעות טרייד בין שרתים. זה עובד כמו הכניסה לעולם,
-     בלי חיבור ישיר בין שני הטלפונים, שרשתות ביתיות הרבה פעמים חוסמות.
-     מי שמקבל את הבקשה מנהל את הטרייד, עם אותם כללים בדיוק. */
-  let lobby = {};             // אצל המארח של שרת 0: pid -> {conn, name, w}
-  let lobbyConn = null, lobbyTry = null, dir = [], tradeRoutes = {}, xNames = {};
+     שולחים לו ישר לתיבה שלו. מי שמקבל את הבקשה מנהל את הטרייד, עם אותם כללים. */
+  let tradeRoutes = {}, xNames = {};
   const routeOf = tid => tradeRoutes[tid] || send;
 
-  // הודעה לשחקן בכל שרת שהוא
   function relaySend(to, msg) {
-    if (role === "host" && worldNo === 0) relayDeliver(to, {...msg, from: myPid});
-    else if (role === "client" && worldNo === 0 && hostConn) try { hostConn.send({t: "relay", to, msg}); } catch (e) {}
-    else if (lobbyConn) try { lobbyConn.send({t: "relay", to, msg}); } catch (e) {}
-  }
-
-  // אצל המארח של שרת 0: מעבירים למי שצריך. לא נמצא - מודיעים לשולח
-  function relayDeliver(to, m) {
-    if (to === myPid) return xIncoming(m);
-    const c = conns[to] || (lobby[to] && lobby[to].conn);
-    if (c) { try { c.send({t: "x", m}); } catch (e) {} return; }
-    if (m.from) relayDeliver(m.from, {t: "xgone", from: to});
+    if (to === myPid) return xIncoming({...msg, from: myPid});
+    pub(T.inbox(to), {t: "x", m: {...msg, from: myPid}, from: myPid});
   }
 
   function xIncoming(m) {
@@ -397,45 +397,21 @@ const WNet = (() => {
     switch (m.t) {
       case "xtreq": xNames[xid] = String(m.name || "שחקן").slice(0, 20); ui.onTradeReq(xid, xNames[xid]); break;
       case "tans": ui.onTradeAns(false, false, m.name); break;
-      case "tstate": { const r = msg => relaySend(m.from, msg); r.to = m.from; tradeRoutes[m.st.tid] = r; clientData(m); break; }
+      case "tstate": { const r = msg => relaySend(m.from, msg); r.to = m.from; tradeRoutes[m.st.tid] = r; xNames[xid] = xNames[xid] || "שחקן"; clientData(m); break; }
       case "tdone": case "tend": clientData(m); break;
       case "toffer": case "tready": case "tok": case "tcancel": tradeHandle(xid, m); break;
-      case "xgone":
-        for (const tid in trades) if (trades[tid].a.pid === xid || trades[tid].b.pid === xid) tradeEnd(tid, "החיבור");
-        for (const tid in tradeRoutes) if (tradeRoutes[tid].to === m.from) { delete tradeRoutes[tid]; ui.onTradeEnd(tid, "החיבור"); }
-        break;
     }
   }
 
+  // שחקן משרת אחר נעלם באמצע טרייד
+  function xGone(pid) {
+    const xid = "x:" + pid;
+    delete xNames[xid];
+    for (const tid in trades) if (trades[tid].a.pid === xid || trades[tid].b.pid === xid) tradeEnd(tid, "החיבור");
+    for (const tid in tradeRoutes) if (tradeRoutes[tid].to === pid) { delete tradeRoutes[tid]; ui.onTradeEnd(tid, "החיבור"); }
+  }
+
   const xOut = (pid, msg) => pid === myPid ? clientData(msg) : relaySend(String(pid).slice(2), msg);
-
-  // מי שלא בשרת 0 מחזיק חיבור ללובי (ומתחבר שוב אם הוא נופל)
-  async function ensureLobby() {
-    clearTimeout(lobbyTry);
-    if (stopped || worldNo === 0 || !role) { if (lobbyConn) { try { lobbyConn.close(); } catch (e) {} lobbyConn = null; } return; }
-    if (lobbyConn && lobbyConn.open) return;
-    let peer;
-    try { peer = await clientPeerReady(); } catch (e) { lobbyTry = setTimeout(ensureLobby, 4000); return; }
-    const conn = peer.connect(NS + "world-0", {reliable: true});
-    const t = setTimeout(() => { if (!conn.open) { try { conn.close(); } catch (e) {} lobbyTry = setTimeout(ensureLobby, 4000); } }, 9000);
-    conn.on("open", () => { clearTimeout(t); lobbyConn = conn; conn.send({t: "lobby", pid: myPid, name: me.name, w: worldNo}); });
-    conn.on("data", d => {
-      if (!d) return;
-      if (d.t === "dir") dir = d.list || [];
-      else if (d.t === "x") xIncoming(d.m);
-    });
-    conn.on("close", () => { if (lobbyConn === conn) lobbyConn = null; if (!stopped) lobbyTry = setTimeout(ensureLobby, 3000); });
-  }
-
-  // אצל המארח של שרת 0: רשימת כל השחקנים בכל השרתים
-  function buildDir() {
-    const list = Object.values(players).map(p => ({pid: p.pid, name: p.name, w: 0, busy: !!p.busy}));
-    for (const pid in lobby) if (!players[pid]) list.push({pid, name: lobby[pid].name, w: lobby[pid].w, busy: false});
-    dir = list;
-    const msg = {t: "dir", list};
-    for (const pid in conns) try { conns[pid].send(msg); } catch (e) {}
-    for (const pid in lobby) try { lobby[pid].conn.send(msg); } catch (e) {}
-  }
 
   function tradeAnswer(to, ok) {
     if (!String(to).startsWith("x:")) return send({t: "tans", to, ok});
@@ -612,19 +588,21 @@ const WNet = (() => {
 
   function leave() {
     stopped = true;
+    joined = false;
     clearInterval(tick);
-    for (const pid in conns) try { conns[pid].close(); } catch (e) {}
-    conns = {};
-    try { hostConn && hostConn.close(); } catch (e) {}
-    try { hostPeer && hostPeer.destroy(); } catch (e) {}
-    try { clientPeer && clientPeer.destroy(); } catch (e) {}
-    try { lobbyConn && lobbyConn.close(); } catch (e) {}
-    clearTimeout(lobbyTry);
-    hostPeer = clientPeer = hostConn = lobbyConn = null;
+    if (client) {
+      try { client.publish(T.presence(myPid), "", {qos: 1, retain: true}); } catch (e) {}
+      const c = client;
+      setTimeout(() => { try { c.end(true); } catch (e) {} }, 300);
+    }
+    client = null;
     role = null;
   }
 
   window.addEventListener("pagehide", leave);
+
+  // רשימת כל השחקנים בכל השרתים (לחיפוש בטרייד)
+  const dirList = () => Object.values(presence).map(p => ({pid: p.pid, name: p.name, w: p.w, busy: !!(players[p.pid] && players[p.pid].busy)}));
 
   return {
     myPid, join, leave, setMe, send,
@@ -640,11 +618,8 @@ const WNet = (() => {
     tradeReq: to => send({t: "treq", to}),
     tradeAns: tradeAnswer,
     tradeFar,
-    dir: () => dir,
-    // מצב החיבור לכל השרתים - כדי לדעת מה לא עובד
-    lobbyInfo: () => `שרת ${worldNo + 1} · ${role === "host" ? "אתה המארח" : role === "client" ? "מחובר למארח" : "לא מחובר"}`
-      + (worldNo === 0 ? "" : ` · שרת 1: ${lobbyConn && lobbyConn.open ? "מחובר" : "לא מחובר"}`)
-      + ` · רואים ${dir.length} שחקנים בכל השרתים`,
+    dir: dirList,
+    lobbyInfo: () => `שרת ${worldNo + 1} · ${role === "host" ? "אתה המארח" : role === "client" ? "מחובר" : "לא מחובר"} · רואים ${Object.keys(presence).length} שחקנים בכל השרתים`,
     tradeOffer: (tid, mons, coins, total) => routeOf(tid)({t: "toffer", tid, mons, coins, total}),
     tradeReady: (tid, on) => routeOf(tid)({t: "tready", tid, on}),
     tradeOk: tid => routeOf(tid)({t: "tok", tid}),
