@@ -817,9 +817,27 @@ function drawTradeList() {
   const q = ($w("#tradeSearch").value || "").trim();
   const others = Object.values(worldPlayers).filter(p => p.pid !== WNet.myPid);
   const list = others.filter(p => !q || String(p.name || "").includes(q));
-  el.innerHTML = list.map(p => `<div class="trow"><span class="tname">👤 ${escW(p.name)}</span>
-      <button class="mini" ${p.busy ? "disabled" : ""} onclick="sendTrade('${p.pid}')">${p.busy ? "⚔️ בקרב" : "🤝 שלח טרייד"}</button></div>`).join("")
-    || `<p class="tempty">${others.length ? "אין שחקן עם השם הזה" : "אין עוד שחקנים בשרת כרגע"}</p>`;
+  const rows = list.map(p => `<div class="trow"><span class="tname">👤 ${escW(p.name)}</span>
+      <button class="mini" ${p.busy ? "disabled" : ""} onclick="sendTrade('${p.pid}')">${p.busy ? "⚔️ בקרב" : "🤝 שלח טרייד"}</button></div>`).join("");
+  // שם שלא נמצא בשרת שלי: אפשר לחפש אותו בכל השרתים (צריך את השם המדויק)
+  const exact = others.some(p => p.name === q);
+  const far = q && !exact && q !== myName
+    ? `<div class="trow far"><span class="tname">🌍 ${escW(q)} <small>בשרת אחר</small></span>
+        <button class="mini" onclick="tradeFar()">🔎 שלח טרייד</button></div>
+       <p class="thint">בשרת אחר צריך לכתוב את השם המדויק</p>` : "";
+  el.innerHTML = rows + far || `<p class="tempty">אין עוד שחקנים בשרת שלך. אפשר לכתוב שם של שחקן משרת אחר</p>`;
+}
+
+async function tradeFar() {
+  const q = ($w("#tradeSearch").value || "").trim();
+  if (!q) return;
+  closeModal();
+  toast(`🔎 מחפשים את ${q}...`);
+  const r = await WNet.tradeByName(q);
+  if (r === "sent") toast(`🤝 בקשת טרייד נשלחה ל${q} ⏳`);
+  else if (r === "notfound") toast(`לא מצאנו שחקן מחובר בשם "${q}"`, 3500);
+  else if (r === "self") toast("זה אתה 🙂");
+  else toast("בעיה בחיבור, נסה שוב");
 }
 
 function sendTrade(pid) {
@@ -879,7 +897,8 @@ function tradeMonChip(m, mine, locked) {
 function renderTrade() {
   if (!trade || !trade.st) return;
   const st = trade.st;
-  const me = st.sides.find(s => s.pid === WNet.myPid), them = st.sides.find(s => s.pid !== WNet.myPid);
+  const you = st.you || WNet.myPid;
+  const me = st.sides.find(s => s.pid === you), them = st.sides.find(s => s.pid !== you);
   if (!me || !them) return;
   const locked = !!trade.goAt;
   if (trade.view === "pick") {

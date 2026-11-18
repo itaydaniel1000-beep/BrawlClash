@@ -74,6 +74,7 @@ const WNet = (() => {
   async function join(name) {
     me.name = name;
     stopped = false;
+    claimName();   // הכתובת האישית - כדי ששחקנים משרתים אחרים ימצאו אותי לטרייד
     for (let k = 0; k < 20 && !stopped; k++) {
       ui.onStatus("connecting");
       let peer = null;
@@ -203,12 +204,9 @@ const WNet = (() => {
         if (!players[d.to]) break;
         if (!d.ok) { toPid(d.to, {t: "tans", ok: false, name: (players[pid] || {}).name}); break; }
         if (busy(d.to) || busy(pid)) { toPid(d.to, {t: "tans", ok: false, busy: true, name: (players[pid] || {}).name}); break; }
-        startTrade(d.to, pid);
+        startTrade(d.to, pid, toPid);
         break;
-      case "toffer": tradeOffer(pid, d); break;
-      case "tready": tradeReady(pid, d); break;
-      case "tok": tradeOk(pid, d); break;
-      case "tcancel": tradeEnd(d.tid, (players[pid] || {}).name); break;
+      case "toffer": case "tready": case "tok": case "tcancel": tradeHandle(pid, d); break;
       case "badm":
         battleAdmin(pid, d);
         break;
@@ -247,8 +245,8 @@ const WNet = (() => {
       case "treq": ui.onTradeReq(d.from, d.name); break;
       case "tans": ui.onTradeAns(d.ok, d.busy, d.name); break;
       case "tstate": ui.onTrade(d.st); break;
-      case "tdone": ui.onTradeDone(d); break;
-      case "tend": ui.onTradeEnd(d.tid, d.by); break;
+      case "tdone": delete tradeRoutes[d.tid]; ui.onTradeDone(d); break;
+      case "tend": delete tradeRoutes[d.tid]; ui.onTradeEnd(d.tid, d.by); break;
     }
   }
 
@@ -265,11 +263,20 @@ const WNet = (() => {
   /* ---------- טרייד (רץ אצל המארח) ----------
      כל אחד שם פוקימונים ומטבעות. כל שינוי מבטל את ה"מוכן" של שניהם.
      שניהם מוכנים ← שניהם מאשרים ← 3 שניות ← מוחלפים. */
-  function startTrade(aPid, bPid) {
+  // out(pid, msg) שולח לשחקן: אצל המארח toPid, בטרייד ישיר - בחיבור הישיר
+  function startTrade(aPid, bPid, out, names) {
     const tid = Math.random().toString(36).slice(2, 9);
-    const side = pid => ({pid, name: (players[pid] || {}).name, mons: [], coins: 0, total: 1, ready: false, ok: false});
-    trades[tid] = {tid, a: side(aPid), b: side(bPid), go: 0, timer: null};
+    const side = pid => ({pid, name: (names && names[pid]) || (players[pid] || {}).name, mons: [], coins: 0, total: 1, ready: false, ok: false});
+    trades[tid] = {tid, a: side(aPid), b: side(bPid), go: 0, timer: null, out};
     pushTrade(trades[tid]);
+    return tid;
+  }
+
+  function tradeHandle(pid, d) {
+    if (d.t === "toffer") tradeOffer(pid, d);
+    else if (d.t === "tready") tradeReady(pid, d);
+    else if (d.t === "tok") tradeOk(pid, d);
+    else if (d.t === "tcancel") { const t = trades[d.tid], s = t && tSide(t, pid); if (s) tradeEnd(d.tid, s.name); }
   }
 
   const tSide = (t, pid) => t.a.pid === pid ? t.a : t.b.pid === pid ? t.b : null;
@@ -322,7 +329,7 @@ const WNet = (() => {
     delete trades[tid];
     for (const s of [t.a, t.b]) {
       const o = tOther(t, s);
-      toPid(s.pid, {t: "tdone", tid, give: s.mons.map(m => m.uid), coinsOut: s.coins, get: o.mons, coinsIn: o.coins, from: o.name});
+      t.out(s.pid, {t: "tdone", tid, give: s.mons.map(m => m.uid), coinsOut: s.coins, get: o.mons, coinsIn: o.coins, from: o.name});
     }
   }
 
@@ -331,14 +338,102 @@ const WNet = (() => {
     if (!t) return;
     clearTimeout(t.timer);
     delete trades[tid];
-    [t.a, t.b].forEach(s => toPid(s.pid, {t: "tend", tid, by}));
+    [t.a, t.b].forEach(s => t.out(s.pid, {t: "tend", tid, by}));
   }
 
+  // you = איך מי שמקבל את המצב מופיע בטרייד (בטרייד ישיר זה לא תמיד myPid שלו)
   function pushTrade(t) {
-    const st = {tid: t.tid, go: t.go ? Math.max(0, t.go - Date.now()) : 0,
+    const base = {tid: t.tid, go: t.go ? Math.max(0, t.go - Date.now()) : 0,
       sides: [t.a, t.b].map(s => ({pid: s.pid, name: s.name, mons: s.mons, coins: s.coins, ready: s.ready, ok: s.ok}))};
-    toPid(t.a.pid, {t: "tstate", st});
-    toPid(t.b.pid, {t: "tstate", st});
+    t.out(t.a.pid, {t: "tstate", st: {...base, you: t.a.pid}});
+    t.out(t.b.pid, {t: "tstate", st: {...base, you: t.b.pid}});
+  }
+
+  /* ---------- טרייד עם שחקן משרת אחר ----------
+     כל שחקן תופס גם כתובת אישית לפי השם שלו. כשמחפשים שם שלא נמצא בשרת
+     שלך, מתחברים ישר לכתובת הזו - לא משנה באיזה שרת הוא. מי שמקבל את
+     הבקשה מנהל את הטרייד, עם אותם כללים בדיוק. */
+  let myPeer = null, xConns = {}, tradeRoutes = {};
+  const nameKey = n => "u-" + [...new TextEncoder().encode(String(n).trim())].map(b => b.toString(16).padStart(2, "0")).join("");
+  const routeOf = tid => tradeRoutes[tid] || send;
+
+  async function claimName() {
+    if (myPeer && !myPeer.destroyed) return;
+    let p = null;
+    try { p = await claim(nameKey(me.name)); } catch (e) { p = null; }
+    if (!p) return;   // השם כבר מחובר ממקום אחר
+    myPeer = p;
+    p.on("connection", conn => {
+      conn.on("data", d => xData(conn, d));
+      conn.on("close", () => xClosed(conn));
+    });
+    p.on("disconnected", () => { try { p.reconnect(); } catch (e) {} });
+  }
+
+  const xOut = (pid, msg) => {
+    if (pid === myPid) return clientData(msg);
+    const c = xConns[pid];
+    if (c) try { c.send(msg); } catch (e) {}
+    if (c && (msg.t === "tdone" || msg.t === "tend")) setTimeout(() => { try { c.close(); } catch (e) {} delete xConns[pid]; }, 1500);
+  };
+
+  function xData(conn, d) {
+    if (!d) return;
+    if (d.t === "xtreq" && !conn.xid) {
+      conn.xid = "x:" + Math.random().toString(36).slice(2, 10);
+      conn.xname = String(d.name || "שחקן").slice(0, 20);
+      xConns[conn.xid] = conn;
+      ui.onTradeReq(conn.xid, conn.xname);
+      return;
+    }
+    if (conn.xid && ["toffer", "tready", "tok", "tcancel"].includes(d.t)) tradeHandle(conn.xid, d);
+  }
+
+  function xClosed(conn) {
+    if (!conn.xid) return;
+    for (const tid in trades) if (trades[tid].a.pid === conn.xid || trades[tid].b.pid === conn.xid) tradeEnd(tid, "החיבור");
+    delete xConns[conn.xid];
+  }
+
+  function tradeAnswer(to, ok) {
+    if (!String(to).startsWith("x:")) return send({t: "tans", to, ok});
+    const c = xConns[to];
+    if (!c) return;
+    if (!ok) {
+      try { c.send({t: "tans", ok: false, name: me.name}); } catch (e) {}
+      setTimeout(() => { try { c.close(); } catch (e) {} }, 800);
+      delete xConns[to];
+      return;
+    }
+    const tid = startTrade(to, myPid, xOut, {[to]: c.xname, [myPid]: me.name});
+    tradeRoutes[tid] = m => tradeHandle(myPid, m);
+  }
+
+  /* מחפשים שחקן לפי שם מדויק בכל השרתים ושולחים לו בקשה */
+  async function tradeByName(name) {
+    name = String(name || "").trim();
+    if (!name) return "notfound";
+    if (name === me.name) return "self";
+    let peer;
+    try { peer = await clientPeerReady(); } catch (e) { return "error"; }
+    const id = NS + nameKey(name);
+    return new Promise(resolve => {
+      let done = false;
+      const finish = v => { if (done) return; done = true; clearTimeout(t); peer.off("error", onErr); resolve(v); };
+      const conn = peer.connect(id, {reliable: true});
+      const onErr = e => { if (e.type === "peer-unavailable" && String(e.message).includes(id)) { try { conn.close(); } catch (x) {} finish("notfound"); } };
+      const t = setTimeout(() => { try { conn.close(); } catch (x) {} finish("notfound"); }, 8000);
+      peer.on("error", onErr);
+      conn.on("open", () => { conn.send({t: "xtreq", name: me.name}); finish("sent"); });
+      conn.on("data", d => {
+        if (!d) return;
+        if (d.t === "tstate") { conn.tid = d.st.tid; tradeRoutes[d.st.tid] = m => { try { conn.send(m); } catch (e) {} }; }
+        if (d.t === "tdone" || d.t === "tend") conn.tid = null;
+        if (["tstate", "tdone", "tend", "tans"].includes(d.t)) clientData(d);
+        if (d.t === "tans") setTimeout(() => { try { conn.close(); } catch (e) {} }, 500);
+      });
+      conn.on("close", () => { if (conn.tid) { const tid = conn.tid; conn.tid = null; delete tradeRoutes[tid]; ui.onTradeEnd(tid, "החיבור"); } });
+    });
   }
 
   /* ---------- קרב בין שחקנים (רץ אצל המארח) ---------- */
@@ -510,7 +605,8 @@ const WNet = (() => {
     try { hostConn && hostConn.close(); } catch (e) {}
     try { hostPeer && hostPeer.destroy(); } catch (e) {}
     try { clientPeer && clientPeer.destroy(); } catch (e) {}
-    hostPeer = clientPeer = hostConn = null;
+    try { myPeer && myPeer.destroy(); } catch (e) {}
+    hostPeer = clientPeer = hostConn = myPeer = null;
     role = null;
   }
 
@@ -528,11 +624,12 @@ const WNet = (() => {
     gift: (to, id, lvl, form) => send({t: "gift", to, id, lvl, form}),
     coins: (to, n) => send({t: "coins", to, n}),
     tradeReq: to => send({t: "treq", to}),
-    tradeAns: (to, ok) => send({t: "tans", to, ok}),
-    tradeOffer: (tid, mons, coins, total) => send({t: "toffer", tid, mons, coins, total}),
-    tradeReady: (tid, on) => send({t: "tready", tid, on}),
-    tradeOk: tid => send({t: "tok", tid}),
-    tradeCancel: tid => send({t: "tcancel", tid}),
+    tradeAns: tradeAnswer,
+    tradeByName,
+    tradeOffer: (tid, mons, coins, total) => routeOf(tid)({t: "toffer", tid, mons, coins, total}),
+    tradeReady: (tid, on) => routeOf(tid)({t: "tready", tid, on}),
+    tradeOk: tid => routeOf(tid)({t: "tok", tid}),
+    tradeCancel: tid => routeOf(tid)({t: "tcancel", tid}),
     world: () => worldNo,
     role: () => role
   };

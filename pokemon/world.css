@@ -288,3 +288,6 @@ button { font: inherit; }
 .tpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; max-height: 50vh; overflow: auto; margin: 6px 0; }
 .tpick button { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 10px; border: 2px solid #ddd; background: #fff; cursor: pointer; font-family: inherit; }
 .tpick img { width: 56px; height: 56px; object-fit: contain; }
+.trow.far { border: 2px dashed #4a8fe0; }
+.trow.far small { opacity: .7; font-weight: normal; }
+.thint { font-size: 12px; opacity: .7; text-align: center; margin: 2px 0 6px; }
