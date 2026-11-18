@@ -819,25 +819,17 @@ function drawTradeList() {
   const list = others.filter(p => !q || String(p.name || "").includes(q));
   const rows = list.map(p => `<div class="trow"><span class="tname">👤 ${escW(p.name)}</span>
       <button class="mini" ${p.busy ? "disabled" : ""} onclick="sendTrade('${p.pid}')">${p.busy ? "⚔️ בקרב" : "🤝 שלח טרייד"}</button></div>`).join("");
-  // שם שלא נמצא בשרת שלי: אפשר לחפש אותו בכל השרתים (צריך את השם המדויק)
-  const exact = others.some(p => p.name === q);
-  const far = q && !exact && q !== myName
-    ? `<div class="trow far"><span class="tname">🌍 ${escW(q)} <small>בשרת אחר</small></span>
-        <button class="mini" onclick="tradeFar()">🔎 שלח טרייד</button></div>
-       <p class="thint">בשרת אחר צריך לכתוב את השם המדויק</p>` : "";
-  el.innerHTML = rows + far || `<p class="tempty">אין עוד שחקנים בשרת שלך. אפשר לכתוב שם של שחקן משרת אחר</p>`;
+  // שחקנים משרתים אחרים שמתאימים לחיפוש (הרשימה מגיעה מהלובי של שרת 0)
+  const far = q ? WNet.dir().filter(p => p.pid !== WNet.myPid && !worldPlayers[p.pid] && String(p.name || "").includes(q)) : [];
+  const farRows = far.map(p => `<div class="trow far"><span class="tname">🌍 ${escW(p.name)} <small>שרת ${p.w + 1}</small></span>
+      <button class="mini" onclick="sendFar('${p.pid}', '${escW(p.name).replace(/'/g, "")}')">🤝 שלח טרייד</button></div>`).join("");
+  el.innerHTML = rows + farRows || `<p class="tempty">${q ? "לא נמצא שחקן בשם הזה באף שרת" : others.length ? "" : "אין עוד שחקנים בשרת שלך. אפשר לחפש לפי שם שחקן משרת אחר"}</p>`;
 }
 
-async function tradeFar() {
-  const q = ($w("#tradeSearch").value || "").trim();
-  if (!q) return;
+function sendFar(pid, name) {
+  WNet.tradeFar(pid);
   closeModal();
-  toast(`🔎 מחפשים את ${q}...`);
-  const r = await WNet.tradeByName(q);
-  if (r === "sent") toast(`🤝 בקשת טרייד נשלחה ל${q} ⏳`);
-  else if (r === "notfound") toast(`לא מצאנו שחקן מחובר בשם "${q}"`, 3500);
-  else if (r === "self") toast("זה אתה 🙂");
-  else toast("בעיה בחיבור, נסה שוב");
+  toast(`🤝 בקשת טרייד נשלחה ל${name} ⏳`);
 }
 
 function sendTrade(pid) {
