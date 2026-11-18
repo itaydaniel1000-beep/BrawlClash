@@ -14,7 +14,8 @@ const WNet = (() => {
   const W = (params.get("w") || "").replace(/[^a-z0-9]/gi, "").slice(0, 16) || "main";
   const ROOT = "pkmn-itay-v2/" + W;
   // שרתי הודעות ציבוריים - אם הראשון לא עונה, עוברים לבא. ?mqtt= לבדיקות
-  const BROKERS = params.get("mqtt") ? [params.get("mqtt")] : ["wss://broker.emqx.io:8084/mqtt", "wss://broker.hivemq.com:8884/mqtt"];
+  const BROKERS = params.get("mqtt") ? [params.get("mqtt")]
+    : ["wss://broker.emqx.io:8084/mqtt", "wss://broker.hivemq.com:8884/mqtt", "wss://test.mosquitto.org:8081/mqtt"];
   const MAX = 12;
   const STALE = 75000;        // נוכחות שלא התעדכנה 75 שניות - השחקן כבר לא כאן
 
@@ -28,6 +29,7 @@ const WNet = (() => {
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
   let trades = {};            // אצל המארח / אצל מי שמנהל טרייד: הטריידים הפתוחים
   let tick = null, stopped = true, lastPosSent = 0, lastPosJson = "", lastPresence = 0;
+  let stage = "לא התחיל", tries = 0, brokerUrl = "";   // באיזה שלב החיבור - בשביל השורה בחלון הטרייד
   let ui = {onTradeReq() {}, onTradeAns() {}, onTrade() {}, onTradeDone() {}, onTradeEnd() {}, onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}, onGotCoins() {}};
   const toastCoins = (n, to) => ui.onGaveCoins && ui.onGaveCoins(n, to);
   const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -63,8 +65,14 @@ const WNet = (() => {
     stopped = false;
     ui.onStatus("connecting");
     while (!stopped && !client) {
-      for (const url of BROKERS) { client = await connectBroker(url); if (client) break; }
-      if (!client) await wait(3000);
+      tries++;
+      if (typeof mqtt === "undefined") { stage = "ספריית החיבור לא נטענה (unpkg.com חסום?)"; await wait(3000); continue; }
+      for (const url of BROKERS) {
+        stage = `מתחבר לשרת ההודעות (${url.split("/")[2].split(":")[0]}, ניסיון ${tries})`;
+        client = await connectBroker(url);
+        if (client) { brokerUrl = url; break; }
+      }
+      if (!client) { stage = `לא מצליח להגיע לשרתי ההודעות (ניסיון ${tries}) - אולי הרשת חוסמת`; await wait(3000); }
     }
     if (stopped) return;
     client.on("message", onMessage);
@@ -72,14 +80,16 @@ const WNet = (() => {
     client.on("connect", () => { subscribe(); if (joined) announce(); });
     client.on("offline", () => ui.onStatus("reconnecting"));
     subscribe();
+    stage = "מחובר לשרת ההודעות, אוסף את רשימת השחקנים";
     await wait(1800);   // אוספים את הנוכחות של כל מי שכבר בפנים
     if (stopped) return;
     prune();
     // שם שכבר מחובר (אולי מהכניסה הקודמת, שעוד לא התנקתה) - מחכים קצת ובודקים שוב
     const taken = () => Object.values(presence).some(p => p.pid !== myPid && p.name === name);
-    for (let k = 0; k < 4 && taken() && !stopped; k++) { await wait(12000); prune(); }
+    for (let k = 0; k < 4 && taken() && !stopped; k++) { stage = "השם שלך עוד רשום מהכניסה הקודמת - מחכה שיתפנה"; await wait(12000); prune(); }
     if (stopped) return;
     if (taken() || (Admin.reserved(name) && !Admin.unlocked())) {
+      stage = "השם כבר מחובר ממכשיר אחר";
       stopped = true;
       ui.onStatus("nametaken");
       return;
@@ -96,6 +106,7 @@ const WNet = (() => {
     announce();
     recompute();
     startTick();
+    stage = "מחובר";
     ui.onStatus("online");
   }
 
@@ -619,7 +630,9 @@ const WNet = (() => {
     tradeAns: tradeAnswer,
     tradeFar,
     dir: dirList,
-    lobbyInfo: () => `שרת ${worldNo + 1} · ${role === "host" ? "אתה המארח" : role === "client" ? "מחובר" : "לא מחובר"} · רואים ${Object.keys(presence).length} שחקנים בכל השרתים`,
+    lobbyInfo: () => joined
+      ? `שרת ${worldNo + 1} · ${role === "host" ? "אתה המארח" : "מחובר"} · רואים ${Object.keys(presence).length} שחקנים בכל השרתים`
+      : `לא מחובר עדיין: ${stage}`,
     tradeOffer: (tid, mons, coins, total) => routeOf(tid)({t: "toffer", tid, mons, coins, total}),
     tradeReady: (tid, on) => routeOf(tid)({t: "tready", tid, on}),
     tradeOk: tid => routeOf(tid)({t: "tok", tid}),
