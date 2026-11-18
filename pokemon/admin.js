@@ -35,7 +35,7 @@ const Admin = (() => {
     return new Promise(resolve => {
       let el = document.getElementById("admPick");
       if (!el) { el = document.createElement("div"); el.id = "admPick"; document.body.appendChild(el); }
-      const ids = Object.keys(POKEMON).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex);
+      const ids = Object.keys(POKEMON).filter(id => !POKEMON[id].form).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex);
       el.className = "adm-pick";
       el.innerHTML = `<div class="adm-box">
         <div class="adm-head"><b>${title}</b><button class="adm-x">✕</button></div>

@@ -27,7 +27,8 @@ function wStats(mon) {
   return {hp: st[0], atk: st[1], def: st[2], spa: st[3], spd: st[4], spe: st[5]};
 }
 
-const wMaxHp = mon => wStats(mon).hp;
+// בדיינמקס החיים כפולים
+const wMaxHp = mon => wStats(mon).hp * (mon.dmax ? 2 : 1);
 const xpToNext = lvl => 12 + Math.round(lvl * lvl * 1.1);
 
 /* ---------- מתקפות ---------- */
@@ -83,7 +84,8 @@ function typeMult(moveType, defTypes) {
 
 /* נזק של מתקפה אחת. מחזיר גם אם פגע ואם זה היה יעיל */
 function wDamage(att, def, moveKey) {
-  const mv = WMOVES[moveKey];
+  // בדיינמקס: מתקפת מקס (או ג'י-מקס) שתמיד פוגעת
+  const mv = att.dmax && WMOVES[moveKey] ? maxMove(att.id, moveKey) : WMOVES[moveKey];
   if (!mv) return {dmg: 0, hit: false, mult: 1};
   const [, type, power, acc, physical] = mv;
   if (Math.random() * 100 >= acc) return {dmg: 0, hit: false, mult: 1};
@@ -171,6 +173,42 @@ function evolveMon(mon, to) {
   mon.hp = Math.max(1, Math.round(wMaxHp(mon) * ratio));
 }
 
+/* ---------- מגה ודיינמקס ----------
+   sp = {kind: "mega", form} או {kind: "dmax"}. מחזיר את ההודעה, או null אם אי אפשר.
+   מגה נשארת עד סוף הקרב. דיינמקס 3 תורות, וגם נגמר כשמחליפים או מתעלפים. */
+function wApplySpecial(m, sp) {
+  if (!m || m.hp <= 0 || !sp) return null;
+  const from = m.id;
+  if (sp.kind === "mega") {
+    if (m.dmax || !(MEGA_OF[from] || []).includes(sp.form)) return null;
+    m.base = from;
+    m.id = sp.form;
+    return `💎 ${POKEMON[from].he} עשה מגה-אבולוציה ל${POKEMON[sp.form].he}!`;
+  }
+  if (sp.kind === "dmax") {
+    if (m.dmax || !canDmax(from)) return null;
+    if (GMAX_OF[from]) { m.base = from; m.id = GMAX_OF[from]; }
+    m.dmax = DMAX_TURNS;
+    m.hp *= 2;
+    return `🔴 ${POKEMON[from].he} עשה ${GMAX_OF[from] ? "ג'יגנטמקס" : "דיינמקס"}!`;
+  }
+  return null;
+}
+
+function wEndDmax(m) {
+  if (!m || (!m.dmax && !(POKEMON[m.id] && POKEMON[m.id].form === "gmax"))) return;
+  const hp = m.hp;
+  m.dmax = 0;
+  if (POKEMON[m.id] && POKEMON[m.id].form === "gmax") { m.id = m.base || baseOf(m.id); delete m.base; }
+  m.hp = Math.min(wMaxHp(m), Math.ceil(hp / 2));
+}
+
+// סוף הקרב: חוזרים לצורה הרגילה
+function wResetForms(m) {
+  wEndDmax(m);
+  if (m && POKEMON[m.id] && POKEMON[m.id].form === "mega") { m.id = m.base || baseOf(m.id); delete m.base; }
+}
+
 /* ---------- שמירה ---------- */
 
 const WSave = (() => {
@@ -178,11 +216,13 @@ const WSave = (() => {
   function load() {
     try { s = JSON.parse(localStorage.getItem(W_SAVE) || "null"); } catch (e) { s = null; }
     if (s && !Array.isArray(s.party)) s = null;
+    // שמירה מאמצע קרב: מחזירים כל פוקימון לצורה הרגילה
+    if (s) { s.gear = s.gear || {}; [...s.party, ...(s.box || [])].forEach(wResetForms); }
     return s;
   }
   function save() { try { localStorage.setItem(W_SAVE, JSON.stringify(s)); } catch (e) {} }
   function start(starterId) {
-    s = {party: [tameMon(makeWorldMon(starterId, 5))], box: [], coins: 100, pos: {x: 0, z: 6}, wins: 0, catches: 0};
+    s = {party: [tameMon(makeWorldMon(starterId, 5))], box: [], gear: {}, coins: 100, pos: {x: 0, z: 6}, wins: 0, catches: 0};
     save();
     return s;
   }

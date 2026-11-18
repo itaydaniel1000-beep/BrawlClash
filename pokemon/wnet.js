@@ -30,6 +30,7 @@ const WNet = (() => {
   let players = {};           // אצל המארח: כל השחקנים, כולל עצמו
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
   let tick = null, stopped = true, reconnecting = false;
+  let special = false;        // מגה ודיינמקס בעולם - רק אדמין מדליק ומכבה
   let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}, onGotCoins() {}};
   const toastCoins = (n, to) => ui.onGaveCoins && ui.onGaveCoins(n, to);
 
@@ -132,9 +133,10 @@ const WNet = (() => {
     tick = setInterval(() => {
       if (role === "host") {
         players[myPid] = {...me, pid: myPid};
-        const msg = {t: "world", players};
+        const msg = {t: "world", players, special};
         for (const pid in conns) try { conns[pid].send(msg); } catch (e) {}
         ui.onPlayers(players);
+        ui.onSpecial && ui.onSpecial(special);
       } else if (role === "client" && hostConn) {
         try { hostConn.send({t: "pos", p: me}); } catch (e) {}
       }
@@ -185,7 +187,11 @@ const WNet = (() => {
         startBattle(d.to, pid);
         break;
       case "party":
-        battleParty(pid, d.bid, d.party);
+        battleParty(pid, d.bid, d.party, d.gear);
+        break;
+      case "special":
+        // 👑 רק השמות השמורים
+        if (players[pid] && Admin.reserved(players[pid].name)) special = !!d.on;
         break;
       case "bact":
         battleAct(pid, d.bid, d.act);
@@ -219,7 +225,10 @@ const WNet = (() => {
 
   function clientData(d) {
     switch (d.t) {
-      case "world": ui.onPlayers(d.players); break;
+      case "world":
+        ui.onPlayers(d.players);
+        if ("special" in d && !!d.special !== special) { special = !!d.special; ui.onSpecial && ui.onSpecial(special); }
+        break;
       case "chal": ui.onChallenge(d.from, d.name); break;
       case "ans": ui.onAnswer(d.from, d.ok, d.busy); break;
       case "bstate": ui.onBattle(d.st); break;
@@ -254,10 +263,12 @@ const WNet = (() => {
 
   function sideOf(b, pid) { return b.a.pid === pid ? b.a : b.b.pid === pid ? b.b : null; }
 
-  function battleParty(pid, bid, party) {
+  function battleParty(pid, bid, party, gear) {
     const b = battles[bid];
     const s = b && sideOf(b, pid);
     if (!s || s.party) return;
+    s.gear = {mega: !!(gear && gear.mega), band: !!(gear && gear.band)};
+    s.megaUsed = s.dmaxUsed = false;
     s.party = (party || []).slice(0, W_MAX_PARTY).map(m => ({uid: m.uid, id: m.id, lvl: Math.min(100, m.lvl | 0), moves: (m.moves || []).filter(k => WMOVES[k]).slice(0, 4), hp: 0}))
       .filter(m => POKEMON[m.id] && m.moves.length);
     s.party.forEach(m => { m.hp = wMaxHp(m); });
@@ -277,6 +288,10 @@ const WNet = (() => {
       if (!m || m.hp <= 0 || act.i === s.active) return refuse();
     } else if (act.kind === "move") {
       if (s.need || !s.party[s.active].moves[act.i]) return refuse();
+      // מגה / דיינמקס עם המתקפה: רק כשפועל, יש חפץ ועוד לא השתמשו בקרב הזה
+      const sp = act.sp;
+      const ok = sp && special && (sp.kind === "mega" ? s.gear.mega && !s.megaUsed : sp.kind === "dmax" ? s.gear.band && !s.dmaxUsed : false);
+      act = {kind: "move", i: act.i, sp: ok ? {kind: sp.kind, form: sp.form} : null};
     } else return refuse();
     // אחרי התעלפות: רק החלפה, והיא קורית מיד בלי תור של היריב
     if (s.need) {
@@ -298,9 +313,19 @@ const WNet = (() => {
     // החלפות קודם
     for (const s of [b.a, b.b]) {
       if (s.act.kind === "switch") {
+        wEndDmax(s.party[s.active]);   // דיינמקס נגמר כשמחליפים
         s.active = s.act.i;
         log.push(`${s.name} מחליף ל${POKEMON[s.party[s.active].id].he}`);
       }
+    }
+    // מגה ודיינמקס קורים לפני שתוקפים
+    for (const s of [b.a, b.b]) {
+      if (s.act.kind !== "move" || !s.act.sp) continue;
+      const text = wApplySpecial(s.party[s.active], s.act.sp);
+      if (!text) continue;
+      if (s.act.sp.kind === "mega") s.megaUsed = true; else s.dmaxUsed = true;
+      log.push(`${s.name}: ${text}`);
+      fx.push({by: s.pid, sp: s.act.sp.kind});
     }
     const A = b.a, B = b.b;
     const mvA = A.act.kind === "move" ? A.party[A.active].moves[A.act.i] : null;
@@ -316,8 +341,18 @@ const WNet = (() => {
       if (def.boost && def.boost.def) r.dmg = Math.ceil(r.dmg / 2);
       dm.hp = Math.max(0, dm.hp - r.dmg);
       fx.push({by: att.pid, move: mv, dmg: r.dmg, hit: r.hit, mult: r.mult});
-      log.push(`${POKEMON[am.id].he} של ${att.name} משתמש ב${WMOVES[mv][0]}` + (r.hit ? ` - ${r.dmg}${r.mult > 1 ? " (יעיל מאוד!)" : r.mult < 1 ? " (לא יעיל)" : ""}` : " - פספס!"));
+      const mvName = am.dmax ? maxMove(am.id, mv)[0] : WMOVES[mv][0];
+      if (dm.hp <= 0) wEndDmax(dm);
+      log.push(`${POKEMON[am.id].he} של ${att.name} משתמש ב${mvName}` + (r.hit ? ` - ${r.dmg}${r.mult > 1 ? " (יעיל מאוד!)" : r.mult < 1 ? " (לא יעיל)" : ""}` : " - פספס!"));
       if (dm.hp <= 0) log.push(`${POKEMON[dm.id].he} של ${def.name} התעלף!`);
+    }
+    // דיינמקס: עוד תור עבר
+    for (const s of [A, B]) {
+      const m = s.party[s.active];
+      if (s.act.kind === "move" && m.dmax && m.hp > 0) {
+        m.dmax--;
+        if (!m.dmax) { const name = POKEMON[m.id].he; wEndDmax(m); log.push(`${name} של ${s.name} חזר לגודל רגיל`); }
+      }
     }
     A.act = B.act = null;
     for (const s of [A, B]) {
@@ -377,7 +412,7 @@ const WNet = (() => {
   function battleState(b, fx) {
     return {
       bid: b.bid, phase: b.over ? "over" : "turn", turn: b.turn, over: b.over, log: b.log, fx: fx || null,
-      sides: [b.a, b.b].map(s => ({pid: s.pid, name: s.name, active: s.active, need: s.need, ready: !!s.act, party: s.party}))
+      sides: [b.a, b.b].map(s => ({pid: s.pid, name: s.name, active: s.active, need: s.need, ready: !!s.act, party: s.party, megaUsed: !!s.megaUsed, dmaxUsed: !!s.dmaxUsed}))
     };
   }
 
@@ -407,7 +442,9 @@ const WNet = (() => {
     setUI: h => Object.assign(ui, h),
     challenge: to => send({t: "chal", to}),
     answer: (to, ok) => send({t: "ans", to, ok}),
-    sendParty: (bid, party) => send({t: "party", bid, party}),
+    sendParty: (bid, party, gear) => send({t: "party", bid, party, gear}),
+    special: () => special,
+    setSpecial: on => send({t: "special", on}),
     act: (bid, act) => send({t: "bact", bid, act}),
     quit: bid => send({t: "bquit", bid}),
     admin: (bid, d) => send({t: "badm", bid, ...d}),

@@ -257,3 +257,15 @@ button { font: inherit; }
 .stats span { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .stats span i { font-style: normal; font-size: 16px; }
 .stats span b { font-size: 15px; color: #26303d; }
+
+/* ----- מגה ודיינמקס ----- */
+.sp-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+.sp-btn { font: inherit; font-weight: bold; font-size: 15px; padding: 8px 14px; border-radius: 12px; border: 2px solid rgba(0,0,0,.25); color: #fff; cursor: pointer; }
+.sp-btn.mega { background: linear-gradient(135deg, #7b5cff, #3fc6ff); }
+.sp-btn.dmax { background: linear-gradient(135deg, #ff3355, #b3002d); }
+.sp-armed { margin: 4px 0; text-align: center; font-weight: bold; color: #d6002f; }
+.shop-row { display: flex; align-items: center; gap: 10px; padding: 8px; margin: 6px 0; border-radius: 12px; background: rgba(0,0,0,.06); }
+.shop-row img { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+.shop-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: right; }
+.shop-txt small { opacity: .75; }
+.owned { color: #1a9a4a; font-weight: bold; white-space: nowrap; }

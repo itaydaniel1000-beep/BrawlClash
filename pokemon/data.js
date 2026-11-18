@@ -49,7 +49,11 @@ const TYPE_CHART = {
    תמונות של ההתחלתיים, הבוס והחבילה הישנה שמורות בתיקייה art.
    את השאר טוענים מהמאגר הפתוח של PokeAPI. */
 const LOCAL_ART = new Set([1, 4, 7, 10, 16, 19, 25, 37, 39, 43, 54, 63, 66, 74, 81, 92, 131, 133, 143, 147, 150]);
-const ART_URL = n => LOCAL_ART.has(n)
+// מספר שלילי = חפץ (אבן מגה, צמיד דיינמקס) - התמונה מתיקיית החפצים של PokeAPI
+const GEAR_ART = {"-1": "key-stone", "-2": "dynamax-band"};
+const ART_URL = n => n < 0
+  ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${GEAR_ART[n]}.png`
+  : LOCAL_ART.has(n)
   ? `art/${n}.png`
   : `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${n}.png`;
 

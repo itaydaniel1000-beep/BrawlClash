@@ -14,7 +14,7 @@ const shuffle = arr => {
 };
 
 /* כל הפוקימונים חוץ מההתחלתיים, הבוס והפריטים */
-const wildPool = () => Object.keys(POKEMON).filter(id => !STARTERS.includes(id) && id !== CONFIG.boss.id && !ITEMS[id]);
+const wildPool = () => Object.keys(POKEMON).filter(id => !STARTERS.includes(id) && id !== CONFIG.boss.id && !ITEMS[id] && !POKEMON[id].form);
 
 /* ---------- פריטים ובונוסים ---------- */
 const isItem = id => !!ITEMS[id];
@@ -22,8 +22,8 @@ const itemSum = (p, key) => p.team.reduce((s, m) => s + ((ITEMS[m.id] || {})[key
 const luckOf = p => itemSum(p, "luck");
 
 /* נזק של שחקן: הנזק הרגיל, ועוד הבונוס של החרב */
-function playerDamage(p, monId, wildId, moveKey) {
-  const {mult, dmg} = moveKey ? moveDamage(monId, moveKey, wildId) : damageOf(monId, wildId);
+function playerDamage(p, monId, wildId, moveKey, dmax) {
+  const {mult, dmg} = moveKey ? moveDamage(monId, moveKey, wildId, dmax) : damageOf(monId, wildId);
   return {mult, dmg: Math.round(dmg * (1 + (p ? itemSum(p, "dmg") : 0)) * (p && p.boost && p.boost.atk ? 2 : 1))};
 }
 
@@ -34,15 +34,17 @@ function playerDamage(p, monId, wildId, moveKey) {
    עצמו חזקה קצת יותר. */
 const TABLE_MOVE_LEVEL = 30;
 function monMoves(id) {
-  const d = POKEMON[id];
+  // מגה וג'יגנטמקס משתמשים במתקפות של הפוקימון הבסיסי
+  const d = POKEMON[typeof baseOf === "function" ? baseOf(id) : id];
   if (typeof WLEARN === "undefined" || !d) return [];
   const list = (WLEARN[d.dex] || []).filter(([l, k]) => l <= TABLE_MOVE_LEVEL && WMOVES[k]).map(([, k]) => k);
   const uniq = [...new Set(list)];
   return uniq.length ? uniq.slice(-4) : ["tackle"];
 }
 
-function moveDamage(attId, moveKey, defId) {
-  const mv = WMOVES[moveKey];
+/* dmax: בדיינמקס המתקפה הופכת למתקפת מקס (או ג'י-מקס) */
+function moveDamage(attId, moveKey, defId, dmax) {
+  const mv = dmax && WMOVES[moveKey] ? maxMove(attId, moveKey) : WMOVES[moveKey];
   if (!mv) return damageOf(attId, defId);
   const mult = typeMultiplier([mv[1]], POKEMON[defId].types);
   const stab = POKEMON[attId].types.includes(mv[1]) ? 1.2 : 1;
@@ -50,6 +52,7 @@ function moveDamage(attId, moveKey, defId) {
 }
 
 const moveName = k => (WMOVES[k] || ["מתקפה"])[0];
+const hasGear = (p, key) => p.team.some(m => m.id === key);
 
 /* המגן: כל הפוקימונים של השחקן מקבלים יותר חיים מקסימליים. נקרא אחרי
    כל שינוי בקבוצה, ומחשב מחדש מהחיים הבסיסיים - אז אין הכפלה כפולה */
@@ -57,7 +60,8 @@ function applyShield(p) {
   const f = 1 + itemSum(p, "hp");
   p.team.forEach(m => {
     if (isItem(m.id) || !POKEMON[m.id]) return;
-    const want = Math.round(POKEMON[m.id].hp * CONFIG.hpScale * f);
+    // בדיינמקס החיים כפולים
+    const want = Math.round(POKEMON[m.id].hp * CONFIG.hpScale * f * (m.dmax ? 2 : 1));
     if (m.maxHp === want) return;
     m.hp = m.maxHp > 0 ? Math.round(m.hp * want / m.maxHp) : want;
     m.maxHp = want;
@@ -72,7 +76,7 @@ function evolvesTo(id) {
   const list = (typeof EVOLVES_DEX !== "undefined" && d && EVOLVES_DEX[d.dex]) || [];
   return list.map(n => DEX_KEY[n]).filter(Boolean);
 }
-const evolvable = p => p.team.map((m, i) => i).filter(i => evolvesTo(p.team[i].id).length > 0);
+const evolvable = p => p.team.map((m, i) => i).filter(i => !p.team[i].dmax && evolvesTo(p.team[i].id).length > 0);
 
 function makeMon(id) {
   const hp = POKEMON[id].hp * CONFIG.hpScale;
@@ -231,7 +235,9 @@ const Engine = (() => {
       win: null,
       log: []
     });
-    S.players.forEach(p => { p.team = []; p.roll = null; p.ready = false; });
+    S.players.forEach(p => { p.team = []; p.roll = null; p.ready = false; p.megaUsed = p.dmaxUsed = false; });
+    // מגה ודיינמקס פועלים: אבן המגה וצמיד הדיינמקס נכנסים לחבילה
+    if (S.special) GEAR_IDS.forEach(g => S.deck.splice(rnd(S.deck.length + 1), 0, g));
     log("ההרפתקה מתחילה!");
     startRoll("starterRoll");
   }
@@ -415,10 +421,16 @@ const Engine = (() => {
     if (!mon || mon.hp <= 0 || isItem(mon.id) || S.wild.item) return;
     const moves = monMoves(mon.id);
     if (moves.length && !moves.includes(moveKey)) moveKey = moves[0];
-    const {mult, dmg} = playerDamage(p, mon.id, S.wild.id, moveKey);
+    const {mult, dmg} = playerDamage(p, mon.id, S.wild.id, moveKey, mon.dmax);
     S.wild.hp = Math.max(0, S.wild.hp - dmg);
     trimNums(S.wild);
-    const text = `${p.name}: ${POKEMON[mon.id].he} משתמש ב${moveName(moveKey)} - ${dmg} (${multText(mult)})`;
+    const mvName = mon.dmax && WMOVES[moveKey] ? maxMove(mon.id, moveKey)[0] : moveName(moveKey);
+    let text = `${p.name}: ${POKEMON[mon.id].he} משתמש ב${mvName} - ${dmg} (${multText(mult)})`;
+    // דיינמקס נמשך 3 תורות של השחקן
+    if (mon.dmax) {
+      mon.dmax--;
+      if (!mon.dmax) { const name = POKEMON[mon.id].he; endDmax(mon); text += `. ${name} חזר לגודל רגיל`; }
+    }
     log(text);
     S.phase = "anim";
     S.action = text;
@@ -495,7 +507,58 @@ const Engine = (() => {
     resolveWild(`${POKEMON[w.id].he} התעלף!`, "הוא חוזר למקום אקראי בחבילה.");
   }
 
+  /* ---------- מגה ודיינמקס ----------
+     שניהם צריכים חפץ (אבן מגה / צמיד דיינמקס בצוות) ואפשר כל אחד פעם אחת
+     בכל קרב - כלומר מול כל פוקימון פראי. מגה נמשכת עד סוף הקרב, דיינמקס
+     3 תורות (חיים כפולים ומתקפות מקס). פוקימון במגה לא יכול לעשות דיינמקס. */
+  function endDmax(m) {
+    if (!m.dmax && !(POKEMON[m.id] && POKEMON[m.id].form === "gmax")) return;
+    const hp = m.hp;
+    m.dmax = 0;
+    if (POKEMON[m.id].form === "gmax") { m.id = m.base || baseOf(m.id); delete m.base; }
+    m.maxHp = Math.round(m.maxHp / 2);
+    m.hp = Math.min(m.maxHp, Math.ceil(hp / 2));
+  }
+
+  // הקרב נגמר: כל הפוקימונים חוזרים לצורה הרגילה, ואפשר שוב מגה ודיינמקס
+  function formsReset() {
+    S.players.forEach(p => {
+      p.team.forEach(m => {
+        endDmax(m);
+        if (POKEMON[m.id] && POKEMON[m.id].form === "mega") { m.id = m.base || baseOf(m.id); delete m.base; }
+      });
+      p.megaUsed = p.dmaxUsed = false;
+      applyShield(p);
+    });
+  }
+
+  function megaEvolve(p, index, form) {
+    const m = p.team[index];
+    if (!S.special || !m || m.hp <= 0 || isItem(m.id) || m.dmax || p.megaUsed || !hasGear(p, "key-stone")) return;
+    if (!(MEGA_OF[m.id] || []).includes(form)) return;
+    const from = m.id;
+    m.base = from;
+    m.id = form;
+    p.megaUsed = true;
+    log(`💎 ${p.name}: ${POKEMON[from].he} עשה מגה-אבולוציה ל${POKEMON[form].he}!`);
+    commit({kind: "mega", pid: p.pid, index, from, to: form});
+  }
+
+  function dynamax(p, index) {
+    const m = p.team[index];
+    if (!S.special || !m || m.hp <= 0 || m.dmax || p.dmaxUsed || !canDmax(m.id) || !hasGear(p, "dynamax-band")) return;
+    const from = m.id;
+    if (GMAX_OF[from]) { m.base = from; m.id = GMAX_OF[from]; }
+    m.dmax = DMAX_TURNS;
+    m.hp *= 2;
+    m.maxHp *= 2;
+    p.dmaxUsed = true;
+    log(`🔴 ${p.name}: ${POKEMON[from].he} עשה ${GMAX_OF[from] ? "ג'יגנטמקס" : "דיינמקס"}!`);
+    commit({kind: "dmax", pid: p.pid, index, from, to: m.id});
+  }
+
   function resolveWild(title, text, fx) {
+    formsReset();
     S.resolved++;
     if (S.resolved % CONFIG.clinicEvery === 0) {
       healAll();
@@ -531,6 +594,7 @@ const Engine = (() => {
       // 👑 פי 2 הגנה: חצי נזק
       const dmg = p.boost && p.boost.def ? Math.ceil(r.dmg / 2) : r.dmg;
       m.hp = Math.max(0, m.hp - dmg);
+      if (m.hp === 0 && m.dmax) endDmax(m);
       fxHits.push({pid: p.pid, id: m.id, index: p.team.indexOf(m), dmg, mult, ko: m.hp === 0, mtype: mk ? WMOVES[mk][1] : null});
       const ko = m.hp === 0 ? " - התעלף! 💫" : "";
       lines.push(`${mk ? moveName(mk) + " על " : "תוקף את "}${POKEMON[m.id].he} של ${p.name}: ‎-${dmg} (${multText(mult)})${ko}`);
@@ -546,6 +610,20 @@ const Engine = (() => {
   /* 👑 כוחות מיוחדים - רק לשמות השמורים */
   function adminAct(p, a) {
     if (S.phase === "waiting" || S.phase === "end") return;
+    // מגה ודיינמקס: פועל / כבוי לכל החדר. החפצים נכנסים לחבילה או יוצאים ממנה
+    if (a.op === "special") {
+      S.special = !S.special;
+      if (S.deck) {
+        if (S.special) {
+          GEAR_IDS.filter(g => !S.deck.includes(g) && !(S.wild && S.wild.id === g) && !S.players.some(q => hasGear(q, g)))
+            .forEach(g => S.deck.splice(rnd(S.deck.length + 1), 0, g));
+        } else {
+          S.deck = S.deck.filter(id => !GEAR_IDS.includes(id));
+        }
+      }
+      log(`👑 ${p.name}: מגה ודיינמקס ${S.special ? "פועלים" : "כבויים"}`);
+      return commit();
+    }
     if (a.op === "atk" || a.op === "def") {
       p.boost = {...(p.boost || {}), [a.op]: !(p.boost || {})[a.op]};
       log(`👑 ${p.name}: פי 2 ${a.op === "atk" ? "התקפה" : "הגנה"} ${p.boost[a.op] ? "פועל" : "כבוי"}`);
@@ -573,6 +651,7 @@ const Engine = (() => {
   }
 
   function endGame(win) {
+    formsReset();
     S.phase = "end";
     S.win = win;
     S.message = null;
@@ -643,6 +722,12 @@ const Engine = (() => {
       case "admin":
         if (Admin.reserved(p.name)) adminAct(p, a);
         break;
+      case "mega":
+        if (S.phase === "turn" && mine && S.wild && !S.wild.item) megaEvolve(p, a.index, a.form);
+        break;
+      case "dmax":
+        if (S.phase === "turn" && mine && S.wild && !S.wild.item) dynamax(p, a.index);
+        break;
       case "evolve":
         if (S.phase === "upgradePick" && S.upgrade && S.upgrade.pid === pid && evolvable(p).includes(a.index)) evolve(p, a.index);
         break;
@@ -664,7 +749,7 @@ const Engine = (() => {
 
     const inBoss = S.wild && S.wild.boss;
     if (!inBoss && S.deck) {
-      p.team.forEach(m => S.deck.splice(rnd(S.deck.length + 1), 0, m.id));
+      p.team.forEach(m => S.deck.splice(rnd(S.deck.length + 1), 0, baseOf(m.id)));
     }
     log(`${p.name} יצא מהמשחק${!inBoss && p.team.length ? " - הפוקימונים שלו חזרו לחבילה" : ""}`);
 

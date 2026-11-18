@@ -441,7 +441,7 @@ function carouselHTML(mons, onPick, withBack) {
   let vs = "";
   if (S.wild && withBack) {
     // המתקפה הכי חזקה שלו נגד הפראי הזה
-    const best = monMoves(m.id).map(k => ({k, ...playerDamage(me(), m.id, S.wild.id, k)})).sort((a, b) => b.dmg - a.dmg)[0]
+    const best = monMoves(m.id).map(k => ({k, ...playerDamage(me(), m.id, S.wild.id, k, m.dmax)})).sort((a, b) => b.dmg - a.dmg)[0]
       || {...playerDamage(me(), m.id, S.wild.id), k: null};
     vs = `<div class="vs ${best.mult > 1 ? "up" : best.mult < 1 ? "down" : ""}">⚔️ ${monMoves(m.id).length} מתקפות • עד ${best.dmg} נזק</div>`;
   }
@@ -478,16 +478,35 @@ function movesPanel(my, idx) {
   const m = my.team[idx];
   const d = POKEMON[m.id];
   const buttons = monMoves(m.id).map(k => {
-    const mv = WMOVES[k];
-    const {mult, dmg} = playerDamage(my, m.id, S.wild.id, k);
+    const mv = m.dmax ? maxMove(m.id, k) : WMOVES[k];
+    const {mult, dmg} = playerDamage(my, m.id, S.wild.id, k, m.dmax);
     const eff = mult > 1 ? `<em class="eff up">יעיל מאוד</em>` : mult === 0 ? `<em class="eff no">אין השפעה</em>` : mult < 1 ? `<em class="eff down">לא יעיל</em>` : "";
     return `<button class="tmv" style="--c:${TYPES[mv[1]].color}" onclick="useTableMove('${k}')">
       <span class="tmv-ic">${TYPES[mv[1]].icon}</span><span class="tmv-txt"><b>${mv[0]}</b><small>מוריד ${dmg} · ${TYPES[mv[1]].he}</small></span>${eff}</button>`;
   }).join("");
   return `<h2><img class="tmv-mon" src="${ART_URL(d.dex)}" alt=""> איזו מתקפה של ${d.he}?</h2>
+    ${specialButtons(my, m, idx)}
     <div class="tmv-grid">${buttons}</div>
     <div class="row"><button class="btn" onclick="ui.attackMon = null; renderPanel()">↩ חזור</button></div>`;
 }
+/* מגה ודיינמקס: רק כשהאדמין הפעיל, ורק למי שיש לו את החפץ.
+   ההפיכה לא מבזבזת את התור - אחריה בוחרים מתקפה כרגיל */
+function specialButtons(my, m, idx) {
+  if (!S.special) return "";
+  if (m.dmax) return `<p class="sp-note">🔴 ${POKEMON[m.id].form === "gmax" ? "ג'יגנטמקס" : "דיינמקס"}: עוד ${m.dmax} ${m.dmax === 1 ? "תור" : "תורות"}</p>`;
+  const btns = [];
+  if (hasGear(my, "key-stone") && !my.megaUsed && canMega(m.id)) {
+    MEGA_OF[m.id].forEach(f => {
+      const tag = (f.match(/-mega-([xyz])$/) || [])[1];
+      btns.push(`<button class="btn sp-mega" onclick="Net.act({t:'mega', index:${idx}, form:'${f}'})">💎 מגה${tag ? " " + tag.toUpperCase() : ""}</button>`);
+    });
+  }
+  if (hasGear(my, "dynamax-band") && !my.dmaxUsed && canDmax(m.id)) {
+    btns.push(`<button class="btn sp-dmax" onclick="Net.act({t:'dmax', index:${idx}})">🔴 ${GMAX_OF[m.id] ? "ג'יגנטמקס" : "דיינמקס"}</button>`);
+  }
+  return btns.length ? `<div class="row sp-row">${btns.join("")}</div>` : "";
+}
+
 function evolveAt(i) { const idx = (ui.evoIdx || [])[i]; if (idx !== undefined) Net.act({t: "evolve", index: idx}); }
 
 /* בזמן שדרוג מודגש מי שזכה, ובתור רגיל - מי שבתור */
@@ -700,6 +719,7 @@ function openAdmin() {
       <button ${canTake ? "" : "disabled"} onclick="adminAct('take')">🫳 לקחת את ${S.wild ? POKEMON[S.wild.id].he : "הפוקימון"}</button>
       <button onclick="adminCreate()">✨ ליצור פוקימון</button>
       ${others.map(p => `<button onclick="adminCreate('${p.pid}')">🎁 לתת ל${esc(p.name)}</button>`).join("")}
+      <button class="${S.special ? "on" : ""}" onclick="adminAct('special')">💎🔴 מגה ודיינמקס: ${S.special ? "פועל" : "כבוי"}</button>
     </div>
     <div class="row"><button class="btn" onclick="closeModal()">סגור</button></div>`, "admin");
 }
@@ -769,7 +789,7 @@ function onState(msg) {
   if (msg.fx && msg.fx.kind === "damage") flashDamage(msg.fx.dmg, msg.fx.mult);
   reelOnState(msg.fx);
   if (msg.fx && msg.fx.kind === "upgradeSpin") playRaffle();
-  if (msg.fx && msg.fx.kind === "evolve") Music.jingle("evolve");
+  if (msg.fx && (msg.fx.kind === "evolve" || msg.fx.kind === "mega" || msg.fx.kind === "dmax")) Music.jingle("evolve");
   if (msg.fx && msg.fx.kind === "upgradeWin" && msg.fx.pid === Net.myPid) { ui.carousel = 0; Sfx.play("turn"); buzz(150); renderPanel(); }
 }
 

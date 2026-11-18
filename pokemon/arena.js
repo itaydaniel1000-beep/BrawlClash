@@ -1060,7 +1060,7 @@ const Arena = {
     if (fx && fx.kind === "damage") fxAttack(fx);
     if (fx && fx.kind === "wildAttack") fxWildAttack(fx);
     if (fx && fx.kind === "wheel") fxWheel(S);
-    if (fx && fx.kind === "evolve") fxEvolve(fx);
+    if (fx && (fx.kind === "evolve" || fx.kind === "mega" || fx.kind === "dmax")) fxEvolve(fx);
     syncDice(S, fx);
     syncWild(S);
   }
