@@ -29,8 +29,9 @@ const WNet = (() => {
   let conns = {};             // אצל המארח: pid -> חיבור
   let players = {};           // אצל המארח: כל השחקנים, כולל עצמו
   let battles = {};           // אצל המארח: הקרבות בין שחקנים
+  let trades = {};            // אצל המארח: הטריידים שפתוחים עכשיו
   let tick = null, stopped = true, reconnecting = false;
-  let ui = {onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}, onGotCoins() {}};
+  let ui = {onTradeReq() {}, onTradeAns() {}, onTrade() {}, onTradeDone() {}, onTradeEnd() {}, onPlayers() {}, onChallenge() {}, onAnswer() {}, onBattle() {}, onStatus() {}, onLost() {}, onGot() {}, onGave() {}, onGotCoins() {}};
   const toastCoins = (n, to) => ui.onGaveCoins && ui.onGaveCoins(n, to);
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
@@ -193,6 +194,21 @@ const WNet = (() => {
       case "bquit":
         battleQuit(pid, d.bid);
         break;
+      case "treq":
+        if (!players[d.to] || d.to === pid) break;
+        if (busy(d.to) || busy(pid)) toPid(pid, {t: "tans", ok: false, busy: true, name: players[d.to].name});
+        else toPid(d.to, {t: "treq", from: pid, name: (players[pid] || {}).name});
+        break;
+      case "tans":
+        if (!players[d.to]) break;
+        if (!d.ok) { toPid(d.to, {t: "tans", ok: false, name: (players[pid] || {}).name}); break; }
+        if (busy(d.to) || busy(pid)) { toPid(d.to, {t: "tans", ok: false, busy: true, name: (players[pid] || {}).name}); break; }
+        startTrade(d.to, pid);
+        break;
+      case "toffer": tradeOffer(pid, d); break;
+      case "tready": tradeReady(pid, d); break;
+      case "tok": tradeOk(pid, d); break;
+      case "tcancel": tradeEnd(d.tid, (players[pid] || {}).name); break;
       case "badm":
         battleAdmin(pid, d);
         break;
@@ -228,6 +244,11 @@ const WNet = (() => {
       case "gave": ui.onGave(d.to, d.id, d.lvl); break;
       case "gotCoins": ui.onGotCoins(d.n, d.from); break;
       case "gaveCoins": toastCoins(d.n, d.to); break;
+      case "treq": ui.onTradeReq(d.from, d.name); break;
+      case "tans": ui.onTradeAns(d.ok, d.busy, d.name); break;
+      case "tstate": ui.onTrade(d.st); break;
+      case "tdone": ui.onTradeDone(d); break;
+      case "tend": ui.onTradeEnd(d.tid, d.by); break;
     }
   }
 
@@ -235,9 +256,90 @@ const WNet = (() => {
     delete conns[pid];
     delete players[pid];
     for (const bid in battles) if (battles[bid].a.pid === pid || battles[bid].b.pid === pid) battleQuit(pid, bid);
+    for (const tid in trades) if (trades[tid].a.pid === pid || trades[tid].b.pid === pid) tradeEnd(tid, "החיבור");
   }
 
-  const busy = pid => Object.values(battles).some(b => !b.over && (b.a.pid === pid || b.b.pid === pid));
+  const busy = pid => Object.values(battles).some(b => !b.over && (b.a.pid === pid || b.b.pid === pid))
+    || Object.values(trades).some(t => t.a.pid === pid || t.b.pid === pid);
+
+  /* ---------- טרייד (רץ אצל המארח) ----------
+     כל אחד שם פוקימונים ומטבעות. כל שינוי מבטל את ה"מוכן" של שניהם.
+     שניהם מוכנים ← שניהם מאשרים ← 3 שניות ← מוחלפים. */
+  function startTrade(aPid, bPid) {
+    const tid = Math.random().toString(36).slice(2, 9);
+    const side = pid => ({pid, name: (players[pid] || {}).name, mons: [], coins: 0, total: 1, ready: false, ok: false});
+    trades[tid] = {tid, a: side(aPid), b: side(bPid), go: 0, timer: null};
+    pushTrade(trades[tid]);
+  }
+
+  const tSide = (t, pid) => t.a.pid === pid ? t.a : t.b.pid === pid ? t.b : null;
+  const tOther = (t, s) => s === t.a ? t.b : t.a;
+  function tReset(t) {
+    t.a.ready = t.b.ready = t.a.ok = t.b.ok = false;
+    clearTimeout(t.timer);
+    t.go = 0;
+  }
+  // אי אפשר לתת את כל הפוקימונים שלך בלי לקבל אף אחד
+  const tEmpty = (t, s) => s.mons.length >= s.total && !tOther(t, s).mons.length;
+
+  function tradeOffer(pid, d) {
+    const t = trades[d.tid], s = t && tSide(t, pid);
+    if (!s) return;
+    s.mons = (d.mons || []).slice(0, 12).filter(m => m && POKEMON[m.id]).map(m => ({
+      uid: String(m.uid || ""), id: m.id, lvl: Math.max(1, Math.min(100, m.lvl | 0)), xp: Math.max(0, m.xp | 0),
+      moves: (m.moves || []).filter(k => WMOVES[k]).slice(0, 4), hp: Math.max(0, m.hp | 0),
+      ...(m.perm ? {perm: true, base: baseOf(m.id), dmax: POKEMON[m.id].form === "gmax" ? PERM_DMAX : 0} : {})
+    }));
+    s.coins = Math.max(0, Math.min(10000000, Math.floor(Number(d.coins) || 0)));
+    s.total = Math.max(1, d.total | 0);
+    tReset(t);
+    pushTrade(t);
+  }
+
+  function tradeReady(pid, d) {
+    const t = trades[d.tid], s = t && tSide(t, pid);
+    if (!s || t.go) return;
+    if (d.on && tEmpty(t, s)) return pushTrade(t);
+    s.ready = !!d.on;
+    if (!s.ready) t.a.ok = t.b.ok = false;
+    pushTrade(t);
+  }
+
+  function tradeOk(pid, d) {
+    const t = trades[d.tid], s = t && tSide(t, pid);
+    if (!s || !t.a.ready || !t.b.ready || t.go) return;
+    s.ok = true;
+    if (t.a.ok && t.b.ok) {
+      t.go = Date.now() + 3000;
+      t.timer = setTimeout(() => finishTrade(t.tid), 3000);
+    }
+    pushTrade(t);
+  }
+
+  function finishTrade(tid) {
+    const t = trades[tid];
+    if (!t || !t.a.ok || !t.b.ok) return;
+    delete trades[tid];
+    for (const s of [t.a, t.b]) {
+      const o = tOther(t, s);
+      toPid(s.pid, {t: "tdone", tid, give: s.mons.map(m => m.uid), coinsOut: s.coins, get: o.mons, coinsIn: o.coins, from: o.name});
+    }
+  }
+
+  function tradeEnd(tid, by) {
+    const t = trades[tid];
+    if (!t) return;
+    clearTimeout(t.timer);
+    delete trades[tid];
+    [t.a, t.b].forEach(s => toPid(s.pid, {t: "tend", tid, by}));
+  }
+
+  function pushTrade(t) {
+    const st = {tid: t.tid, go: t.go ? Math.max(0, t.go - Date.now()) : 0,
+      sides: [t.a, t.b].map(s => ({pid: s.pid, name: s.name, mons: s.mons, coins: s.coins, ready: s.ready, ok: s.ok}))};
+    toPid(t.a.pid, {t: "tstate", st});
+    toPid(t.b.pid, {t: "tstate", st});
+  }
 
   /* ---------- קרב בין שחקנים (רץ אצל המארח) ---------- */
 
@@ -425,6 +527,12 @@ const WNet = (() => {
     admin: (bid, d) => send({t: "badm", bid, ...d}),
     gift: (to, id, lvl, form) => send({t: "gift", to, id, lvl, form}),
     coins: (to, n) => send({t: "coins", to, n}),
+    tradeReq: to => send({t: "treq", to}),
+    tradeAns: (to, ok) => send({t: "tans", to, ok}),
+    tradeOffer: (tid, mons, coins, total) => send({t: "toffer", tid, mons, coins, total}),
+    tradeReady: (tid, on) => send({t: "tready", tid, on}),
+    tradeOk: tid => send({t: "tok", tid}),
+    tradeCancel: tid => send({t: "tcancel", tid}),
     world: () => worldNo,
     role: () => role
   };

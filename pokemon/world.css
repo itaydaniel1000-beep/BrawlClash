@@ -260,3 +260,31 @@ button { font: inherit; }
 
 /* ----- ג'יגנטמקס ----- */
 .sp-armed { margin: 4px 0; text-align: center; font-weight: bold; color: #d6002f; }
+
+/* ----- טרייד ----- */
+.tsearch { width: 100%; padding: 10px; font-size: 16px; border-radius: 10px; border: 2px solid #4a8fe0; margin: 6px 0; box-sizing: border-box; }
+.tlist { max-height: 46vh; overflow: auto; display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.trow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.06); }
+.tname { font-weight: bold; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tempty { opacity: .7; text-align: center; margin: 8px 0; }
+.tside { border-radius: 12px; padding: 8px; margin: 6px 0; background: rgba(0,0,0,.05); }
+.tside.mine { border: 2px solid #4a8fe0; }
+.tside.theirs { border: 2px solid #e0a64a; }
+.thead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.tmons { display: flex; flex-wrap: wrap; gap: 6px; }
+.tmon, .tadd { position: relative; width: 76px; display: flex; flex-direction: column; align-items: center; padding: 4px; border-radius: 10px; background: #fff; border: 2px solid #ddd; font-size: 12px; }
+.tmon img { width: 52px; height: 52px; object-fit: contain; }
+.tmon b { font-size: 11px; text-align: center; }
+.tadd { justify-content: center; min-height: 80px; cursor: pointer; font-weight: bold; color: #2d64a8; border-style: dashed; font-family: inherit; }
+.tx { position: absolute; top: -6px; left: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: #e0464e; color: #fff; font-size: 12px; cursor: pointer; }
+.tcoins { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tcoins button { padding: 4px 7px; border-radius: 8px; border: 2px solid #4a8fe0; background: #eef4ff; font-weight: bold; cursor: pointer; font-family: inherit; }
+.tcoins input { width: 76px; padding: 5px; border-radius: 8px; border: 2px solid #ffcb05; font-size: 15px; font-weight: bold; text-align: center; }
+.tcoins small { opacity: .7; }
+.tact { margin: 8px 0; display: flex; justify-content: center; }
+.tgo { font-size: 20px; font-weight: bold; color: #1a9a4a; }
+.twait { font-weight: bold; text-align: center; }
+.twarn { color: #d6002f; font-weight: bold; text-align: center; margin: 4px 0; }
+.tpick { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; max-height: 50vh; overflow: auto; margin: 6px 0; }
+.tpick button { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 10px; border: 2px solid #ddd; background: #fff; cursor: pointer; font-family: inherit; }
+.tpick img { width: 56px; height: 56px; object-fit: contain; }
