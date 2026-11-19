@@ -2,6 +2,27 @@
    השמות "איתי" ו"איתו" נעולים: אפשר לבחור בהם רק עם הקוד הסודי.
    מי שנכנס עם אחד מהם מקבל בקרב כפתור 👑: פי 2 התקפה, פי 2 הגנה,
    לקחת את הפוקימון של היריב, ליצור פוקימון ולתת פוקימון. */
+/* שגיאה במשחק: פס אדום קטן למטה עם ההודעה, כדי שאפשר יהיה לצלם ולשלוח.
+   לחיצה על הפס סוגרת אותו. */
+(() => {
+  const seen = new Set();
+  function show(msg) {
+    msg = String(msg || "שגיאה").slice(0, 180);
+    if (seen.has(msg) || seen.size > 5) return;
+    seen.add(msg);
+    const el = document.createElement("div");
+    el.textContent = "⚠️ " + msg;
+    el.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#c62828;color:#fff;font:13px/1.4 monospace;padding:8px 10px;border-radius:10px;direction:ltr;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,.4)";
+    el.onclick = () => el.remove();
+    (document.body || document.documentElement).appendChild(el);
+  }
+  window.addEventListener("error", e => {
+    if (e.target && e.target !== window && (e.target.src || e.target.href)) return;   // תמונה שלא נטענה - לא שגיאה בקוד
+    show((e.message || "error") + (e.filename ? " @ " + e.filename.split("/").pop().split("?")[0] + ":" + e.lineno : ""));
+  });
+  window.addEventListener("unhandledrejection", e => show("promise: " + (e.reason && (e.reason.message || e.reason))));
+})();
+
 const Admin = (() => {
   const NAMES = ["איתי", "איתו"];
   const HASH = "48f84ea6043f5313382811d79ec2ba3d163c943b0e33ca3fe2ba2e9a4f18e935";
