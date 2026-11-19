@@ -209,6 +209,13 @@ const WSave = (() => {
   function load() {
     try { s = JSON.parse(localStorage.getItem(W_SAVE) || "null"); } catch (e) { s = null; }
     if (s && !Array.isArray(s.party)) s = null;
+    // מקומות ריקים או פוקימון שלא קיים (משמירה ישנה או מבאג) - מוציאים
+    if (s) {
+      const ok = m => m && POKEMON[m.id];
+      s.party = s.party.filter(ok);
+      s.box = (Array.isArray(s.box) ? s.box : []).filter(ok);
+      if (!s.party.length) s.party.push(s.box.length ? s.box.shift() : tameMon(makeWorldMon("pikachu", 5)));
+    }
     // שמירה מאמצע קרב: מחזירים כל פוקימון לצורה הרגילה
     if (s) [...s.party, ...(s.box || [])].forEach(wResetForms);
     return s;

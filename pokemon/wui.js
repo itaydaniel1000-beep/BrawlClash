@@ -86,6 +86,7 @@ function enterWorld() {
 let netStatus = "connecting";
 
 function renderHud() {
+  cleanSV();
   const lead = SV.party[0];
   const n = Object.keys(worldPlayers).length;
   // מציירים מחדש רק כשמשהו השתנה - אחרת לחיצה על כפתור יכולה ללכת לאיבוד
@@ -132,8 +133,19 @@ function onPlayers(list) {
 
 /* ---------- הצוות ---------- */
 
+// מנקים מקומות ריקים בצוות ובקופסה (גם בלי לטעון מחדש)
+function cleanSV() {
+  const ok = m => m && POKEMON[m.id];
+  if (SV.party.every(ok) && SV.box.every(ok)) return;
+  SV.party = SV.party.filter(ok);
+  SV.box = SV.box.filter(ok);
+  if (!SV.party.length) SV.party.push(SV.box.length ? SV.box.shift() : tameMon(makeWorldMon("pikachu", 5)));
+  WSave.save();
+}
+
 function openParty() {
   if (battle || trade) return;
+  cleanSV();
   const rows = SV.party.map((m, i) => monRow(m, `<div class="mbtns">
       ${i ? `<button class="mini" onclick="makeLead(${i})">ראשון</button>` : `<span class="lead-mark">⭐</span>`}
       <button class="mini" onclick="showMon(${i})">פרטים</button>
@@ -144,9 +156,10 @@ function openParty() {
   modal(`<h2>הצוות שלי</h2>${rows}${box}<button class="wbtn" onclick="closeModal()">סגור</button>`);
 }
 
-function makeLead(i) { const [m] = SV.party.splice(i, 1); SV.party.unshift(m); World3D.setLead(m.id); WSave.save(); renderHud(); openParty(); }
-function toBox(i) { SV.box.push(...SV.party.splice(i, 1)); World3D.setLead(SV.party[0].id); WSave.save(); renderHud(); openParty(); }
-function fromBox(i) { SV.party.push(...SV.box.splice(i, 1)); WSave.save(); openParty(); }
+// לחיצה כפולה או רשימה שהשתנתה: בודקים שהפוקימון באמת שם - אחרת נכנס לצוות מקום ריק
+function makeLead(i) { if (!SV.party[i] || i === 0) return openParty(); const [m] = SV.party.splice(i, 1); SV.party.unshift(m); World3D.setLead(m.id); WSave.save(); renderHud(); openParty(); }
+function toBox(i) { if (!SV.party[i] || SV.party.length < 2) return openParty(); SV.box.push(...SV.party.splice(i, 1)); World3D.setLead(SV.party[0].id); WSave.save(); renderHud(); openParty(); }
+function fromBox(i) { if (!SV.box[i] || SV.party.length >= W_MAX_PARTY) return openParty(); SV.party.push(...SV.box.splice(i, 1)); WSave.save(); openParty(); }
 
 function showMon(i) {
   const m = SV.party[i], d = POKEMON[m.id], st = wStats(m);
@@ -492,6 +505,7 @@ async function growth(mon, events) {
    "רמה עלתה!" והמד מתחיל מחדש. אחרי "המשך" מגיעים המתקפות החדשות
    וההתפתחויות, אחד אחרי השני. */
 async function xpScreen(amount, extra, skip) {
+  cleanSV();
   const rows = SV.party.filter(m => m.hp > 0 && m !== skip).map(m => {
     const before = {lvl: m.lvl, xp: m.xp};
     const events = gainXp(m, amount);
@@ -566,6 +580,7 @@ function chooseForget(mon, move) {
 function endBattle() {
   const b = battle;
   if (!b) return;
+  cleanSV();
   if (b.kind === "wild") World3D.removeWild(b.uid);
   SV.party.forEach(wResetForms);
   battle = null;
