@@ -45,8 +45,11 @@ const Profile = (() => {
     // מה נוסף לצוות שלי
     if (mine) {
       const before = {};
+      // מגה וג'יגנטמקס נספרים כמו הפוקימון הבסיסי - ההפיכה היא לא תפיסה חדשה
+      const bid = id => (typeof baseOf === "function" ? baseOf(id) : id);
       last.myTeam.forEach(id => (before[id] = (before[id] || 0) + 1));
-      mine.team.forEach(m => {
+      mine.team.forEach(m0 => {
+        const m = {id: bid(m0.id)};
         if (before[m.id]) before[m.id]--;
         else {
           P.caught[m.id] = (P.caught[m.id] || 0) + 1;
@@ -56,7 +59,7 @@ const Profile = (() => {
           dirty = true;
         }
       });
-      last.myTeam = mine.team.map(m => m.id);
+      last.myTeam = mine.team.map(m => bid(m.id));
     }
 
     if (fx && fx.kind === "damage" && fx.pid === myPid) {
@@ -82,7 +85,7 @@ const Profile = (() => {
     resetGame,
     setSetting(k, v) { P.settings[k] = v; save(); },
     wipe() { const s = P.settings; P = blank(); P.settings = s; save(); },
-    dexList: () => Object.keys(POKEMON).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex),
+    dexList: () => Object.keys(POKEMON).filter(id => !POKEMON[id].form).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex),
     // מהעולם: מה שנתפס ונראה שם נכנס לאותו פוקידקס
     markSeen(id) { if (!P.seen[id]) { P.seen[id] = true; save(); } },
     markCaught(id) { P.caught[id] = (P.caught[id] || 0) + 1; P.stats.catches++; P.stats.tries++; save(); },

@@ -441,7 +441,7 @@ function carouselHTML(mons, onPick, withBack) {
   let vs = "";
   if (S.wild && withBack) {
     // המתקפה הכי חזקה שלו נגד הפראי הזה
-    const best = monMoves(m.id).map(k => ({k, ...playerDamage(me(), m.id, S.wild.id, k)})).sort((a, b) => b.dmg - a.dmg)[0]
+    const best = monMoves(m.id).map(k => ({k, ...playerDamage(me(), m.id, S.wild.id, k, m.dmax)})).sort((a, b) => b.dmg - a.dmg)[0]
       || {...playerDamage(me(), m.id, S.wild.id), k: null};
     vs = `<div class="vs ${best.mult > 1 ? "up" : best.mult < 1 ? "down" : ""}">⚔️ ${monMoves(m.id).length} מתקפות • עד ${best.dmg} נזק</div>`;
   }
@@ -478,13 +478,14 @@ function movesPanel(my, idx) {
   const m = my.team[idx];
   const d = POKEMON[m.id];
   const buttons = monMoves(m.id).map(k => {
-    const mv = WMOVES[k];
-    const {mult, dmg} = playerDamage(my, m.id, S.wild.id, k);
+    const mv = m.dmax ? maxMove(m.id, k) : WMOVES[k];
+    const {mult, dmg} = playerDamage(my, m.id, S.wild.id, k, m.dmax);
     const eff = mult > 1 ? `<em class="eff up">יעיל מאוד</em>` : mult === 0 ? `<em class="eff no">אין השפעה</em>` : mult < 1 ? `<em class="eff down">לא יעיל</em>` : "";
     return `<button class="tmv" style="--c:${TYPES[mv[1]].color}" onclick="useTableMove('${k}')">
       <span class="tmv-ic">${TYPES[mv[1]].icon}</span><span class="tmv-txt"><b>${mv[0]}</b><small>מוריד ${dmg} · ${TYPES[mv[1]].he}</small></span>${eff}</button>`;
   }).join("");
   return `<h2><img class="tmv-mon" src="${ART_URL(d.dex)}" alt=""> איזו מתקפה של ${d.he}?</h2>
+    ${m.dmax ? `<p class="sp-note">🔴 ג'יגנטמקס: מתקפות מקס</p>` : ""}
     <div class="tmv-grid">${buttons}</div>
     <div class="row"><button class="btn" onclick="ui.attackMon = null; renderPanel()">↩ חזור</button></div>`;
 }
@@ -710,7 +711,11 @@ function adminAct(op) {
 async function adminCreate(to) {
   closeModal();
   const id = await Admin.pick(to ? `🎁 לתת ל${playerName(to)}` : "✨ ליצור פוקימון");
-  if (id) Net.act({t: "admin", op: to ? "give" : "create", id, to});
+  if (!id) return;
+  // לפוקימון עם מגה או ג'יגנטמקס - בוחרים צורה
+  const form = await Admin.pickForm(id);
+  if (form === undefined) return;
+  Net.act({t: "admin", op: to ? "give" : "create", id, to, form});
 }
 
 function modal(html, kind) {

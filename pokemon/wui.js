@@ -14,6 +14,7 @@ const isAdmin = Admin.isMe(myName);
 
 let SV = null;                // השמירה
 let battle = null;            // הקרב הפעיל
+let trade = null, pendingTrade = null;   // הטרייד הפעיל
 let place = null;             // ליד מה אני עומד
 let worldPlayers = {};
 let pendingChallenge = null;
@@ -69,7 +70,7 @@ function enterWorld() {
   Music.play("town");
   World3D.setLead(SV.party[0].id);
   renderHud();
-  WNet.setUI({onPlayers, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave, onGotCoins, onGaveCoins,
+  WNet.setUI({onPlayers, onTradeReq, onTradeAns, onTrade, onTradeDone, onTradeEnd, onChallenge, onAnswer, onBattle: onPvp, onLost, onGot, onGave, onGotCoins, onGaveCoins,
     onStatus: s => { netStatus = s; renderHud(); if (s === "nametaken") toast("כבר יש בעולם מישהו עם השם שלך", 4000); }});
   WNet.join(myName);
   setInterval(() => {
@@ -85,15 +86,19 @@ function enterWorld() {
 let netStatus = "connecting";
 
 function renderHud() {
+  cleanSV();
   const lead = SV.party[0];
   const n = Object.keys(worldPlayers).length;
-  $w("#whud").innerHTML = `
+  // מציירים מחדש רק כשמשהו השתנה - אחרת לחיצה על כפתור יכולה ללכת לאיבוד
+  const html = `
     <a class="hbtn" href="index.html">↩</a>
     <button class="hbtn lead" onclick="openParty()"><img src="${ART_URL(POKEMON[lead.id].dex)}" alt=""><span>${POKEMON[lead.id].he} · ${lead.lvl}</span></button>
     <span class="hchip">🪙 ${SV.coins}</span>
+    <button class="hbtn" onclick="openTrade()" title="טרייד">🤝</button>
     ${isAdmin ? `<button class="hbtn adm-crown" onclick="openGifts()">👑</button>` : ""}
     <button class="hbtn" onclick="Music.toggle(!Music.isOn()); renderHud()">${Music.isOn() ? "🎵" : "🔇"}</button>
-    <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)}` : netStatus === "nametaken" ? "🚫" : "⏳"}</span>`;
+    <span class="hchip">${netStatus === "online" ? `👥 ${Math.max(1, n)} · שרת ${WNet.world() + 1}` : netStatus === "nametaken" ? "🚫" : "⏳"}</span>`;
+  if (renderHud.last !== html) { renderHud.last = html; $w("#whud").innerHTML = html; }
 }
 
 function onPlace(p) {
@@ -112,6 +117,7 @@ function onPlace(p) {
 }
 
 function heal() {
+  if (trade) return;
   healParty(SV.party);
   WSave.save();
   if (!Music.jingle("heal")) Sfx.play("caught");
@@ -127,8 +133,19 @@ function onPlayers(list) {
 
 /* ---------- הצוות ---------- */
 
+// מנקים מקומות ריקים בצוות ובקופסה (גם בלי לטעון מחדש)
+function cleanSV() {
+  const ok = m => m && POKEMON[m.id];
+  if (SV.party.every(ok) && SV.box.every(ok)) return;
+  SV.party = SV.party.filter(ok);
+  SV.box = SV.box.filter(ok);
+  if (!SV.party.length) SV.party.push(SV.box.length ? SV.box.shift() : tameMon(makeWorldMon("pikachu", 5)));
+  WSave.save();
+}
+
 function openParty() {
-  if (battle) return;
+  if (battle || trade) return;
+  cleanSV();
   const rows = SV.party.map((m, i) => monRow(m, `<div class="mbtns">
       ${i ? `<button class="mini" onclick="makeLead(${i})">ראשון</button>` : `<span class="lead-mark">⭐</span>`}
       <button class="mini" onclick="showMon(${i})">פרטים</button>
@@ -139,9 +156,10 @@ function openParty() {
   modal(`<h2>הצוות שלי</h2>${rows}${box}<button class="wbtn" onclick="closeModal()">סגור</button>`);
 }
 
-function makeLead(i) { const [m] = SV.party.splice(i, 1); SV.party.unshift(m); World3D.setLead(m.id); WSave.save(); renderHud(); openParty(); }
-function toBox(i) { SV.box.push(...SV.party.splice(i, 1)); World3D.setLead(SV.party[0].id); WSave.save(); renderHud(); openParty(); }
-function fromBox(i) { SV.party.push(...SV.box.splice(i, 1)); WSave.save(); openParty(); }
+// לחיצה כפולה או רשימה שהשתנתה: בודקים שהפוקימון באמת שם - אחרת נכנס לצוות מקום ריק
+function makeLead(i) { if (!SV.party[i] || i === 0) return openParty(); const [m] = SV.party.splice(i, 1); SV.party.unshift(m); World3D.setLead(m.id); WSave.save(); renderHud(); openParty(); }
+function toBox(i) { if (!SV.party[i] || SV.party.length < 2) return openParty(); SV.box.push(...SV.party.splice(i, 1)); World3D.setLead(SV.party[0].id); WSave.save(); renderHud(); openParty(); }
+function fromBox(i) { if (!SV.box[i] || SV.party.length >= W_MAX_PARTY) return openParty(); SV.party.push(...SV.box.splice(i, 1)); WSave.save(); openParty(); }
 
 function showMon(i) {
   const m = SV.party[i], d = POKEMON[m.id], st = wStats(m);
@@ -165,6 +183,7 @@ function moveChip(k) {
 /* ---------- המורה למתקפות ---------- */
 
 function openTutor() {
+  if (trade) return;
   modal(`<h2>📖 המורה למתקפות</h2><p class="price">כל מתקפה: 🪙 ${W_TUTOR_PRICE} · יש לך 🪙 ${SV.coins}</p>
     ${SV.party.map((m, i) => monRow(m, `<button class="mini" onclick="tutorFor(${i})">ללמד</button>`)).join("")}
     <button class="wbtn" onclick="closeModal()">סגור</button>`);
@@ -293,8 +312,9 @@ function battleMenu(b, mine, foe) {
     <button class="back-btn" onclick="battle.menu='main'; showBattle()">↩ חזרה</button>`;
   }
   if (b.menu === "fight") {
-    return `<div class="move-grid">${mine.moves.map((k, i) => {
-      const mv = WMOVES[k];
+    // ג'יגנטמקס: כל המתקפות הן מתקפות מקס
+    return (mine.dmax ? `<p class="sp-armed">🔴 ג'יגנטמקס: מתקפות מקס</p>` : "") + `<div class="move-grid">${mine.moves.map((k, i) => {
+      const mv = mine.dmax ? maxMove(mine.id, k) : WMOVES[k];
       const mult = typeMult(mv[1], POKEMON[foe.id].types);
       const eff = mult > 1 ? `<em class="eff up">יעיל מאוד</em>` : mult === 0 ? `<em class="eff no">אין השפעה</em>` : mult < 1 ? `<em class="eff down">לא יעיל</em>` : "";
       return `<button class="bmove" style="--c:${TYPES[mv[1]].color}" onclick="useMove(${i})">
@@ -329,7 +349,7 @@ async function strike(att, def, moveKey, attIsMe) {
   if (r.hit && r.dmg) { if (attIsMe) battle.foeHit = true; else battle.meHit = true; }
   Sfx.play(!r.hit ? "miss" : r.mult > 1 ? "superhit" : attIsMe ? "hit" : "hurt");
   const who = `${POKEMON[att.id].he}${attIsMe ? "" : " הפראי"}`;
-  await say(`${who} משתמש ב${WMOVES[moveKey][0]}!` + (!r.hit ? " פספס!" : r.mult === 0 ? " אין השפעה" : r.mult > 1 ? " יעיל מאוד!" : r.mult < 1 ? " לא כל כך יעיל" : "") + (r.crit ? " מכה קריטית!" : ""));
+  await say(`${who} משתמש ב${att.dmax ? maxMove(att.id, moveKey)[0] : WMOVES[moveKey][0]}!` + (!r.hit ? " פספס!" : r.mult === 0 ? " אין השפעה" : r.mult > 1 ? " יעיל מאוד!" : r.mult < 1 ? " לא כל כך יעיל" : "") + (r.crit ? " מכה קריטית!" : ""));
 }
 
 const foeMove = foe => foe.moves[wrnd(foe.moves.length)];
@@ -346,6 +366,10 @@ async function useMove(i) {
     if (a.hp <= 0 || d.hp <= 0) continue;
     await strike(a, d, mv, isMe);
   }
+  if (mine.dmax && !mine.perm && mine.hp > 0) {
+    mine.dmax--;
+    if (!mine.dmax) { const name = POKEMON[mine.id].he; wEndDmax(mine); await say(`${name} חזר לגודל רגיל`); }
+  }
   await afterRound();
 }
 
@@ -360,6 +384,7 @@ async function afterRound() {
   if (b.foe.hp <= 0) return winWild();
   if (SV.party[b.me].hp <= 0) {
     await say(`${POKEMON[SV.party[b.me].id].he} התעלף!`);
+    wEndDmax(SV.party[b.me]);
     if (firstAlive(SV.party) < 0) return loseWild();
     b.busy = false;
     b.menu = "mustSwitch";
@@ -375,6 +400,7 @@ async function doSwitch(i) {
   // קודם "מחכים", ורק אז שולחים: אצל המארח התשובה חוזרת מיד ומעדכנת את המסך
   if (b.kind === "pvp") { b.menu = "waiting"; showBattle(); WNet.act(b.bid, {kind: "switch", i}); return; }
   const forced = b.menu === "mustSwitch";
+  wEndDmax(SV.party[b.me]);   // דיינמקס נגמר כשמחליפים
   b.me = i;
   b.busy = true;
   await say(`קדימה ${POKEMON[SV.party[i].id].he}!`, 700);
@@ -396,6 +422,7 @@ async function throwBall(force) {
   b.ballAnim = null;
   if (ok) {
     Sfx.play("caught");
+    SV.party.forEach(wResetForms);
     const mon = tameMon(b.foe);
     mon.xp = 0;
     const where = SV.party.length < W_MAX_PARTY ? "party" : "box";
@@ -433,6 +460,7 @@ async function winWild() {
   const mine = SV.party[b.me];
   if (Music.isOn()) Music.play("victory"); else Sfx.play("win");
   await say(`${POKEMON[b.foe.id].he} הפראי התעלף!`);
+  SV.party.forEach(wResetForms);
   const coins = 8 + b.foe.lvl * 2;
   SV.coins += coins;
   await xpScreen(wXpFor(b.foe, false), `🪙 +${coins}`);
@@ -445,6 +473,7 @@ async function winWild() {
 async function loseWild() {
   Sfx.play("lose");
   await say("כל הפוקימונים שלך התעלפו... חוזרים למרכז הפוקימון.", 1600);
+  SV.party.forEach(wResetForms);
   healParty(SV.party);
   World3D.toCenter();
   WSave.save();
@@ -476,6 +505,7 @@ async function growth(mon, events) {
    "רמה עלתה!" והמד מתחיל מחדש. אחרי "המשך" מגיעים המתקפות החדשות
    וההתפתחויות, אחד אחרי השני. */
 async function xpScreen(amount, extra, skip) {
+  cleanSV();
   const rows = SV.party.filter(m => m.hp > 0 && m !== skip).map(m => {
     const before = {lvl: m.lvl, xp: m.xp};
     const events = gainXp(m, amount);
@@ -550,7 +580,9 @@ function chooseForget(mon, move) {
 function endBattle() {
   const b = battle;
   if (!b) return;
+  cleanSV();
   if (b.kind === "wild") World3D.removeWild(b.uid);
+  SV.party.forEach(wResetForms);
   battle = null;
   $w("#battle").hidden = true;
   World3D.pause(false);
@@ -564,7 +596,7 @@ function endBattle() {
 /* ---------- קרב נגד שחקן ---------- */
 
 function onChallenge(from, name) {
-  if (battle) { WNet.answer(from, false); return; }
+  if (battle || trade) { WNet.answer(from, false); return; }
   pendingChallenge = from;
   Sfx.play("turn");
   modal(`<h2>⚔️ ${escW(name)} מזמין אותך לקרב!</h2>
@@ -593,7 +625,7 @@ function onPvp(st) {
     World3D.pause(true);
     $w("#actBtn").hidden = true;
     battle = {kind: "pvp", bid: st.bid, log: ["מתכוננים לקרב..."], busy: true, menu: "main"};
-    WNet.sendParty(st.bid, SV.party.map(m => ({uid: m.uid, id: m.id, lvl: m.lvl, moves: m.moves})));
+    WNet.sendParty(st.bid, SV.party.map(m => ({uid: m.uid, id: m.id, lvl: m.lvl, moves: m.moves, perm: !!m.perm})));
     showBattle.pvpWaiting = true;
     return;
   }
@@ -662,10 +694,14 @@ async function admCreate(give) {
   const got = await Admin.pick(give ? `🎁 לתת ל${b.foeName || "יריב"}` : "✨ ליצור פוקימון", topLvl());
   if (!got || battle !== b) return;
   const {id, lvl} = got;
+  // לפוקימון עם מגה או ג'יגנטמקס - בוחרים צורה
+  const form = await Admin.pickForm(id);
+  if (form === undefined || battle !== b) return;
   b.menu = "main";
-  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl}); showBattle(); return; }
-  addMon(makeWorldMon(id, lvl));
-  await say(`✨ יצרת את ${POKEMON[id].he}!`, 1000);
+  if (b.kind === "pvp") { WNet.admin(b.bid, {op: give ? "give" : "create", id, lvl, form}); showBattle(); return; }
+  const made = makeFormMon(id, lvl, form);
+  addMon(made);
+  await say(`✨ יצרת את ${POKEMON[made.id].he}!`, 1000);
   b.busy = false;
   showBattle();
 }
@@ -673,7 +709,7 @@ async function admCreate(give) {
 function addMon(mon) {
   const where = SV.party.length < W_MAX_PARTY ? "party" : "box";
   SV[where].push(mon);
-  Profile.markCaught(mon.id);
+  Profile.markCaught(baseOf(mon.id));   // מגה / ג'יגנטמקס נספרים כפוקימון הבסיסי
   WSave.save();
   return where;
 }
@@ -692,7 +728,8 @@ function onLost(uid) {
 // קיבלתי פוקימון (לקחתי, יצרתי, או שנתנו לי)
 function onGot(m, from) {
   if (!m || !POKEMON[m.id]) return;
-  const mon = makeWorldMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
+  // makeFormMon מזהה לבד צורה של מגה / ג'יגנטמקס
+  const mon = makeFormMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
   if (m.moves && m.moves.length) mon.moves = m.moves.filter(k => WMOVES[k]).slice(0, 4);
   addMon(mon);
   toast(from ? `🎁 ${from} הביא לך את ${POKEMON[m.id].he} ברמה ${mon.lvl}!` : `🎁 ${POKEMON[m.id].he} הצטרף אליך!`, 3500);
@@ -701,7 +738,7 @@ function onGot(m, from) {
 
 /* 👑 מחוץ לקרב: ליצור פוקימון לעצמי או להביא לשחקן אחר שבעולם */
 function openGifts() {
-  if (battle) return;
+  if (battle || trade) return;
   const others = Object.values(worldPlayers).filter(p => p.pid !== WNet.myPid);
   modal(`<h2>👑 כוחות</h2>
     <div class="adm-menu">
@@ -719,8 +756,15 @@ async function giftTo(pid) {
   const got = await Admin.pick(pid ? `🎁 להביא ל${name || ""}` : "✨ ליצור לעצמי", topLvl());
   if (!got) return;
   const {id, lvl} = got;
-  if (!pid) { const where = addMon(makeWorldMon(id, lvl)); renderHud(); return toast(`✨ ${POKEMON[id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`); }
-  WNet.gift(pid, id, lvl);
+  const form = await Admin.pickForm(id);
+  if (form === undefined) return;
+  if (!pid) {
+    const made = makeFormMon(id, lvl, form);
+    const where = addMon(made);
+    renderHud();
+    return toast(`✨ ${POKEMON[made.id].he} ${where === "box" ? "נשלח לקופסה" : "הצטרף אליך"}!`);
+  }
+  WNet.gift(pid, id, lvl, form);
 }
 
 /* 🪙 כמה כסף לתת */
@@ -765,3 +809,177 @@ function boot() {
 
 if (window.World3D) boot();
 else addEventListener("world3d-ready", boot, {once: true});
+
+
+/* ---------- 🤝 טרייד ----------
+   כפתור בפינה ← רשימת כל מי שבעולם, עם חיפוש לפי שם ← שולחים בקשה.
+   השני מאשר, ושניהם רואים את אותו מסך: מה כל אחד נותן (פוקימונים ומטבעות).
+   שניהם "מוכן" ← שניהם "אישור" ← 3 שניות ← מוחלפים. כל שינוי מבטל את ה"מוכן". */
+const allMine = () => [...SV.party, ...SV.box];
+
+function openTrade() {
+  if (battle || trade) return;
+  modal(`<h2>🤝 טרייד</h2>
+    <input id="tradeSearch" class="tsearch" placeholder="🔍 חיפוש לפי שם" autocomplete="off" oninput="drawTradeList()">
+    <div id="tradeList" class="tlist"></div>
+    <p class="thint">${WNet.lobbyInfo()}</p>
+    <button class="wbtn" onclick="closeModal()">סגור</button>`);
+  drawTradeList();
+}
+
+function drawTradeList() {
+  const el = $w("#tradeList");
+  if (!el) return;
+  const q = ($w("#tradeSearch").value || "").trim();
+  const others = Object.values(worldPlayers).filter(p => p.pid !== WNet.myPid);
+  const list = others.filter(p => !q || String(p.name || "").includes(q));
+  const rows = list.map(p => `<div class="trow"><span class="tname">👤 ${escW(p.name)}</span>
+      <button class="mini" ${p.busy ? "disabled" : ""} onclick="sendTrade('${p.pid}')">${p.busy ? "⚔️ בקרב" : "🤝 שלח טרייד"}</button></div>`).join("");
+  // שחקנים משרתים אחרים שמתאימים לחיפוש (הרשימה מגיעה מהלובי של שרת 0)
+  const far = q ? WNet.dir().filter(p => p.pid !== WNet.myPid && !worldPlayers[p.pid] && String(p.name || "").includes(q)) : [];
+  const farRows = far.map(p => `<div class="trow far"><span class="tname">🌍 ${escW(p.name)} <small>שרת ${p.w + 1}</small></span>
+      <button class="mini" onclick="sendFar('${p.pid}', '${escW(p.name).replace(/'/g, "")}')">🤝 שלח טרייד</button></div>`).join("");
+  el.innerHTML = rows + farRows || `<p class="tempty">${q ? "לא נמצא שחקן בשם הזה באף שרת" : others.length ? "" : "אין עוד שחקנים בשרת שלך. אפשר לחפש לפי שם שחקן משרת אחר"}</p>`;
+}
+
+function sendFar(pid, name) {
+  WNet.tradeFar(pid);
+  closeModal();
+  toast(`🤝 בקשת טרייד נשלחה ל${name} ⏳`);
+}
+
+function sendTrade(pid) {
+  WNet.tradeReq(pid);
+  closeModal();
+  toast(`🤝 בקשת טרייד נשלחה ל${(worldPlayers[pid] || {}).name || ""} ⏳`);
+}
+
+function onTradeReq(from, name) {
+  if (battle || trade) { WNet.tradeAns(from, false); return; }
+  pendingTrade = from;
+  Sfx.play("turn");
+  modal(`<h2>🤝 ${escW(name)} רוצה לעשות איתך טרייד!</h2>
+    <div class="row2"><button class="wbtn" onclick="answerTrade(false)">לא עכשיו</button>
+    <button class="wbtn primary" onclick="answerTrade(true)">בוא נחליף!</button></div>`);
+}
+
+function answerTrade(ok) {
+  closeModal();
+  if (pendingTrade) WNet.tradeAns(pendingTrade, ok);
+  pendingTrade = null;
+}
+
+function onTradeAns(ok, busy, name) {
+  if (!ok) toast(busy ? `${name || "השחקן"} עסוק עכשיו` : `${name || "השחקן"} לא רוצה טרייד עכשיו`);
+}
+
+function onTrade(st) {
+  if (!trade || trade.tid !== st.tid) {
+    allMine().forEach(m => { if (!m.uid) m.uid = Math.random().toString(36).slice(2, 10); });
+    trade = {tid: st.tid, uids: [], coins: 0, view: "main"};
+    World3D.pause(true);
+    $w("#actBtn").hidden = true;
+  }
+  trade.st = st;
+  trade.goAt = st.go ? Date.now() + st.go : 0;
+  renderTrade();
+}
+
+function sendOffer() {
+  const mine = allMine();
+  const mons = trade.uids.map(u => mine.find(m => m.uid === u)).filter(Boolean)
+    .map(m => ({uid: m.uid, id: m.id, lvl: m.lvl, xp: m.xp, moves: m.moves, hp: m.hp, perm: !!m.perm}));
+  WNet.tradeOffer(trade.tid, mons, trade.coins, mine.length);
+}
+
+function tradeAdd(uid) { if (!trade.uids.includes(uid)) trade.uids.push(uid); trade.view = "main"; sendOffer(); renderTrade(); }
+function tradeRemove(uid) { trade.uids = trade.uids.filter(u => u !== uid); sendOffer(); renderTrade(); }
+function tradeCoins(v) { trade.coins = Math.max(0, Math.min(SV.coins, Math.floor(Number(v) || 0))); sendOffer(); renderTrade(); }
+function tradeView(v) { trade.view = v; renderTrade(); }
+
+function tradeMonChip(m, mine, locked) {
+  return `<div class="tmon"><img src="${ART_URL(POKEMON[m.id].dex)}" alt=""><b>${POKEMON[m.id].he}</b><small>רמה ${m.lvl}</small>
+    ${mine && !locked ? `<button class="tx" onclick="tradeRemove('${m.uid}')">✕</button>` : ""}</div>`;
+}
+
+function renderTrade() {
+  if (!trade || !trade.st) return;
+  const st = trade.st;
+  const you = st.you || WNet.myPid;
+  const me = st.sides.find(s => s.pid === you), them = st.sides.find(s => s.pid !== you);
+  if (!me || !them) return;
+  const locked = !!trade.goAt;
+  if (trade.view === "pick") {
+    const left = allMine().filter(m => !trade.uids.includes(m.uid));
+    return modal(`<h2>איזה פוקימון לתת?</h2>
+      <div class="tpick">${left.map(m => `<button onclick="tradeAdd('${m.uid}')"><img src="${ART_URL(POKEMON[m.id].dex)}" alt=""><b>${POKEMON[m.id].he}</b><small>רמה ${m.lvl}</small></button>`).join("") || "<p>אין עוד פוקימונים</p>"}</div>
+      <button class="wbtn" onclick="tradeView('main')">↩ חזרה</button>`);
+  }
+  const bothReady = me.ready && them.ready;
+  const giveAll = me.mons.length >= allMine().length && !them.mons.length;
+  let action;
+  if (locked) action = `<div class="tgo">🤝 מתחלפים בעוד <b id="tradeGo">3</b></div>`;
+  else if (!bothReady) action = `<button class="wbtn ${me.ready ? "" : "primary"}" ${!me.ready && giveAll ? "disabled" : ""} onclick="WNet.tradeReady('${trade.tid}', ${!me.ready})">${me.ready ? "↩ עוד לא מוכן" : "✅ מוכן"}</button>`;
+  else if (!me.ok) action = `<button class="wbtn primary tconfirm" onclick="WNet.tradeOk('${trade.tid}')">🤝 אישור טרייד</button>`;
+  else action = `<p class="twait">⏳ מחכים שגם ${escW(them.name)} יאשר</p>`;
+  const flag = s => s.ok ? "🤝 אישר" : s.ready ? "✅ מוכן" : "⏳ עוד בוחר";
+  modal(`<h2>🤝 טרייד עם ${escW(them.name)}</h2>
+    <div class="tside mine"><div class="thead"><b>אתה נותן</b><span>${flag(me)}</span></div>
+      <div class="tmons">${me.mons.map(m => tradeMonChip(m, true, locked)).join("")}
+        ${locked ? "" : `<button class="tadd" onclick="tradeView('pick')">➕ פוקימון</button>`}</div>
+      <div class="tcoins">🪙 <button ${locked ? "disabled" : ""} onclick="tradeCoins(${trade.coins - 100})">−100</button><button ${locked ? "disabled" : ""} onclick="tradeCoins(${trade.coins - 10})">−10</button>
+        <input type="number" min="0" value="${trade.coins}" ${locked ? "disabled" : ""} onchange="tradeCoins(this.value)">
+        <button ${locked ? "disabled" : ""} onclick="tradeCoins(${trade.coins + 10})">+10</button><button ${locked ? "disabled" : ""} onclick="tradeCoins(${trade.coins + 100})">+100</button>
+        <small>יש לך ${SV.coins}</small></div></div>
+    <div class="tside theirs"><div class="thead"><b>${escW(them.name)} נותן</b><span>${flag(them)}</span></div>
+      <div class="tmons">${them.mons.map(m => tradeMonChip(m, false)).join("") || `<p class="tempty">עוד לא שם כלום</p>`}</div>
+      <div class="tcoins">🪙 <b>${them.coins}</b></div></div>
+    ${giveAll && !locked ? `<p class="twarn">אי אפשר לתת את כל הפוקימונים שלך בלי לקבל אחד</p>` : ""}
+    <div class="tact">${action}</div>
+    <button class="wbtn" onclick="WNet.tradeCancel('${trade.tid}')">✖ ביטול</button>`);
+  tickTrade();
+}
+
+function tickTrade() {
+  const el = $w("#tradeGo");
+  if (!el || !trade || !trade.goAt) return;
+  el.textContent = Math.max(1, Math.ceil((trade.goAt - Date.now()) / 1000));
+  setTimeout(tickTrade, 200);
+}
+
+function onTradeDone(d) {
+  if (!trade || trade.tid !== d.tid) return;
+  const give = new Set(d.give || []);
+  SV.party = SV.party.filter(m => !give.has(m.uid));
+  SV.box = SV.box.filter(m => !give.has(m.uid));
+  SV.coins = Math.max(0, SV.coins - (d.coinsOut | 0) + (d.coinsIn | 0));
+  (d.get || []).forEach(m => {
+    if (!POKEMON[m.id]) return;
+    const mon = makeFormMon(m.id, Math.max(1, Math.min(100, m.lvl | 0)));
+    if (m.moves && m.moves.length) mon.moves = m.moves.filter(k => WMOVES[k]).slice(0, 4);
+    mon.xp = Math.max(0, m.xp | 0);
+    mon.hp = Math.min(wMaxHp(mon), Math.max(0, m.hp | 0));
+    addMon(mon);
+  });
+  if (!SV.party.length && SV.box.length) SV.party.push(SV.box.shift());
+  WSave.save();
+  const got = (d.get || []).map(m => (POKEMON[m.id] || {}).he).filter(Boolean);
+  endTradeUI();
+  Sfx.play("caught");
+  toast(`🤝 הטרייד עם ${d.from || ""} הצליח!${got.length ? " קיבלת: " + got.join(", ") : ""}${d.coinsIn ? ` 🪙 +${d.coinsIn}` : ""}`, 4000);
+}
+
+function onTradeEnd(tid, by) {
+  if (!trade || trade.tid !== tid) return;
+  endTradeUI();
+  toast(by ? `הטרייד בוטל (${by})` : "הטרייד בוטל");
+}
+
+function endTradeUI() {
+  trade = null;
+  closeModal();
+  World3D.pause(false);
+  if (SV.party[0]) World3D.setLead(SV.party[0].id);
+  renderHud();
+  onPlace(place);
+}

@@ -333,3 +333,6 @@ body:not(.in-game) .panel { background: rgba(22,28,44,.82); backdrop-filter: blu
 .tmv .eff.no { background: #1d2230; color: #fff; }
 .card-moves { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; margin-top: 4px; }
 .card-moves span { font-size: 10px; color: #fff; padding: 1px 6px; border-radius: 8px; text-shadow: 0 1px 1px rgba(0,0,0,.4); }
+
+/* ----- ג'יגנטמקס ----- */
+.sp-note { color: #ff6b81 !important; font-weight: bold; margin: 4px 0 !important; }

@@ -27,19 +27,20 @@ function wStats(mon) {
   return {hp: st[0], atk: st[1], def: st[2], spa: st[3], spd: st[4], spe: st[5]};
 }
 
-const wMaxHp = mon => wStats(mon).hp;
+// בדיינמקס החיים כפולים
+const wMaxHp = mon => wStats(mon).hp * (mon.dmax ? 2 : 1);
 const xpToNext = lvl => 12 + Math.round(lvl * lvl * 1.1);
 
 /* ---------- מתקפות ---------- */
 
 /* מה שהפוקימון יודע עד הרמה הזאת (לפי הסדר שבו לומדים) */
 function learnable(id, lvl) {
-  return (WLEARN[POKEMON[id].dex] || []).filter(([l]) => l <= lvl).map(([, m]) => m);
+  return (WLEARN[POKEMON[baseOf(id)].dex] || []).filter(([l]) => l <= lvl).map(([, m]) => m);
 }
 
 /* מתקפות שלומדים בדיוק ברמה הזאת */
 function learnedAt(id, lvl) {
-  return (WLEARN[POKEMON[id].dex] || []).filter(([l]) => l === lvl).map(([, m]) => m);
+  return (WLEARN[POKEMON[baseOf(id)].dex] || []).filter(([l]) => l === lvl).map(([, m]) => m);
 }
 
 /* כל מה שהמורה יכול ללמד: מה שהיה אמור לדעת עד עכשיו, ועוד מתקפות
@@ -83,7 +84,8 @@ function typeMult(moveType, defTypes) {
 
 /* נזק של מתקפה אחת. מחזיר גם אם פגע ואם זה היה יעיל */
 function wDamage(att, def, moveKey) {
-  const mv = WMOVES[moveKey];
+  // בדיינמקס: מתקפת מקס (או ג'י-מקס) שתמיד פוגעת
+  const mv = att.dmax && WMOVES[moveKey] ? maxMove(att.id, moveKey) : WMOVES[moveKey];
   if (!mv) return {dmg: 0, hit: false, mult: 1};
   const [, type, power, acc, physical] = mv;
   if (Math.random() * 100 >= acc) return {dmg: 0, hit: false, mult: 1};
@@ -171,6 +173,35 @@ function evolveMon(mon, to) {
   mon.hp = Math.max(1, Math.round(wMaxHp(mon) * ratio));
 }
 
+/* ---------- צורות ----------
+   פוקימון שאדמין זימן בצורה של מגה או ג'יגנטמקס נשאר כך לתמיד (perm).
+   ג'יגנטמקס כזה גדול כל הזמן: חיים כפולים ומתקפות מקס. */
+function makeFormMon(id, lvl, form) {
+  if (POKEMON[id] && POKEMON[id].form) { form = id; id = baseOf(id); }
+  if (!form || !formsOf(id).includes(form)) return makeWorldMon(id, lvl);
+  const m = makeWorldMon(form, lvl);
+  m.base = id;
+  m.perm = true;
+  if (POKEMON[form].form === "gmax") m.dmax = PERM_DMAX;
+  m.hp = wMaxHp(m);
+  return m;
+}
+
+function wEndDmax(m) {
+  if (!m || m.perm || (!m.dmax && !(POKEMON[m.id] && POKEMON[m.id].form === "gmax"))) return;
+  const hp = m.hp;
+  m.dmax = 0;
+  if (POKEMON[m.id] && POKEMON[m.id].form === "gmax") { m.id = m.base || baseOf(m.id); delete m.base; }
+  m.hp = Math.min(wMaxHp(m), Math.ceil(hp / 2));
+}
+
+// סוף הקרב: חוזרים לצורה הרגילה
+function wResetForms(m) {
+  if (!m || m.perm) return;
+  wEndDmax(m);
+  if (m && POKEMON[m.id] && POKEMON[m.id].form === "mega") { m.id = m.base || baseOf(m.id); delete m.base; }
+}
+
 /* ---------- שמירה ---------- */
 
 const WSave = (() => {
@@ -178,6 +209,15 @@ const WSave = (() => {
   function load() {
     try { s = JSON.parse(localStorage.getItem(W_SAVE) || "null"); } catch (e) { s = null; }
     if (s && !Array.isArray(s.party)) s = null;
+    // מקומות ריקים או פוקימון שלא קיים (משמירה ישנה או מבאג) - מוציאים
+    if (s) {
+      const ok = m => m && POKEMON[m.id];
+      s.party = s.party.filter(ok);
+      s.box = (Array.isArray(s.box) ? s.box : []).filter(ok);
+      if (!s.party.length) s.party.push(s.box.length ? s.box.shift() : tameMon(makeWorldMon("pikachu", 5)));
+    }
+    // שמירה מאמצע קרב: מחזירים כל פוקימון לצורה הרגילה
+    if (s) [...s.party, ...(s.box || [])].forEach(wResetForms);
     return s;
   }
   function save() { try { localStorage.setItem(W_SAVE, JSON.stringify(s)); } catch (e) {} }

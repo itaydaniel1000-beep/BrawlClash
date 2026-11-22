@@ -2,6 +2,27 @@
    השמות "איתי" ו"איתו" נעולים: אפשר לבחור בהם רק עם הקוד הסודי.
    מי שנכנס עם אחד מהם מקבל בקרב כפתור 👑: פי 2 התקפה, פי 2 הגנה,
    לקחת את הפוקימון של היריב, ליצור פוקימון ולתת פוקימון. */
+/* שגיאה במשחק: פס אדום קטן למטה עם ההודעה, כדי שאפשר יהיה לצלם ולשלוח.
+   לחיצה על הפס סוגרת אותו. */
+(() => {
+  const seen = new Set();
+  function show(msg) {
+    msg = String(msg || "שגיאה").slice(0, 180);
+    if (seen.has(msg) || seen.size > 5) return;
+    seen.add(msg);
+    const el = document.createElement("div");
+    el.textContent = "⚠️ " + msg;
+    el.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#c62828;color:#fff;font:13px/1.4 monospace;padding:8px 10px;border-radius:10px;direction:ltr;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,.4)";
+    el.onclick = () => el.remove();
+    (document.body || document.documentElement).appendChild(el);
+  }
+  window.addEventListener("error", e => {
+    if (e.target && e.target !== window && (e.target.src || e.target.href)) return;   // תמונה שלא נטענה - לא שגיאה בקוד
+    show((e.message || "error") + (e.filename ? " @ " + e.filename.split("/").pop().split("?")[0] + ":" + e.lineno : ""));
+  });
+  window.addEventListener("unhandledrejection", e => show("promise: " + (e.reason && (e.reason.message || e.reason))));
+})();
+
 const Admin = (() => {
   const NAMES = ["איתי", "איתו"];
   const HASH = "48f84ea6043f5313382811d79ec2ba3d163c943b0e33ca3fe2ba2e9a4f18e935";
@@ -35,7 +56,7 @@ const Admin = (() => {
     return new Promise(resolve => {
       let el = document.getElementById("admPick");
       if (!el) { el = document.createElement("div"); el.id = "admPick"; document.body.appendChild(el); }
-      const ids = Object.keys(POKEMON).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex);
+      const ids = Object.keys(POKEMON).filter(id => !POKEMON[id].form).sort((a, b) => POKEMON[a].dex - POKEMON[b].dex);
       el.className = "adm-pick";
       el.innerHTML = `<div class="adm-box">
         <div class="adm-head"><b>${title}</b><button class="adm-x">✕</button></div>
@@ -64,6 +85,33 @@ const Admin = (() => {
     });
   }
 
+  /* ---- בחירת צורה: רגיל / מגה (X, Y, Z) / ג'יגנטמקס ----
+     לפוקימון בלי צורות מחזיר null מיד. null = רגיל, מפתח = הצורה, undefined = ביטול */
+  function pickForm(id) {
+    const list = typeof formsOf === "function" ? formsOf(id) : [];
+    if (!list.length) return Promise.resolve(null);
+    return new Promise(resolve => {
+      const el = document.createElement("div");
+      el.className = "adm-pick";
+      const label = k => {
+        if (POKEMON[k].form === "gmax") return "🔴 ג'יגנטמקס";
+        const tag = (k.match(/-mega-([xyz])$/) || [])[1];
+        return "💎 מגה" + (tag ? " " + tag.toUpperCase() : "");
+      };
+      const cell = (k, text) => `<button data-k="${k}"><img src="${ART_URL(POKEMON[k].dex)}" alt=""><span>${text}</span><small>${POKEMON[k].he}</small></button>`;
+      el.innerHTML = `<div class="adm-box">
+        <div class="adm-head"><b>באיזו צורה?</b><button class="adm-x">✕</button></div>
+        <div class="adm-grid adm-forms">${cell(id, "רגיל")}${list.map(k => cell(k, label(k))).join("")}</div></div>`;
+      document.body.appendChild(el);
+      const close = v => { el.remove(); resolve(v); };
+      el.querySelector(".adm-x").onclick = () => close(undefined);
+      el.querySelector(".adm-grid").onclick = e => {
+        const b = e.target.closest("button[data-k]");
+        if (b) close(b.dataset.k === id ? null : b.dataset.k);
+      };
+    });
+  }
+
   const css = document.createElement("style");
   css.textContent = `
     .adm-pick{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:12px;direction:rtl}
@@ -80,6 +128,8 @@ const Admin = (() => {
     .adm-grid img{width:64px;height:64px;object-fit:contain}
     .adm-grid span{font-size:13px;font-weight:700}
     .adm-grid small{font-size:11px;color:#888}
+    .adm-forms{padding-top:10px;grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+    .adm-forms img{width:96px;height:96px}
     .adm-menu{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .adm-menu button{padding:12px 6px;border-radius:12px;border:3px solid #b8860b;background:linear-gradient(#fff7cc,#ffd84a);color:#3a2a00;font-weight:800;font-size:16px;cursor:pointer;font-family:inherit}
     .adm-menu button.on{background:linear-gradient(#b6ffb0,#3ccf4e);border-color:#1d7a28;color:#063b0c}
@@ -87,5 +137,5 @@ const Admin = (() => {
     .adm-crown{background:linear-gradient(#fff7cc,#ffd84a)!important;border-color:#b8860b!important;color:#3a2a00!important}`;
   document.head.appendChild(css);
 
-  return {reserved, unlocked, unlock, allowName, isMe: n => reserved(n) && unlocked(), boost, pick};
+  return {reserved, unlocked, unlock, allowName, isMe: n => reserved(n) && unlocked(), boost, pick, pickForm};
 })();
