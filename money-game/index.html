@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>כסף חכם - חינוך פיננסי</title>
+  <title>כסף חכם - חינוך פיננסי (עם AI אמיתי)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Assistant:wght@400;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=ae0766ff">
+  <link rel="stylesheet" href="styles.css?v=b14cff37">
+
 </head>
 <body>
   <header class="topbar">
@@ -67,21 +68,21 @@
         <button class="choice-card say-choice" onclick="showScreen('say')">
           <canvas class="card-art" data-art="say" width="130" height="110" aria-hidden="true"></canvas>
           <h3>מה דעתכם?</h3>
-          <p>כתבו לנו מה אתם חושבים על האתר. בלי שם, בלי הרשמה.</p>
+          <p>כתבו לנו מה אתם חושבים על האתר. בלי שם.</p>
           <span class="card-link">לכתוב הערה ←</span>
         </button>
 
         <button class="choice-card arcade-choice" onclick="showScreen('arcade')">
           <canvas class="card-art" data-art="arcade" width="130" height="110" aria-hidden="true"></canvas>
           <h3>משחקי כסף</h3>
-          <p>חמישה משחקים קצרים לתרגול. אפשר לשחק שוב ושוב.</p>
+          <p>שמונה משחקים קצרים לתרגול, כולל טנקים ובלונים. אפשר לשחק שוב ושוב.</p>
           <span class="card-link">לבחור משחק ←</span>
         </button>
 
         <button class="choice-card helper-choice" onclick="showScreen('helper')">
           <canvas class="card-art" data-art="helper" width="130" height="110" aria-hidden="true"></canvas>
           <h3>עוזר הכסף</h3>
-          <p>שאלו כל שאלה על כסף, וקבלו תשובה עם חישוב.</p>
+          <p>שאלו כל שאלה על כסף, וקבלו תשובה מ-AI אמיתי.</p>
           <span class="card-link">לשאול שאלה ←</span>
         </button>
 
@@ -334,8 +335,8 @@
         </form>
         <p id="commentNote" class="comment-note" hidden></p>
         <p class="comment-privacy">
-          לא נשמר שם, לא נשמרת כתובת, ואין דרך לדעת מי כתב. ההערות לא מוצגות
-          באתר - הן נשלחות אלינו ואנחנו קוראים אותן.
+          לא נשמר שם. ההודעה נשמרת עם מזהה אנונימי של החשבון ולא עם השם שלכם,
+          והיא לא מוצגת באתר. רק בעל האתר קורא אותה. לפני השליחה ההודעה נבדקת אוטומטית (ספאם ותוכן לא מתאים) ומתוקנות בה שגיאות כתיב.
         </p>
       </div>
     </section>
@@ -345,7 +346,7 @@
         <div>
           <span class="eyebrow">תרגול</span>
           <h2>משחקי כסף</h2>
-          <p>אותם משחקים שבמסע, אבל כאן אין מה להפסיד - אפשר לנסות כמה שרוצים.</p>
+          <p>חמשת המשחקים של המסע ועוד משחקים חדשים. כאן אין מה להפסיד - אפשר לנסות כמה שרוצים.</p>
         </div>
         <button class="back-button" onclick="showScreen('home')">חזרה</button>
       </div>
@@ -359,7 +360,7 @@
         <div>
           <span class="eyebrow">שאלו אותי</span>
           <h2>עוזר הכסף</h2>
-          <p>עונה מתוך השיעורים של האתר, ומחשב שאלות שיש בהן מספרים.</p>
+          <p>AI אמיתי שעונה על כל שאלה על כסף, גם מעבר למה שכתוב באתר.</p>
         </div>
         <button class="back-button" onclick="showScreen('home')">חזרה</button>
       </div>
@@ -383,22 +384,23 @@
   <footer>
     <p>כסף חכם · לומדים היום כדי לחיות טוב יותר מחר</p>
   </footer>
-
-  <script src="voice-durations.js?v=ae0766ff"></script>
-  <script src="movie.js?v=ae0766ff"></script>
-  <script src="movies.js?v=ae0766ff"></script>
-  <script src="game.js?v=ae0766ff"></script>
-  <script src="items.js?v=ae0766ff"></script>
-  <script src="minigames.js?v=ae0766ff"></script>
-  <script src="boss.js?v=ae0766ff"></script>
-  <script src="worlds.js?v=ae0766ff"></script>
-  <script src="comments.js?v=ae0766ff"></script>
-  <script src="arcade.js?v=ae0766ff"></script>
-  <script src="banner.js?v=ae0766ff"></script>
-  <script type="module" src="llm.js?v=ae0766ff"></script>
-  <script src="bigai.js?v=ae0766ff"></script>
-  <script src="assistant.js?v=ae0766ff"></script>
-  <script src="script.js?v=ae0766ff"></script>
-
+  <script src="voice-durations.js?v=b14cff37"></script>
+  <script src="movie.js?v=b14cff37"></script>
+  <script src="movies.js?v=b14cff37"></script>
+  <script src="game.js?v=b14cff37"></script>
+  <script src="items.js?v=b14cff37"></script>
+  <script src="minigames.js?v=b14cff37"></script>
+  <script src="boss.js?v=b14cff37"></script>
+  <script src="worlds.js?v=b14cff37"></script>
+  <script src="comments.js?v=b14cff37"></script>
+  <script src="arcade.js?v=b14cff37"></script>
+  <script src="banner.js?v=b14cff37"></script>
+  <script src="bigai.js?v=b14cff37"></script>
+  <script src="assistant.js?v=b14cff37"></script>
+  <script src="script.js?v=b14cff37"></script>
+  <script src="games2.js?v=b14cff37"></script>
+  <script src="messages.js?v=b14cff37"></script>
+  <script src="movie-life.js?v=b14cff37"></script>
+  <script type="module" src="llm.js?v=b14cff37"></script>
 </body>
 </html>

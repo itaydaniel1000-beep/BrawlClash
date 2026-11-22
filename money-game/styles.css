@@ -2889,3 +2889,93 @@ button:focus-visible {
   font-size: 0.88rem;
   color: var(--ink-soft);
 }
+
+/* ---------- טנקים נגד בלונים, וציד הונאות ---------- */
+/* הגיעו עם הגרסה החדשה של האתר. הסגנונות של .helper-ai-* שהיו
+   לצידם שם לא נלקחו: הם שייכים לעוזר הישן, ואצלנו העוזר אחר. */
+
+.tank-q {
+  margin: 14px 0 10px;
+  font-family: var(--f-display);
+  font-size: 1.18rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.tank-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: #cfe8ff;
+  touch-action: none;
+  cursor: crosshair;
+  user-select: none;
+}
+.tank-pad {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0 6px;
+  flex-wrap: wrap;
+}
+.tank-btn {
+  padding: 11px 18px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: 3px 3px 0 var(--ink);
+  touch-action: manipulation;
+  user-select: none;
+  cursor: pointer;
+}
+.tank-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.tank-fire { background: var(--accent); min-width: 110px; }
+
+.hunt-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+.hunt-slot {
+  min-height: 128px;
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  display: flex;
+}
+.hunt-card {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 11px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 3px 3px 0 var(--ink);
+  font: inherit;
+}
+.hunt-from { font-size: 0.72rem; font-weight: 800; color: var(--ink-soft); }
+.hunt-text { font-size: 0.92rem; line-height: 1.45; }
+.hunt-bar {
+  position: absolute;
+  inset-inline-start: 0;
+  bottom: 0;
+  height: 6px;
+  width: 100%;
+  background: var(--danger);
+  transition-property: width;
+  transition-timing-function: linear;
+}
+.hunt-card.right { background: var(--brand-soft); }
+.hunt-card.wrong { background: var(--danger-soft); }
+.hunt-card:disabled { cursor: default; }

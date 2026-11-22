@@ -467,11 +467,28 @@ function asSiteMemory() {
                "בכיתות ג׳ עד ז׳ על כסף. אתה נמצא בתוך האתר הזה, בדף " +
                "\"עוזר הכסף\", ומדבר עם הילדים שמשתמשים בו.");
     parts.push("");
+    /* השיעורים גדלו מעשרה ל-59, ועם משפט לכל אחד הזיכרון קפץ ל-4965
+       תווים - יותר מרבע מחלון ההקשר של המודל, על כל שאלה.
+
+       החלוקה היא לפי מה שהאתר באמת מלמד: לעשרה נושאי הליבה יש סרטון,
+       ולהם נשמר המשפט שמגדיר את המונח - תקציב, צורך מול רצון, קרן
+       חירום, ריבית דריבית. 49 הנותרים הם טיפים יומיים, ומספיק
+       שהעוזר ידע שהם קיימים ואיך הם נקראים. 1776 תווים במקום 4965,
+       והוא גדל לאט כשמוסיפים עוד. */
     if (typeof dailyLessons !== "undefined" && dailyLessons.length) {
-      parts.push("אלה השיעורים שיש באתר, ואתה מכיר אותם:");
-      dailyLessons.forEach(l => {
+      const videoTopics = new Set(
+        (typeof videos !== "undefined" ? videos : []).map(v => v.topic));
+      const core = dailyLessons.filter(l => videoTopics.has(l.topic));
+      const rest = dailyLessons.filter(l => !videoTopics.has(l.topic));
+
+      parts.push("אלה הנושאים שהאתר מלמד, ואתה מכיר אותם:");
+      (core.length ? core : dailyLessons).forEach(l => {
         parts.push("• " + l.title + " — " + asFirstSentence(l.body));
       });
+      if (core.length && rest.length) {
+        parts.push("ועוד שיעורים יומיים קצרים: " +
+                   rest.map(l => l.title).join(", ") + ".");
+      }
     }
     if (typeof videos !== "undefined" && videos.length) {
       parts.push("");
