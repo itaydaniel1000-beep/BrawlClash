@@ -116,6 +116,57 @@
     ctx.restore();
   }
 
+  /* כתוביות: המשפט שנאמר עכשיו, בתחתית המסך, עם שם הדובר כשזו דמות */
+  const WHO = {roni: "רוני", shopper: "הקונה", farmer: "האיכר", shepherd: "הרועה", shoemaker: "הסנדלר", crowd: "הקהל"};
+  const CAP_FONT = 'system-ui, "Segoe UI", Arial, sans-serif';
+  function drawCaption(ctx, t, cues) {
+    let cur = null;
+    for (let i = 0; i < cues.length; i++) if (cues[i].t <= t && t < cues[i].end) cur = cues[i];
+    if (!cur) return;
+    const fade = Math.min(1, (t - cur.t) / 0.18);
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, fade);
+    ctx.direction = "rtl";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const maxW = W - 120;
+    let size = 30;
+    let lines;
+    for (; size >= 20; size -= 2) {
+      ctx.font = "800 " + size + "px " + CAP_FONT;
+      const words = cur.text.split(" ");
+      lines = [];
+      let line = "";
+      words.forEach(w => {
+        const test = line ? line + " " + w : w;
+        if (line && ctx.measureText(test).width > maxW) { lines.push(line); line = w; } else line = test;
+      });
+      if (line) lines.push(line);
+      if (lines.length <= 2) break;
+    }
+    const lh = size + 8;
+    const label = WHO[cur.who] || "";
+    const boxH = lines.length * lh + 20 + (label ? 22 : 0);
+    const boxW = Math.min(W - 40, Math.max.apply(null, lines.map(l => ctx.measureText(l).width)) + 60);
+    const bx = (W - boxW) / 2;
+    const by = H - 24 - boxH;
+    ctx.fillStyle = "rgba(15,23,42,.82)";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, boxW, boxH, 16); else ctx.rect(bx, by, boxW, boxH);
+    ctx.fill();
+    let y = by + 12;
+    if (label) {
+      ctx.font = "800 17px " + CAP_FONT;
+      ctx.fillStyle = "#ffd84d";
+      ctx.fillText(label, W / 2, y + 9);
+      y += 22;
+    }
+    ctx.font = "800 " + size + "px " + CAP_FONT;
+    ctx.fillStyle = "#ffffff";
+    lines.forEach((l, i) => ctx.fillText(l, W / 2, y + lh / 2 + i * lh));
+    ctx.restore();
+  }
+
   function addLife(movie, shot, index, start) {
     if (shot.__alive) return;
     shot.__alive = true;
@@ -126,6 +177,14 @@
     const cueTimes = (movie.cues || [])
       .map(c => c.t - start)
       .filter(t => t >= -0.01 && t < dur);
+    const capCues = (movie.cues || [])
+      .filter(c => c.t - start >= -0.01 && c.t - start < dur)
+      .map(c => ({
+        t: c.t - start,
+        end: c.t - start + ((typeof VOICE_DURATIONS !== "undefined" && VOICE_DURATIONS[c.id]) || 3) + 0.5,
+        text: c.text,
+        who: c.who
+      }));
     shot.draw = function (ctx, t) {
       const p = Math.max(0, Math.min(1, t / dur));
       LIFE.t = t;
@@ -143,6 +202,7 @@
       ctx.translate(-W / 2, -H / 2);
       try { orig.call(this, ctx, t); } finally { ctx.restore(); }
       if (isLow) sparkles(ctx, t);
+      drawCaption(ctx, t, capCues);
     };
   }
 

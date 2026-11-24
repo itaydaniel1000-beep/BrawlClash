@@ -2979,3 +2979,20 @@ button:focus-visible {
 .hunt-card.right { background: var(--brand-soft); }
 .hunt-card.wrong { background: var(--danger-soft); }
 .hunt-card:disabled { cursor: default; }
+.msg-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 16px;border-bottom:2px solid var(--line)}
+.msg-chip{padding:5px 12px;border:2px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-weight:800;font-size:.82rem;cursor:pointer}
+.msg-chip.on{border-color:var(--ink);background:var(--accent,#f5c542)}
+.msg-purge{margin-inline-start:auto;padding:5px 12px;border:2px solid var(--danger);border-radius:10px;background:var(--surface);color:var(--danger);font-weight:800;font-size:.82rem;cursor:pointer}
+.msg-status{padding:8px 16px;font-size:.84rem;color:var(--ink-soft);border-bottom:1px solid var(--line)}
+.msg-item.flagged{border-color:var(--danger);opacity:.85}
+.msg-badge{display:inline-block;margin-inline-start:8px;padding:1px 8px;border-radius:999px;background:var(--danger);color:#fff;font-weight:800;font-size:.72rem}
+.msg-acts{display:flex;gap:8px;align-items:center}
+.msg-ask{font-weight:800;color:var(--ink)}
+.msg-no{border:0;background:none;color:var(--ink-soft);font-weight:800;cursor:pointer;font-size:.78rem}
+
+.grade-picker{margin:0 0 16px;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:var(--surface)}
+.grade-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.grade-chip{padding:7px 14px;border:2px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);font-weight:800;cursor:pointer}
+.grade-chip.on{border-color:var(--ink);background:var(--accent,#f5c542)}
+.grade-note{margin:0;font-size:.85rem;color:var(--ink-soft);line-height:1.5}
+.lesson-next{margin-top:14px;font-size:.85rem;font-weight:800;color:var(--ink-soft)}
