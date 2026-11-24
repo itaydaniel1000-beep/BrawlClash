@@ -31,14 +31,17 @@ const root = path.join(here, "..");
 const voiceDir = path.join(root, "voice");
 
 /* ---------- הקול של כל דמות ---------- */
+/* הקול הנשי הוא Emma, משפחת ה-Multilingual החדשה של מיקרוסופט. היא לא
+   רשומה כעברית אבל קוראת עברית, והיא נשמעת אנושית יותר מ-Hila. איתי השווה
+   באוזניים בין שמונה קולות ובחר בה (2026-11-24). הקול הגברי נשאר Avri. */
 const VOICES = {
-  narrator: "he-IL-AvriNeural",   // גבר, ידידותי
-  roni: "he-IL-HilaNeural",       // אישה, ידידותית
-  shopper: "he-IL-HilaNeural",
+  narrator: "he-IL-AvriNeural",            // גבר, ידידותי
+  roni: "en-US-EmmaMultilingualNeural",    // אישה, ידידותית
+  shopper: "en-US-EmmaMultilingualNeural",
   farmer: "he-IL-AvriNeural",
   shepherd: "he-IL-AvriNeural",
   shoemaker: "he-IL-AvriNeural",
-  crowd: "he-IL-HilaNeural"
+  crowd: "en-US-EmmaMultilingualNeural"
 };
 
 /* רישום של מה שהכלי הזה יצר. בלעדיו --redo היה עלול לדרוס הקלטות אמיתיות

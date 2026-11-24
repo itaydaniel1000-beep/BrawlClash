@@ -1,0 +1,17 @@
+    match /kesef-messages/{id} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['t', 'ts', 'v', 'hidden'])
+                    && request.resource.data.t is string
+                    && request.resource.data.t.size() >= 4
+                    && request.resource.data.t.size() <= 500
+                    && request.resource.data.ts is number
+                    && request.resource.data.v == ''
+                    && request.resource.data.hidden == false;
+
+      allow update: if request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['hidden', 'v'])
+                    && request.resource.data.t == resource.data.t;
+
+      allow delete: if false;
+    }

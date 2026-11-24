@@ -224,7 +224,11 @@ function buildMovie(id, scenes) {
     const talk = (scene.lines || []).reduce(function (sum, line) {
       return sum + lineSeconds(line);
     }, 0);
-    const duration = scene.duration || Math.max(scene.min || 6, Math.round(talk + 1.4));
+    /* הריווח הזה הוא כל השקט שבין סצנה לסצנה. קודם הוא היה 1.4
+       ועוד עיגול לשניה שלמה, ויחד עם 0.45 הנשימה שאחרי השורה האחרונה
+       זה הסתכם ל-1.5 עד 2.4 שניות שתיקה בכל מעבר, וחמישה מעברים בכל
+       סרטון. 0.35 משאיר בדיוק 0.8 שניות בין משפט למשפט חוצה לסצנה. */
+    const duration = scene.duration || Math.max(scene.min || 6, talk + 0.35);
 
     shots.push({duration: duration, draw: scene.draw});
 
