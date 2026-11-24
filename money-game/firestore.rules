@@ -1,0 +1,47 @@
+// כללי האבטחה של אוסף ההודעות של "כסף חכם" ב-Firestore.
+//
+// איפה מדביקים:
+//   https://console.firebase.google.com/project/portal-chat-d7bd3/firestore/rules
+//   מוסיפים את הבלוק match /kesef-messages/{id} בתוך
+//   match /databases/{database}/documents { ... } שכבר קיים שם,
+//   ולוחצים "Publish". אל תמחקו את מה שכבר כתוב - יש שם כללים של
+//   דברים אחרים בחשבון.
+//
+// מה הכללים האלה עושים:
+//   - כל אחד יכול לכתוב הודעה חדשה, אם היא במבנה הנכון ובגודל סביר
+//   - אי אפשר לשנות את הטקסט של הודעה קיימת ואי אפשר למחוק אותה
+//   - אפשר רק לסמן אותה כמוסתרת (hidden) או לתייג אותה (v)
+//   - הקריאה פתוחה
+//
+// למה הקריאה פתוחה: בלי התחברות אין דרך להוכיח במסד מי בעל האתר, וכל
+// "סיסמה" שתיכתב בדף הייתה גלויה ממילא. לכן ההודעות לא פרטיות: מי
+// שיחפש בקוד של הדף יוכל לקרוא אותן. בגלל זה כתוב בדף, ליד תיבת
+// הכתיבה, לא לכתוב שם, טלפון או כתובת, והקוד חוסם אותם לפני שליחה.
+// אם תרצו הודעות פרטיות באמת, צריך התחברות עם חשבון Google ואז
+//   allow read: if request.auth.uid == "<המזהה שלכם>";
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /kesef-messages/{id} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasOnly(['t', 'ts', 'v', 'hidden'])
+                    && request.resource.data.t is string
+                    && request.resource.data.t.size() >= 4
+                    && request.resource.data.t.size() <= 500
+                    && request.resource.data.ts is number
+                    && request.resource.data.v == ''
+                    && request.resource.data.hidden == false;
+
+      // רק שני השדות האלה ניתנים לשינוי, והטקסט עצמו נשאר כמו שנשלח
+      allow update: if request.resource.data.diff(resource.data)
+                       .affectedKeys().hasOnly(['hidden', 'v'])
+                    && request.resource.data.t == resource.data.t;
+
+      allow delete: if false;
+    }
+
+  }
+}

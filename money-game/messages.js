@@ -1,28 +1,125 @@
 /* ===== הודעות מהמבקרים + כניסה עם קוד לצפייה בהן =====
-   ההודעות נשמרות במסד הנתונים של הדף (db), תחת "messages/<מזהה>".
-   הכללים שמוצהרים בפרסום: רק בעל האתר קורא ומוחק; כל מי שרשאי לכתוב כותב רק לעצמו.
-   הקוד שמוזן בפינה הוא נוחות בלבד: ההגנה האמיתית היא כלל הקריאה של המסד. */
+   ההודעות נשמרות ב-Firestore, באוסף "kesef-messages", הודעה לכל מסמך.
+
+   למה Firestore ולא מסד הנתונים של הדף: המסד ההוא (window.claude.use("db"))
+   קיים רק כשהדף רץ בתוך claude.ai. האתר החי יושב על GitHub Pages, שם אין
+   שרת בכלל, ולכן הכרטיס "מה דעתכם" פשוט לא הופיע לאף אחד. Firestore עובד
+   מדף סטטי, הוא כבר קיים בחשבון (אותו פרויקט של הצ'אט בפורטל), והוא חינם.
+
+   מה הכללים במסד מרשים (ראו firestore.rules):
+   - כל אחד יכול לכתוב הודעה חדשה, אם היא בגודל סביר ובמבנה הנכון
+   - אי אפשר לערוך או למחוק הודעה קיימת, רק לסמן אותה כמוסתרת
+   - קריאה פתוחה. כלומר מי שיחפש בקוד של הדף יוכל לקרוא את ההודעות,
+     ולכן כתוב למטה בדף שלא כותבים כאן שם, טלפון או כתובת.
+   הקוד שמוזן בפינה הוא נוחות, לא הגנה.
+
+   מפתח ה-web של Firebase הוא לא סוד - הוא נועד לשבת בצד הלקוח, וההגנה
+   היא הכללים במסד. */
 (function () {
   const CODE_HASH = "8a9b9fc09043c96e5faa87ed8746e8e0fff1d7192ffeadbd130bb866bc4300de";
   const MAX = 500;
   const MIN = 4;
-  let dbNs = null;
-  let userNs = null;
-  let uid = null;
+  const COLL = "kesef-messages";
 
-  async function getDb() {
-    try {
-      if (!window.claude || !window.claude.use) return null;
-      if (!dbNs) dbNs = await window.claude.use("db");
-      return dbNs;
-    } catch (e) { return null; }
+  const FB_CONFIG = {
+    apiKey: "AIzaSyBdncYVQdassDDKwvx336WYToqdYWCN21s",
+    authDomain: "portal-chat-d7bd3.firebaseapp.com",
+    projectId: "portal-chat-d7bd3",
+    storageBucket: "portal-chat-d7bd3.firebasestorage.app",
+    messagingSenderId: "627638914418",
+    appId: "1:627638914418:web:30a5b4b94ebcc67fe161eb"
+  };
+  const FB_VER = "10.12.2";
+
+  /* נטען פעם אחת, ורק כשבאמת צריך: אין סיבה שמי שלא נכנס לכרטיס
+     "מה דעתכם" יוריד את ה-SDK. */
+  let fbPromise = null;
+  function firebase() {
+    if (fbPromise) return fbPromise;
+    fbPromise = (async () => {
+      const base = "https://www.gstatic.com/firebasejs/" + FB_VER + "/";
+      const app = await import(base + "firebase-app.js");
+      const fs = await import(base + "firebase-firestore.js");
+      const db = fs.getFirestore(app.initializeApp(FB_CONFIG, "kesef"));
+      /* פיתוח בלבד: ?emu=8085 מחבר לאמולטור מקומי, כדי לבדוק את
+         כל המסלול בלי לגעת במסד האמיתי. לא פועל מחוץ ל-localhost. */
+      const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+      const emu = local && new URLSearchParams(location.search).get("emu");
+      if (emu) fs.connectFirestoreEmulator(db, "127.0.0.1", Number(emu) || 8085);
+      return {db: db, fs: fs};
+    })().catch(err => {
+      console.info("messages: אין חיבור למסד -", String(err).slice(0, 110));
+      fbPromise = null;
+      return null;
+    });
+    return fbPromise;
   }
-  async function getUser() {
+
+  /* האם אפשר להשתמש כאן בהודעות. קריאה אחת קטנה עונה על זה: אם הכללים
+     במסד עוד לא פורסמו היא נכשלת, והכרטיס נשאר מוסתר במקום להציג טופס
+     ששליחה ממנו תיכשל. */
+  let canUse = null;
+  async function storeReady() {
+    if (canUse !== null) return canUse;
+    const f = await firebase();
+    if (!f) return (canUse = false);
     try {
-      if (!window.claude || !window.claude.use) return null;
-      if (!userNs) userNs = await window.claude.use("user");
-      return userNs;
-    } catch (e) { return null; }
+      await f.fs.getDocs(f.fs.query(f.fs.collection(f.db, COLL), f.fs.limit(1)));
+      canUse = true;
+    } catch (e) {
+      console.info("messages: המסד לא פתוח -", e && e.code);
+      canUse = false;
+    }
+    return canUse;
+  }
+
+  async function storeAdd(text) {
+    const f = await firebase();
+    if (!f) throw {code: "offline"};
+    await f.fs.addDoc(f.fs.collection(f.db, COLL), {
+      t: text, ts: Date.now(), v: "", hidden: false
+    });
+  }
+
+  /* מאזין חי: כל הודעה חדשה מופיעה בלוח בלי לרענן */
+  async function storeWatch(onItems, onError) {
+    const f = await firebase();
+    if (!f) { onError({code: "offline"}); return null; }
+    const q = f.fs.query(f.fs.collection(f.db, COLL), f.fs.orderBy("ts", "desc"), f.fs.limit(300));
+    return f.fs.onSnapshot(q, snap => {
+      const all = [];
+      snap.forEach(d => {
+        const x = d.data() || {};
+        if (x.hidden === true) return;
+        all.push({
+          id: d.id,
+          t: String(x.t || ""),
+          ts: Number(x.ts) || 0,
+          v: x.v === "ok" || x.v === "rude" || x.v === "unrelated" ? x.v : ""
+        });
+      });
+      onItems(all);
+    }, onError);
+  }
+
+  /* "מחיקה" היא סימון כמוסתרת. כלל שמרשה מחיקה אמיתית היה מרשה אותה
+     לכל אחד, כי בלי התחברות אין איך להוכיח במסד מי בעל האתר. ככה אף
+     הודעה לא נעלמת לבלי שוב, והיא פשוט לא מוצגת. */
+  async function storeHide(ids) {
+    const f = await firebase();
+    if (!f) throw {code: "offline"};
+    let failed = 0;
+    for (const id of ids) {
+      try { await f.fs.updateDoc(f.fs.doc(f.db, COLL, id), {hidden: true}); }
+      catch (e) { failed++; console.error("hide:", e); }
+    }
+    return failed;
+  }
+
+  async function storeVerdict(id, v) {
+    const f = await firebase();
+    if (!f) return;
+    try { await f.fs.updateDoc(f.fs.doc(f.db, COLL, id), {v: v}); } catch (e) {}
   }
   /* sha256 בלי תלות ביכולות הדפדפן (crypto.subtle לא תמיד זמין בדף מוטמע) */
   function sha256hex(str) {
@@ -80,11 +177,30 @@
   }
   async function sha256(text) { return sha256hex(canonCode(text)); }
 
-  /* ---------- סינון הודעות: ספאם, תוכן לא מתאים ושגיאות כתיב ---------- */
-  /* בדיקה מקומית מהירה, לפני שפונים ל-AI */
+  /* ---------- סינון הודעות ---------- */
+  /* באתר החי אין את ה-AI של claude.ai, אז הבדיקה הזאת היא מה שיש והיא רצה
+     תמיד. היא לא מתיימרת לתפוס הכול: בעל האתר רואה כל הודעה בלוח ויכול
+     להסתיר אותה. */
+  const RUDE = [
+    "זונה", "שרמוטה", "מניאק", "כוסאמ", "בנזונה", "זיון", "לזיין",
+    "תזדיין", "חרא", "מטומטם", "מפגר", "דביל", "אידיוט", "סקס", "פורנו",
+    "תמות", "אהרוג", "נאצי",
+    "fuck", "shit", "bitch", "whore", "porn", "nigg", "cunt", "rape"
+  ];
+  /* פרטים אישיים נחסמים לפני שליחה, כי הקריאה מהמסד פתוחה */
+  const PRIVATE = [
+    /0\d{1,2}[- ]?\d{7}/,
+    /05\d[- ]?\d{3}[- ]?\d{4}/,
+    /\b\d{9}\b/,
+    /[\w.+-]+@[\w-]+\.[\w.]{2,}/
+  ];
+
   function localCheck(text) {
     const t = String(text || "");
     const letters = t.replace(/[^A-Za-z\u05d0-\u05ea]/g, "");
+    if (PRIVATE.some(re => re.test(t))) return "private";
+    const flat = t.toLowerCase().replace(/[\s"'\u05f3\u05f4.,!?\u05be-]/g, "");
+    if (RUDE.some(w => flat.indexOf(w) >= 0)) return "inappropriate";
     if (letters.length < 3) return "spam";
     if (/(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|co\.il|io|ru|xyz)\b)/i.test(t)) return "spam";
     if (/(.)\1{5,}/u.test(t)) return "spam";
@@ -158,13 +274,7 @@
     input.addEventListener("input", refresh);
 
     (async () => {
-      const db = await getDb();
-      const user = await getUser();
-      if (!db || !user) return;
-      try { uid = await user.id(); } catch (e) { uid = null; }
-      let can = null;
-      try { can = await user.can("data.write"); } catch (e) { can = null; }
-      if (!uid || can === false) return;
+      if (!(await storeReady())) return;
       ready = true;
       input.disabled = false;
       if (card) card.hidden = false;
@@ -180,61 +290,62 @@
       const text = input.value.trim();
       if (!ready || text.length < MIN || text.length > MAX) return;
 
-      /* 1. בדיקה מקומית מהירה */
-      if (localCheck(text)) {
+      /* 1. בדיקה מקומית. באתר החי זו הבדיקה היחידה, ולכן היא חוסמת. */
+      const why = localCheck(text);
+      if (why === "private") {
+        say("ההודעה לא נשלחה: נראה שיש בה טלפון, מייל או מספר תעודת זהות. אל תכתבו כאן פרטים אישיים.", "warn");
+        return;
+      }
+      if (why === "inappropriate") {
+        say("ההודעה לא נשלחה כי יש בה מילה שלא מתאימה לאתר. אפשר לנסח מחדש בלעדיה.", "warn");
+        return;
+      }
+      if (why) {
         say("ההודעה לא נשלחה: היא לא נראית כמו הודעה אמיתית (אותיות מבולבלות, קישור או טקסט לא ברור). אפשר לנסח מחדש ולשלוח שוב.", "warn");
         return;
       }
 
       busy = true;
       send.disabled = true;
-      send.textContent = "בודק…";
-      say("בודק את ההודעה…", "");
+      send.textContent = "שולח…";
+      say("שולח…", "");
 
       try {
-        /* 2. בדיקת AI: ספאם, תוכן לא מתאים ותיקון כתיב */
-        let review;
-        try { review = await reviewMessage(text); }
-        catch (e) {
-          const code = e && e.code;
-          if (code === "not_granted") say("כדי לבדוק ספאם ושגיאות כתיב צריך לאשר לדף להשתמש ב-AI. ההודעה לא נשלחה.", "warn");
-          else if (code === "rate_limited") say("יש עומס כרגע. ההודעה לא נשלחה, נסו שוב עוד רגע.", "warn");
-          else say("הבדיקה האוטומטית לא זמינה כרגע, לכן ההודעה לא נשלחה. נסו שוב.", "warn");
-          return;
-        }
-        if (review.verdict === "spam") {
-          say("ההודעה לא נשלחה: היא לא נראית כמו הודעה אמיתית (אותיות מבולבלות או תוכן לא ברור). אפשר לנסח מחדש ולשלוח שוב.", "warn");
-          return;
-        }
-        if (review.verdict === "inappropriate") {
-          say("ההודעה לא נשלחה כי היא כוללת תוכן שלא מתאים לאתר. אפשר לנסח מחדש בלי זה.", "warn");
-          return;
+        /* 2. בדיקת AI ותיקון כתיב, רק אם הדף רץ איפה שיש AI. בלעדיה
+              פשוט שולחים את מה שנכתב. */
+        let finalText = text;
+        let changed = false;
+        if (window.claude && window.claude.use) {
+          try {
+            const review = await reviewMessage(text);
+            if (review.verdict === "spam") {
+              say("ההודעה לא נשלחה: היא לא נראית כמו הודעה אמיתית. אפשר לנסח מחדש ולשלוח שוב.", "warn");
+              return;
+            }
+            if (review.verdict === "inappropriate") {
+              say("ההודעה לא נשלחה כי היא כוללת תוכן שלא מתאים לאתר. אפשר לנסח מחדש בלי זה.", "warn");
+              return;
+            }
+            finalText = review.corrected || text;
+            changed = finalText.replace(/\s+/g, " ") !== text.replace(/\s+/g, " ");
+          } catch (e) { /* אין AI כרגע, שולחים כמו שנכתב */ }
         }
 
-        /* 3. שמירה (עם הטקסט המתוקן) */
-        const finalText = review.corrected;
-        const changed = finalText.replace(/\s+/g, " ") !== text.replace(/\s+/g, " ");
-        const attempt = async () => {
-          const ref = dbNs.doc("messages/" + uid);
-          const snap = await ref.get();
-          const old = snap.exists && snap.data() && Array.isArray(snap.data().items) ? snap.data().items : [];
-          const items = old.slice(-49).concat([{t: finalText, ts: Date.now(), v: "ok"}]);
-          await ref.set({items: items});
-        };
+        /* 3. שמירה */
         try {
-          try { await attempt(); }
+          try { await storeAdd(finalText); }
           catch (e) {
-            if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 700 + Math.random() * 600)); await attempt(); }
-            else throw e;
+            if (e && e.code === "unavailable") {
+              await new Promise(r => setTimeout(r, 700 + Math.random() * 600));
+              await storeAdd(finalText);
+            } else throw e;
           }
           input.value = "";
           say(changed ? "ההודעה נשלחה, ותיקנו בה כמה שגיאות כתיב. תודה שכתבתם." : "ההודעה נשלחה. תודה שכתבתם.", "good");
         } catch (err) {
           console.error("messages:", err);
-          if (err && err.code === "invalid_argument") {
-            ready = false;
-            input.disabled = true;
-            say("אין לכם הרשאה לשלוח הודעות מהחשבון הזה.", "warn");
+          if (err && (err.code === "permission-denied" || err.code === "invalid-argument")) {
+            say("ההודעה לא התקבלה. אם זה חוזר, כדאי לספר לבעל האתר.", "warn");
           } else {
             say("לא הצלחתי לשלוח. נסו שוב עוד רגע.", "warn");
           }
@@ -307,7 +418,7 @@
       chips[pair[0]] = c;
       bar.appendChild(c);
     });
-    const purge = el("button", "msg-purge", "מחיקת כל המסוננות");
+    const purge = el("button", "msg-purge", "הסתרת כל המסוננות");
     purge.type = "button";
     purge.hidden = true;
     bar.appendChild(purge);
@@ -329,7 +440,7 @@
     let classifying = false;
     let autoSwitched = false;
     const verdicts = new Map();
-    const keyOf = m => m.doc + "|" + m.ts + "|" + m.t;
+    const keyOf = m => m.id;
     const isFlag = m => m.v === "rude" || m.v === "unrelated";
 
     const shut = () => {
@@ -346,29 +457,20 @@
     const setMsg = text => { list.innerHTML = ""; list.appendChild(el("p", "msg-empty", text)); };
     setStatus("");
 
-    const db = await getDb();
-    if (!db) {
-      setMsg("אי אפשר לקרוא הודעות כאן. הדף צריך להיות פתוח בתוך claude.ai כשמחוברים לחשבון.");
+    if (!(await storeReady())) {
+      setMsg("אי אפשר לקרוא הודעות כרגע. אין חיבור למסד, או שהכללים שלו לא פורסמו.");
       bar.hidden = true;
       return;
     }
 
-    /* מחיקה: בלי חלון אישור של הדפדפן (חלונות כאלה נחסמים בתוך הדף), אלא אישור על המקום */
+    /* "מחיקה" היא הסתרה, ולכן היא הפיכה. בלי חלון אישור של הדפדפן
+       (חלונות כאלה נחסמים בתוך הדף), אלא אישור על המקום. */
     async function removeItems(targets) {
-      const byDoc = {};
-      targets.forEach(m => { (byDoc[m.doc] = byDoc[m.doc] || []).push(m); });
       let failed = 0;
-      for (const docId of Object.keys(byDoc)) {
-        try {
-          const ref = db.doc("messages/" + docId);
-          const s = await ref.get();
-          const cur = s.exists && s.data() && Array.isArray(s.data().items) ? s.data().items : [];
-          const next = cur.filter(x => !byDoc[docId].some(m => Number(x.ts) === m.ts && String(x.t) === m.t));
-          if (next.length) await ref.set({items: next}); else await ref.delete();
-        } catch (e) { failed++; console.error("delete:", e); }
-      }
-      if (failed) setStatus("לא הצלחתי למחוק חלק מההודעות. רק בעל האתר רשאי למחוק.");
-      else setStatus("נמחק.");
+      try { failed = await storeHide(targets.map(m => m.id)); }
+      catch (e) { failed = targets.length; }
+      if (failed) setStatus("לא הצלחתי להסתיר " + failed + " הודעות.");
+      else setStatus("הוסתר.");
     }
 
     purge.addEventListener("click", async () => {
@@ -384,11 +486,11 @@
       chips.flag.textContent = "מסוננות (" + flagged.length + ")";
       Object.keys(chips).forEach(k => chips[k].classList.toggle("on", k === filter));
       purge.hidden = !(filter === "flag" && flagged.length);
-      purge.textContent = purgeAsk ? "בטוח? לחצו שוב למחיקה" : "מחיקת כל המסוננות";
+      purge.textContent = purgeAsk ? "בטוח? לחצו שוב להסתרה" : "הסתרת כל המסוננות";
       title.textContent = "הודעות שנשלחו (" + items.length + ")";
       const shown = filter === "all" ? items : filter === "ok" ? items.filter(m => !isFlag(m)) : flagged;
       list.innerHTML = "";
-      if (!items.length) { setMsg("עוד לא נשלחו הודעות, או שהחשבון הזה לא רשאי לקרוא אותן. רק בעל האתר רואה את ההודעות."); return; }
+      if (!items.length) { setMsg("עוד לא נשלחו הודעות."); return; }
       if (!shown.length) { setMsg(filter === "flag" ? "אין הודעות מסוננות." : "אין הודעות להצגה."); return; }
       shown.forEach(m => {
         const item = el("div", "msg-item" + (isFlag(m) ? " flagged" : ""));
@@ -400,8 +502,8 @@
         const acts = el("span", "msg-acts");
         const k = keyOf(m);
         if (confirmKey === k) {
-          acts.appendChild(el("span", "msg-ask", "למחוק?"));
-          const yes = el("button", "msg-del", "כן, מחק");
+          acts.appendChild(el("span", "msg-ask", "להסתיר?"));
+          const yes = el("button", "msg-del", "כן, הסתר");
           yes.type = "button";
           yes.addEventListener("click", async () => { confirmKey = null; await removeItems([m]); });
           const no = el("button", "msg-no", "ביטול");
@@ -410,7 +512,7 @@
           acts.appendChild(yes);
           acts.appendChild(no);
         } else {
-          const del = el("button", "msg-del", "מחיקה");
+          const del = el("button", "msg-del", "הסתרה");
           del.type = "button";
           del.addEventListener("click", () => { confirmKey = k; render(); });
           acts.appendChild(del);
@@ -426,7 +528,10 @@
       if (classifying || !pending.length) return;
       classifying = true;
       try {
-        const sample = window.claude && window.claude.use ? await window.claude.use("sample") : null;
+        /* ה-AI של claude.ai קיים רק כשהדף רץ שם. באתר החי אין מה להגיד
+           על זה בכל פתיחה - פשוט אין סינון אוטומטי בלוח. */
+        if (!window.claude || !window.claude.use) return;
+        const sample = await window.claude.use("sample");
         if (!sample) { setStatus("סינון ה-AI לא זמין כרגע. מוצגות כל ההודעות."); return; }
         setStatus("בודק " + pending.length + " הודעות עם AI…");
         for (let off = 0; off < pending.length; off += 20) {
@@ -458,20 +563,10 @@
         if (n && !autoSwitched) { autoSwitched = true; filter = "ok"; }
         setStatus(n ? "הוסתרו " + n + " הודעות גסות או לא קשורות. אפשר לראות אותן בלשונית ״מסוננות״." : "כל ההודעות תקינות.");
         render();
-        /* שומרים את התוצאות כדי לא לבדוק שוב (רק בעל האתר רשאי לכתוב) */
-        const byDoc = {};
-        pending.forEach(m => { if (verdicts.has(keyOf(m))) (byDoc[m.doc] = byDoc[m.doc] || []).push(m); });
-        for (const docId of Object.keys(byDoc)) {
-          try {
-            const ref = db.doc("messages/" + docId);
-            const s = await ref.get();
-            const cur = s.exists && s.data() && Array.isArray(s.data().items) ? s.data().items : [];
-            const next = cur.map(x => {
-              const vv = verdicts.get(docId + "|" + Number(x.ts) + "|" + String(x.t));
-              return vv && !x.v ? Object.assign({}, x, {v: vv}) : x;
-            });
-            await ref.set({items: next});
-          } catch (e) { /* לא בעל האתר, לא נורא */ }
+        /* שומרים את התוצאה על ההודעה עצמה, כדי לא לבדוק אותה שוב */
+        for (const m of pending) {
+          const v = verdicts.get(keyOf(m));
+          if (v) await storeVerdict(m.id, v);
         }
       } catch (e) {
         console.error("classify:", e);
@@ -481,18 +576,8 @@
       }
     }
 
-    const onSnap = snap => {
-      const all = [];
-      snap.docs.forEach(d => {
-        const data = d.data();
-        const arr = data && Array.isArray(data.items) ? data.items : [];
-        arr.forEach(it => {
-          const m = {doc: d.id, t: String(it.t || ""), ts: Number(it.ts) || 0, v: it.v === "ok" || it.v === "rude" || it.v === "unrelated" ? it.v : ""};
-          if (!m.v && verdicts.has(keyOf(m))) m.v = verdicts.get(keyOf(m));
-          all.push(m);
-        });
-      });
-      all.sort((x, y) => y.ts - x.ts);
+    const onItems = all => {
+      all.forEach(m => { if (!m.v && verdicts.has(keyOf(m))) m.v = verdicts.get(keyOf(m)); });
       items = all;
       if (items.some(isFlag) && !autoSwitched) { autoSwitched = true; filter = "ok"; }
       render();
@@ -500,14 +585,10 @@
       if (pending.length) classify(pending);
     };
 
-    try {
-      unsub = db.collection("messages").onSnapshot(onSnap, err => {
-        console.error("messages read:", err);
-        setMsg("לא הצלחתי לקרוא את ההודעות כרגע.");
-      });
-    } catch (e) {
+    unsub = await storeWatch(onItems, err => {
+      console.error("messages read:", err);
       setMsg("לא הצלחתי לקרוא את ההודעות כרגע.");
-    }
+    });
   }
 
   function openCodePop(tab) {
@@ -541,14 +622,14 @@
     input.addEventListener("keydown", e => { if (e.key === "Enter") submit(); if (e.key === "Escape") closePop(); });
   }
 
-  /* הכפתור מופיע רק איפה שבאמת אפשר לקרוא הודעות. באתר הרגיל אין מסד נתונים
-     של הדף, אז הקוד הנכון היה פותח חלון שכל מה שכתוב בו הוא "אי אפשר לקרוא
-     כאן" - כפתור שלא מוביל לשום מקום. */
-  if (window.claude && typeof window.claude.use === "function") {
+  /* הכפתור מופיע רק איפה שבאמת אפשר לקרוא הודעות. כשהמסד לא נגיש הקוד
+     הנכון היה פותח חלון שכל מה שכתוב בו הוא "אי אפשר לקרוא כאן" - כפתור
+     שלא מוביל לשום מקום. */
+  storeReady().then(ok => {
+    if (!ok) return;
     const tab = el("button", "code-tab", "הזן קוד");
     tab.type = "button";
     tab.addEventListener("click", () => openCodePop(tab));
     document.body.appendChild(tab);
-  }
+  });
 })();
-
