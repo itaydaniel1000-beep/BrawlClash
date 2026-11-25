@@ -452,6 +452,18 @@
     .msg-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
     .msg-meta { font-size: 11px; color: #667781; text-align: left; margin-top: 2px; }
     .msg-auto { font-size: 11px; color: #667781; font-style: italic; }
+    .msg.me { cursor: pointer; }
+    .msg.deleted { cursor: default; }
+    .msg-deleted { color: #667781; font-style: italic; }
+    .ticks { font-size: 12px; margin-right: 3px; letter-spacing: -3px; color: #8696a0; }
+    .ticks.read { color: #53bdeb; }
+    .msg-actions { margin-top: 5px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 5px; text-align: center; }
+    .msg-del-btn {
+      background: #fff; border: 1px solid #f1b0b7; color: #d63345;
+      font-family: inherit; font-size: 13px; font-weight: 600;
+      padding: 4px 12px; border-radius: 999px; cursor: pointer;
+    }
+    .msg-del-btn:hover { background: #fde8ea; }
     .chat-presets {
       background: #f0f2f5;
       padding: 8px 10px 0;
@@ -900,6 +912,34 @@
     const CHAT_KEY = 'chatMessages';
     const NAME_COLORS = { 'יוסי': '#1f7aec', 'אמי': '#d6336c' };
 
+    const DELETED_KEY = 'chatDeleted';
+    let selectedMsgId = null;
+
+    function loadDeleted() {
+      let v = safeStore.get(DELETED_KEY);
+      if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { v = []; } }
+      return Array.isArray(v) ? v : [];
+    }
+
+    // מחיקת הודעה (רק של עצמך) — נשאר "ההודעה נמחקה" כמו בוואטסאפ
+    function deleteMessage(id) {
+      if (!confirm('למחוק את ההודעה אצל כולם?')) return;
+      selectedMsgId = null;
+      safeStore.push(DELETED_KEY, id);
+      renderChat(false);
+    }
+
+    // סימון "נקרא": כל אחד שומר עד איזה זמן הוא קרא
+    function lastReadOf(name) {
+      return Number(safeStore.get('lastRead_' + name)) || 0;
+    }
+
+    function markRead(msgs) {
+      if (!currentUserName || !msgs.length || document.visibilityState !== 'visible') return;
+      const latest = msgs[msgs.length - 1].ts;
+      if (latest > lastReadOf(currentUserName)) safeStore.set('lastRead_' + currentUserName, latest);
+    }
+
     function loadChat() {
       let v = safeStore.get(CHAT_KEY);
       if (typeof v === 'string') { try { v = JSON.parse(v); } catch (e) { v = []; } }
@@ -957,8 +997,12 @@
       const box = document.getElementById('chatMessages');
       if (!box || !document.getElementById('construction').classList.contains('active')) return;
       const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      const prevScroll = box.scrollTop;
       const msgs = loadChat();
+      const deleted = loadDeleted();
+      const otherRead = lastReadOf(otherUser());
       box.innerHTML = '';
+      markRead(msgs);
 
       if (!msgs.length) {
         const e = document.createElement('div');
@@ -984,8 +1028,10 @@
           lastName = null;
         }
 
+        const mine = m.name === currentUserName;
+        const isDeleted = deleted.indexOf(m.id) !== -1;
         const el = document.createElement('div');
-        el.className = 'msg ' + (m.name === currentUserName ? 'me' : 'other') + (m.name === lastName ? ' cont' : '');
+        el.className = 'msg ' + (mine ? 'me' : 'other') + (m.name === lastName ? ' cont' : '') + (isDeleted ? ' deleted' : '');
 
         const nm = document.createElement('div');
         nm.className = 'msg-name';
@@ -994,26 +1040,64 @@
         el.appendChild(nm);
 
         const tx = document.createElement('div');
-        tx.textContent = m.text;
+        if (isDeleted) {
+          tx.className = 'msg-deleted';
+          tx.textContent = '🚫 ההודעה נמחקה';
+        } else {
+          tx.textContent = m.text;
+        }
         el.appendChild(tx);
 
         const meta = document.createElement('div');
         meta.className = 'msg-meta';
-        if (m.auto) {
+        if (m.auto && !isDeleted) {
           const a = document.createElement('span');
           a.className = 'msg-auto';
           a.textContent = 'נשלח מהטבלה · ';
           meta.appendChild(a);
         }
         meta.appendChild(document.createTextNode(timeLabel(d)));
+        if (mine && !isDeleted) {
+          const tk = document.createElement('span');
+          const read = otherRead >= m.ts;
+          tk.className = 'ticks' + (read ? ' read' : '');
+          tk.textContent = read ? '✓✓' : '✓';
+          tk.title = read ? 'נקרא' : 'נשלח';
+          meta.appendChild(tk);
+        }
         el.appendChild(meta);
+
+        // לחיצה על הודעה שלך — פותחת כפתור מחיקה
+        if (mine && !isDeleted) {
+          el.onclick = function () {
+            selectedMsgId = (selectedMsgId === m.id) ? null : m.id;
+            renderChat(false);
+          };
+          if (selectedMsgId === m.id) {
+            const act = document.createElement('div');
+            act.className = 'msg-actions';
+            const del = document.createElement('button');
+            del.className = 'msg-del-btn';
+            del.textContent = '🗑️ מחק הודעה';
+            del.onclick = function (e) { e.stopPropagation(); deleteMessage(m.id); };
+            act.appendChild(del);
+            el.appendChild(act);
+          }
+        }
 
         group.appendChild(el);
         lastName = m.name;
       });
 
-      if (forceBottom || nearBottom) box.scrollTop = box.scrollHeight;
+      box.scrollTop = (forceBottom || nearBottom) ? box.scrollHeight : prevScroll;
     }
+
+    function otherUser() {
+      return currentUserName === 'יוסי' ? 'אמי' : 'יוסי';
+    }
+
+    // כשחוזרים לאפליקציה — לסמן כנקרא
+    document.addEventListener('visibilitychange', function () { renderChat(false); });
 
     function noteKey() {
       return 'note_' + (currentUserName || '');
