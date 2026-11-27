@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">שומר הודעות</string>
+    <string name="channel_name">הודעות שנמחקו</string>
+    <string name="permission_text">כדי שהאפליקציה תוכל לשמור הודעות מווטסאפ, צריך לאשר לה גישה להתראות. ההודעות נשמרות רק בטלפון שלך.</string>
+    <string name="grant">אשר גישה להתראות</string>
+    <string name="tab_deleted">🗑️ נמחקו</string>
+    <string name="tab_all">כל ההודעות</string>
+    <string name="empty_deleted">עוד לא נתפסו הודעות שנמחקו.\nכשמישהו ימחק הודעה "אצל כולם" - היא תופיע כאן.</string>
+    <string name="empty_all">עוד לא נשמרו הודעות.\nהודעות חדשות מווטסאפ יופיעו כאן.</string>
+    <string name="deleted_at">נמחקה ב־%1$s</string>
+    <string name="clear">נקה</string>
+    <string name="cancel">ביטול</string>
+    <string name="clear_confirm">למחוק את כל ההודעות השמורות?</string>
+    <string name="copied">ההודעה הועתקה</string>
+</resources>
